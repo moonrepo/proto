@@ -40,6 +40,7 @@ fn generate_types() {
     generator.add::<DefineToolConfigOutput>();
     generator.add::<RegisterBackendInput>();
     generator.add::<RegisterBackendOutput>();
+    generator.add::<DefineBackendConfigOutput>();
     generator.add::<DetectVersionOutput>();
     generator.add::<ParseVersionFileInput>();
     generator.add::<ParseVersionFileOutput>();

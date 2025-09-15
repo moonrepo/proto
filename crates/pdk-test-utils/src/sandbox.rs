@@ -58,7 +58,7 @@ impl ProtoWasmSandbox {
             Tool::create_plugin_manifest(&proto, Wasm::file(&self.wasm_file)).unwrap();
 
         inject_default_manifest_config(&context.id, &proto.home_dir, &mut manifest).unwrap();
-        inject_proto_manifest_config(&context.id, &proto, &mut manifest).unwrap();
+        inject_proto_manifest_config(&context, &proto, &mut manifest).unwrap();
 
         // Create config
         let mut config = self.create_config();

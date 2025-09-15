@@ -4,17 +4,21 @@ use crate::session::ProtoSession;
 use clap::Args;
 use miette::IntoDiagnostic;
 use proto_core::flow::detect::ProtoDetectError;
+use proto_core::flow::locate::ProtoLocateError;
 use proto_core::{
     Id, PROTO_PLUGIN_KEY, ProtoConfigEnvOptions, ProtoEnvironment, ProtoLoaderError, Tool,
     ToolContext, ToolSpec,
 };
-use proto_pdk_api::{ExecutableConfig, HookFunction, RunHook, RunHookResult};
+use proto_pdk_api::{
+    ActivateEnvironmentInput, ActivateEnvironmentOutput, ExecutableConfig, HookFunction,
+    PluginFunction, RunHook, RunHookResult,
+};
 use proto_shim::{exec_command_and_replace, locate_proto_exe};
 use starbase::AppResult;
 use starbase_styles::color;
 use starbase_utils::{
-    env::{bool_var, paths},
-    fs,
+    env::{bool_var, paths as env_paths},
+    path,
 };
 use std::env;
 use std::ffi::OsStr;
@@ -33,10 +37,10 @@ pub struct RunArgs {
 
     #[arg(
         long,
-        hide = true,
-        help = "Name of an alternate (secondary) executable to run"
+        alias = "alt",
+        help = "File name of an alternate (secondary) executable to run"
     )]
-    alt: Option<String>,
+    exe: Option<String>,
 
     // Passthrough args (after --)
     #[arg(
@@ -128,17 +132,21 @@ async fn get_tool_executable(tool: &Tool, alt: Option<&str>) -> miette::Result<E
 
         return Err(ProtoCliError::RunMissingAltBin {
             bin: alt_name.to_owned(),
-            path: tool_dir,
+            path: tool_dir.to_path_buf(),
         }
         .into());
     }
 
     // Otherwise use the primary
-    let mut config = tool
-        .resolve_primary_exe_location()
-        .await?
-        .expect("Required executable information missing!")
-        .config;
+    let mut config = match tool.resolve_primary_exe_location().await? {
+        Some(inner) => inner.config,
+        None => {
+            return Err(ProtoLocateError::NoPrimaryExecutable {
+                tool: tool.get_name().into(),
+            }
+            .into());
+        }
+    };
 
     // We don't use `locate_exe_file` here because we need to handle
     // tools whose primary file is not executable, like JavaScript!
@@ -152,14 +160,16 @@ fn get_global_executable(env: &ProtoEnvironment, name: &str) -> Option<PathBuf> 
         return None;
     };
 
-    let exe_name = if cfg!(windows) {
-        format!("{name}.exe")
-    } else {
-        name.to_owned()
-    };
+    let exe_name = path::exe_name(name);
 
     for path_dir in env::split_paths(&system_path) {
         if path_dir.starts_with(&env.store.bin_dir) || path_dir.starts_with(&env.store.shims_dir) {
+            continue;
+        }
+
+        // Local development may have ~/.proto on PATH, so ignore!
+        #[cfg(debug_assertions)]
+        if path_dir.to_string_lossy().contains(".proto") {
             continue;
         }
 
@@ -218,9 +228,9 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
         .proto
         .load_config()?
         .get_env_vars(ProtoConfigEnvOptions {
+            context: Some(&tool.context),
             check_process: true,
             include_shared: true,
-            tool_id: Some(tool.get_id().clone()),
         })?
     {
         match value {
@@ -391,20 +401,40 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
             ..Default::default()
         }
     } else {
-        get_tool_executable(&tool, args.alt.as_deref()).await?
+        get_tool_executable(&tool, args.exe.as_deref()).await?
     };
 
+    // Create the command
+    let mut command = create_command(&tool, &exe_config, &args.passthrough)?;
+    let mut paths = vec![];
+
+    // Setup environment
+    if tool
+        .plugin
+        .has_func(PluginFunction::ActivateEnvironment)
+        .await
+    {
+        let output: ActivateEnvironmentOutput = tool
+            .plugin
+            .call_func_with(
+                PluginFunction::ActivateEnvironment,
+                ActivateEnvironmentInput {
+                    context: tool.create_plugin_context(),
+                },
+            )
+            .await?;
+
+        command.envs(output.env);
+        paths.extend(output.paths);
+    }
+
     // Run before hook
-    let hook_result = if tool.plugin.has_func(HookFunction::PreRun).await {
+    if tool.plugin.has_func(HookFunction::PreRun).await {
         let globals_dir = tool.locate_globals_dir().await?;
         let globals_prefix = tool.locate_globals_prefix().await?;
 
-        // Ensure directory exists as some tools require it
-        if let Some(dir) = &globals_dir {
-            let _ = fs::create_dir_all(dir);
-        }
-
-        tool.plugin
+        let output: RunHookResult = tool
+            .plugin
             .call_func_with(
                 HookFunction::PreRun,
                 RunHook {
@@ -414,25 +444,23 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
                     passthrough_args: args.passthrough.clone(),
                 },
             )
-            .await?
-    } else {
-        RunHookResult::default()
+            .await?;
+
+        if let Some(value) = output.args {
+            command.args(value);
+        }
+        if let Some(value) = output.env {
+            command.envs(value);
+        }
+        if let Some(value) = output.paths {
+            paths.extend(value);
+        }
     };
 
-    // Create and run the command
-    let mut command = create_command(&tool, &exe_config, &args.passthrough)?;
-
-    if let Some(hook_args) = hook_result.args {
-        command.args(hook_args);
-    }
-
-    if let Some(hook_env) = hook_result.env {
-        command.envs(hook_env);
-    }
-
-    if let Some(mut hook_paths) = hook_result.paths {
-        hook_paths.extend(paths());
-        command.env("PATH", env::join_paths(hook_paths).into_diagnostic()?);
+    // Run the command
+    if !paths.is_empty() {
+        paths.extend(env_paths());
+        command.env("PATH", env::join_paths(paths).into_diagnostic()?);
     }
 
     if !use_global_proto {

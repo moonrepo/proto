@@ -2,7 +2,7 @@ use super::build_error::*;
 use super::install::{InstallPhase, OnPhaseFn};
 use crate::config::ProtoConfig;
 use crate::env::{ProtoConsole, ProtoEnvironment};
-use crate::helpers::{extract_filename_from_url, normalize_path_separators};
+use crate::helpers::extract_filename_from_url;
 use crate::id::Id;
 use crate::lockfile::LockRecord;
 use crate::utils::log::LogWriter;
@@ -21,7 +21,7 @@ use starbase_console::ui::{
 };
 use starbase_styles::{apply_style_tags, remove_style_tags};
 use starbase_utils::fs::LOCK_FILE;
-use starbase_utils::{env::is_ci, fs, net};
+use starbase_utils::{env::is_ci, fs, net, path};
 use std::env;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, OnceLock};
@@ -813,12 +813,12 @@ pub async fn execute_instructions(
 
     let make_absolute = |path: &Path| {
         if path.is_absolute() {
-            PathBuf::from(normalize_path_separators(path))
+            PathBuf::from(path::normalize_separators(path))
         } else {
             builder
                 .options
                 .install_dir
-                .join(normalize_path_separators(path))
+                .join(path::normalize_separators(path))
         }
     };
 
@@ -847,7 +847,7 @@ pub async fn execute_instructions(
                 exes.insert(&main_exe_name, &item.exe);
 
                 for (exe_name, exe_rel_path) in exes {
-                    let exe_abs_path = builder_dir.join(normalize_path_separators(exe_rel_path));
+                    let exe_abs_path = builder_dir.join(path::normalize_separators(exe_rel_path));
 
                     if !exe_abs_path.exists() {
                         return Err(ProtoBuildError::MissingBuilderExe {

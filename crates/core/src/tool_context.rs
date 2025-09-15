@@ -47,6 +47,8 @@ impl FromStr for ToolContext {
     type Err = ProtoIdError;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
+        let value = value.trim_matches(':');
+
         let (backend, id) = if let Some((prefix, suffix)) = value.split_once(':') {
             (Some(ProtoId::format(prefix)?), ProtoId::format(suffix)?)
         } else {

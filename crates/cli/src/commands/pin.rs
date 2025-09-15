@@ -29,11 +29,6 @@ pub async fn internal_pin(
 ) -> Result<PathBuf, ProtoConfigError> {
     let config_path = ProtoConfig::update_document(tool.proto.get_config_dir(pin_to), |doc| {
         doc[tool.context.as_str()] = cfg::value(spec.to_string());
-
-        // config
-        //     .versions
-        //     .get_or_insert_default()
-        //     .insert(tool.id.clone(), spec.clone());
     })?;
 
     debug!(

@@ -5,350 +5,45 @@ use crate::tool_spec::ToolSpec;
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
 use schematic::{
-    Config, ConfigEnum, ConfigError, ConfigLoader, DefaultValueResult, Format, MergeError,
-    MergeResult, PartialConfig, Path as ErrorPath, RegexSetting, ValidateError, ValidateResult,
-    ValidatorError, derive_enum, env, merge,
+    Config, ConfigError, ConfigLoader, Format, PartialConfig, Path as ErrorPath, ValidateError,
+    ValidatorError, merge,
 };
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use starbase_styles::color;
 use starbase_utils::fs::FsError;
-use starbase_utils::json::JsonValue;
 use starbase_utils::toml::TomlValue;
 use starbase_utils::{fs, toml};
 use std::collections::BTreeMap;
+use std::env;
 use std::ffi::OsStr;
 use std::fmt::Debug;
-use std::hash::Hash;
 use std::path::{Path, PathBuf};
-use system_env::{SystemOS, SystemPackageManager};
 use toml_edit::DocumentMut;
 use tracing::{debug, instrument, trace};
-use warpgate::{
-    HttpOptions, Id, PluginLocator, RegistryConfig, find_debug_locator_with_url_fallback,
-};
+use warpgate::{Id, PluginLocator, find_debug_locator_with_url_fallback};
+
+// Re-export settings from here!
+pub use crate::settings::*;
 
 pub const PROTO_CONFIG_NAME: &str = ".prototools";
 pub const SCHEMA_PLUGIN_KEY: &str = "internal-schema";
 pub const PROTO_PLUGIN_KEY: &str = "proto";
 pub const ENV_FILE_KEY: &str = "file";
 
-fn merge_tools(
-    mut prev: BTreeMap<Id, PartialProtoToolConfig>,
-    next: BTreeMap<Id, PartialProtoToolConfig>,
-    context: &(),
-) -> MergeResult<BTreeMap<Id, PartialProtoToolConfig>> {
-    for (key, value) in next {
-        prev.entry(key)
-            .or_default()
-            .merge(context, value)
-            .map_err(MergeError::new)?;
-    }
-
-    Ok(Some(prev))
-}
-
-fn merge_fxhashmap<K, V, C>(
-    mut prev: FxHashMap<K, V>,
-    next: FxHashMap<K, V>,
-    _context: &C,
-) -> MergeResult<FxHashMap<K, V>>
-where
-    K: Eq + Hash,
-{
-    for (key, value) in next {
-        prev.insert(key, value);
-    }
-
-    Ok(Some(prev))
-}
-
-fn merge_indexmap<K, V>(
-    mut prev: IndexMap<K, V>,
-    next: IndexMap<K, V>,
-    _context: &(),
-) -> MergeResult<IndexMap<K, V>>
-where
-    K: Eq + Hash,
-{
-    for (key, value) in next {
-        prev.insert(key, value);
-    }
-
-    Ok(Some(prev))
-}
-
-fn validate_default_registry(
-    value: &str,
-    partial: &PartialProtoSettingsConfig,
-    _context: &(),
-    finalize: bool,
-) -> ValidateResult {
-    if finalize
-        && let Some(registries) = &partial.registries
-        && !registries.iter().any(|reg| reg.registry == value)
-    {
-        let existing = registries
-            .iter()
-            .map(|reg| reg.registry.clone())
-            .collect::<Vec<_>>()
-            .join(", ");
-
-        return Err(ValidateError::new(format!(
-            "default registry {value} does not exist, available registries: {existing}"
-        )));
-    }
-
-    Ok(())
-}
-
-fn validate_reserved_words<T>(
-    value: &BTreeMap<Id, PluginLocator>,
-    _partial: &T,
-    _context: &(),
-    _finalize: bool,
-) -> ValidateResult {
-    if value.contains_key(PROTO_PLUGIN_KEY) {
-        return Err(ValidateError::new(
-            "proto is a reserved keyword, cannot use as a plugin identifier",
-        ));
-    }
-
-    Ok(())
-}
-
-derive_enum!(
-    #[derive(ConfigEnum, Copy, Default)]
-    pub enum PluginType {
-        Backend,
-        #[default]
-        Tool,
-    }
-);
-
-derive_enum!(
-    #[derive(ConfigEnum, Copy, Default)]
-    #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
-    pub enum ConfigMode {
-        Global,
-        Local,
-        Upwards,
-        #[default]
-        #[serde(alias = "all")]
-        #[cfg_attr(feature = "clap", value(alias("all")))]
-        UpwardsGlobal,
-    }
-);
-
-impl ConfigMode {
-    pub fn includes_global(&self) -> bool {
-        matches!(self, Self::Global | Self::UpwardsGlobal)
-    }
-
-    pub fn only_local(&self) -> bool {
-        matches!(self, Self::Local)
-    }
-}
-
-derive_enum!(
-    #[derive(ConfigEnum, Default)]
-    pub enum DetectStrategy {
-        #[default]
-        FirstAvailable,
-        PreferPrototools,
-        OnlyPrototools,
-    }
-);
-
-derive_enum!(
-    #[derive(Copy, ConfigEnum, Default)]
-    #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
-    pub enum PinLocation {
-        #[serde(alias = "store")]
-        #[cfg_attr(feature = "clap", value(alias("store")))]
-        Global,
-        #[default]
-        #[serde(alias = "cwd")]
-        #[cfg_attr(feature = "clap", value(alias("cwd")))]
-        Local,
-        #[serde(alias = "home")]
-        #[cfg_attr(feature = "clap", value(alias("home")))]
-        User,
-    }
-);
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct EnvFile {
-    pub path: PathBuf,
-    pub weight: usize,
-}
-
-#[derive(Clone, Config, Debug, PartialEq, Serialize)]
-#[serde(untagged)]
-pub enum EnvVar {
-    State(bool),
-    Value(String),
-}
-
-impl EnvVar {
-    pub fn to_value(&self) -> Option<String> {
-        match self {
-            Self::State(state) => state.then(|| "true".to_owned()),
-            Self::Value(value) => Some(value.to_owned()),
-        }
-    }
-}
-
-#[derive(Clone, Config, Debug, Deserialize, PartialEq, Serialize)]
-#[serde(untagged)]
-pub enum BuiltinPlugins {
-    Enabled(bool),
-    Allowed(Vec<String>),
-}
-
-fn default_builtin_plugins(_context: &()) -> DefaultValueResult<BuiltinPlugins> {
-    Ok(Some(BuiltinPlugins::Enabled(true)))
-}
-
-#[derive(Clone, Config, Debug, Serialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct ProtoBuildConfig {
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    #[setting(env = "PROTO_BUILD_EXCLUDE_PACKAGES", parse_env = env::split_comma)]
-    pub exclude_packages: Vec<String>,
-
-    #[setting(default = true, env = "PROTO_BUILD_INSTALL_SYSTEM_PACKAGES", parse_env = env::parse_bool)]
-    pub install_system_packages: bool,
-
-    #[serde(skip_serializing_if = "FxHashMap::is_empty")]
-    pub system_package_manager: FxHashMap<SystemOS, Option<SystemPackageManager>>,
-
-    #[setting(env = "PROTO_BUILD_WRITE_LOG_FILE", parse_env = env::parse_bool)]
-    pub write_log_file: bool,
-}
-
-#[derive(Clone, Config, Debug, Serialize)]
-#[config(allow_unknown_fields)]
-#[serde(rename_all = "kebab-case")]
-pub struct ProtoToolConfig {
-    #[setting(merge = merge::merge_btreemap)]
-    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
-    pub aliases: BTreeMap<String, ToolSpec>,
-
-    #[setting(nested, merge = merge_indexmap)]
-    #[serde(skip_serializing_if = "IndexMap::is_empty")]
-    pub env: IndexMap<String, EnvVar>,
-
-    // Custom configuration to pass to plugins
-    #[setting(merge = merge_fxhashmap)]
-    #[serde(flatten, skip_serializing_if = "FxHashMap::is_empty")]
-    pub config: FxHashMap<String, JsonValue>,
-
-    #[setting(exclude, merge = merge::append_vec)]
-    #[serde(skip)]
-    _env_files: Vec<EnvFile>,
-}
-
-#[derive(Clone, Config, Debug, Serialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct ProtoOfflineConfig {
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    #[setting(env = "PROTO_OFFLINE_HOSTS", parse_env = env::split_comma)]
-    pub custom_hosts: Vec<String>,
-
-    #[setting(env = "PROTO_OFFLINE_OVERRIDE_HOSTS", parse_env = env::parse_bool)]
-    pub override_default_hosts: bool,
-
-    #[setting(default = 750, env = "PROTO_OFFLINE_TIMEOUT")]
-    pub timeout: u64,
-}
-
-#[derive(Clone, Config, Debug, Serialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct ProtoSettingsConfig {
-    #[setting(env = "PROTO_AUTO_CLEAN", parse_env = env::parse_bool)]
-    pub auto_clean: bool,
-
-    #[setting(env = "PROTO_AUTO_INSTALL", parse_env = env::parse_bool)]
-    pub auto_install: bool,
-
-    #[setting(nested)]
-    pub build: ProtoBuildConfig,
-
-    #[setting(default = default_builtin_plugins)]
-    pub builtin_plugins: BuiltinPlugins,
-
-    #[setting(env = "PROTO_CACHE_DURATION")]
-    pub cache_duration: Option<u64>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[setting(env = "PROTO_DEFAULT_REGISTRY", validate = validate_default_registry)]
-    pub default_registry: Option<String>,
-
-    #[setting(env = "PROTO_DETECT_STRATEGY")]
-    pub detect_strategy: DetectStrategy,
-
-    pub http: HttpOptions,
-
-    #[serde(alias = "unstable-lockfile")]
-    pub lockfile: bool,
-
-    #[setting(nested)]
-    pub offline: ProtoOfflineConfig,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[setting(env = "PROTO_PIN_LATEST")]
-    pub pin_latest: Option<PinLocation>,
-
-    #[setting(merge = merge::append_vec)]
-    #[serde(alias = "unstable-registries", skip_serializing_if = "Vec::is_empty")]
-    pub registries: Vec<RegistryConfig>,
-
-    #[setting(default = true, env = "PROTO_TELEMETRY", parse_env = env::parse_bool)]
-    pub telemetry: bool,
-
-    #[setting(merge = merge_indexmap)]
-    #[serde(skip_serializing_if = "IndexMap::is_empty")]
-    pub url_rewrites: IndexMap<RegexSetting, String>,
-}
-
-#[derive(Clone, Config, Debug, Serialize)]
-#[config(allow_unknown_fields)]
-#[serde(rename_all = "kebab-case")]
-pub struct ProtoPluginsConfig {
-    #[setting(merge = merge::merge_btreemap, validate = validate_reserved_words)]
-    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
-    pub backends: BTreeMap<Id, PluginLocator>,
-
-    #[setting(merge = merge::merge_btreemap, validate = validate_reserved_words)]
-    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
-    pub tools: BTreeMap<Id, PluginLocator>,
-
-    // This is unfortunately required for flattening!
-    #[setting(merge = merge::merge_btreemap, validate = validate_reserved_words)]
-    #[serde(flatten, skip_serializing_if = "BTreeMap::is_empty")]
-    pub legacy: BTreeMap<Id, PluginLocator>,
-}
-
-impl ProtoPluginsConfig {
-    pub fn get(&self, id: &Id, ty: PluginType) -> Option<&PluginLocator> {
-        if ty == PluginType::Backend {
-            self.backends.get(id)
-        } else {
-            self.tools.get(id).or_else(|| self.legacy.get(id))
-        }
-    }
-}
-
 #[derive(Clone, Config, Debug, Serialize)]
 #[config(allow_unknown_fields)]
 #[serde(rename_all = "kebab-case")]
 pub struct ProtoConfig {
-    #[setting(nested, merge = merge_indexmap)]
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    #[setting(nested, merge = merge_partials_iter)]
+    pub backends: BTreeMap<Id, ProtoBackendConfig>,
+
     #[serde(skip_serializing_if = "IndexMap::is_empty")]
+    #[setting(nested, merge = merge_iter)]
     pub env: IndexMap<String, EnvVar>,
 
-    #[setting(nested, merge = merge_tools)]
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    #[setting(nested, merge = merge_partials_iter)]
     pub tools: BTreeMap<Id, ProtoToolConfig>,
 
     #[setting(nested)]
@@ -357,23 +52,42 @@ pub struct ProtoConfig {
     #[setting(nested)]
     pub settings: ProtoSettingsConfig,
 
-    #[setting(merge = merge::merge_btreemap)]
     #[serde(flatten)]
+    #[setting(merge = merge_iter)]
     pub versions: BTreeMap<ToolContext, ToolSpec>,
 
-    #[setting(merge = merge_fxhashmap)]
     #[serde(flatten, skip_serializing)]
+    #[setting(merge = merge_iter)]
     pub unknown: FxHashMap<String, TomlValue>,
 
-    #[setting(exclude, merge = merge::append_vec)]
     #[serde(skip)]
-    _env_files: Vec<EnvFile>,
+    #[setting(exclude, merge = merge::append_vec)]
+    pub(crate) _env_files: Vec<EnvFile>,
 }
 
 impl ProtoConfig {
-    pub fn setup_env_vars(&self) {
-        use std::env;
+    pub fn get_backend_config(&self, context: &ToolContext) -> Option<&ProtoBackendConfig> {
+        context
+            .backend
+            .as_ref()
+            .and_then(|id| self.backends.get(id))
+    }
 
+    pub fn get_tool_config(&self, context: &ToolContext) -> Option<&ProtoToolConfig> {
+        // To avoid ID collisions between tools and backend managed tools,
+        // the latter's configuration must include the backend prefix.
+        // For example, "npm:node" instead of just "node" (collision).
+        if context.backend.is_some() {
+            self.tools
+                .get(context.as_str())
+                // TODO remove in v0.54
+                .or_else(|| self.tools.get(&context.id))
+        } else {
+            self.tools.get(context.as_str())
+        }
+    }
+
+    pub fn setup_env_vars(&self) {
         if env::var("PROTO_OFFLINE_OVERRIDE_HOSTS").is_err()
             && self.settings.offline.override_default_hosts
         {
@@ -713,6 +427,12 @@ impl ProtoConfig {
             }
         }
 
+        if let Some(backends) = &mut config.backends {
+            for backend in backends.values_mut() {
+                push_env_file(backend.env.as_mut(), &mut backend._env_files, 3)?;
+            }
+        }
+
         push_env_file(config.env.as_mut(), &mut config._env_files, 0)?;
 
         Ok(config)
@@ -779,10 +499,14 @@ impl ProtoConfig {
             paths.extend(&self._env_files);
         }
 
-        if let Some(tool_id) = &options.tool_id
-            && let Some(tool_config) = self.tools.get(tool_id)
-        {
-            paths.extend(&tool_config._env_files);
+        if let Some(context) = options.context {
+            if let Some(backend_config) = self.get_backend_config(context) {
+                paths.extend(&backend_config._env_files);
+            }
+
+            if let Some(tool_config) = self.get_tool_config(context) {
+                paths.extend(&tool_config._env_files);
+            }
         }
 
         // Sort by weight so that we persist the order of env files
@@ -811,10 +535,14 @@ impl ProtoConfig {
             base_vars.extend(self.env.clone());
         }
 
-        if let Some(tool_id) = &options.tool_id
-            && let Some(tool_config) = self.tools.get(tool_id)
-        {
-            base_vars.extend(tool_config.env.clone())
+        if let Some(context) = options.context {
+            if let Some(backend_config) = self.get_backend_config(context) {
+                base_vars.extend(backend_config.env.clone())
+            }
+
+            if let Some(tool_config) = self.get_tool_config(context) {
+                base_vars.extend(tool_config.env.clone())
+            }
         }
 
         let mut vars = IndexMap::<String, Option<String>>::new();
@@ -908,8 +636,8 @@ impl ProtoConfig {
 }
 
 #[derive(Clone, Default)]
-pub struct ProtoConfigEnvOptions {
+pub struct ProtoConfigEnvOptions<'ctx> {
+    pub context: Option<&'ctx ToolContext>,
     pub check_process: bool,
     pub include_shared: bool,
-    pub tool_id: Option<Id>,
 }

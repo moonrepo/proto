@@ -64,7 +64,7 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
             exes_dirs: tool.locate_exes_dirs().await?,
             globals_dirs: tool.locate_globals_dirs().await?,
             globals_prefix: tool.locate_globals_prefix().await?,
-            inventory_dir: tool.get_inventory_dir(),
+            inventory_dir: tool.get_inventory_dir().to_path_buf(),
             shims,
             id: tool.get_id().clone(),
             name: tool.metadata.name.clone(),

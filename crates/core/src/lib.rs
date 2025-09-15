@@ -12,6 +12,7 @@ mod loader;
 mod loader_error;
 mod lockfile;
 pub mod registry;
+mod settings;
 mod tool;
 mod tool_context;
 mod tool_error;

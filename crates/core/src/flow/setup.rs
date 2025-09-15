@@ -103,12 +103,6 @@ impl Tool {
                     .to_string(),
                 );
             }
-
-            // config
-            //     .versions
-            //     .get_or_insert_default()
-            //     .entry(self.id.clone())
-            //     .or_insert_with(|| ToolSpec::new_backend(default_version, self.backend));
         })?;
 
         // Allow plugins to override manifest
@@ -184,14 +178,6 @@ impl Tool {
 
                 doc.as_table_mut().remove(self.context.as_str());
             }
-
-            // if let Some(versions) = &mut config.versions {
-            //     if versions.get(&self.id).is_some_and(|v| v == &version) {
-            //         debug!("Unpinning global version");
-
-            //         versions.remove(&self.id);
-            //     }
-            // }
         })?;
 
         // Remove version from manifest/lockfile

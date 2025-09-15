@@ -3,12 +3,5 @@ source: crates/cli/tests/plugins_test.rs
 expression: "fs::read_to_string(sandbox.path().join(\".proto/shims/registry.json\")).unwrap()"
 ---
 {
-  "pip": {
-    "before_args": [
-      "-m",
-      "pip"
-    ],
-    "parent": "python"
-  },
-  "python": {}
+  "moon": {}
 }

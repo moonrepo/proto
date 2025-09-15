@@ -80,7 +80,7 @@ pub async fn clean_tool(
         return Ok(cleaned);
     }
 
-    let inventory_dir = tool.get_inventory_dir();
+    let inventory_dir = tool.get_inventory_dir().to_path_buf();
 
     if !inventory_dir.exists() {
         debug!("Not being used, skipping");

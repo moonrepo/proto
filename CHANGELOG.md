@@ -19,14 +19,27 @@
 
 #### 💥 Breaking
 
+- Backend managed tools must now include the backend prefix when configuring in `[tools]`, to avoid naming collisions with non-backend tools. Example: `[tools."asdf:zig"]` instead of `[tools.zig]`.
+  - We'll temporarily support the old format until the next release, in which it will be removed completely.
 - **WASM API**
   - Removed `RegisterToolOutput.config_schema` field. Use `define_tool_config` instead.
 
 #### 🚀 Updates
 
+- Improved backend plugin support.
+  - Added a `[backends.<id>]` setting for configuring the backend (not the tool) itself.
+  - Improved interoperability between plugins.
+- Added a mechanism for plugins to setup the environment during activation and execution workflows.
 - **WASM API**
-  - Added a `define_tool_config` plugin function.
-  - Added a `DefineToolConfigOutput` type.
+  - Added a `get_backend_config` helper function to retrieve the backend configuration.
+  - Added a `define_tool_config`, `define_backend_config`, and `activate_environment` plugin (guest) functions.
+  - Added a `DefineToolConfigOutput`, `DefineBackendConfigOutput`, `ActivateEnvironmentInput`, and `ActivateEnvironmentOutput` types.
+  - Added a `ToolInventoryOptions.scoped_backend_dir` field.
+  - Added a `NativeInstallInput.force` field.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
 
 ## 0.52.5
 

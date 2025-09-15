@@ -25,7 +25,7 @@ pub async fn unalias(session: ProtoSession, args: UnaliasArgs) -> AppResult {
     let config_path = ProtoConfig::update_document(tool.proto.get_config_dir(args.from), |doc| {
         if let Some(tools) = doc.get_mut("tools").and_then(|item| item.as_table_mut()) {
             if let Some(record) = tools
-                .get_mut(tool.get_id().as_str())
+                .get_mut(tool.context.as_str())
                 .and_then(|item| item.as_table_mut())
             {
                 if let Some(aliases) = record
@@ -40,7 +40,7 @@ pub async fn unalias(session: ProtoSession, args: UnaliasArgs) -> AppResult {
                 }
 
                 if record.is_empty() {
-                    tools.remove(tool.get_id().as_str());
+                    tools.remove(tool.context.as_str());
                 }
             }
 
@@ -48,14 +48,6 @@ pub async fn unalias(session: ProtoSession, args: UnaliasArgs) -> AppResult {
                 doc.as_table_mut().remove("tools");
             }
         }
-
-        // if let Some(tool_configs) = &mut config.tools {
-        //     if let Some(tool_config) = tool_configs.get_mut(&tool.id) {
-        //         if let Some(aliases) = &mut tool_config.aliases {
-        //             value = aliases.remove(&args.alias);
-        //         }
-        //     }
-        // }
     })?;
 
     let Some(value) = value else {

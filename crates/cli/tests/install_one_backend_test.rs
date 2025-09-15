@@ -74,7 +74,7 @@ mod install_one_backend {
         sandbox.create_file(
             ".prototools",
             r#"
-[tools.newrelic]
+[tools."asdf:newrelic"]
 asdf-shortname = "newrelic-cli"
 "#,
         );
@@ -102,7 +102,7 @@ asdf-shortname = "newrelic-cli"
         sandbox.create_file(
             ".prototools",
             r#"
-[tools.newrelic]
+[tools."asdf:newrelic"]
 asdf-repository = "https://github.com/NeoHsu/asdf-newrelic-cli"
 "#,
         );

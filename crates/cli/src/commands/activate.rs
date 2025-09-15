@@ -4,6 +4,7 @@ use indexmap::IndexMap;
 use miette::IntoDiagnostic;
 use proto_core::flow::setup::ProtoSetupError;
 use proto_core::{Id, PROTO_PLUGIN_KEY, ProtoConfigEnvOptions, ToolContext, UnresolvedVersionSpec};
+use proto_pdk_api::{ActivateEnvironmentInput, ActivateEnvironmentOutput, PluginFunction};
 use rustc_hash::FxHashSet;
 use serde::Serialize;
 use starbase::AppResult;
@@ -11,21 +12,22 @@ use starbase_shell::{Hook, ShellType};
 use starbase_utils::env::paths;
 use starbase_utils::json;
 use std::env;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use tokio::task::JoinSet;
 use tracing::warn;
 
 #[derive(Default, Serialize)]
 struct ActivateItem {
     pub tool: ToolContext,
+    pub env: IndexMap<String, String>,
     pub paths: Vec<PathBuf>,
 }
 
 impl ActivateItem {
-    pub fn add_path(&mut self, path: &Path) {
+    pub fn add_path(&mut self, path: PathBuf) {
         // Only add paths that exist
         if path.exists() {
-            self.paths.push(path.to_owned());
+            self.paths.push(path);
         }
     }
 }
@@ -40,6 +42,10 @@ struct ActivateCollection {
 
 impl ActivateCollection {
     pub fn collect(&mut self, item: ActivateItem) {
+        for (key, value) in item.env {
+            self.env.insert(key, Some(value));
+        }
+
         // Don't use a set as we need to persist the order!
         for path in item.paths {
             if !self.paths.contains(&path) {
@@ -113,7 +119,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
         collection
             .env
             .extend(config.get_env_vars(ProtoConfigEnvOptions {
-                tool_id: Some(tool.get_id().clone()),
+                context: Some(&tool.context),
                 ..Default::default()
             })?);
 
@@ -128,13 +134,35 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
 
             // Resolve the version and locate executables
             if tool.is_setup(&spec).await? {
+                if tool
+                    .plugin
+                    .has_func(PluginFunction::ActivateEnvironment)
+                    .await
+                {
+                    let output: ActivateEnvironmentOutput = tool
+                        .plugin
+                        .call_func_with(
+                            PluginFunction::ActivateEnvironment,
+                            ActivateEnvironmentInput {
+                                context: tool.create_plugin_context(),
+                            },
+                        )
+                        .await?;
+
+                    item.env.extend(output.env);
+
+                    for path in output.paths {
+                        item.add_path(path);
+                    }
+                }
+
                 // Higher priority over globals
                 for exes_dir in tool.locate_exes_dirs().await? {
-                    item.add_path(&exes_dir);
+                    item.add_path(exes_dir);
                 }
 
                 for globals_dir in tool.locate_globals_dirs().await? {
-                    item.add_path(&globals_dir);
+                    item.add_path(globals_dir);
                 }
 
                 // Mark it as used so that auto-clean doesn't remove it!

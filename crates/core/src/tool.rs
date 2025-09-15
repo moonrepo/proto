@@ -4,7 +4,6 @@ use crate::helpers::get_proto_version;
 use crate::id::Id;
 use crate::layout::{Inventory, Product};
 use crate::lockfile::LockRecord;
-use crate::normalize_path_separators;
 use crate::tool_context::ToolContext;
 use crate::tool_error::ProtoToolError;
 use crate::utils::{archive, git};
@@ -13,7 +12,7 @@ use proto_pdk_api::{
     RegisterBackendOutput, RegisterToolInput, RegisterToolOutput, SourceLocation, VersionSpec,
 };
 use starbase_styles::color;
-use starbase_utils::fs;
+use starbase_utils::{fs, path};
 use std::fmt::{self, Debug};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -185,8 +184,8 @@ impl Tool {
 
     /// Return an absolute path to the tool's inventory directory.
     /// The inventory houses installed versions, the manifest, and more.
-    pub fn get_inventory_dir(&self) -> PathBuf {
-        self.inventory.dir.clone()
+    pub fn get_inventory_dir(&self) -> &Path {
+        &self.inventory.dir
     }
 
     /// Return a human readable name for the tool.
@@ -200,15 +199,13 @@ impl Tool {
     }
 
     /// Return an absolute path to a temp directory solely for this tool.
-    pub fn get_temp_dir(&self) -> PathBuf {
-        self.inventory
-            .temp_dir
-            .join(self.get_resolved_version().to_string())
+    pub fn get_temp_dir(&self) -> &Path {
+        &self.inventory.temp_dir
     }
 
     /// Return an absolute path to the tool's install directory for the currently resolved version.
-    pub fn get_product_dir(&self) -> PathBuf {
-        self.product.dir.clone()
+    pub fn get_product_dir(&self) -> &Path {
+        &self.product.dir
     }
 
     /// Return true if this tool instance is a backend plugin.
@@ -306,10 +303,17 @@ impl Tool {
             }
         }
 
+        let inventory_id =
+            if metadata.inventory_options.scoped_backend_dir && self.context.backend.is_some() {
+                Id::raw(self.context.as_str().replace(':', "-"))
+            } else {
+                self.context.id.clone()
+            };
+
         let mut inventory = self
             .proto
             .store
-            .create_inventory(self.get_id(), &metadata.inventory_options)?;
+            .create_inventory(&inventory_id, &metadata.inventory_options)?;
 
         if let Some(override_dir) = &metadata.inventory_options.override_dir {
             let override_dir_path = override_dir.real_path();
@@ -372,8 +376,8 @@ impl Tool {
             .proto
             .store
             .backends_dir
-            .join(backend.to_string()) // asdf
-            .join(backend_id.as_str()); // node
+            .join(path::encode_component(backend)) // asdf
+            .join(path::encode_component(&backend_id)); // node
         let update_perms = !backend_dir.exists();
         let config = self.proto.load_config()?;
 
@@ -424,7 +428,7 @@ impl Tool {
 
         if update_perms {
             for exe in metadata.exes {
-                let exe_path = backend_dir.join(normalize_path_separators(exe));
+                let exe_path = backend_dir.join(path::normalize_separators(exe));
 
                 if exe_path.exists() {
                     fs::update_perms(exe_path, None)?;

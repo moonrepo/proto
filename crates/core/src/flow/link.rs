@@ -1,10 +1,9 @@
 pub use super::link_error::ProtoLinkError;
-use crate::helpers::normalize_path_separators;
 use crate::layout::{Shim, ShimRegistry, ShimsMap};
 use crate::tool::Tool;
 use proto_pdk_api::*;
 use proto_shim::*;
-use starbase_utils::fs;
+use starbase_utils::{fs, path};
 use std::collections::BTreeMap;
 use tracing::{debug, instrument, warn};
 
@@ -70,8 +69,8 @@ impl Tool {
                 shim_entry.env_vars.extend(env_vars);
             }
 
-            if !shim.config.primary {
-                shim_entry.parent = Some(self.get_id().to_string());
+            if !shim.config.primary || shim.name != self.context.id.as_str() {
+                shim_entry.parent = Some(self.context.to_string());
 
                 // Only use --alt when the secondary executable exists
                 if shim.config.exe_path.is_some() {
@@ -140,7 +139,7 @@ impl Tool {
             // Create a new product since we need to change the version for each bin
             let tool_dir = self.inventory.create_product(&bin_version).dir;
 
-            let input_path = tool_dir.join(normalize_path_separators(
+            let input_path = tool_dir.join(path::normalize_separators(
                 bin.config
                     .exe_link_path
                     .as_ref()
