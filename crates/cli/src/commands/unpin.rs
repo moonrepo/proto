@@ -21,15 +21,6 @@ pub async fn unpin(session: ProtoSession, args: UnpinArgs) -> AppResult {
 
     let config_path = ProtoConfig::update_document(tool.proto.get_config_dir(args.from), |doc| {
         value = doc.as_table_mut().remove(tool.context.as_str());
-
-        // if let Some(versions) = &mut config.versions {
-        //     value = versions.remove(&tool.id);
-        // }
-
-        // // Remove these also just in case
-        // if let Some(versions) = &mut config.unknown {
-        //     versions.remove(tool.id.as_str());
-        // }
     })?;
 
     let Some(value) = value else {

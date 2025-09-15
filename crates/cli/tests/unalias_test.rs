@@ -96,7 +96,7 @@ mod unalias_local {
 
             ProtoConfig::update(sandbox.path(), |config| {
                 config.tools.get_or_insert_default().insert(
-                    Id::raw("act"),
+                    Id::raw("asdf:act"),
                     PartialProtoToolConfig {
                         aliases: Some(BTreeMap::from_iter([(
                             "example".into(),
@@ -116,7 +116,7 @@ mod unalias_local {
 
             let config = load_config(sandbox.path());
 
-            assert!(!config.tools.contains_key("act"));
+            assert!(!config.tools.contains_key("asdf:act"));
         }
     }
 }

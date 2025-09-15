@@ -15,6 +15,13 @@ pub enum ProtoLocateError {
       .path.style(Style::Path),
     )]
     MissingToolExecutable { tool: String, path: PathBuf },
+
+    #[diagnostic(code(proto::locate::no_primary_executable))]
+    #[error(
+      "{tool} does not support a primary (default) executable. You can run a secondary executable by passing {} with the executable name.",
+      "--exe".style(Style::Shell),
+    )]
+    NoPrimaryExecutable { tool: String },
 }
 
 impl From<WarpgatePluginError> for ProtoLocateError {

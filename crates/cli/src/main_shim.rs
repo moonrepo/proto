@@ -121,27 +121,48 @@ fn create_command(args: Vec<OsString>, shim_name: &str) -> Result<Command> {
     debug!("Locating proto binary: {proto_bin:?}");
 
     let mut command = Command::new(proto_bin);
+    let mut use_alt = false;
 
     // command.args(["run", "node", "--"]);
     // command.arg("./docs/shim-test.mjs");
     // command.arg("--version");
 
+    // Old
     if let Json::Str(parent_name) = &shim["parent"] {
         debug!("Inheriting config `parent`");
-        debug!("Running parent tool {parent_name}");
+        debug!("Running tool {parent_name}");
 
         command.args(["run", parent_name]);
+        use_alt = true;
+    }
+    // New
+    else if let Json::Str(context_name) = &shim["context"] {
+        debug!("Inheriting config `context`");
+        debug!("Running tool {context_name}");
 
+        command.args(["run", context_name]);
+        use_alt = true;
+    } else {
+        debug!("Running tool {shim_name}");
+
+        command.args(["run", shim_name]);
+    }
+
+    if use_alt {
+        // Old
         if matches!(shim["alt_bin"], Json::Bool(true)) {
             debug!("Inheriting config `alt_bin`");
             debug!("Running tool alternate {shim_name}");
 
             command.args(["--alt", shim_name]);
         }
-    } else {
-        debug!("Running tool {shim_name}");
+        // New
+        else if matches!(shim["alt_exe"], Json::Bool(true)) {
+            debug!("Inheriting config `alt_exe`");
+            debug!("Running tool alternate {shim_name}");
 
-        command.args(["run", shim_name]);
+            command.args(["--exe", shim_name]);
+        }
     }
 
     if !passthrough_args.is_empty() {

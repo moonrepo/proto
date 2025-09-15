@@ -42,19 +42,10 @@ pub async fn alias(session: ProtoSession, args: AliasArgs) -> AppResult {
 
     let config_path = ProtoConfig::update_document(tool.proto.get_config_dir(args.to), |doc| {
         let tools = doc["tools"].or_insert(cfg::implicit_table());
-        let record = tools[tool.get_id().as_str()].or_insert(cfg::implicit_table());
+        let record = tools[tool.context.as_str()].or_insert(cfg::implicit_table());
         let aliases = record["aliases"].or_insert(cfg::implicit_table());
 
         aliases[&args.alias] = cfg::value(args.spec.to_string());
-
-        // let tool_configs = config.tools.get_or_insert_default();
-
-        // tool_configs
-        //     .entry(tool.id.clone())
-        //     .or_default()
-        //     .aliases
-        //     .get_or_insert_default()
-        //     .insert(args.alias.clone(), args.spec.clone());
     })?;
 
     session.console.render(element! {

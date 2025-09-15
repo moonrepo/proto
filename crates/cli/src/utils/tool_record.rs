@@ -52,7 +52,7 @@ impl ToolRecord {
     }
 
     pub fn inherit_from_local(&mut self, config: &ProtoConfig) {
-        if let Some(tool_config) = config.tools.get(self.get_id()).cloned() {
+        if let Some(tool_config) = config.get_tool_config(&self.context).cloned() {
             self.local_aliases.extend(tool_config.aliases.clone());
             self.config = tool_config;
         }

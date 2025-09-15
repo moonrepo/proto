@@ -98,13 +98,16 @@ api_struct!(
     #[serde(default)]
     pub struct RunHookResult {
         /// Additional arguments to append to the running command.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub args: Option<Vec<String>>,
 
         /// Additional environment variables to pass to the running command.
         /// Will overwrite any existing variables.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub env: Option<FxHashMap<String, String>>,
 
         /// Additional paths to prepend to `PATH` for the running command.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub paths: Option<Vec<PathBuf>>,
     }
 );

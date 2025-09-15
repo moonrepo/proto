@@ -70,7 +70,14 @@ api_struct!(
         #[serde(skip_serializing_if = "Vec::is_empty")]
         pub args: Vec<String>,
 
-        /// Environment variables to pass to the command.
+        /// Environment variables to pass to the command. Variables
+        /// can customize behavior by appending one of the following
+        /// characters to the name:
+        ///
+        ///  `?` - Will only set variable if it doesn't exist
+        ///        in the current environment.
+        ///  `!` - Will remove the variable from being inherited
+        ///        by the child process.
         #[serde(skip_serializing_if = "FxHashMap::is_empty")]
         pub env: FxHashMap<String, String>,
 

@@ -14,13 +14,33 @@ use warpgate::{PluginLocator, PluginManifest, Wasm, inject_default_manifest_conf
 
 #[instrument(skip(proto, manifest))]
 pub fn inject_proto_manifest_config(
-    id: &Id,
+    context: &ToolContext,
     proto: &ProtoEnvironment,
     manifest: &mut PluginManifest,
 ) -> Result<(), ProtoLoaderError> {
     let config = proto.load_config()?;
 
-    if let Some(tool_config) = config.tools.get(id) {
+    if let Some(backend_id) = &context.backend {
+        manifest
+            .config
+            .insert("proto_backend_id".to_string(), backend_id.to_string());
+
+        if let Some(backend_config) = config.get_backend_config(context) {
+            let value = json::format(&backend_config.config, false)?;
+
+            trace!(config = %value, "Storing proto backend configuration");
+
+            manifest
+                .config
+                .insert("proto_backend_config".to_string(), value);
+        }
+    }
+
+    manifest
+        .config
+        .insert("proto_tool_id".to_string(), context.id.to_string());
+
+    if let Some(tool_config) = config.get_tool_config(context) {
         let value = json::format(&tool_config.config, false)?;
 
         trace!(config = %value, "Storing proto tool configuration");
@@ -218,7 +238,7 @@ pub async fn load_tool_from_locator(
     };
 
     inject_default_manifest_config(&context.id, &proto.home_dir, &mut manifest)?;
-    inject_proto_manifest_config(&context.id, proto, &mut manifest)?;
+    inject_proto_manifest_config(context, proto, &mut manifest)?;
 
     let mut tool = Tool::load_from_manifest(context, proto, manifest).await?;
     tool.locator = Some(locator.to_owned());

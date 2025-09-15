@@ -52,6 +52,17 @@ pub fn get_target_triple(env: &HostEnvironment, name: &str) -> Result<String, Pl
     }
 }
 
+/// Get proto backend configuration that was configured in a `.prototools` file.
+pub fn get_backend_config<T: Default + DeserializeOwned>() -> AnyResult<T> {
+    let config: T = if let Some(value) = config::get("proto_backend_config")? {
+        json::from_str(&value)?
+    } else {
+        T::default()
+    };
+
+    Ok(config)
+}
+
 /// Get proto tool configuration that was configured in a `.prototools` file.
 pub fn get_tool_config<T: Default + DeserializeOwned>() -> AnyResult<T> {
     let config: T = if let Some(value) = config::get("proto_tool_config")? {

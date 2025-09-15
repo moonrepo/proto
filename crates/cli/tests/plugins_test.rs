@@ -7,6 +7,7 @@ use proto_core::{
 };
 use starbase_sandbox::assert_snapshot;
 use starbase_sandbox::predicates::prelude::*;
+use starbase_utils::env::is_ci;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
@@ -388,6 +389,11 @@ mod plugins {
 
         #[test]
         fn supports_rust() {
+            // This can break local machines
+            if !is_ci() {
+                return;
+            }
+
             let sandbox = create_empty_proto_sandbox();
 
             sandbox

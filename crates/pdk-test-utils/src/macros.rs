@@ -1,127 +1,148 @@
 #[macro_export]
 macro_rules! create_plugin {
-    ($sandbox:ident, $id:literal, $schema:expr) => {
+    ($sandbox:ident, $id:literal, $schema:expr, $factory:expr) => {
         if let Some(schema) = $schema {
-            $sandbox.create_schema_plugin($id, schema).await
+            $sandbox
+                .create_schema_plugin_with_config($id, schema, $factory)
+                .await
         } else {
-            $sandbox.create_plugin($id).await
+            $sandbox.create_plugin_with_config($id, $factory).await
         }
+    };
+}
+
+#[macro_export]
+macro_rules! check_install_success {
+    ($plugin:ident) => {
+        $plugin.tool.locate_exe_file().await.unwrap();
+
+        assert!($plugin.tool.get_product_dir().exists());
+
+        for bin in $plugin.tool.resolve_bin_locations(true).await.unwrap() {
+            assert!(bin.path.exists());
+        }
+
+        for shim in $plugin.tool.resolve_shim_locations().await.unwrap() {
+            assert!(shim.path.exists());
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! do_build_from_source {
+    ($sandbox:ident, $plugin:ident, $spec:literal) => {
+        let spec = ToolSpec::parse($spec).unwrap();
+        let result = $plugin
+            .tool
+            .setup(
+                &spec,
+                flow::install::InstallOptions {
+                    console: Some(ProtoConsole::new_testing()),
+                    log_writer: Some(Default::default()),
+                    strategy: InstallStrategy::BuildFromSource,
+                    skip_prompts: true,
+                    skip_ui: true,
+                    ..Default::default()
+                },
+            )
+            .await;
+
+        // Print the log so we can debug
+        if result.is_err() {
+            println!(
+                "{}",
+                std::fs::read_to_string(
+                    $sandbox
+                        .path()
+                        .join(format!("proto-{}-build.log", $plugin.tool.get_id()))
+                )
+                .unwrap()
+            );
+        }
+
+        result.unwrap();
+
+        check_install_success!($plugin);
     };
 }
 
 #[macro_export]
 macro_rules! generate_build_install_tests {
-    ($id:literal, $version:literal) => {
-        generate_build_install_tests!($id, $version, None);
+    ($id:literal, $spec:literal) => {
+        generate_build_install_tests!($id, $spec, None);
     };
-    ($id:literal, $version:literal, $schema:expr) => {
+    ($id:literal, $spec:literal, $schema:expr) => {
+        generate_build_install_tests!($id, $spec, $schema, |_| {});
+    };
+    ($id:literal, $spec:literal, $schema:expr, $factory:expr) => {
         #[tokio::test(flavor = "multi_thread")]
-        async fn builds_installs_tool_from_source() {
+        async fn builds_tool_from_source() {
             let sandbox = create_empty_proto_sandbox();
-            let mut plugin = create_plugin!(sandbox, $id, $schema);
-            let spec = ToolSpec::parse($version).unwrap();
+            let mut plugin = create_plugin!(sandbox, $id, $schema, $factory);
 
-            let result = plugin
-                .tool
-                .setup(
-                    &spec,
-                    flow::install::InstallOptions {
-                        console: Some(ProtoConsole::new_testing()),
-                        log_writer: Some(Default::default()),
-                        strategy: InstallStrategy::BuildFromSource,
-                        skip_prompts: true,
-                        skip_ui: true,
-                        ..Default::default()
-                    },
-                )
-                .await;
-
-            // Print the log so we can debug
-            if result.is_err() {
-                println!(
-                    "{}",
-                    std::fs::read_to_string(
-                        sandbox
-                            .path()
-                            .join(format!("proto-{}-build.log", plugin.tool.get_id()))
-                    )
-                    .unwrap()
-                );
-            }
-
-            result.unwrap();
-
-            // Check install dir exists
-            let version = plugin.tool.get_resolved_version();
-            let tool_dir = plugin.tool.get_product_dir();
-            let base_dir = sandbox
-                .proto_dir
-                .join("tools")
-                .join(plugin.tool.get_id().as_str())
-                .join(version.to_string());
-
-            assert_eq!(tool_dir, base_dir);
-            assert!(base_dir.exists());
-
-            // Check bin path exists (would panic)
-            plugin.tool.locate_exe_file().await.unwrap();
-
-            // Check things exist
-            for bin in plugin.tool.resolve_bin_locations(true).await.unwrap() {
-                assert!(bin.path.exists());
-            }
-
-            for shim in plugin.tool.resolve_shim_locations().await.unwrap() {
-                assert!(shim.path.exists());
-            }
+            do_build_from_source!(sandbox, plugin, $spec);
         }
     };
 }
 
 #[macro_export]
-macro_rules! generate_download_install_tests {
-    ($id:literal, $version:literal) => {
-        generate_download_install_tests!($id, $version, None);
+macro_rules! do_install_prebuilt {
+    ($sandbox:ident, $plugin:ident, $spec:literal) => {
+        let spec = ToolSpec::parse($spec).unwrap();
+        let result = $plugin
+            .tool
+            .setup(&spec, flow::install::InstallOptions::default())
+            .await;
+
+        check_install_success!($plugin);
     };
-    ($id:literal, $version:literal, $schema:expr) => {
-        generate_native_install_tests!($id, $version, $schema);
+}
+
+#[macro_export]
+macro_rules! generate_download_install_tests {
+    ($id:literal, $spec:literal) => {
+        generate_download_install_tests!($id, $spec, None);
+    };
+    ($id:literal, $spec:literal, $schema:expr) => {
+        generate_download_install_tests!($id, $spec, $schema, |_| {});
+    };
+    ($id:literal, $spec:literal, $schema:expr, $factory:expr) => {
+        generate_native_install_tests!($id, $spec, $schema);
 
         #[tokio::test(flavor = "multi_thread")]
         async fn downloads_prebuilt_and_checksum_to_temp() {
             let sandbox = create_empty_proto_sandbox();
-            let mut plugin = create_plugin!(sandbox, $id, $schema);
+            let mut plugin = create_plugin!(sandbox, $id, $schema, $factory);
             let mut tool = plugin.tool;
 
-            tool.resolve_version(&ToolSpec::parse($version).unwrap(), false)
+            tool.resolve_version(&ToolSpec::parse($spec).unwrap(), false)
                 .await
                 .unwrap();
-
-            let temp_dir = tool.get_temp_dir();
 
             tool.install(flow::install::InstallOptions::default())
                 .await
                 .unwrap();
 
-            assert!(temp_dir.exists());
+            assert!(tool.get_temp_dir().exists());
         }
 
         #[tokio::test(flavor = "multi_thread")]
         async fn doesnt_install_if_already_installed() {
-            if $version == "canary" {
+            if $spec == "canary" {
                 // Canary always overwrites instead of aborting
                 return;
             }
 
             let sandbox = create_empty_proto_sandbox();
-            let mut plugin = create_plugin!(sandbox, $id, $schema);
+            let mut plugin = create_plugin!(sandbox, $id, $schema, $factory);
             let mut tool = plugin.tool;
-            let spec = VersionSpec::parse($version).unwrap();
+            let spec = VersionSpec::parse($spec).unwrap();
 
             // Fake the installation so we avoid downloading
             tool.set_version(spec.clone());
             tool.inventory.manifest.installed_versions.insert(spec);
 
-            std::fs::create_dir_all(&tool.get_product_dir()).unwrap();
+            std::fs::create_dir_all(tool.get_product_dir()).unwrap();
 
             assert!(
                 tool.install(flow::install::InstallOptions::default())
@@ -135,45 +156,19 @@ macro_rules! generate_download_install_tests {
 
 #[macro_export]
 macro_rules! generate_native_install_tests {
-    ($id:literal, $version:literal) => {
-        generate_native_install_tests!($id, $version, None);
+    ($id:literal, $spec:literal) => {
+        generate_native_install_tests!($id, $spec, None);
     };
-    ($id:literal, $version:literal, $schema:expr) => {
+    ($id:literal, $spec:literal, $schema:expr) => {
+        generate_native_install_tests!($id, $spec, $schema, |_| {});
+    };
+    ($id:literal, $spec:literal, $schema:expr, $factory:expr) => {
         #[tokio::test(flavor = "multi_thread")]
         async fn installs_tool() {
             let sandbox = create_empty_proto_sandbox();
-            let mut plugin = create_plugin!(sandbox, $id, $schema);
-            let spec = ToolSpec::parse($version).unwrap();
+            let mut plugin = create_plugin!(sandbox, $id, $schema, $factory);
 
-            plugin
-                .tool
-                .setup(&spec, flow::install::InstallOptions::default())
-                .await
-                .unwrap();
-
-            // Check install dir exists
-            let version = plugin.tool.get_resolved_version();
-            let tool_dir = plugin.tool.get_product_dir();
-            let base_dir = sandbox
-                .proto_dir
-                .join("tools")
-                .join(plugin.tool.get_id().as_str())
-                .join(version.to_string());
-
-            assert_eq!(tool_dir, base_dir);
-            assert!(base_dir.exists());
-
-            // Check bin path exists (would panic)
-            plugin.tool.locate_exe_file().await.unwrap();
-
-            // Check things exist
-            for bin in plugin.tool.resolve_bin_locations(true).await.unwrap() {
-                assert!(bin.path.exists());
-            }
-
-            for shim in plugin.tool.resolve_shim_locations().await.unwrap() {
-                assert!(shim.path.exists());
-            }
+            do_install_prebuilt!(sandbox, plugin, $spec);
         }
     };
 }
@@ -184,10 +179,13 @@ macro_rules! generate_resolve_versions_tests {
         generate_resolve_versions_tests!($id, { $( $k => $v, )* }, None);
     };
     ($id:literal, { $( $k:literal => $v:literal, )* }, $schema:expr) => {
+        generate_resolve_versions_tests!($id, { $( $k => $v, )* }, $schema, |_| {});
+    };
+    ($id:literal, { $( $k:literal => $v:literal, )* }, $schema:expr, $factory:expr) => {
         #[tokio::test(flavor = "multi_thread")]
         async fn resolves_latest_alias() {
             let sandbox = create_empty_proto_sandbox();
-            let mut plugin = create_plugin!(sandbox, $id, $schema);
+            let mut plugin = create_plugin!(sandbox, $id, $schema, $factory);
 
             plugin.tool.resolve_version(
                 &ToolSpec::parse("latest").unwrap(),
@@ -200,9 +198,7 @@ macro_rules! generate_resolve_versions_tests {
         #[tokio::test(flavor = "multi_thread")]
         async fn resolve_version_or_alias() {
             let sandbox = create_empty_proto_sandbox();
-            let mut plugin = create_plugin!(sandbox, $id, $schema);
-
-            sandbox.sandbox.debug_files();
+            let mut plugin = create_plugin!(sandbox, $id, $schema, $factory);
 
             $(
                 plugin.tool.resolve_version(
@@ -222,7 +218,7 @@ macro_rules! generate_resolve_versions_tests {
         #[should_panic(expected = "FailedVersionResolve")]
         async fn errors_invalid_alias() {
             let sandbox = create_empty_proto_sandbox();
-            let mut plugin = create_plugin!(sandbox, $id, $schema);
+            let mut plugin = create_plugin!(sandbox, $id, $schema, $factory);
 
             plugin.tool.resolve_version(
                 &ToolSpec::parse("unknown").unwrap(),
@@ -234,7 +230,7 @@ macro_rules! generate_resolve_versions_tests {
         #[should_panic(expected = "FailedVersionResolve")]
         async fn errors_invalid_version() {
             let sandbox = create_empty_proto_sandbox();
-            let mut plugin = create_plugin!(sandbox, $id, $schema);
+            let mut plugin = create_plugin!(sandbox, $id, $schema, $factory);
 
             plugin.tool.resolve_version(
                 &ToolSpec::parse("99.99.99").unwrap(),
@@ -253,10 +249,13 @@ macro_rules! generate_shims_test {
         generate_shims_test!($id, [ $($bin),* ], None);
     };
     ($id:literal, [ $($bin:literal),* ], $schema:expr) => {
+        generate_shims_test!($id, [ $($bin),* ], $schema, |_| {});
+    };
+    ($id:literal, [ $($bin:literal),* ], $schema:expr, $factory:expr) => {
         #[tokio::test(flavor = "multi_thread")]
         async fn creates_shims() {
             let sandbox = create_empty_proto_sandbox();
-            let mut plugin = create_plugin!(sandbox, $id, $schema);
+            let mut plugin = create_plugin!(sandbox, $id, $schema, $factory);
 
             plugin.tool.generate_shims(false).await.unwrap();
 
