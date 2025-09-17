@@ -2,17 +2,12 @@ use crate::session::ProtoSession;
 use crate::workflows::{ExecWorkflow, ExecWorkflowParams};
 use clap::Args;
 use indexmap::IndexMap;
-use miette::IntoDiagnostic;
 use proto_core::{Id, PROTO_PLUGIN_KEY, ToolContext, UnresolvedVersionSpec};
-use rustc_hash::FxHashSet;
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_shell::{Hook, ShellType};
-use starbase_utils::env::paths;
 use starbase_utils::json;
-use std::collections::VecDeque;
 use std::env;
-use std::path::PathBuf;
 use tracing::warn;
 
 #[derive(Serialize)]
@@ -64,8 +59,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
     let config = session.env.load_config()?;
 
     // Load necessary tools so that we can extract info
-    let tools = session.load_tools().await?;
-    let mut workflow = ExecWorkflow::new(tools, config);
+    let mut workflow = ExecWorkflow::new(session.load_tools().await?, config);
 
     // Put shims first so that they can detect newer versions
     if !args.no_shim {
@@ -132,13 +126,10 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
 
     if session.should_print_json() {
         let result = ActivateResult {
-            path: env::join_paths(reset_and_join_paths(
-                &session,
-                std::mem::take(&mut workflow.paths),
-            ))
-            .into_diagnostic()?
-            .into_string()
-            .ok(),
+            path: workflow
+                .reset_and_join_paths(&session.env.store.dir)?
+                .into_string()
+                .ok(),
             env: workflow.env,
         };
 
@@ -222,12 +213,12 @@ fn print_activation_exports(
     }
 
     // Set/remove new variables
-    for (key, value) in workflow.env {
+    for (key, value) in &workflow.env {
         if value.is_some() {
-            env_being_set.push(key.clone());
+            env_being_set.push(key.to_owned());
         }
 
-        output.push(shell.format_env(&key, value.as_deref()));
+        output.push(shell.format_env(key, value.as_deref()));
     }
 
     if !env_being_set.is_empty() {
@@ -236,19 +227,17 @@ fn print_activation_exports(
 
     // Set new `PATH`
     if !workflow.paths.is_empty() {
-        output.push(
-            shell.format_env_set(
-                "_PROTO_ACTIVATED_PATH",
-                &workflow
-                    .paths
-                    .iter()
-                    .flat_map(|p| p.to_str())
-                    .collect::<Vec<_>>()
-                    .join(","),
-            ),
-        );
+        let joined_paths = workflow.join_paths()?;
 
-        let paths = reset_and_join_paths(session, workflow.paths);
+        if let Some(path) = joined_paths.as_ref().and_then(|inner| inner.to_str()) {
+            output.push(shell.format_env_set("_PROTO_ACTIVATED_PATH", path));
+        }
+
+        let paths = workflow
+            .reset_paths(&session.env.store.dir)
+            .into_iter()
+            .map(|path| path.to_string_lossy().to_string())
+            .collect::<Vec<_>>();
 
         if !paths.is_empty() {
             output.push(shell.format_path_set(&paths));
@@ -258,42 +247,4 @@ fn print_activation_exports(
     session.console.out.write_line(output.join("\n"))?;
 
     Ok(())
-}
-
-fn reset_and_join_paths(session: &ProtoSession, join_paths: VecDeque<PathBuf>) -> Vec<String> {
-    let start_path = session.env.store.dir.join("activate-start");
-    let stop_path = session.env.store.dir.join("activate-stop");
-
-    // Create a new `PATH` list with our activated tools. Use fake
-    // marker paths to indicate a boundary.
-    let mut reset_paths = vec![];
-    reset_paths.push(start_path.clone());
-    reset_paths.extend(join_paths);
-    reset_paths.push(stop_path.clone());
-
-    // `PATH` may have already been activated, so we need to remove
-    // paths that proto has injected, otherwise this paths list
-    // will continue to grow and grow.
-    let mut in_activate = false;
-    let mut dupe_paths = FxHashSet::from_iter(reset_paths.clone());
-
-    for path in paths() {
-        if path == start_path {
-            in_activate = true;
-            continue;
-        } else if path == stop_path {
-            in_activate = false;
-            continue;
-        } else if in_activate || dupe_paths.contains(&path) {
-            continue;
-        }
-
-        reset_paths.push(path.clone());
-        dupe_paths.insert(path);
-    }
-
-    reset_paths
-        .into_iter()
-        .map(|path| path.to_string_lossy().to_string())
-        .collect()
 }

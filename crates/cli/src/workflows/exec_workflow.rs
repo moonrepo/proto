@@ -7,9 +7,13 @@ use proto_pdk_api::{
     ActivateEnvironmentInput, ActivateEnvironmentOutput, HookFunction, PluginFunction, RunHook,
     RunHookResult,
 };
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
+use starbase_utils::env::paths;
 use std::collections::VecDeque;
-use std::path::PathBuf;
+use std::env;
+use std::ffi::OsString;
+use std::path::{Path, PathBuf};
+use std::process::Command;
 use tokio::task::JoinSet;
 
 #[derive(Default)]
@@ -35,9 +39,9 @@ impl ExecItem {
         self.env.insert(key, Some(value));
     }
 
-    pub fn remove_env(&mut self, key: String) {
-        self.env.insert(key, None);
-    }
+    // pub fn remove_env(&mut self, key: String) {
+    //     self.env.insert(key, None);
+    // }
 }
 
 #[derive(Clone, Default)]
@@ -47,20 +51,23 @@ pub struct ExecWorkflowParams {
     pub detect_version: bool,
     pub passthrough_args: Vec<String>,
     pub pre_run_hook: bool,
+    pub version_env_vars: bool,
 }
 
 pub struct ExecWorkflow<'app> {
-    pub tools: Vec<ToolRecord>,
+    pub args: Vec<String>,
     pub env: IndexMap<String, Option<String>>,
     pub paths: VecDeque<PathBuf>,
 
     config: &'app ProtoConfig,
+    tools: Vec<ToolRecord>,
 }
 
 impl<'app> ExecWorkflow<'app> {
     pub fn new(tools: Vec<ToolRecord>, config: &'app ProtoConfig) -> Self {
         Self {
             tools,
+            args: vec![],
             env: IndexMap::default(),
             paths: VecDeque::default(),
             config,
@@ -68,6 +75,8 @@ impl<'app> ExecWorkflow<'app> {
     }
 
     pub fn collect_item(&mut self, item: ExecItem) {
+        self.args.extend(item.args);
+
         for (key, value) in item.env {
             self.env.insert(key, value);
         }
@@ -116,6 +125,75 @@ impl<'app> ExecWorkflow<'app> {
 
         Ok(())
     }
+
+    pub fn apply_to_command(self, command: &mut Command) -> miette::Result<()> {
+        if let Some(path) = self.join_paths()? {
+            command.env("PATH", path);
+        }
+
+        for (key, value) in self.env {
+            match value {
+                Some(value) => command.env(key, value),
+                None => command.env_remove(key),
+            };
+        }
+
+        if !self.args.is_empty() {
+            command.args(self.args);
+        }
+
+        Ok(())
+    }
+
+    pub fn join_paths(&self) -> miette::Result<Option<OsString>> {
+        if !self.paths.is_empty() {
+            let mut list = self.paths.clone().into_iter().collect::<Vec<_>>();
+            list.extend(paths());
+
+            return Ok(Some(env::join_paths(list).into_diagnostic()?));
+        }
+
+        Ok(None)
+    }
+
+    pub fn reset_paths(&self, store_dir: &Path) -> Vec<PathBuf> {
+        let start_path = store_dir.join("activate-start");
+        let stop_path = store_dir.join("activate-stop");
+
+        // Create a new `PATH` list with our activated tools. Use fake
+        // marker paths to indicate a boundary.
+        let mut reset_paths = vec![];
+        reset_paths.push(start_path.clone());
+        reset_paths.extend(self.paths.clone());
+        reset_paths.push(stop_path.clone());
+
+        // `PATH` may have already been activated, so we need to remove
+        // paths that proto has injected, otherwise this paths list
+        // will continue to grow and grow.
+        let mut in_activate = false;
+        let mut dupe_paths = FxHashSet::from_iter(reset_paths.clone());
+
+        for path in paths() {
+            if path == start_path {
+                in_activate = true;
+                continue;
+            } else if path == stop_path {
+                in_activate = false;
+                continue;
+            } else if in_activate || dupe_paths.contains(&path) {
+                continue;
+            }
+
+            reset_paths.push(path.clone());
+            dupe_paths.insert(path);
+        }
+
+        reset_paths
+    }
+
+    pub fn reset_and_join_paths(&self, store_dir: &Path) -> miette::Result<OsString> {
+        env::join_paths(self.reset_paths(store_dir)).into_diagnostic()
+    }
 }
 
 async fn prepare_tool(
@@ -145,6 +223,13 @@ async fn prepare_tool(
     // Resolve the version and locate executables
     if !tool.is_setup(&spec).await? {
         return Ok(item);
+    }
+
+    if params.version_env_vars {
+        item.set_env(
+            format!("{}_VERSION", tool.get_env_var_prefix()),
+            tool.get_resolved_version().to_string(),
+        );
     }
 
     // Extract vars/paths for environment

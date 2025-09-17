@@ -14,10 +14,7 @@ use proto_shim::{exec_command_and_replace, locate_proto_exe};
 use rustc_hash::FxHashMap;
 use starbase::AppResult;
 use starbase_styles::color;
-use starbase_utils::{
-    env::{bool_var, paths as env_paths},
-    path,
-};
+use starbase_utils::{env::bool_var, path};
 use std::env;
 use std::ffi::OsStr;
 use std::path::PathBuf;
@@ -372,7 +369,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
         }
     }
 
-    // Determine the executable path to execute
+    // Determine the executable path to execute and create command
     let exe_config = if use_global_proto {
         ExecutableConfig {
             exe_path: locate_proto_exe("proto"),
@@ -383,20 +380,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
         get_tool_executable(&tool, args.exe.as_deref()).await?
     };
 
-    // Create the command
     let mut command = create_command(&tool, &exe_config, &args.passthrough)?;
-
-    if !use_global_proto {
-        command
-            .env(
-                format!("{}_VERSION", tool.get_env_var_prefix()),
-                tool.get_resolved_version().to_string(),
-            )
-            .env(
-                format!("{}_BIN", tool.get_env_var_prefix()),
-                exe_config.exe_path.as_ref().unwrap(),
-            );
-    }
 
     // Prepare environment
     let config = session.load_config()?;
@@ -409,25 +393,15 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
             ExecWorkflowParams {
                 activate_environment: true,
                 check_process_env: true,
-                passthrough_args: args.passthrough.clone(),
+                passthrough_args: args.passthrough,
                 pre_run_hook: true,
+                version_env_vars: true,
                 ..Default::default()
             },
         )
         .await?;
 
-    // Run the command
-    for (key, value) in workflow.env {
-        match value {
-            Some(value) => command.env(key, value),
-            None => command.env_remove(key),
-        };
-    }
-
-    if !workflow.paths.is_empty() {
-        workflow.paths.extend(env_paths());
-        command.env("PATH", env::join_paths(workflow.paths).into_diagnostic()?);
-    }
+    workflow.apply_to_command(&mut command)?;
 
     // Must be the last line!
     exec_command_and_replace(command)

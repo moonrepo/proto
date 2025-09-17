@@ -63,6 +63,7 @@ pub async fn exec(session: ProtoSession, args: ExecArgs) -> AppResult {
                 activate_environment: true,
                 detect_version: true,
                 pre_run_hook: true,
+                version_env_vars: true,
                 ..Default::default()
             },
         )
