@@ -37,8 +37,14 @@
   - Added a `ToolInventoryOptions.scoped_backend_dir` field.
   - Added a `NativeInstallInput.force` field.
 
+#### 🐞 Fixes
+
+- Fixed an issue where shims that belong to a backend (like `asdf`) would fail to run.
+  - You may need to regenerate your shims or reinstall the tool to mitigate this.
+
 #### ⚙️ Internal
 
+- Updated Rust to v1.90.0.
 - Updated dependencies.
 
 ## 0.52.5
