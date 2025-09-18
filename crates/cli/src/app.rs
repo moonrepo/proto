@@ -1,7 +1,7 @@
 use crate::commands::{
-    ActivateArgs, AliasArgs, BinArgs, CleanArgs, CompletionsArgs, DiagnoseArgs, InstallArgs,
-    MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs, SetupArgs, StatusArgs, UnaliasArgs,
-    UninstallArgs, UnpinArgs, UpgradeArgs, VersionsArgs,
+    ActivateArgs, AliasArgs, BinArgs, CleanArgs, CompletionsArgs, DiagnoseArgs, ExecArgs,
+    InstallArgs, MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs, SetupArgs, StatusArgs,
+    UnaliasArgs, UninstallArgs, UnpinArgs, UpgradeArgs, VersionsArgs,
     debug::{DebugConfigArgs, DebugEnvArgs},
     plugin::{AddPluginArgs, InfoPluginArgs, ListPluginsArgs, RemovePluginArgs, SearchPluginArgs},
 };
@@ -229,6 +229,13 @@ pub enum Commands {
         about = "Diagnose potential issues with your proto installation."
     )]
     Diagnose(DiagnoseArgs),
+
+    #[command(
+        alias = "x",
+        name = "exec",
+        about = "Initialize a list of tools into the environment and execute an arbitrary command."
+    )]
+    Exec(ExecArgs),
 
     #[command(
         aliases = ["i", "u", "use"],
