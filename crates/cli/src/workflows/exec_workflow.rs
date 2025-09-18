@@ -8,7 +8,7 @@ use proto_pdk_api::{
     RunHookResult,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
-use starbase_shell::{BoxedShell, join_args};
+use starbase_shell::{BoxedShell, Quotable, join_args};
 use starbase_utils::env::paths;
 use std::collections::VecDeque;
 use std::env;
@@ -50,6 +50,7 @@ pub struct ExecWorkflowParams {
     pub activate_environment: bool,
     pub check_process_env: bool,
     pub detect_version: bool,
+    pub fallback_any_spec: bool,
     pub passthrough_args: Vec<String>,
     pub pre_run_hook: bool,
     pub version_env_vars: bool,
@@ -163,7 +164,7 @@ impl<'app> ExecWorkflow<'app> {
 
             line.extend(args.iter().map(|arg| arg.as_ref()));
 
-            if !self.args.is_empty() {
+            if !self.multiple && !self.args.is_empty() {
                 line.extend(self.args.iter().map(OsStr::new));
             }
 
@@ -254,6 +255,23 @@ impl<'app> ExecWorkflow<'app> {
     }
 }
 
+async fn detect_or_fallback_spec(
+    tool: &ToolRecord,
+    params: &ExecWorkflowParams,
+) -> Option<ToolSpec> {
+    if params.detect_version
+        && let Ok(spec) = tool.detect_version().await
+    {
+        return Some(spec);
+    }
+
+    if params.fallback_any_spec {
+        return ToolSpec::parse("*").ok();
+    }
+
+    None
+}
+
 async fn prepare_tool(
     mut tool: ToolRecord,
     provided_spec: Option<ToolSpec>,
@@ -264,16 +282,10 @@ async fn prepare_tool(
     // Detect a version, otherwise return early
     let spec = match provided_spec {
         Some(inner) => inner,
-        None => {
-            if params.detect_version {
-                match tool.detect_version().await {
-                    Ok(inner) => inner,
-                    Err(_) => ToolSpec::parse("*")?,
-                }
-            } else {
-                ToolSpec::parse("*")?
-            }
-        }
+        None => match detect_or_fallback_spec(&tool, &params).await {
+            Some(inner) => inner,
+            None => return Ok(item),
+        },
     };
 
     // Resolve the version and locate executables

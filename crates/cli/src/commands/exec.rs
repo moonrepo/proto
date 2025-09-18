@@ -89,6 +89,7 @@ pub async fn exec(session: ProtoSession, mut args: ExecArgs) -> AppResult {
             ExecWorkflowParams {
                 activate_environment: true,
                 detect_version: true,
+                fallback_any_spec: true,
                 pre_run_hook: true,
                 version_env_vars: true,
                 ..Default::default()
