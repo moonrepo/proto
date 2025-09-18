@@ -12,14 +12,14 @@ pub struct Shim {
     pub after_args: Vec<String>,
 
     // TODO rename to alt_exe in next version
-    #[serde(skip_serializing_if = "Option::is_none", alias = "alt_bin")]
+    #[serde(skip_serializing_if = "Option::is_none", alias = "alt_exe")]
     pub alt_bin: Option<bool>,
 
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub before_args: Vec<String>,
 
     // TODO rename to context in next version
-    #[serde(skip_serializing_if = "Option::is_none", alias = "parent")]
+    #[serde(skip_serializing_if = "Option::is_none", alias = "context")]
     pub parent: Option<String>,
 
     #[serde(skip_serializing_if = "FxHashMap::is_empty")]
