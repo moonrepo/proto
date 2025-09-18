@@ -108,8 +108,6 @@ pub async fn exec(session: ProtoSession, mut args: ExecArgs) -> AppResult {
         )?,
     };
 
-    dbg!(&command);
-
     // Must be the last line!
     exec_command_and_replace(command)
         .into_diagnostic()

@@ -16,6 +16,7 @@ use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use tokio::task::JoinSet;
+use tracing::trace;
 
 #[derive(Default)]
 pub struct ExecItem {
@@ -244,6 +245,12 @@ impl<'app> ExecWorkflow<'app> {
             command.args(self.args);
         }
 
+        trace!(
+            exe = ?command.get_program().to_string_lossy(),
+            args = ?command.get_args().map(|arg| arg.to_string_lossy()).collect::<Vec<_>>(),
+            "Created command to execute",
+        );
+
         Ok(())
     }
 
@@ -404,6 +411,10 @@ async fn prepare_tool(
     }
 
     // Extract executable directories
+    if let Some(dir) = tool.locate_exe_file().await?.parent() {
+        item.add_path(dir.to_path_buf());
+    }
+
     for exes_dir in tool.locate_exes_dirs().await? {
         item.add_path(exes_dir);
     }
