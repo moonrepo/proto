@@ -90,12 +90,12 @@ impl FromStr for ToolSpec {
 
         Ok(Self {
             backend,
-            req: UnresolvedVersionSpec::parse(spec).map_err(|error| {
-                ProtoResolveError::InvalidVersionSpec {
+            req: UnresolvedVersionSpec::parse(if spec.is_empty() { "*" } else { spec }).map_err(
+                |error| ProtoResolveError::InvalidVersionSpec {
                     version: value.to_owned(),
                     error: Box::new(error),
-                }
-            })?,
+                },
+            )?,
             ..Default::default()
         })
     }

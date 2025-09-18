@@ -65,13 +65,17 @@ pub async fn exec(session: ProtoSession, mut args: ExecArgs) -> AppResult {
         }
     }
 
-    // Load tools
-    let tools = session
-        .load_tools_with_options(LoadToolOptions {
-            tools: FxHashSet::from_iter(specs.keys().cloned()),
-            ..Default::default()
-        })
-        .await?;
+    // Load tools (empty list will load everything)
+    let tools = if specs.is_empty() {
+        vec![]
+    } else {
+        session
+            .load_tools_with_options(LoadToolOptions {
+                tools: FxHashSet::from_iter(specs.keys().cloned()),
+                ..Default::default()
+            })
+            .await?
+    };
 
     // Prepare environment
     let mut workflow = ExecWorkflow::new(tools, config);

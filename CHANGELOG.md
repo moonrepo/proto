@@ -26,6 +26,8 @@
 
 #### 🚀 Updates
 
+- Added a new command, `proto exec`, that can be used to execute a command in the context of a temporarily activated proto environment. A list of tools and versions can be provided, and the command will run with those tools available in `PATH`.
+  - Example: `proto exec node@20 npm@10 -- node --version`
 - Improved backend plugin support.
   - Added a `[backends.<id>]` setting for configuring the backend (not the tool) itself.
   - Improved interoperability between plugins.
