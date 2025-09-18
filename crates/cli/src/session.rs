@@ -153,7 +153,9 @@ impl ProtoSession {
         // We must do this here, otherwise when multiple schema
         // based tools are installed in parallel, they will
         // collide when attempting to download the schema plugin!
-        load_schema_plugin_with_proto(&self.env).await?;
+        if !contexts.is_empty() {
+            load_schema_plugin_with_proto(&self.env).await?;
+        }
 
         let mut set = JoinSet::<Result<ToolRecord, ProtoLoaderError>>::new();
         let mut records = vec![];
