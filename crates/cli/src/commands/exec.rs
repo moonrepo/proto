@@ -1,17 +1,26 @@
+use crate::error::ProtoCliError;
 use crate::session::{LoadToolOptions, ProtoSession};
 use crate::workflows::{ExecWorkflow, ExecWorkflowParams};
 use clap::Args;
+use miette::IntoDiagnostic;
 use proto_core::{ToolContext, ToolSpec};
+use proto_shim::exec_command_and_replace;
 use rustc_hash::{FxHashMap, FxHashSet};
 use starbase::AppResult;
 use starbase_shell::ShellType;
 
 #[derive(Args, Clone, Debug)]
 pub struct ExecArgs {
-    #[arg(required = true, help = "Tools to initialize")]
+    #[arg(help = "Tools to initialize")]
     tools: Vec<String>,
 
-    #[arg(help = "Shell to execute with")]
+    #[arg(long, help = "Inherit tools to initialize from .prototools configs")]
+    tools_from_config: bool,
+
+    #[arg(long, help = "Execute the command as-is without quoting or escaping")]
+    raw: bool,
+
+    #[arg(long, help = "Shell to execute the command with")]
     shell: Option<ShellType>,
 
     // Passthrough args (after --)
@@ -20,18 +29,25 @@ pub struct ExecArgs {
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn exec(session: ProtoSession, args: ExecArgs) -> AppResult {
-    // Detect the shell that we need to activate for
-    let shell_type = match args.shell {
-        Some(value) => value,
-        None => ShellType::try_detect()?,
-    };
+pub async fn exec(session: ProtoSession, mut args: ExecArgs) -> AppResult {
+    if args.command.is_empty() {
+        return Err(ProtoCliError::ExecMissingCommand.into());
+    }
 
-    // Extract contexts and specs
+    let config = session.load_config()?;
     let mut specs = FxHashMap::default();
 
     for value in &args.tools {
-        if let Some(index) = value.rfind('@') {
+        // We need to check if the string contains `@<version>` to properly
+        // parse the context and spec, but this becomes complicated with
+        // npm packages that have an `@` scope. We need to support all these:
+        //  - npm:@scope/org
+        //  - npm:@scope/org@version
+        //  - tool
+        //  - tool@version
+        let has_version = value.chars().filter(|c| *c == '@').count() >= 1 && !value.contains(":@");
+
+        if has_version && let Some(index) = value.rfind('@') {
             specs.insert(
                 ToolContext::parse(&value[0..index])?,
                 Some(ToolSpec::parse(&value[index + 1..])?),
@@ -41,8 +57,15 @@ pub async fn exec(session: ProtoSession, args: ExecArgs) -> AppResult {
         }
     }
 
-    // Load config and tools
-    let config = session.load_config()?;
+    if args.tools_from_config {
+        for (context, spec) in &config.versions {
+            if !specs.contains_key(context) {
+                specs.insert(context.to_owned(), Some(spec.to_owned()));
+            }
+        }
+    }
+
+    // Load tools
     let tools = session
         .load_tools_with_options(LoadToolOptions {
             tools: FxHashSet::from_iter(specs.keys().cloned()),
@@ -70,7 +93,18 @@ pub async fn exec(session: ProtoSession, args: ExecArgs) -> AppResult {
         .await?;
 
     // Create and run command
-    let shell_command = shell_type.build().get_exec_command();
+    let command = match args.shell {
+        None => workflow.create_command(args.command.remove(0), args.command)?,
+        Some(shell) => workflow.create_command_with_shell(
+            shell.build(),
+            args.command.remove(0),
+            args.command,
+            args.raw,
+        )?,
+    };
 
-    Ok(None)
+    // Must be the last line!
+    exec_command_and_replace(command)
+        .into_diagnostic()
+        .map(|_| None)
 }

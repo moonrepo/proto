@@ -8,10 +8,11 @@ use proto_pdk_api::{
     RunHookResult,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
+use starbase_shell::{BoxedShell, join_args};
 use starbase_utils::env::paths;
 use std::collections::VecDeque;
 use std::env;
-use std::ffi::OsString;
+use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use tokio::task::JoinSet;
@@ -60,12 +61,14 @@ pub struct ExecWorkflow<'app> {
     pub paths: VecDeque<PathBuf>,
 
     config: &'app ProtoConfig,
+    multiple: bool,
     tools: Vec<ToolRecord>,
 }
 
 impl<'app> ExecWorkflow<'app> {
     pub fn new(tools: Vec<ToolRecord>, config: &'app ProtoConfig) -> Self {
         Self {
+            multiple: tools.len() > 1,
             tools,
             args: vec![],
             env: IndexMap::default(),
@@ -126,7 +129,62 @@ impl<'app> ExecWorkflow<'app> {
         Ok(())
     }
 
-    pub fn apply_to_command(self, command: &mut Command) -> miette::Result<()> {
+    pub fn create_command<E, AI, A>(self, exe: E, args: AI) -> miette::Result<Command>
+    where
+        E: AsRef<OsStr>,
+        AI: IntoIterator<Item = A>,
+        A: AsRef<OsStr>,
+    {
+        let mut command = Command::new(exe);
+        command.args(args);
+
+        self.apply_to_command(&mut command, false)?;
+
+        Ok(command)
+    }
+
+    pub fn create_command_with_shell<E, AI, A>(
+        self,
+        shell: BoxedShell,
+        exe: E,
+        args: AI,
+        raw: bool,
+    ) -> miette::Result<Command>
+    where
+        E: AsRef<OsStr>,
+        AI: IntoIterator<Item = A>,
+        A: AsRef<OsStr>,
+    {
+        let args = args.into_iter().collect::<Vec<_>>();
+
+        // Join the exe and args into a single argument
+        let wrapped_command = {
+            let mut line: Vec<&OsStr> = vec![exe.as_ref()];
+
+            line.extend(args.iter().map(|arg| arg.as_ref()));
+
+            if !self.args.is_empty() {
+                line.extend(self.args.iter().map(OsStr::new));
+            }
+
+            if raw {
+                line.join(OsStr::new(" ")).into_string().unwrap()
+            } else {
+                join_args(&shell, line)
+            }
+        };
+
+        // Create the command
+        let mut command = Command::new(shell.to_string());
+        command.args(shell.get_exec_command().shell_args);
+        command.arg(wrapped_command);
+
+        self.apply_to_command(&mut command, true)?;
+
+        Ok(command)
+    }
+
+    pub fn apply_to_command(self, command: &mut Command, with_shell: bool) -> miette::Result<()> {
         if let Some(path) = self.join_paths()? {
             command.env("PATH", path);
         }
@@ -138,7 +196,7 @@ impl<'app> ExecWorkflow<'app> {
             };
         }
 
-        if !self.args.is_empty() {
+        if !with_shell && !self.multiple && !self.args.is_empty() {
             command.args(self.args);
         }
 
@@ -210,12 +268,10 @@ async fn prepare_tool(
             if params.detect_version {
                 match tool.detect_version().await {
                     Ok(inner) => inner,
-                    Err(_) => {
-                        return Ok(item);
-                    }
+                    Err(_) => ToolSpec::parse("*")?,
                 }
             } else {
-                return Ok(item);
+                ToolSpec::parse("*")?
             }
         }
     };

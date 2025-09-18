@@ -401,7 +401,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
         )
         .await?;
 
-    workflow.apply_to_command(&mut command)?;
+    workflow.apply_to_command(&mut command, false)?;
 
     // Must be the last line!
     exec_command_and_replace(command)

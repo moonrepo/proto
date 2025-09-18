@@ -75,6 +75,14 @@ pub enum ProtoCliError {
     #[error("Cannot map an alias to itself.")]
     AliasNoMatchingToVersion,
 
+    // EXEC
+    #[diagnostic(code(proto::commands::exec::missing_command))]
+    #[error(
+        "A command is required for execution. The command and its arguments can be passed after {}.",
+        "--".style(Style::Shell)
+    )]
+    ExecMissingCommand,
+
     // INSTALL
     #[diagnostic(
         code(proto::commands::install::requirements_not_met),
