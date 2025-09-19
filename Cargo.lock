@@ -3100,7 +3100,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.52.5"
+version = "0.53.0"
 dependencies = [
  "anyhow",
  "async-trait",
