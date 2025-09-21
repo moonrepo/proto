@@ -38,21 +38,21 @@ impl ToolContext {
         &self.original
     }
 
-    pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, ProtoIdError> {
+    pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, IdError> {
         Self::from_str(value.as_ref())
     }
 }
 
 impl FromStr for ToolContext {
-    type Err = ProtoIdError;
+    type Err = IdError;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         let value = value.trim_matches(':');
 
         let (backend, id) = if let Some((prefix, suffix)) = value.split_once(':') {
-            (Some(ProtoId::format(prefix)?), ProtoId::format(suffix)?)
+            (Some(Id::new(prefix)?), Id::new(suffix)?)
         } else {
-            (None, ProtoId::format(value)?)
+            (None, Id::new(value)?)
         };
 
         Ok(Self {
@@ -64,7 +64,7 @@ impl FromStr for ToolContext {
 }
 
 impl TryFrom<String> for ToolContext {
-    type Error = ProtoIdError;
+    type Error = IdError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         Self::from_str(&value)

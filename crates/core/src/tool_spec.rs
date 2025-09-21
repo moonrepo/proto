@@ -83,7 +83,7 @@ impl FromStr for ToolSpec {
                 "Configuring the backend within the version is no longer supported; pass it in the identifer instead"
             );
 
-            (Some(ProtoId::format(prefix)?), suffix)
+            (Some(Id::new(prefix)?), suffix)
         } else {
             (None, value)
         };
