@@ -1,6 +1,6 @@
 mod utils;
 
-use proto_core::{Id, PartialProtoToolConfig, ProtoConfig, UnresolvedVersionSpec};
+use proto_core::{PartialProtoToolConfig, ProtoConfig, UnresolvedVersionSpec};
 use starbase_sandbox::predicates::prelude::*;
 use std::collections::BTreeMap;
 use utils::*;
@@ -27,7 +27,7 @@ mod unalias_local {
 
         ProtoConfig::update(sandbox.path(), |config| {
             config.tools.get_or_insert_default().insert(
-                Id::raw("protostar"),
+                "protostar".into(),
                 PartialProtoToolConfig {
                     aliases: Some(BTreeMap::from_iter([(
                         "example".into(),
@@ -56,7 +56,7 @@ mod unalias_local {
 
         ProtoConfig::update(sandbox.path(), |config| {
             config.tools.get_or_insert_default().insert(
-                Id::raw("protostar"),
+                "protostar".into(),
                 PartialProtoToolConfig {
                     aliases: Some(BTreeMap::from_iter([(
                         "example".into(),
@@ -96,7 +96,7 @@ mod unalias_local {
 
             ProtoConfig::update(sandbox.path(), |config| {
                 config.tools.get_or_insert_default().insert(
-                    Id::raw("asdf:act"),
+                    "asdf:act".into(),
                     PartialProtoToolConfig {
                         aliases: Some(BTreeMap::from_iter([(
                             "example".into(),
@@ -130,7 +130,7 @@ mod unalias_global {
 
         ProtoConfig::update(sandbox.path().join(".proto"), |config| {
             config.tools.get_or_insert_default().insert(
-                Id::raw("protostar"),
+                "protostar".into(),
                 PartialProtoToolConfig {
                     aliases: Some(BTreeMap::from_iter([(
                         "example".into(),
@@ -167,7 +167,7 @@ mod unalias_user {
 
         ProtoConfig::update(sandbox.path().join(".home"), |config| {
             config.tools.get_or_insert_default().insert(
-                Id::raw("protostar"),
+                "protostar".into(),
                 PartialProtoToolConfig {
                     aliases: Some(BTreeMap::from_iter([(
                         "example".into(),

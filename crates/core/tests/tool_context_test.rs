@@ -4,7 +4,7 @@ mod tool_context {
     use super::*;
 
     #[test]
-    #[should_panic(expected = "ProtoIdError")]
+    #[should_panic(expected = "IdError")]
     fn errors_invalid_format() {
         ToolContext::parse("1~a.2").unwrap();
     }

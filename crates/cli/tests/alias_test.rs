@@ -1,6 +1,6 @@
 mod utils;
 
-use proto_core::{Id, PartialProtoToolConfig, ProtoConfig, ToolSpec, UnresolvedVersionSpec};
+use proto_core::{PartialProtoToolConfig, ProtoConfig, ToolSpec, UnresolvedVersionSpec};
 use starbase_sandbox::predicates::prelude::*;
 use std::collections::BTreeMap;
 use utils::*;
@@ -57,7 +57,7 @@ mod alias_local {
 
         ProtoConfig::update(sandbox.path(), |config| {
             config.tools.get_or_insert_default().insert(
-                Id::raw("protostar"),
+                "protostar".into(),
                 PartialProtoToolConfig {
                     aliases: Some(BTreeMap::from_iter([(
                         "example".into(),
