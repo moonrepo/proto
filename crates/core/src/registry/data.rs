@@ -1,4 +1,4 @@
-use crate::id::ProtoId;
+use crate::id::Id;
 use schematic::Schematic;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -62,7 +62,7 @@ pub struct PluginEntry {
     // PLUGIN
     /// Suggested identifier of the plugin. This will become the primary binary/shim name,
     /// as well as the name used on the command line, and within environment variables.
-    pub id: ProtoId,
+    pub id: Id,
 
     /// The location in which to acquire the plugin.
     /// More information: https://moonrepo.dev/docs/guides/wasm-plugins#configuring-plugin-locations

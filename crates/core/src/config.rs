@@ -36,7 +36,7 @@ pub const ENV_FILE_KEY: &str = "file";
 pub struct ProtoConfig {
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     #[setting(nested, merge = merge_partials_iter)]
-    pub backends: BTreeMap<Id, ProtoBackendConfig>,
+    pub backends: BTreeMap<String, ProtoBackendConfig>,
 
     #[serde(skip_serializing_if = "IndexMap::is_empty")]
     #[setting(nested, merge = merge_iter)]
@@ -44,7 +44,7 @@ pub struct ProtoConfig {
 
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     #[setting(nested, merge = merge_partials_iter)]
-    pub tools: BTreeMap<Id, ProtoToolConfig>,
+    pub tools: BTreeMap<String, ProtoToolConfig>,
 
     #[setting(nested)]
     pub plugins: ProtoPluginsConfig,
@@ -70,7 +70,7 @@ impl ProtoConfig {
         context
             .backend
             .as_ref()
-            .and_then(|id| self.backends.get(id))
+            .and_then(|id| self.backends.get(id.as_str()))
     }
 
     pub fn get_tool_config(&self, context: &ToolContext) -> Option<&ProtoToolConfig> {
@@ -81,7 +81,7 @@ impl ProtoConfig {
             self.tools
                 .get(context.as_str())
                 // TODO remove in v0.54
-                .or_else(|| self.tools.get(&context.id))
+                .or_else(|| self.tools.get(context.id.as_str()))
         } else {
             self.tools.get(context.as_str())
         }
