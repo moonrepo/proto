@@ -145,6 +145,14 @@ pub enum ProtoCliError {
     )]
     RunNoSelfUpgrade { command: String, tool: String },
 
+    // SHELL
+    #[diagnostic(code(proto::commands::shell::unsupported_powershell))]
+    #[error(
+        "PowerShell (powershell.exe) does not support interactive shells. Try using pwsh (pwsh.exe) instead by passing {}.",
+        "--shell pwsh".style(Style::Shell)
+    )]
+    ShellPowerShellNotSupported,
+
     // UPGRADE
     #[diagnostic(code(proto::commands::upgrade::failed))]
     #[error("Failed to upgrade proto, {} binary could not be located after download!", .bin.style(Style::Shell))]
