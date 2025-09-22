@@ -101,6 +101,7 @@ async fn main() -> MainResult {
                 Commands::Regen(args) => commands::regen(session, args).await,
                 Commands::Run(args) => commands::run(session, args).await,
                 Commands::Setup(args) => commands::setup(session, args).await,
+                Commands::Shell(args) => commands::shell(session, args).await,
                 Commands::Status(args) => commands::status(session, args).await,
                 Commands::Unalias(args) => commands::unalias(session, args).await,
                 Commands::Uninstall(args) => commands::uninstall(session, args).await,

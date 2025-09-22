@@ -28,7 +28,7 @@ mod exec {
         });
 
         assert.inner.stderr(predicate::str::contains(
-            "Invalid identifier format for foo bar.",
+            "Invalid identifier format for `foo bar`.",
         ));
     }
 
