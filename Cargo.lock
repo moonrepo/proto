@@ -3772,9 +3772,9 @@ checksum = "28d3b2b1366ec20994f1fd18c3c594f05c5dd4bc44d8bb0c1c632c8d6829481f"
 
 [[package]]
 name = "saa"
-version = "3.3.0"
+version = "4.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3af482bff17082cbf132940e3b7faeb9d7b3cf5134640dbd8510c9ea6c042827"
+checksum = "14e9fa21973077ea653ab459c4746540e49f21fed90f49efa1b5a7dbbc4ca3af"
 
 [[package]]
 name = "same-file"
@@ -3787,9 +3787,9 @@ dependencies = [
 
 [[package]]
 name = "scc"
-version = "3.0.7"
+version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f0c0b27fa9a31fc2bad3b9ce122188c9df8158bdcbc3c73e3c0bc38aa69c61e"
+checksum = "db652791ad0074be7e117e9e778a961cd66e1382c6b160c96a4502971d7211a6"
 dependencies = [
  "saa",
  "sdd",
@@ -4295,9 +4295,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_id"
-version = "0.2.1"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "35295a2e2111b7a757dee9d0ca40b19f427c0af86a195746dcb467a4ab353dea"
+checksum = "b524c77e06ce0407cf6bd2c89b7c9d101e21404db405deb40af71bd3e34a018a"
 dependencies = [
  "compact_str 0.9.0",
  "miette 7.6.0",
