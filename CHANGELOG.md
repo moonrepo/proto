@@ -23,6 +23,12 @@
   - Pre-builts will now use a much smaller archive when downloading.
   - Fixed a UTF-8 unpacking error.
 
+#### 🚀 Updates
+
+- Added a new command, `proto shell`, that will initialize a list of tools into the environment and start an interactive shell session.
+  - By default, it will use the current shell, but you can override this with the `--shell` option.
+  - Example: `proto shell node@20 npm@10`
+
 #### ⚙️ Internal
 
 - Updated dependencies.
