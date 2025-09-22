@@ -12,20 +12,20 @@ use starbase_shell::ShellType;
 #[derive(Args, Clone, Debug)]
 pub struct ExecArgs {
     #[arg(help = "Tools to initialize")]
-    tools: Vec<String>,
+    pub tools: Vec<String>,
 
     #[arg(long, help = "Inherit tools to initialize from .prototools configs")]
-    tools_from_config: bool,
+    pub tools_from_config: bool,
 
     #[arg(long, help = "Execute the command as-is without quoting or escaping")]
-    raw: bool,
+    pub raw: bool,
 
     #[arg(long, help = "Shell to execute the command with")]
-    shell: Option<ShellType>,
+    pub shell: Option<ShellType>,
 
     // Passthrough args (after --)
     #[arg(last = true, help = "The command to execute after initializing tools")]
-    command: Vec<String>,
+    pub command: Vec<String>,
 }
 
 #[tracing::instrument(skip_all)]
