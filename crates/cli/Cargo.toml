@@ -49,6 +49,7 @@ iocraft = { workspace = true }
 miette = { workspace = true, features = ["fancy"] }
 regex = { workspace = true }
 reqwest = { workspace = true, features = ["rustls-tls-native-roots"] }
+rmcp = { workspace = true }
 rustc-hash = { workspace = true }
 semver = { workspace = true }
 serde = { workspace = true }
