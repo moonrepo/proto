@@ -1,7 +1,7 @@
 use crate::commands::{
     ActivateArgs, AliasArgs, BinArgs, CleanArgs, CompletionsArgs, DiagnoseArgs, ExecArgs,
-    InstallArgs, MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs, SetupArgs, StatusArgs,
-    UnaliasArgs, UninstallArgs, UnpinArgs, UpgradeArgs, VersionsArgs,
+    InstallArgs, MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs, SetupArgs, ShellArgs,
+    StatusArgs, UnaliasArgs, UninstallArgs, UnpinArgs, UpgradeArgs, VersionsArgs,
     debug::{DebugConfigArgs, DebugEnvArgs},
     plugin::{AddPluginArgs, InfoPluginArgs, ListPluginsArgs, RemovePluginArgs, SearchPluginArgs},
 };
@@ -292,6 +292,13 @@ pub enum Commands {
         about = "Setup proto for your current shell by injecting exports and updating PATH."
     )]
     Setup(SetupArgs),
+
+    #[command(
+        aliases = ["sh", "session"],
+        name = "shell",
+        about = "Initialize a list of tools into the environment and start an interactive shell session."
+    )]
+    Shell(ShellArgs),
 
     #[command(
         name = "status",
