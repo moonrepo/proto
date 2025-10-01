@@ -28,7 +28,7 @@ mod exec {
         });
 
         assert.inner.stderr(predicate::str::contains(
-            "Invalid identifier format for foo bar.",
+            "Invalid identifier format for `foo bar`.",
         ));
     }
 
@@ -105,7 +105,7 @@ bun = "1.2"
 
         assert
             .inner
-            .stdout(predicate::str::contains("v20.19.5").and(predicate::str::contains("1.2.22")));
+            .stdout(predicate::str::contains("v20.19.5").and(predicate::str::contains("1.2.23")));
     }
 
     #[test]
@@ -139,7 +139,7 @@ bun = "1.2"
 
         assert
             .inner
-            .stdout(predicate::str::contains("v20.19.5").and(predicate::str::contains("1.2.22")));
+            .stdout(predicate::str::contains("v20.19.5").and(predicate::str::contains("1.2.23")));
     }
 
     #[test]
