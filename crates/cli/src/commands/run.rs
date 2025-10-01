@@ -395,7 +395,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
                 check_process_env: true,
                 passthrough_args: args.passthrough,
                 pre_run_hook: true,
-                version_env_vars: true,
+                version_env_vars: !use_global_proto,
                 ..Default::default()
             },
         )

@@ -128,11 +128,11 @@ impl ProtoConfig {
     }
 
     pub fn builtin_proto_plugin(&self) -> PluginLocator {
-        find_debug_locator_with_url_fallback("proto_tool", "0.5.4")
+        find_debug_locator_with_url_fallback("proto_tool", "0.5.5")
     }
 
     pub fn builtin_schema_plugin(&self) -> PluginLocator {
-        find_debug_locator_with_url_fallback("schema_tool", "0.17.5")
+        find_debug_locator_with_url_fallback("schema_tool", "0.17.7")
     }
 
     pub fn inherit_builtin_plugins(&mut self) {
@@ -156,21 +156,21 @@ impl ProtoConfig {
         if !tools.contains_key("bun") && is_allowed("bun") {
             tools.insert(
                 Id::raw("bun"),
-                find_debug_locator_with_url_fallback("bun_tool", "0.16.2"),
+                find_debug_locator_with_url_fallback("bun_tool", "0.16.3"),
             );
         }
 
         if !tools.contains_key("deno") && is_allowed("deno") {
             tools.insert(
                 Id::raw("deno"),
-                find_debug_locator_with_url_fallback("deno_tool", "0.15.5"),
+                find_debug_locator_with_url_fallback("deno_tool", "0.15.6"),
             );
         }
 
         if !tools.contains_key("go") && is_allowed("go") {
             tools.insert(
                 Id::raw("go"),
-                find_debug_locator_with_url_fallback("go_tool", "0.16.4"),
+                find_debug_locator_with_url_fallback("go_tool", "0.16.5"),
             );
         }
 
@@ -184,7 +184,7 @@ impl ProtoConfig {
         if !tools.contains_key("node") && is_allowed("node") {
             tools.insert(
                 Id::raw("node"),
-                find_debug_locator_with_url_fallback("node_tool", "0.17.2"),
+                find_debug_locator_with_url_fallback("node_tool", "0.17.3"),
             );
         }
 
@@ -192,7 +192,7 @@ impl ProtoConfig {
             if !tools.contains_key(depman) && is_allowed(depman) {
                 tools.insert(
                     Id::raw(depman),
-                    find_debug_locator_with_url_fallback("node_depman_tool", "0.16.4"),
+                    find_debug_locator_with_url_fallback("node_depman_tool", "0.16.5"),
                 );
             }
         }
@@ -207,7 +207,7 @@ impl ProtoConfig {
         if !tools.contains_key("python") && is_allowed("python") {
             tools.insert(
                 Id::raw("python"),
-                find_debug_locator_with_url_fallback("python_tool", "0.14.3"),
+                find_debug_locator_with_url_fallback("python_tool", "0.14.4"),
             );
         }
 
@@ -221,14 +221,14 @@ impl ProtoConfig {
         if !tools.contains_key("ruby") && is_allowed("ruby") {
             tools.insert(
                 Id::raw("ruby"),
-                find_debug_locator_with_url_fallback("ruby_tool", "0.2.3"),
+                find_debug_locator_with_url_fallback("ruby_tool", "0.2.4"),
             );
         }
 
         if !tools.contains_key("rust") && is_allowed("rust") {
             tools.insert(
                 Id::raw("rust"),
-                find_debug_locator_with_url_fallback("rust_tool", "0.13.6"),
+                find_debug_locator_with_url_fallback("rust_tool", "0.13.7"),
             );
         }
 

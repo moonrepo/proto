@@ -17,9 +17,18 @@
 
 ## Unreleased
 
+#### 🐞 Fixes
+
+- Fixed some environment variable loading order issues for activate/run flows.
+
+#### 🧩 Plugins
+
+- Updated `schema_tool` to v0.17.7.
+  - Fixed an unwanted primary executable being injected with the tool identifier, instead of inheriting the user configured primary.
+
 #### ⚙️ Internal
 
-- Reworked identifier handling. This should be backwards compatible.
+- Reworked identifier handling. This _should_ be backwards compatible.
 - Updated dependencies.
 
 ## 0.53.0
