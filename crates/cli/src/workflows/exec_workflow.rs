@@ -20,6 +20,8 @@ use tracing::trace;
 
 #[derive(Default)]
 pub struct ExecItem {
+    context: ToolContext,
+    active: bool,
     args: Vec<String>,
     env: IndexMap<String, Option<String>>,
     paths: Vec<PathBuf>,
@@ -101,6 +103,14 @@ impl<'app> ExecWorkflow<'app> {
     ) -> miette::Result<()> {
         let mut set = JoinSet::<Result<ExecItem, ProtoSetupError>>::new();
 
+        for tool in std::mem::take(&mut self.tools) {
+            let provided_spec = specs.remove(&tool.context);
+            let params = params.clone();
+
+            // Extract in a background thread
+            set.spawn(async move { prepare_tool(tool, provided_spec, params).await });
+        }
+
         // Inherit shared environment variables
         self.env
             .extend(self.config.get_env_vars(ProtoConfigEnvOptions {
@@ -108,24 +118,20 @@ impl<'app> ExecWorkflow<'app> {
                 ..Default::default()
             })?);
 
-        for tool in std::mem::take(&mut self.tools) {
-            let provided_spec = specs.remove(&tool.context);
-            let params = params.clone();
-
-            // Inherit tool environment variables
-            self.env
-                .extend(self.config.get_env_vars(ProtoConfigEnvOptions {
-                    context: Some(&tool.context),
-                    check_process: params.check_process_env,
-                    ..Default::default()
-                })?);
-
-            // Extract the version in a background thread
-            set.spawn(async move { prepare_tool(tool, provided_spec, params).await });
-        }
-
         while let Some(item) = set.join_next().await {
-            self.collect_item(item.into_diagnostic()??);
+            let item = item.into_diagnostic()??;
+
+            if item.active {
+                // Inherit tool environment variables
+                self.env
+                    .extend(self.config.get_env_vars(ProtoConfigEnvOptions {
+                        context: Some(&item.context),
+                        check_process: params.check_process_env,
+                        ..Default::default()
+                    })?);
+
+                self.collect_item(item);
+            }
         }
 
         Ok(())
@@ -327,7 +333,10 @@ async fn prepare_tool(
     provided_spec: Option<ToolSpec>,
     params: ExecWorkflowParams,
 ) -> Result<ExecItem, ProtoSetupError> {
-    let mut item = ExecItem::default();
+    let mut item = ExecItem {
+        context: tool.context.clone(),
+        ..Default::default()
+    };
 
     // Detect a version, otherwise return early
     let spec = match provided_spec {
@@ -337,6 +346,8 @@ async fn prepare_tool(
             None => return Ok(item),
         },
     };
+
+    item.active = true;
 
     // Resolve the version and locate executables
     if !tool.is_setup(&spec).await? {

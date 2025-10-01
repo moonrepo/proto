@@ -17,9 +17,13 @@
 
 ## Unreleased
 
+#### 🐞 Fixes
+
+- Fixed some environment variable loading order issues for activate/run flows.
+
 #### ⚙️ Internal
 
-- Reworked identifier handling. This should be backwards compatible.
+- Reworked identifier handling. This _should_ be backwards compatible.
 - Updated dependencies.
 
 ## 0.53.0
