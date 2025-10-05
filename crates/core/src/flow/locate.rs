@@ -30,7 +30,7 @@ impl Tool {
     pub(crate) async fn call_locate_executables(
         &self,
     ) -> Result<LocateExecutablesOutput, ProtoLocateError> {
-        let output: LocateExecutablesOutput = self
+        Ok(self
             .plugin
             .cache_func_with(
                 PluginFunction::LocateExecutables,
@@ -39,23 +39,7 @@ impl Tool {
                     install_dir: self.to_virtual_path(self.get_product_dir()),
                 },
             )
-            .await?;
-
-        for exe_config in output.exes.values() {
-            if exe_config.update_perms
-                && let Some(exe_path) = &exe_config.exe_path
-            {
-                let exe_abs_path = self
-                    .get_product_dir()
-                    .join(path::normalize_separators(exe_path));
-
-                if exe_abs_path.exists() {
-                    fs::update_perms(exe_abs_path, None)?;
-                }
-            }
-        }
-
-        Ok(output)
+            .await?)
     }
 
     /// Return location information for the primary executable within the tool directory.
@@ -63,23 +47,32 @@ impl Tool {
         &self,
     ) -> Result<Option<ExecutableLocation>, ProtoLocateError> {
         let output = self.call_locate_executables().await?;
+        let mut primary = None;
 
         for (name, config) in output.exes {
-            if config.primary
-                && let Some(exe_path) = &config.exe_path
-            {
-                return Ok(Some(ExecutableLocation {
-                    path: self
-                        .get_product_dir()
-                        .join(path::normalize_separators(exe_path)),
+            let Some(exe_path) = &config.exe_path else {
+                continue;
+            };
+
+            let path = self
+                .get_product_dir()
+                .join(path::normalize_separators(exe_path));
+
+            if config.update_perms && path.exists() {
+                fs::update_perms(&path, None)?;
+            }
+
+            if config.primary {
+                primary = Some(ExecutableLocation {
+                    path,
                     name,
                     config,
                     version: None,
-                }));
+                });
             }
         }
 
-        Ok(None)
+        Ok(primary)
     }
 
     /// Return location information for all secondary executables within the tool directory.
