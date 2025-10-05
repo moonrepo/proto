@@ -22,6 +22,7 @@ impl WasmTestWrapper {
         mut input: DownloadPrebuiltInput,
     ) -> DownloadPrebuiltOutput {
         input.context = self.prepare_context(input.context);
+        input.install_dir = self.tool.to_virtual_path(input.install_dir);
 
         self.tool
             .plugin
@@ -45,6 +46,7 @@ impl WasmTestWrapper {
         mut input: LocateExecutablesInput,
     ) -> LocateExecutablesOutput {
         input.context = self.prepare_context(input.context);
+        input.install_dir = self.tool.to_virtual_path(input.install_dir);
 
         self.tool
             .plugin
@@ -55,6 +57,7 @@ impl WasmTestWrapper {
 
     pub async fn native_install(&self, mut input: NativeInstallInput) -> NativeInstallOutput {
         input.context = self.prepare_context(input.context);
+        input.install_dir = self.tool.to_virtual_path(input.install_dir);
 
         self.tool
             .plugin
@@ -65,6 +68,7 @@ impl WasmTestWrapper {
 
     pub async fn native_uninstall(&self, mut input: NativeUninstallInput) -> NativeUninstallOutput {
         input.context = self.prepare_context(input.context);
+        input.uninstall_dir = self.tool.to_virtual_path(input.uninstall_dir);
 
         self.tool
             .plugin
@@ -78,7 +82,7 @@ impl WasmTestWrapper {
         mut input: ParseVersionFileInput,
     ) -> ParseVersionFileOutput {
         input.context = self.prepare_unresolved_context(input.context);
-        input.path = self.tool.to_virtual_path(&input.path);
+        input.path = self.tool.to_virtual_path(input.path);
 
         self.tool
             .plugin
@@ -169,8 +173,8 @@ impl WasmTestWrapper {
     }
 
     pub async fn unpack_archive(&self, mut input: UnpackArchiveInput) {
-        input.input_file = self.tool.to_virtual_path(&input.input_file);
-        input.output_dir = self.tool.to_virtual_path(&input.output_dir);
+        input.input_file = self.tool.to_virtual_path(input.input_file);
+        input.output_dir = self.tool.to_virtual_path(input.output_dir);
 
         let _: EmptyInput = self
             .tool
@@ -181,8 +185,8 @@ impl WasmTestWrapper {
     }
 
     pub async fn verify_checksum(&self, mut input: VerifyChecksumInput) -> VerifyChecksumOutput {
-        input.checksum_file = self.tool.to_virtual_path(&input.checksum_file);
-        input.download_file = self.tool.to_virtual_path(&input.download_file);
+        input.checksum_file = self.tool.to_virtual_path(input.checksum_file);
+        input.download_file = self.tool.to_virtual_path(input.download_file);
 
         self.tool
             .plugin

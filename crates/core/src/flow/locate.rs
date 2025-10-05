@@ -30,7 +30,7 @@ impl Tool {
     pub(crate) async fn call_locate_executables(
         &self,
     ) -> Result<LocateExecutablesOutput, ProtoLocateError> {
-        Ok(self
+        let output: LocateExecutablesOutput = self
             .plugin
             .cache_func_with(
                 PluginFunction::LocateExecutables,
@@ -39,7 +39,23 @@ impl Tool {
                     install_dir: self.to_virtual_path(self.get_product_dir()),
                 },
             )
-            .await?)
+            .await?;
+
+        for exe_config in output.exes.values() {
+            if exe_config.update_perms
+                && let Some(exe_path) = &exe_config.exe_path
+            {
+                let exe_abs_path = self
+                    .get_product_dir()
+                    .join(path::normalize_separators(exe_path));
+
+                if exe_abs_path.exists() {
+                    fs::update_perms(exe_abs_path, None)?;
+                }
+            }
+        }
+
+        Ok(output)
     }
 
     /// Return location information for the primary executable within the tool directory.
