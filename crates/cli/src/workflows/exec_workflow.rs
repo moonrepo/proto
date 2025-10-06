@@ -1,5 +1,5 @@
 use crate::utils::tool_record::ToolRecord;
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use miette::IntoDiagnostic;
 use proto_core::flow::setup::ProtoSetupError;
 use proto_core::{ProtoConfig, ProtoConfigEnvOptions, ToolContext, ToolSpec};
@@ -24,7 +24,7 @@ pub struct ExecItem {
     active: bool,
     args: Vec<String>,
     env: IndexMap<String, Option<String>>,
-    paths: Vec<PathBuf>,
+    paths: IndexSet<PathBuf>,
 }
 
 impl ExecItem {
@@ -35,7 +35,7 @@ impl ExecItem {
     pub fn add_path(&mut self, path: PathBuf) {
         // Only add paths that exist
         if path.exists() {
-            self.paths.push(path);
+            self.paths.insert(path);
         }
     }
 
