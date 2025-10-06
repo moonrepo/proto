@@ -65,13 +65,13 @@ pub async fn exec(session: ProtoSession, mut args: ExecArgs) -> AppResult {
         }
     }
 
-    // Load tools (empty list will load everything)
+    // Load tools (an empty list will load everything)
     let tools = if specs.is_empty() {
         vec![]
     } else {
         session
             .load_tools_with_options(LoadToolOptions {
-                tools: FxHashSet::from_iter(specs.keys().cloned()),
+                contexts: FxHashSet::from_iter(specs.keys().cloned()),
                 ..Default::default()
             })
             .await?
@@ -88,7 +88,6 @@ pub async fn exec(session: ProtoSession, mut args: ExecArgs) -> AppResult {
                 .collect(),
             ExecWorkflowParams {
                 activate_environment: true,
-                detect_version: true,
                 fallback_any_spec: true,
                 pre_run_hook: true,
                 version_env_vars: true,

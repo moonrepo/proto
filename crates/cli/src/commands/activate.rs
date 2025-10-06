@@ -1,9 +1,10 @@
-use crate::session::ProtoSession;
+use crate::session::{LoadToolOptions, ProtoSession};
 use crate::workflows::{ExecWorkflow, ExecWorkflowParams};
 use clap::Args;
 use indexmap::IndexMap;
 use miette::IntoDiagnostic;
 use proto_core::{Id, PROTO_PLUGIN_KEY, ToolContext, UnresolvedVersionSpec};
+use rustc_hash::FxHashMap;
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_shell::{Hook, ShellType};
@@ -56,19 +57,32 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
         return Ok(None);
     }
 
-    // Pre-load configuration
+    // Load configuration and tools
     let config = session.env.load_config()?;
+    let tools = session
+        .load_tools_with_options(LoadToolOptions {
+            detect_version: true,
+            ..Default::default()
+        })
+        .await?;
 
-    // Load necessary tools so that we can extract info
-    let mut workflow = ExecWorkflow::new(session.load_tools().await?, config);
+    // Extract specs for each tool
+    let mut specs = FxHashMap::default();
+
+    for tool in &tools {
+        if let Some(spec) = &tool.detected_version {
+            specs.insert(tool.context.clone(), spec.to_owned());
+        }
+    }
 
     // Aggregate our environment/shell exports
+    let mut workflow = ExecWorkflow::new(tools, config);
+
     workflow
         .prepare_environment(
-            Default::default(),
+            specs,
             ExecWorkflowParams {
                 activate_environment: true,
-                detect_version: true,
                 ..Default::default()
             },
         )
