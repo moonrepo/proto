@@ -26,6 +26,10 @@
 - Updated `node_depman_tool` to v0.17.0.
   - Added an internal shims feature that resolves issues when npm/pnpm/yarn binaries are ran in isolation (from the install directory). This typically only happens for activate workflows.
 
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.53.1
 
 #### 🐞 Fixes
