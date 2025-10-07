@@ -40,6 +40,7 @@ pub struct Tool {
     // Cache
     pub(crate) backend_registered: bool,
     pub(crate) cache: bool,
+    pub(crate) cache_internal: bool,
     pub(crate) exe_file: Option<PathBuf>,
     pub(crate) exes_dirs: Vec<PathBuf>,
     pub(crate) globals_dir: Option<PathBuf>,
@@ -62,6 +63,7 @@ impl Tool {
         let mut tool = Tool {
             backend_registered: false,
             cache: true,
+            cache_internal: true,
             context,
             exe_file: None,
             exes_dirs: vec![],
@@ -157,12 +159,18 @@ impl Tool {
         self.globals_dir = None;
         self.globals_dirs.clear();
         self.globals_prefix = None;
+        self.version = None;
         self.version_locked = None;
     }
 
-    /// Disable internal caching when applicable.
+    /// Disable caching when applicable.
     pub fn disable_caching(&mut self) {
         self.cache = false;
+    }
+
+    /// Disable in-memory instance caching.
+    pub fn disable_instance_caching(&mut self) {
+        self.cache_internal = false;
     }
 
     /// Return the backend identifier.
@@ -225,6 +233,7 @@ impl Tool {
 
     /// Explicitly set the version to use.
     pub fn set_version(&mut self, version: VersionSpec) {
+        self.clear_instance_cache();
         self.product = self.inventory.create_product(&version);
         self.version = Some(version);
     }

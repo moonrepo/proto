@@ -248,7 +248,9 @@ impl Tool {
         if exe_file.exists() {
             debug!(tool = self.context.as_str(), exe_path = ?exe_file, "Found an executable");
 
-            self.exe_file = Some(exe_file.clone());
+            if self.cache_internal {
+                self.exe_file = Some(exe_file.clone());
+            }
 
             return Ok(exe_file);
         }
@@ -273,31 +275,38 @@ impl Tool {
     /// Locate the directory that local executables are installed to.
     #[instrument(skip_all)]
     pub async fn locate_exes_dirs(&mut self) -> Result<Vec<PathBuf>, ProtoLocateError> {
-        if self.exes_dirs.is_empty()
-            && self
-                .plugin
-                .has_func(PluginFunction::LocateExecutables)
-                .await
+        if !self.exes_dirs.is_empty() {
+            return Ok(self.exes_dirs.clone());
+        }
+
+        let mut dirs = vec![];
+
+        if self
+            .plugin
+            .has_func(PluginFunction::LocateExecutables)
+            .await
         {
             let output = self.call_locate_executables().await?;
 
             #[allow(deprecated)]
             if let Some(dir) = output.exes_dir {
-                self.exes_dirs
-                    .push(self.get_product_dir().join(path::normalize_separators(dir)));
+                dirs.push(self.get_product_dir().join(path::normalize_separators(dir)));
             } else {
                 for dir in output.exes_dirs {
                     if dir.to_str().is_some_and(|dir| dir == ".") {
-                        self.exes_dirs.push(self.get_product_dir().to_path_buf());
+                        dirs.push(self.get_product_dir().to_path_buf());
                     } else {
-                        self.exes_dirs
-                            .push(self.get_product_dir().join(path::normalize_separators(dir)));
+                        dirs.push(self.get_product_dir().join(path::normalize_separators(dir)));
                     }
                 }
             }
         }
 
-        Ok(self.exes_dirs.clone())
+        if self.cache_internal {
+            self.exes_dirs = dirs.clone();
+        }
+
+        Ok(dirs)
     }
 
     /// Return an absolute path to the globals directory, after it has been located.
@@ -314,6 +323,7 @@ impl Tool {
         }
 
         let globals_dirs = self.locate_globals_dirs().await?;
+        let mut found_dir = None;
 
         for dir in &globals_dirs {
             if !dir.exists() {
@@ -331,12 +341,12 @@ impl Tool {
             if has_files {
                 debug!(tool = self.context.as_str(), dir = ?dir, "Found a usable globals directory");
 
-                self.globals_dir = Some(dir.to_owned());
+                found_dir = Some(dir.to_owned());
                 break;
             }
         }
 
-        if self.globals_dir.is_none()
+        if found_dir.is_none()
             && let Some(dir) = globals_dirs.last()
         {
             debug!(
@@ -345,15 +355,19 @@ impl Tool {
                 "No usable globals directory found, falling back to the last entry",
             );
 
-            self.globals_dir = Some(dir.to_owned());
+            found_dir = Some(dir.to_owned());
         }
 
         // Ensure directory exists as some tools require it
-        if let Some(dir) = &self.globals_dir {
+        if let Some(dir) = &found_dir {
             let _ = fs::create_dir_all(dir);
         }
 
-        Ok(self.globals_dir.clone())
+        if self.cache_internal {
+            self.globals_dir = found_dir.clone();
+        }
+
+        Ok(found_dir)
     }
 
     /// Return an absolute path to all globals directories, after they have been located.
@@ -385,7 +399,9 @@ impl Tool {
         let output = self.call_locate_executables().await?;
 
         // Set the prefix for simpler caching
-        self.globals_prefix = output.globals_prefix;
+        if self.cache_internal {
+            self.globals_prefix = output.globals_prefix;
+        }
 
         // Find all possible global directories that packages can be installed to
         let install_dir = self.get_product_dir();
@@ -439,7 +455,9 @@ impl Tool {
             "Located possible globals directories",
         );
 
-        self.globals_dirs = resolved_dirs.clone();
+        if self.cache_internal {
+            self.globals_dirs = resolved_dirs.clone();
+        }
 
         Ok(resolved_dirs)
     }
@@ -452,20 +470,25 @@ impl Tool {
     /// Return a string that all globals are prefixed with. Will be used for filtering and listing.
     #[instrument(skip_all)]
     pub async fn locate_globals_prefix(&mut self) -> Result<Option<String>, ProtoLocateError> {
-        if self.globals_prefix.is_none() {
-            if !self
-                .plugin
-                .has_func(PluginFunction::LocateExecutables)
-                .await
-            {
-                return Ok(None);
-            }
-
-            let output = self.call_locate_executables().await?;
-
-            self.globals_prefix = output.globals_prefix;
+        if self.globals_prefix.is_some() {
+            return Ok(self.globals_prefix.clone());
         }
 
-        Ok(self.globals_prefix.clone())
+        if !self
+            .plugin
+            .has_func(PluginFunction::LocateExecutables)
+            .await
+        {
+            return Ok(None);
+        }
+
+        let output = self.call_locate_executables().await?;
+        let prefix = output.globals_prefix;
+
+        if self.cache_internal {
+            self.globals_prefix = prefix.clone();
+        }
+
+        Ok(prefix)
     }
 }

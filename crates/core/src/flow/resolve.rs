@@ -82,15 +82,6 @@ impl Tool {
             return Ok(self.get_resolved_version());
         }
 
-        // TODO: temporary, remove in v0.53!
-        if let Some(backend) = &spec.backend {
-            self.context.backend = Some(backend.to_owned());
-
-            self.register_backend()
-                .await
-                .map_err(|error| ProtoResolveError::Temp(error.to_string()))?;
-        }
-
         debug!(
             tool = self.context.as_str(),
             initial_version = spec.to_string(),
@@ -158,6 +149,25 @@ impl Tool {
         self.set_version(version.clone());
 
         Ok(version)
+    }
+
+    /// Only resolve the provided spec if it is different than a previously resolved version.
+    #[instrument(skip(self))]
+    pub async fn resolve_version_if_different(
+        &mut self,
+        spec: &ToolSpec,
+        short_circuit: bool,
+    ) -> Result<VersionSpec, ProtoResolveError> {
+        if self
+            .version
+            .as_ref()
+            .is_some_and(|current| spec.req == *current)
+        {
+            return Ok(self.version.clone().unwrap());
+        }
+
+        self.version = None;
+        self.resolve_version(spec, short_circuit).await
     }
 
     #[instrument(skip(self, resolver))]

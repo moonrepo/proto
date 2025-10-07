@@ -1,16 +1,12 @@
 use crate::flow::resolve::ProtoResolveError;
-use crate::id::*;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;
-use tracing::warn;
 use version_spec::{UnresolvedVersionSpec, VersionSpec};
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(into = "String", try_from = "String")]
 pub struct ToolSpec {
-    pub backend: Option<Id>,
-
     /// Requested version/requirement.
     pub req: UnresolvedVersionSpec,
 
@@ -63,7 +59,6 @@ impl ToolSpec {
 impl Default for ToolSpec {
     fn default() -> Self {
         Self {
-            backend: None,
             req: UnresolvedVersionSpec::default(),
             version: None,
             resolve_from_lockfile: true,
@@ -77,20 +72,8 @@ impl FromStr for ToolSpec {
     type Err = ProtoResolveError;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
-        let (backend, spec) = if let Some((prefix, suffix)) = value.split_once(':') {
-            warn!(
-                spec = value,
-                "Configuring the backend within the version is no longer supported; pass it in the identifer instead"
-            );
-
-            (Some(Id::new(prefix)?), suffix)
-        } else {
-            (None, value)
-        };
-
         Ok(Self {
-            backend,
-            req: UnresolvedVersionSpec::parse(if spec.is_empty() { "*" } else { spec }).map_err(
+            req: UnresolvedVersionSpec::parse(if value.is_empty() { "*" } else { value }).map_err(
                 |error| ProtoResolveError::InvalidVersionSpec {
                     version: value.to_owned(),
                     error: Box::new(error),
