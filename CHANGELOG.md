@@ -17,6 +17,10 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- Added a `--quiet` flag to `proto uninstall`.
+
 #### 🐞 Fixes
 
 - Fixed an issue where `global` config mode wasn't respected during version detection.
