@@ -153,6 +153,7 @@ impl ProtoEnvironment {
             .filter_map(|dir| {
                 if !self.config_mode.includes_global() && dir.location == PinLocation::Global
                     || self.config_mode.only_local() && dir.path != self.working_dir
+                    || self.config_mode.only_global() && dir.path != self.store.dir
                 {
                     None
                 } else {
