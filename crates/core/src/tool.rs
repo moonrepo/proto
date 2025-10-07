@@ -150,6 +150,16 @@ impl Tool {
         Ok(manifest)
     }
 
+    /// Clear all in-memory cache on this tool instance.
+    pub fn clear_instance_cache(&mut self) {
+        self.exe_file = None;
+        self.exes_dirs.clear();
+        self.globals_dir = None;
+        self.globals_dirs.clear();
+        self.globals_prefix = None;
+        self.version_locked = None;
+    }
+
     /// Disable internal caching when applicable.
     pub fn disable_caching(&mut self) {
         self.cache = false;
