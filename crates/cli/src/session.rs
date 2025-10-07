@@ -21,10 +21,11 @@ use tracing::debug;
 
 #[derive(Debug, Default)]
 pub struct LoadToolOptions {
+    pub all: bool,
+    pub contexts: FxHashSet<ToolContext>,
     pub detect_version: bool,
     pub inherit_local: bool,
     pub inherit_remote: bool,
-    pub tools: FxHashSet<ToolContext>,
 }
 
 pub type ProtoConsole = Console<EmptyReporter>;
@@ -145,8 +146,12 @@ impl ProtoSession {
         // config for every tool that has a version. Otherwise, we'll
         // load all tools, even built-ins, when the user isn't using them.
         // This causes quite a performance hit.
-        if options.tools.is_empty() {
-            options.tools.extend(config.versions.keys().cloned());
+        if options.contexts.is_empty() {
+            if options.all {
+                options.contexts.extend(contexts.clone());
+            } else {
+                options.contexts.extend(config.versions.keys().cloned());
+            }
         }
 
         // Download the schema plugin before loading plugins.
@@ -163,7 +168,7 @@ impl ProtoSession {
         let opt_detect_version = options.detect_version;
 
         for context in contexts {
-            if !options.tools.contains(&context) {
+            if !options.contexts.contains(&context) {
                 continue;
             }
 
@@ -212,19 +217,7 @@ impl ProtoSession {
         &self,
         mut options: LoadToolOptions,
     ) -> Result<Vec<ToolRecord>, ProtoLoaderError> {
-        let config = self.load_config()?;
-
-        let mut contexts = FxHashSet::default();
-        contexts.extend(
-            config
-                .plugins
-                .tools
-                .keys()
-                .map(|id| ToolContext::new(id.to_owned())),
-        );
-        contexts.extend(config.versions.keys().cloned());
-
-        options.tools = contexts;
+        options.all = true;
 
         self.load_tools_with_options(options).await
     }

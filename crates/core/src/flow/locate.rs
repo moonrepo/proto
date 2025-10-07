@@ -47,23 +47,32 @@ impl Tool {
         &self,
     ) -> Result<Option<ExecutableLocation>, ProtoLocateError> {
         let output = self.call_locate_executables().await?;
+        let mut primary = None;
 
         for (name, config) in output.exes {
-            if config.primary
-                && let Some(exe_path) = &config.exe_path
-            {
-                return Ok(Some(ExecutableLocation {
-                    path: self
-                        .get_product_dir()
-                        .join(path::normalize_separators(exe_path)),
+            let Some(exe_path) = &config.exe_path else {
+                continue;
+            };
+
+            let path = self
+                .get_product_dir()
+                .join(path::normalize_separators(exe_path));
+
+            if config.update_perms && path.exists() {
+                fs::update_perms(&path, None)?;
+            }
+
+            if config.primary {
+                primary = Some(ExecutableLocation {
+                    path,
                     name,
                     config,
                     version: None,
-                }));
+                });
             }
         }
 
-        Ok(None)
+        Ok(primary)
     }
 
     /// Return location information for all secondary executables within the tool directory.

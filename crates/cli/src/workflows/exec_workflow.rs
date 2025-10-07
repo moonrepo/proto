@@ -1,5 +1,5 @@
 use crate::utils::tool_record::ToolRecord;
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use miette::IntoDiagnostic;
 use proto_core::flow::setup::ProtoSetupError;
 use proto_core::{ProtoConfig, ProtoConfigEnvOptions, ToolContext, ToolSpec};
@@ -24,7 +24,7 @@ pub struct ExecItem {
     active: bool,
     args: Vec<String>,
     env: IndexMap<String, Option<String>>,
-    paths: Vec<PathBuf>,
+    paths: IndexSet<PathBuf>,
 }
 
 impl ExecItem {
@@ -35,7 +35,7 @@ impl ExecItem {
     pub fn add_path(&mut self, path: PathBuf) {
         // Only add paths that exist
         if path.exists() {
-            self.paths.push(path);
+            self.paths.insert(path);
         }
     }
 
@@ -52,7 +52,6 @@ impl ExecItem {
 pub struct ExecWorkflowParams {
     pub activate_environment: bool,
     pub check_process_env: bool,
-    pub detect_version: bool,
     pub fallback_any_spec: bool,
     pub passthrough_args: Vec<String>,
     pub pre_run_hook: bool,
@@ -311,23 +310,6 @@ impl<'app> ExecWorkflow<'app> {
     }
 }
 
-async fn detect_or_fallback_spec(
-    tool: &ToolRecord,
-    params: &ExecWorkflowParams,
-) -> Option<ToolSpec> {
-    if params.detect_version
-        && let Ok(spec) = tool.detect_version().await
-    {
-        return Some(spec);
-    }
-
-    if params.fallback_any_spec {
-        return ToolSpec::parse("*").ok();
-    }
-
-    None
-}
-
 async fn prepare_tool(
     mut tool: ToolRecord,
     provided_spec: Option<ToolSpec>,
@@ -338,13 +320,16 @@ async fn prepare_tool(
         ..Default::default()
     };
 
-    // Detect a version, otherwise return early
+    // Extract the spec, otherwise return early
     let spec = match provided_spec {
         Some(inner) => inner,
-        None => match detect_or_fallback_spec(&tool, &params).await {
-            Some(inner) => inner,
-            None => return Ok(item),
-        },
+        None => {
+            if params.fallback_any_spec {
+                ToolSpec::parse("*")?
+            } else {
+                return Ok(item);
+            }
+        }
     };
 
     item.active = true;

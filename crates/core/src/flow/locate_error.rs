@@ -1,10 +1,15 @@
 use starbase_styles::{Style, Stylize};
+use starbase_utils::fs::FsError;
 use std::path::PathBuf;
 use thiserror::Error;
 use warpgate::WarpgatePluginError;
 
 #[derive(Error, Debug, miette::Diagnostic)]
 pub enum ProtoLocateError {
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Fs(#[from] Box<FsError>),
+
     #[diagnostic(transparent)]
     #[error(transparent)]
     Plugin(#[from] Box<WarpgatePluginError>),
@@ -22,6 +27,12 @@ pub enum ProtoLocateError {
       "--exe".style(Style::Shell),
     )]
     NoPrimaryExecutable { tool: String },
+}
+
+impl From<FsError> for ProtoLocateError {
+    fn from(e: FsError) -> ProtoLocateError {
+        ProtoLocateError::Fs(Box::new(e))
+    }
 }
 
 impl From<WarpgatePluginError> for ProtoLocateError {

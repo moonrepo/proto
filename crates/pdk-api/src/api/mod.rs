@@ -688,6 +688,11 @@ api_struct!(
         #[setters(strip_option)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub shim_env_vars: Option<FxHashMap<String, String>>,
+
+        /// Update the file permissions to executable. This only exists as these
+        /// values cannot be changed from within WASM.
+        #[serde(skip_serializing_if = "is_false")]
+        pub update_perms: bool,
     }
 );
 

@@ -1,8 +1,10 @@
-use crate::session::ProtoSession;
+use crate::session::{LoadToolOptions, ProtoSession};
 use crate::workflows::{ExecWorkflow, ExecWorkflowParams};
 use clap::Args;
 use indexmap::IndexMap;
+use miette::IntoDiagnostic;
 use proto_core::{Id, PROTO_PLUGIN_KEY, ToolContext, UnresolvedVersionSpec};
+use rustc_hash::FxHashMap;
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_shell::{Hook, ShellType};
@@ -55,26 +57,32 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
         return Ok(None);
     }
 
-    // Pre-load configuration
+    // Load configuration and tools
     let config = session.env.load_config()?;
+    let tools = session
+        .load_tools_with_options(LoadToolOptions {
+            detect_version: true,
+            ..Default::default()
+        })
+        .await?;
 
-    // Load necessary tools so that we can extract info
-    let mut workflow = ExecWorkflow::new(session.load_tools().await?, config);
+    // Extract specs for each tool
+    let mut specs = FxHashMap::default();
 
-    // Put shims first so that they can detect newer versions
-    if !args.no_shim {
-        workflow
-            .paths
-            .push_front(session.env.store.shims_dir.clone());
+    for tool in &tools {
+        if let Some(spec) = &tool.detected_version {
+            specs.insert(tool.context.clone(), spec.to_owned());
+        }
     }
 
     // Aggregate our environment/shell exports
+    let mut workflow = ExecWorkflow::new(tools, config);
+
     workflow
         .prepare_environment(
-            Default::default(),
+            specs,
             ExecWorkflowParams {
                 activate_environment: true,
-                detect_version: true,
                 ..Default::default()
             },
         )
@@ -112,7 +120,12 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
         workflow.env.insert("PROTO_VERSION".into(), None);
     }
 
-    // Put bins last as a last resort lookup
+    if !args.no_shim {
+        workflow
+            .paths
+            .push_back(session.env.store.shims_dir.clone());
+    }
+
     if !args.no_bin {
         workflow.paths.push_back(session.env.store.bin_dir.clone());
     }
@@ -227,11 +240,15 @@ fn print_activation_exports(
 
     // Set new `PATH`
     if !workflow.paths.is_empty() {
-        let joined_paths = workflow.join_paths()?;
-
-        if let Some(path) = joined_paths.as_ref().and_then(|inner| inner.to_str()) {
-            output.push(shell.format_env_set("_PROTO_ACTIVATED_PATH", path));
-        }
+        output.push(
+            shell.format_env_set(
+                "_PROTO_ACTIVATED_PATH",
+                env::join_paths(&workflow.paths)
+                    .into_diagnostic()?
+                    .to_str()
+                    .unwrap_or_default(),
+            ),
+        );
 
         let paths = workflow
             .reset_paths(&session.env.store.dir)

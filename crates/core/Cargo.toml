@@ -9,7 +9,7 @@ repository = "https://github.com/moonrepo/proto"
 rust-version = "1.89.0"
 
 [dependencies]
-proto_pdk_api = { version = "0.31.1", path = "../pdk-api", features = [
+proto_pdk_api = { version = "0.31.2", path = "../pdk-api", features = [
     "schematic",
 ] }
 proto_shim = { version = "0.7.9", path = "../shim" }
