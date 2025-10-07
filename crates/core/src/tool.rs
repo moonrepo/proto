@@ -160,7 +160,10 @@ impl Tool {
         self.globals_dirs.clear();
         self.globals_prefix = None;
         self.version = None;
-        self.version_locked = None;
+
+        // Don't clear this field because it will cause issues based on order of
+        // operations. It will be set when a version is resolved.
+        // self.version_locked = None;
     }
 
     /// Disable caching when applicable.
