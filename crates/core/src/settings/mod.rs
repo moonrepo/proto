@@ -43,6 +43,10 @@ impl ConfigMode {
         matches!(self, Self::Global | Self::UpwardsGlobal)
     }
 
+    pub fn only_global(&self) -> bool {
+        matches!(self, Self::Global)
+    }
+
     pub fn only_local(&self) -> bool {
         matches!(self, Self::Local)
     }

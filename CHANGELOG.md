@@ -15,6 +15,16 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added a `--quiet` flag to `proto uninstall`.
+
+#### 🐞 Fixes
+
+- Fixed an issue where `global` config mode wasn't respected during version detection.
+
 ## 0.53.2
 
 #### 🐞 Fixes

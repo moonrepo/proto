@@ -1,6 +1,7 @@
 use crate::error::ProtoCliError;
 use crate::session::ProtoSession;
 use crate::telemetry::{Metric, track_usage};
+use crate::utils::tool_record::ToolRecord;
 use clap::Args;
 use iocraft::element;
 use proto_core::{ProtoConfig, ProtoConfigError, Tool, ToolContext, ToolSpec};
@@ -16,6 +17,9 @@ pub struct UninstallArgs {
 
     #[arg(help = "Version specification to uninstall")]
     spec: Option<ToolSpec>,
+
+    #[arg(long, help = "Hide uninstall progress output excluding errors")]
+    quiet: bool,
 }
 
 fn unpin_version(session: &ProtoSession, args: &UninstallArgs) -> Result<(), ProtoConfigError> {
@@ -66,6 +70,27 @@ async fn track_uninstall(tool: &Tool, all: bool) -> Result<(), ProtoCliError> {
     .await
 }
 
+async fn try_uninstall_all(session: &ProtoSession, tool: &mut ToolRecord) -> miette::Result<()> {
+    // Delete bins
+    for bin in tool.resolve_bin_locations(true).await? {
+        session.env.store.unlink_bin(&bin.path)?;
+    }
+
+    // Delete shims
+    for shim in tool.resolve_shim_locations().await? {
+        session.env.store.remove_shim(&shim.path)?;
+    }
+
+    // Delete inventory
+    fs::remove_dir_all(tool.get_inventory_dir())?;
+    fs::remove_dir_all(tool.get_temp_dir())?;
+
+    // Remove from lockfile
+    tool.remove_from_lockfile()?;
+
+    Ok(())
+}
+
 #[instrument(skip(session))]
 async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult {
     let mut tool = session.load_tool(&args.context).await?;
@@ -74,16 +99,18 @@ async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult 
     let mut confirmed = false;
 
     if !tool.get_inventory_dir().exists() {
-        session.console.render(element! {
-            Notice(variant: Variant::Caution) {
-                StyledText(
-                    content: format!(
-                        "{} has not been installed locally",
-                        tool.get_name(),
-                    ),
-                )
-            }
-        })?;
+        if !args.quiet {
+            session.console.render(element! {
+                Notice(variant: Variant::Caution) {
+                    StyledText(
+                        content: format!(
+                            "{} has not been installed locally",
+                            tool.get_name(),
+                        ),
+                    )
+                }
+            })?;
+        }
 
         return Ok(Some(1));
     }
@@ -109,42 +136,39 @@ async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult 
         return Ok(None);
     }
 
-    let progress = session.render_progress_loader().await;
+    if args.quiet {
+        try_uninstall_all(&session, &mut tool).await?;
+    } else {
+        let progress = session.render_progress_loader().await;
 
-    progress.set_message(format!("Uninstalling {}", tool.get_name()));
+        progress.set_message(format!("Uninstalling {}", tool.get_name()));
 
-    // Delete bins
-    for bin in tool.resolve_bin_locations(true).await? {
-        session.env.store.unlink_bin(&bin.path)?;
+        let result = try_uninstall_all(&session, &mut tool).await;
+
+        if result.is_ok() {
+            progress.set_message(format!("Uninstalled {}", tool.get_name()));
+        }
+
+        progress.stop().await?;
+
+        result?;
     }
-
-    // Delete shims
-    for shim in tool.resolve_shim_locations().await? {
-        session.env.store.remove_shim(&shim.path)?;
-    }
-
-    // Delete inventory
-    fs::remove_dir_all(tool.get_inventory_dir())?;
-    fs::remove_dir_all(tool.get_temp_dir())?;
-
-    // Remove from lockfile
-    tool.remove_from_lockfile()?;
-
-    progress.stop().await?;
 
     unpin_version(&session, &args)?;
     track_uninstall(&tool, true).await?;
 
-    session.console.render(element! {
-        Notice(variant: Variant::Success) {
-            StyledText(
-                content: format!(
-                    "{} has been completely uninstalled!",
-                    tool.get_name(),
-                ),
-            )
-        }
-    })?;
+    if !args.quiet {
+        session.console.render(element! {
+            Notice(variant: Variant::Success) {
+                StyledText(
+                    content: format!(
+                        "{} has been completely uninstalled!",
+                        tool.get_name(),
+                    ),
+                )
+            }
+        })?;
+    }
 
     Ok(None)
 }
@@ -154,17 +178,19 @@ async fn uninstall_one(session: ProtoSession, args: UninstallArgs, spec: ToolSpe
     let mut tool = session.load_tool(&args.context).await?;
 
     if !tool.is_setup(&spec).await? {
-        session.console.render(element! {
-            Notice(variant: Variant::Caution) {
-                StyledText(
-                    content: format!(
-                        "{} <version>{}</version> has not been installed locally",
-                        tool.get_name(),
-                        tool.get_resolved_version(),
-                    ),
-                )
-            }
-        })?;
+        if !args.quiet {
+            session.console.render(element! {
+                Notice(variant: Variant::Caution) {
+                    StyledText(
+                        content: format!(
+                            "{} <version>{}</version> has not been installed locally",
+                            tool.get_name(),
+                            tool.get_resolved_version(),
+                        ),
+                    )
+                }
+            })?;
+        }
 
         return Ok(Some(1));
     }
@@ -195,33 +221,44 @@ async fn uninstall_one(session: ProtoSession, args: UninstallArgs, spec: ToolSpe
 
     debug!("Uninstalling {} with version {}", tool.get_name(), spec);
 
-    let progress = session.render_progress_loader().await;
+    if args.quiet {
+        tool.teardown(&spec).await?;
+    } else {
+        let progress = session.render_progress_loader().await;
 
-    progress.set_message(format!(
-        "Uninstalling {} <version>{}</version>",
-        tool.get_name(),
-        tool.get_resolved_version()
-    ));
+        progress.set_message(format!(
+            "Uninstalling {} <version>{}</version>",
+            tool.get_name(),
+            tool.get_resolved_version()
+        ));
 
-    let result = tool.teardown(&spec).await;
+        let result = tool.teardown(&spec).await;
 
-    progress.stop().await?;
-    result?;
+        if result.is_ok() {
+            progress.set_message(format!("Uninstalled {}", tool.get_name()));
+        }
+
+        progress.stop().await?;
+
+        result?;
+    }
 
     unpin_version(&session, &args)?;
     track_uninstall(&tool, false).await?;
 
-    session.console.render(element! {
-        Notice(variant: Variant::Success) {
-            StyledText(
-                content: format!(
-                    "{} <version>{}</version> has been uninstalled!",
-                    tool.get_name(),
-                    tool.get_resolved_version(),
-                ),
-            )
-        }
-    })?;
+    if !args.quiet {
+        session.console.render(element! {
+            Notice(variant: Variant::Success) {
+                StyledText(
+                    content: format!(
+                        "{} <version>{}</version> has been uninstalled!",
+                        tool.get_name(),
+                        tool.get_resolved_version(),
+                    ),
+                )
+            }
+        })?;
+    }
 
     Ok(None)
 }

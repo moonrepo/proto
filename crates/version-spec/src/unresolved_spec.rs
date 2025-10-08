@@ -233,6 +233,7 @@ impl Display for UnresolvedVersionSpec {
 impl PartialEq<VersionSpec> for UnresolvedVersionSpec {
     fn eq(&self, other: &VersionSpec) -> bool {
         match (self, other) {
+            (Self::Canary, VersionSpec::Canary) => true,
             (Self::Canary, VersionSpec::Alias(a)) => a == "canary",
             (Self::Alias(a1), VersionSpec::Alias(a2)) => a1 == a2,
             (Self::Calendar(v1), VersionSpec::Calendar(v2)) => v1 == v2,
