@@ -212,21 +212,39 @@ pub fn main() -> Result<()> {
     debug!("Determining tool from shim name: {shim_name}");
 
     if shim_name.is_empty() || shim_name.contains("proto-shim") {
+        // On error, be very clear that the error was due to proto-shim / proto interaction. The user is expecting to
+        // run some external application and may not be aware the the even shim existing.
         return Err(anyhow!(
-            "Invalid shim name detected. Unable to execute the appropriate proto tool.\nPlease refer to the documentation or ask for support on Discord."
+            "proto-shim: Invalid shim name detected. Unable to execute the appropriate proto tool.\nPlease refer to the documentation or ask for support on Discord."
         ));
     }
 
     // Create and execute the command
     debug!("Creating proto command with arguments");
 
-    let mut command = create_command(args, &shim_name)?;
+    let mut command = match create_command(args, &shim_name) {
+        Ok(cmd) => cmd,
+        Err(err) => {
+            return Err(anyhow!(
+                "proto-shim: Failed to prepare proto command for the tool: {err}.\nPlease refer to the documentation or ask for support on Discord."
+            ));
+        }
+    };
+
     command.env("PROTO_SHIM_NAME", shim_name);
     command.env("PROTO_SHIM_PATH", exe_path);
 
     debug!("Executing proto command");
     debug!("This will replace the current process and stop debugging!");
 
-    // Must be the last line!
-    Ok(exec_command_and_replace(command)?)
+    // On success, this replaces the current process or exits.
+    match exec_command_and_replace(command) {
+        Ok(()) => {
+            // Note this is dead code. On success this process is no more.
+            Ok(())
+        }
+        Err(err) => Err(anyhow!(
+            "proto-shim: Failed to execute proto for the shimmed command: {err}\nPlease refer to the documentation or ask for support on Discord."
+        )),
+    }
 }
