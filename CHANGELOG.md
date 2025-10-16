@@ -15,6 +15,18 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🧩 Plugins
+
+- Updated `python_tool` to v0.14.5.
+  - Pre-builts will now use a much smaller archive when downloading.
+  - Fixed a UTF-8 unpacking error.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.53.3
 
 #### 🚀 Updates

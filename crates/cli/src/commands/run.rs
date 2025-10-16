@@ -322,7 +322,6 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
                         resolve_from_manifest: false,
                         resolve_from_lockfile: false,
                         update_lockfile: false,
-                        ..Default::default()
                     }),
                     ..Default::default()
                 },

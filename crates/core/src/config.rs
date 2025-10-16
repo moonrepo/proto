@@ -207,7 +207,7 @@ impl ProtoConfig {
         if !tools.contains_key("python") && is_allowed("python") {
             tools.insert(
                 Id::raw("python"),
-                find_debug_locator_with_url_fallback("python_tool", "0.14.4"),
+                find_debug_locator_with_url_fallback("python_tool", "0.14.5"),
             );
         }
 
