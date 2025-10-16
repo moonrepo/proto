@@ -447,6 +447,11 @@ export interface ExecutableConfig {
 	shimBeforeArgs?: StringOrVec | null;
 	/** Custom environment variables to set when executing the shim. */
 	shimEnvVars?: Record<string, string> | null;
+	/**
+	 * Update the file permissions to executable. This only exists as these
+	 * values cannot be changed from within WASM.
+	 */
+	updatePerms?: boolean;
 }
 
 /** Output returned by the `locate_executables` function. */
