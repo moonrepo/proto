@@ -19,6 +19,11 @@
 
 #### 🚀 Updates
 
+- Added a new command, `proto mcp`, that will start an MCP server for AI agents to interact with.
+  - Supports the following resources:
+    - `proto://config` - Read the current proto configuration.
+    - `proto://env` - Read the current proto environment, store, variables, and more.
+    - `proto://tools` - List installed tools and their versions.
 - Added a new command, `proto shell`, that will initialize a list of tools into the environment and start an interactive shell session.
   - By default, it will use the current shell, but you can override this with the `--shell` option.
   - Example: `proto shell node@20 npm@10`

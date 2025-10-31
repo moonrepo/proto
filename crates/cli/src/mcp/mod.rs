@@ -1,3 +1,4 @@
+mod resources;
 mod server;
 mod tools;
 

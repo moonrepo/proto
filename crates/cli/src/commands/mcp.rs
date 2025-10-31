@@ -10,7 +10,7 @@ pub struct McpArgs {}
 
 #[tracing::instrument(skip_all)]
 pub async fn mcp(session: ProtoSession, _args: McpArgs) -> AppResult {
-    let service = ProtoMcp::new(session.env.clone())
+    let service = ProtoMcp::new(session)
         .serve(stdio())
         .await
         .into_diagnostic()?;
