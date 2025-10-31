@@ -35,6 +35,11 @@
   - By default, it will use the current shell, but you can override this with the `--shell` option.
   - Example: `proto shell node@20 npm@10`
 
+#### 🧩 Plugins
+
+- Updated `ruby_tool` to v0.2.5.
+  - Added `irb` shim support.
+
 #### ⚙️ Internal
 
 - Updated dependencies.
