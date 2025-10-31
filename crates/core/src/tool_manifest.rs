@@ -1,7 +1,7 @@
 use crate::helpers::{now, read_json_file_with_lock, write_json_file_with_lock};
 use crate::lockfile::LockRecord;
 use serde::{Deserialize, Serialize};
-use starbase_utils::env::bool_var;
+use starbase_utils::envx;
 use starbase_utils::json::JsonError;
 use std::collections::{BTreeMap, BTreeSet};
 use std::{
@@ -30,7 +30,7 @@ pub struct ToolManifestVersion {
 impl Default for ToolManifestVersion {
     fn default() -> Self {
         Self {
-            no_clean: bool_var("PROTO_NO_CLEAN"),
+            no_clean: envx::bool_var("PROTO_NO_CLEAN"),
             installed_at: now(),
             lock: None,
             suffix: None,

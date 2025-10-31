@@ -7,7 +7,7 @@ use proto_core::{
 };
 use starbase_sandbox::assert_snapshot;
 use starbase_sandbox::predicates::prelude::*;
-use starbase_utils::env::is_ci;
+use starbase_utils::envx;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
@@ -326,7 +326,7 @@ mod plugins {
             // `poetry` is called in a post-install hook,
             // so we need to make it available on PATH
             let mut paths = vec![sandbox.path().join(".proto/shims")];
-            paths.extend(starbase_utils::env::paths());
+            paths.extend(envx::paths());
 
             sandbox
                 .run_bin(|cmd| {
@@ -390,7 +390,7 @@ mod plugins {
         #[test]
         fn supports_rust() {
             // This can break local machines
-            if !is_ci() {
+            if !envx::is_ci() {
                 return;
             }
 
