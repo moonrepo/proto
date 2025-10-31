@@ -8,7 +8,7 @@ use crate::lockfile::ProtoLock;
 use once_cell::sync::OnceCell;
 use starbase_console::{Console, EmptyReporter};
 use starbase_utils::dirs::home_dir;
-use starbase_utils::env::path_var;
+use starbase_utils::envx;
 use std::collections::BTreeMap;
 use std::env;
 use std::fmt;
@@ -40,8 +40,8 @@ pub struct ProtoEnvironment {
 impl ProtoEnvironment {
     pub fn new() -> Result<Self, ProtoEnvError> {
         let home = home_dir().ok_or(ProtoEnvError::MissingHomeDir)?;
-        let mut root = path_var("PROTO_HOME")
-            .or_else(|| path_var("XDG_DATA_HOME").map(|xdg| xdg.join("proto")))
+        let mut root = envx::path_var("PROTO_HOME")
+            .or_else(|| envx::path_var("XDG_DATA_HOME").map(|xdg| xdg.join("proto")))
             .unwrap_or_else(|| home.join(".proto"));
 
         if let Ok(rel_root) = root.strip_prefix("~") {

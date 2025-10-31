@@ -42,7 +42,7 @@ async-trait = { workspace = true }
 chrono = "0.4.42"
 clap = { workspace = true, features = ["derive", "env"] }
 clap_complete = { workspace = true }
-clap_complete_nushell = "4.5.8"
+clap_complete_nushell = "4.5.9"
 dirs = { workspace = true }
 indexmap = { workspace = true }
 iocraft = { workspace = true }
@@ -58,7 +58,7 @@ starbase_console = { workspace = true }
 starbase_shell = { workspace = true }
 starbase_styles = { workspace = true }
 starbase_utils = { workspace = true }
-sysinfo = { version = "0.37.1", default-features = false, features = [
+sysinfo = { version = "0.37.2", default-features = false, features = [
     "system",
 ] }
 thiserror = { workspace = true }
