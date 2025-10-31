@@ -4,7 +4,7 @@ use crate::registry::registry_error::ProtoRegistryError;
 use starbase_utils::{fs, json};
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
 use tracing::{debug, instrument};
 
 pub struct ProtoRegistry {
@@ -79,10 +79,9 @@ impl ProtoRegistry {
         data_url: String,
     ) -> Result<Vec<PluginEntry>, ProtoRegistryError> {
         // Cache should refresh every 24 hours
-        let now = SystemTime::now();
         let duration = Duration::from_secs(86400);
 
-        if temp_file.exists() && fs::is_stale(&temp_file, false, duration, now)?.is_none() {
+        if temp_file.exists() && !fs::is_stale(&temp_file, false, duration)? {
             debug!(file = ?temp_file, "Reading plugins data from local cache");
 
             let plugins: Vec<PluginEntry> = json::read_file(&temp_file)?;

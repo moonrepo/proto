@@ -11,7 +11,7 @@ use starbase_utils::{fs, path};
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
 use tracing::{instrument, trace, warn};
 use warpgate_api::{Id, PluginLocator};
 
@@ -248,8 +248,7 @@ impl PluginLoader {
             return Ok(false);
         }
 
-        let mut cached =
-            fs::is_stale(path, false, self.cache_duration, SystemTime::now())?.is_none();
+        let mut cached = !fs::is_stale(path, false, self.cache_duration)?;
 
         if !cached && self.is_offline() {
             cached = true;

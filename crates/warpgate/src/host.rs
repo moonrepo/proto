@@ -4,8 +4,7 @@ use crate::plugin_error::WarpgatePluginError;
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
 use starbase_shell::{ShellType, join_args};
 use starbase_styles::{apply_style_tags, color};
-use starbase_utils::env::paths;
-use starbase_utils::fs;
+use starbase_utils::{envx, fs};
 use std::collections::BTreeMap;
 use std::env;
 use std::io::Write;
@@ -475,7 +474,7 @@ fn set_env_var(
             color::label("set_env_var"),
         );
 
-        let mut path = paths();
+        let mut path = envx::paths();
         path.extend(new_path);
 
         unsafe { env::set_var("PATH", env::join_paths(path)?) };

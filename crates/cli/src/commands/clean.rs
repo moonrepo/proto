@@ -212,11 +212,7 @@ pub async fn clean_tool(
 }
 
 #[instrument(skip_all)]
-pub async fn clean_proto_tool(
-    session: &ProtoSession,
-    now: SystemTime,
-    days: u64,
-) -> miette::Result<Vec<StaleTool>> {
+pub async fn clean_proto_tool(session: &ProtoSession, days: u64) -> miette::Result<Vec<StaleTool>> {
     let duration = Duration::from_secs(86400 * days);
     let mut cleaned = vec![];
 
@@ -239,7 +235,7 @@ pub async fn clean_proto_tool(
         })?;
 
         let is_stale = if proto_file.exists() {
-            fs::is_stale(proto_file, true, duration, now)?.is_some()
+            fs::is_stale(proto_file, true, duration)?
         } else {
             true
         };
@@ -265,7 +261,7 @@ pub async fn clean_proto_tool(
 }
 
 #[instrument(skip_all)]
-pub async fn clean_dir(dir: &Path, now: SystemTime, days: u64) -> miette::Result<Vec<StaleFile>> {
+pub async fn clean_dir(dir: &Path, days: u64) -> miette::Result<Vec<StaleFile>> {
     let duration = Duration::from_secs(86400 * days);
     let mut cleaned = vec![];
 
@@ -282,7 +278,7 @@ pub async fn clean_dir(dir: &Path, now: SystemTime, days: u64) -> miette::Result
         }
 
         if path.is_file() {
-            let bytes = fs::remove_file_if_stale(&path, duration, now)?;
+            let bytes = fs::remove_file_if_stale(&path, duration)?;
 
             if bytes > 0 {
                 debug!(
@@ -325,27 +321,25 @@ pub async fn internal_clean(
         }
 
         // proto has special handling
-        result
-            .tools
-            .extend(clean_proto_tool(session, now, days).await?);
+        result.tools.extend(clean_proto_tool(session, days).await?);
     }
 
     if matches!(args.target, CleanTarget::All | CleanTarget::Plugins) {
         debug!("Cleaning downloaded plugins...");
 
-        result.plugins = clean_dir(&session.env.store.plugins_dir, now, days).await?;
+        result.plugins = clean_dir(&session.env.store.plugins_dir, days).await?;
     }
 
     if matches!(args.target, CleanTarget::All | CleanTarget::Temp) {
         debug!("Cleaning temporary directory...");
 
-        result.temp = clean_dir(&session.env.store.temp_dir, now, days).await?;
+        result.temp = clean_dir(&session.env.store.temp_dir, days).await?;
     }
 
     if matches!(args.target, CleanTarget::All | CleanTarget::Cache) {
         debug!("Cleaning cache directory...");
 
-        result.cache = clean_dir(&session.env.store.cache_dir, now, days).await?;
+        result.cache = clean_dir(&session.env.store.cache_dir, days).await?;
     }
 
     Ok(result)

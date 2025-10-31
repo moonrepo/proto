@@ -14,7 +14,7 @@ use proto_shim::{exec_command_and_replace, locate_proto_exe};
 use rustc_hash::FxHashMap;
 use starbase::AppResult;
 use starbase_styles::color;
-use starbase_utils::{env::bool_var, path};
+use starbase_utils::{envx, path};
 use std::env;
 use std::ffi::OsStr;
 use std::path::PathBuf;
@@ -62,7 +62,7 @@ fn should_use_global_proto(tool: &Tool) -> miette::Result<bool> {
 }
 
 fn should_hide_auto_install_output(args: &[String]) -> bool {
-    bool_var("PROTO_AUTO_INSTALL_HIDE_OUTPUT")
+    envx::bool_var("PROTO_AUTO_INSTALL_HIDE_OUTPUT")
         || args.iter().any(|arg| arg == "--version" || arg == "--help")
 }
 

@@ -9,7 +9,7 @@ use proto_pdk_api::{
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use starbase_shell::{BoxedShell, join_args};
-use starbase_utils::env::paths;
+use starbase_utils::envx;
 use std::collections::VecDeque;
 use std::env;
 use std::ffi::{OsStr, OsString};
@@ -262,7 +262,7 @@ impl<'app> ExecWorkflow<'app> {
     pub fn join_paths(&self) -> miette::Result<Option<OsString>> {
         if !self.paths.is_empty() {
             let mut list = self.paths.clone().into_iter().collect::<Vec<_>>();
-            list.extend(paths());
+            list.extend(envx::paths());
 
             return Ok(Some(env::join_paths(list).into_diagnostic()?));
         }
@@ -287,7 +287,7 @@ impl<'app> ExecWorkflow<'app> {
         let mut in_activate = false;
         let mut dupe_paths = FxHashSet::from_iter(reset_paths.clone());
 
-        for path in paths() {
+        for path in envx::paths() {
             if path == start_path {
                 in_activate = true;
                 continue;

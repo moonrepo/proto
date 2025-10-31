@@ -21,7 +21,7 @@ use starbase_console::ui::{
 };
 use starbase_styles::{apply_style_tags, remove_style_tags};
 use starbase_utils::fs::LOCK_FILE;
-use starbase_utils::{env::is_ci, fs, net, path};
+use starbase_utils::{envx::is_ci, fs, net, path};
 use std::env;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, OnceLock};

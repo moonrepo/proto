@@ -3,10 +3,11 @@ use semver::Version;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use starbase_archive::is_supported_archive_extension;
-use starbase_utils::env::bool_var;
-use starbase_utils::fs;
-use starbase_utils::json::{self, JsonError};
-use starbase_utils::net;
+use starbase_utils::{
+    envx, fs,
+    json::{self, JsonError},
+    net,
+};
 use std::env;
 use std::path::Path;
 use std::sync::{LazyLock, OnceLock};
@@ -44,7 +45,7 @@ pub fn is_offline() -> bool {
             };
         }
 
-        let override_default = bool_var("PROTO_OFFLINE_OVERRIDE_HOSTS");
+        let override_default = envx::bool_var("PROTO_OFFLINE_OVERRIDE_HOSTS");
 
         let timeout: u64 = env::var("PROTO_OFFLINE_TIMEOUT")
             .map(|value| value.parse().expect("Invalid offline timeout."))

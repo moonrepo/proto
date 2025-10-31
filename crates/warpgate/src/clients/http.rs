@@ -6,8 +6,7 @@ use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_netrc::NetrcMiddleware;
 use serde::{Deserialize, Serialize};
 use starbase_utils::{
-    env::is_docker,
-    fs,
+    envx, fs,
     net::{Downloader, NetError},
 };
 use std::path::PathBuf;
@@ -221,7 +220,7 @@ pub fn create_http_client_with_options(
     }
 
     if let Some(cache_dir) = &options.cache_dir
-        && !is_docker()
+        && !envx::is_docker()
     {
         use http_cache_reqwest::{
             CACacheManager, Cache, CacheMode, CacheOptions, HttpCache, HttpCacheOptions,

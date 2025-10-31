@@ -18,7 +18,7 @@ use starbase_console::ui::{OwnedOrShared, ProgressDisplay, ProgressReporter, Pro
 use starbase_console::utils::formats::format_duration;
 use starbase_shell::ShellType;
 use starbase_styles::{apply_style_tags, color};
-use starbase_utils::env::bool_var;
+use starbase_utils::envx;
 use std::collections::BTreeMap;
 use std::env;
 use std::sync::Arc;
@@ -541,7 +541,7 @@ impl InstallWorkflowManager {
     }
 
     pub fn is_tty(&self) -> bool {
-        !bool_var("NO_TTY") && self.console.out.is_terminal()
+        !envx::bool_var("NO_TTY") && self.console.out.is_terminal()
     }
 
     pub async fn render_single_progress(&mut self) {

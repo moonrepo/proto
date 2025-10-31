@@ -8,7 +8,7 @@ use serde::Serialize;
 use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_shell::ShellType;
-use starbase_utils::json;
+use starbase_utils::{envx, json};
 use std::env;
 use std::path::PathBuf;
 
@@ -35,7 +35,7 @@ pub async fn diagnose(session: ProtoSession, args: DiagnoseArgs) -> AppResult {
     };
 
     let mut tips = vec![];
-    let paths = starbase_utils::env::paths();
+    let paths = envx::paths();
     let errors = gather_errors(&session, &paths, &mut tips).await?;
     let warnings = gather_warnings(&session, &paths, &mut tips).await?;
 

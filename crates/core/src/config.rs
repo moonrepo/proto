@@ -221,7 +221,7 @@ impl ProtoConfig {
         if !tools.contains_key("ruby") && is_allowed("ruby") {
             tools.insert(
                 Id::raw("ruby"),
-                find_debug_locator_with_url_fallback("ruby_tool", "0.2.4"),
+                find_debug_locator_with_url_fallback("ruby_tool", "0.2.5"),
             );
         }
 

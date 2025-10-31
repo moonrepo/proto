@@ -1,5 +1,5 @@
 use serde::Serialize;
-use starbase_utils::env::{is_ci, path_var};
+use starbase_utils::envx::{is_ci, path_var};
 use starbase_utils::fs;
 use std::collections::HashMap;
 use std::env;

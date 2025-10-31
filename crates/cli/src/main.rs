@@ -17,14 +17,15 @@ use starbase::{
     App, MainResult,
     tracing::{LogLevel, TracingOptions},
 };
-use starbase_utils::{env::bool_var, string_vec};
-use std::{env, process::ExitCode};
+use starbase_utils::{envx, string_vec};
+use std::env;
+use std::process::ExitCode;
 use tracing::debug;
 
 fn get_tracing_modules() -> Vec<String> {
     let mut modules = string_vec!["proto", "schematic", "starbase", "warpgate"];
 
-    if bool_var("PROTO_DEBUG_WASM") || bool_var("PROTO_WASM_LOG") {
+    if envx::bool_var("PROTO_DEBUG_WASM") || envx::bool_var("PROTO_WASM_LOG") {
         modules.push("extism".into());
     } else {
         modules.push("extism::pdk".into());
