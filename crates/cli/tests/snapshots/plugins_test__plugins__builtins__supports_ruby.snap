@@ -11,6 +11,10 @@ expression: "fs::read_to_string(sandbox.path().join(\".proto/shims/registry.json
     "alt_bin": true,
     "parent": "ruby"
   },
+  "irb": {
+    "alt_bin": true,
+    "parent": "ruby"
+  },
   "rake": {
     "alt_bin": true,
     "parent": "ruby"
