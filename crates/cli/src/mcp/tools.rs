@@ -2,29 +2,31 @@ use rmcp::schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-#[derive(JsonSchema, Deserialize, Serialize)]
+#[derive(Default, JsonSchema, Deserialize, Serialize)]
 pub struct InstallToolRequest {
     /// Tool identifier/context.
     pub tool: String,
 
     /// Force install if the tool already exists.
+    #[serde(default)]
     pub force: bool,
 
     /// Pin the tool to the local configuration.
+    #[serde(default)]
     pub pin: bool,
 
     /// Version/specification to install.
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub spec: Option<String>,
 }
 
-#[derive(JsonSchema, Deserialize, Serialize)]
+#[derive(Default, JsonSchema, Deserialize, Serialize)]
 pub struct InstallToolResponse {
     pub installed: bool,
     pub spec: String,
 }
 
-#[derive(JsonSchema, Deserialize, Serialize)]
+#[derive(Default, JsonSchema, Deserialize, Serialize)]
 pub struct UninstallToolRequest {
     /// Tool identifier/context.
     pub tool: String,
@@ -33,22 +35,24 @@ pub struct UninstallToolRequest {
     pub spec: String,
 }
 
-#[derive(JsonSchema, Deserialize, Serialize)]
+#[derive(Default, JsonSchema, Deserialize, Serialize)]
 pub struct UninstallToolResponse {
     pub uninstalled: bool,
     pub spec: String,
 }
 
-#[derive(JsonSchema, Deserialize, Serialize)]
+#[derive(Default, JsonSchema, Deserialize, Serialize)]
 pub struct ListToolVersionsRequest {
     /// Tool identifier/context.
     pub tool: String,
 
     /// Include all available versions, otherwise the latest 25.
+    #[serde(default)]
     pub all: bool,
 }
 
-#[derive(JsonSchema, Deserialize, Serialize)]
+#[derive(Default, JsonSchema, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ListToolVersionsResponse {
     pub aliases: BTreeMap<String, String>,
     pub installed_versions: Vec<String>,

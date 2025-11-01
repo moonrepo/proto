@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use system_env::{SystemArch, SystemOS};
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ConfigResource<'a> {
     pub working_dir: PathBuf,
     pub config_mode: ConfigMode,
@@ -14,6 +15,7 @@ pub struct ConfigResource<'a> {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EnvResource<'a> {
     pub working_dir: PathBuf,
     pub store_dir: PathBuf,
@@ -26,11 +28,13 @@ pub struct EnvResource<'a> {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ToolsResource {
     pub tools: BTreeMap<ToolContext, ToolResourceEntry>,
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ToolResourceEntry {
     pub tool_dir: PathBuf,
     pub installed_versions: Vec<VersionSpec>,
