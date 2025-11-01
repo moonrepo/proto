@@ -1,8 +1,0 @@
----
-source: crates/cli/tests/run_test.rs
-expression: assert.output_standardized()
----
-FIRST = abc
-SECOND = 789
-THIRD = value-abc-789-xyz
-FOURTH = ignores-$FIRST-$PARENT

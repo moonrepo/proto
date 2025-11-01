@@ -19,6 +19,16 @@
 
 #### 🚀 Updates
 
+- Added a new command, `proto mcp`, that will start an MCP server for AI agents to interact with.
+  - Supports the following tools:
+    - `install_tool` - Install a tool with a specified version.
+    - `uninstall_tool` - Uninstall a tool with a specified version.
+    - `list_tool_versions` - List available and installed versions for a tool.
+    - `get_config` - Get the current proto configuration.
+  - Supports the following resources:
+    - `proto://config` - Get the current proto configuration.
+    - `proto://env` - Get the current proto environment, store, variables, and more.
+    - `proto://tools` - List installed tools and their versions.
 - Added a new command, `proto shell`, that will initialize a list of tools into the environment and start an interactive shell session.
   - By default, it will use the current shell, but you can override this with the `--shell` option.
   - Example: `proto shell node@20 npm@10`
