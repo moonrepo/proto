@@ -3115,7 +3115,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.53.4"
+version = "0.54.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3163,7 +3163,7 @@ dependencies = [
 
 [[package]]
 name = "proto_codegen"
-version = "0.8.2"
+version = "0.9.0"
 dependencies = [
  "proto_core",
  "proto_pdk_api",
@@ -3173,7 +3173,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.53.6"
+version = "0.54.0"
 dependencies = [
  "clap",
  "convert_case",
@@ -3245,7 +3245,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.41.2"
+version = "0.42.0"
 dependencies = [
  "extism",
  "proto_core",
