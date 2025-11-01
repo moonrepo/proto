@@ -31,6 +31,9 @@ lint:
 lint-wasm:
 	cd plugins && cargo clippy --workspace --all-targets
 
+mcp:
+	PROTO_NPM_VERSION=* npx @modelcontextprotocol/inspector -- cargo run -- mcp --log trace
+
 test name="":
 	just build
 	cargo nextest run --workspace {{name}}

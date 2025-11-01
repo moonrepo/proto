@@ -3,6 +3,7 @@ mod commands;
 mod components;
 mod error;
 mod helpers;
+mod mcp;
 mod session;
 mod shell;
 mod systems;
@@ -89,6 +90,7 @@ async fn main() -> MainResult {
                 Commands::Diagnose(args) => commands::diagnose(session, args).await,
                 Commands::Exec(args) => commands::exec(session, args).await,
                 Commands::Install(args) => commands::install(session, args).await,
+                Commands::Mcp(args) => commands::mcp(session, args).await,
                 Commands::Migrate(args) => commands::migrate(session, args).await,
                 Commands::Outdated(args) => commands::outdated(session, args).await,
                 Commands::Pin(args) => commands::pin(session, args).await,
