@@ -6,8 +6,8 @@ default-members = ["crates/cli"]
 [workspace.dependencies]
 anyhow = "1.0.99"
 async-trait = "0.1.89"
-clap = "4.5.46"
-clap_complete = "4.5.60"
+clap = "4.5.53"
+clap_complete = "4.5.61"
 compact_str = { version = "0.9.0", default-features = false, features = [
     "serde",
 ] }
@@ -17,7 +17,7 @@ extism = ">=1.6.0" # Lower for consumers
 extism-pdk = "1.4.1"
 http-cache-reqwest = "0.16.0"
 human-sort = "0.2.2"
-indexmap = "2.12.0"
+indexmap = "2.12.1"
 iocraft = "0.7.14"
 # iocraft = { git = "https://github.com/ccbrown/iocraft.git", branch = "main" }
 miette = "7.6.0"
@@ -42,8 +42,8 @@ rmcp = { version = "0.8.3", default-features = false, features = [
     "macros",
 ] }
 rustc-hash = "2.1.1"
-scc = "3.3.3"
-schemars = "1.0.4"
+scc = "3.4.2"
+schemars = "1.1.0"
 schematic = { version = "0.18.14", default-features = false }
 semver = { version = "1.0.27", features = ["serde"] }
 serde = { version = "1.0.228", features = ["derive"] }
@@ -57,9 +57,9 @@ starbase_archive = { version = "0.12.0", features = [
     "tar-all",
     "zip-all",
 ] }
-starbase_console = { version = "0.6.17", features = ["miette", "ui"] }
+starbase_console = { version = "0.6.18", features = ["miette", "ui"] }
 starbase_id = { version = "0.2.6", features = ["miette", "schematic"] }
-starbase_sandbox = { version = "0.10.0" }
+starbase_sandbox = { version = "0.10.1" }
 starbase_shell = { version = "0.10.3", features = ["miette"] }
 starbase_styles = { version = "0.6.4" }
 starbase_utils = { version = "0.12.0", default-features = false, features = [
@@ -73,7 +73,7 @@ tokio = { version = "1.48.0", features = ["full", "tracing"] }
 toml_edit = "0.23.7"
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.18", default-features = false }
-uuid = { version = "1.18.0", features = ["v4"] }
+uuid = { version = "1.18.1", features = ["v4"] }
 
 [profile.dist]
 inherits = "release"
