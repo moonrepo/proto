@@ -5,7 +5,7 @@ use crate::tool_spec::ToolSpec;
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
 use schematic::{
-    Config, ConfigError, ConfigLoader, Format, PartialConfig, Path as ErrorPath, ValidateError,
+    Config, ConfigError, ConfigLoader, PartialConfig, Path as ErrorPath, ValidateError,
     ValidatorError, merge,
 };
 use serde::Serialize;
@@ -279,7 +279,7 @@ impl ProtoConfig {
         };
 
         let mut config = ConfigLoader::<ProtoConfig>::new()
-            .code(config_content, Format::Toml)?
+            .code(config_content, PROTO_CONFIG_NAME)?
             .load_partial(&())?;
 
         config.validate(&(), true).map_err(|error| match error {

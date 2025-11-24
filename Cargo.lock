@@ -634,15 +634,6 @@ dependencies = [
 
 [[package]]
 name = "convert_case"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "baaaa0ecca5b51987b9423ccdc971514dd8b0bb7b4060b983d3664dad3f1f89f"
-dependencies = [
- "unicode-segmentation",
-]
-
-[[package]]
-name = "convert_case"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "633458d4ef8c78b72454de2d54fd6ab2e60f9e02be22f3c6104cdc8a4e0fceb9"
@@ -3184,7 +3175,7 @@ name = "proto_core"
 version = "0.54.0"
 dependencies = [
  "clap",
- "convert_case 0.10.0",
+ "convert_case",
  "docker_credential",
  "dotenvy",
  "indexmap",
@@ -3637,10 +3628,11 @@ dependencies = [
 
 [[package]]
 name = "rmcp"
-version = "0.8.5"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e5947688160b56fb6c827e3c20a72c90392a1d7e9dec74749197aa1780ac42ca"
+checksum = "eaa07b85b779d1e1df52dd79f6c6bffbe005b191f07290136cc42a142da3409a"
 dependencies = [
+ "async-trait",
  "base64 0.22.1",
  "chrono",
  "futures",
@@ -3658,9 +3650,9 @@ dependencies = [
 
 [[package]]
 name = "rmcp-macros"
-version = "0.8.5"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "01263441d3f8635c628e33856c468b96ebbce1af2d3699ea712ca71432d4ee7a"
+checksum = "0f6fa09933cac0d0204c8a5d647f558425538ed6a0134b1ebb1ae4dc00c96db3"
 dependencies = [
  "darling 0.21.3",
  "proc-macro2",
@@ -3915,12 +3907,13 @@ dependencies = [
 
 [[package]]
 name = "schematic"
-version = "0.18.15"
+version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "35c034eb788877c2422b6db6925a19563dcc8b6656e48a9566ef5578309b7c43"
+checksum = "948605ce45989071b73547221b82c4a684153b2b69ca5803c4f9e8d19a3adc18"
 dependencies = [
  "garde",
  "indexmap",
+ "json-strip-comments",
  "markdown",
  "miette 7.6.0",
  "regex",
@@ -3939,11 +3932,11 @@ dependencies = [
 
 [[package]]
 name = "schematic_macros"
-version = "0.18.12"
+version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "392fe379d2bd8661ef0a97cd9ce470b0561559460f21d544a9f16ef79e426dc1"
+checksum = "9522126562d4692460f6a4e392d1433101ead059598747b047dc76eb3aa8c7a6"
 dependencies = [
- "convert_case 0.8.0",
+ "convert_case",
  "darling 0.21.3",
  "proc-macro2",
  "quote",
@@ -3952,9 +3945,9 @@ dependencies = [
 
 [[package]]
 name = "schematic_types"
-version = "0.10.7"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "145fc73996eeb44c83cbaf7c360212b398390faaaf8640150b465f2ea40940e6"
+checksum = "1c818d205db50c9d56f12bb4ea264967ec01c129edca5bf8a3a848a5c6f9b58f"
 dependencies = [
  "indexmap",
  "regex",
@@ -4402,9 +4395,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_id"
-version = "0.2.6"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee876b5c03c1f9c9c7b5c57150c189850c472ef2c44b11f9ba4aa209b1ab251b"
+checksum = "c3588fc35b1dc2086e0bae3085444caa9932571223f4d72ef0d54bbd87b666ef"
 dependencies = [
  "compact_str 0.9.0",
  "miette 7.6.0",
@@ -4416,9 +4409,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_sandbox"
-version = "0.10.1"
+version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf05b96be9ff795d9ce382ad535d8c02fac5ade743a704a617561cf4018fa38a"
+checksum = "1cd417f6cbf14788269a2d36813d61fdf212cde5bb0daa8992a6b974aff0571a"
 dependencies = [
  "assert_cmd",
  "assert_fs",
@@ -4456,9 +4449,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_utils"
-version = "0.12.0"
+version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6535ea7b0839954990828088cd23bdb1fdbf2fbece58869072fc58a308cb97a"
+checksum = "a03914290e3ab162a9db640ad2e73665c4eadcc8907f64689030c367b3b04822"
 dependencies = [
  "async-trait",
  "dirs 6.0.0",
