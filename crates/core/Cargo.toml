@@ -13,8 +13,8 @@ proto_pdk_api = { version = "0.31.2", path = "../pdk-api", features = [
     "schematic",
 ] }
 proto_shim = { version = "0.7.9", path = "../shim" }
-system_env = { version = "0.8.3", path = "../system-env" }
-version_spec = { version = "0.9.6", path = "../version-spec", features = [
+system_env = { version = "0.9.0", path = "../system-env" }
+version_spec = { version = "0.10.0", path = "../version-spec", features = [
     "schematic",
 ] }
 warpgate = { version = "0.28.3", path = "../warpgate", features = [

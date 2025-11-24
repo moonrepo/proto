@@ -36,7 +36,7 @@ path = "src/main_shim.rs"
 proto_core = { version = "0.54.0", path = "../core", features = ["clap"] }
 proto_pdk_api = { version = "0.31.2", path = "../pdk-api" }
 proto_shim = { version = "0.7.9", path = "../shim" }
-system_env = { version = "0.8.3", path = "../system-env" }
+system_env = { version = "0.9.0", path = "../system-env" }
 anyhow = { workspace = true }
 async-trait = { workspace = true }
 chrono = "0.4.42"

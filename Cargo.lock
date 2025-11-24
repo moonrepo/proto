@@ -4612,7 +4612,7 @@ dependencies = [
 
 [[package]]
 name = "system_env"
-version = "0.8.3"
+version = "0.9.0"
 dependencies = [
  "regex",
  "schematic",
@@ -5267,7 +5267,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "version_spec"
-version = "0.9.6"
+version = "0.10.0"
 dependencies = [
  "compact_str 0.9.0",
  "human-sort",
