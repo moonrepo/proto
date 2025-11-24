@@ -279,7 +279,7 @@ impl ProtoConfig {
         };
 
         let mut config = ConfigLoader::<ProtoConfig>::new()
-            .code(config_content, PROTO_CONFIG_NAME)?
+            .code(config_content, format!("{}.toml", PROTO_CONFIG_NAME))?
             .load_partial(&())?;
 
         config.validate(&(), true).map_err(|error| match error {
