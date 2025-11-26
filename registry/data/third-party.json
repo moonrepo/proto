@@ -508,6 +508,19 @@
       ]
     },
     {
+      "id": "gradle",
+      "locator": "https://raw.githubusercontent.com/eplightning/openjdk-adoptium-proto-plugin/main/build-plugins/gradle.toml",
+      "format": "toml",
+      "name": "gradle",
+      "description": "Gradle is the open source build system of choice for Java, Android, and Kotlin developers.",
+      "author": "eplightning",
+      "homepageUrl": "https://gradle.org/",
+      "repositoryUrl": "https://github.com/eplightning/openjdk-adoptium-proto-plugin/blob/main/build-plugins/gradle.toml",
+      "bins": [
+        "gradle"
+      ]
+    },
+    {
       "id": "gum",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/gum/plugin.toml",
       "format": "toml",
@@ -891,6 +904,23 @@
       "repositoryUrl": "https://github.com/crashdump/proto-tools",
       "bins": [
         "openfga"
+      ]
+    },
+    {
+      "id": "openjdk",
+      "locator": "github://eplightning/openjdk-adoptium-proto-plugin",
+      "format": "wasm",
+      "name": "Eclipse Adoptium OpenJDK",
+      "description": "Eclipse Adoptium OpenJDK is an open-source distribution of the Java Development Kit.",
+      "author": "eplightning",
+      "homepageUrl": "https://adoptium.net/",
+      "repositoryUrl": "https://github.com/eplightning/openjdk-adoptium-proto-plugin",
+      "bins": [
+        "java",
+        "javac",
+        "jar",
+        "javadoc",
+        "keytool"
       ]
     },
     {
