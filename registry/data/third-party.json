@@ -629,6 +629,19 @@
       ]
     },
     {
+      "id": "infisical-cli",
+      "locator": "https://raw.githubusercontent.com/edocli/proto-plugins/main/infisical/plugin.toml",
+      "format": "toml",
+      "name": "Infisical CLI",
+      "description": "The official Infisical CLI: Inject secrets into applications and manage your Infisical infrastructure.",
+      "author": "9:06 PM",
+      "homepageUrl": "https://infisical.com/",
+      "repositoryUrl": "https://github.com/Infisical/cli",
+      "bins": [
+        "infisical"
+      ]
+    },
+    {
       "id": "jira",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/jira/plugin.toml",
       "format": "toml",
