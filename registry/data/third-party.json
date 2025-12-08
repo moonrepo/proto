@@ -977,6 +977,19 @@
       ]
     },
     {
+      "id": "qlty",
+      "locator": "https://raw.githubusercontent.com/edocli/proto-plugins/main/qlty/plugin.toml",
+      "format": "toml",
+      "name": "Qlty",
+      "description": "💎 Code quality CLI for universal linting, auto-formatting, security scanning, and maintainability.",
+      "author": "9:06 PM",
+      "homepageUrl": "https://qlty.sh",
+      "repositoryUrl": "https://github.com/qltysh/qlty",
+      "bins": [
+        "qlty"
+      ]
+    },
+    {
       "id": "rattler-build",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/rattler-build/plugin.toml",
       "format": "toml",
