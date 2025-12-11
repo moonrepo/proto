@@ -1,3 +1,5 @@
+#![allow(unused_assignments)]
+
 use crate::clients::WarpgateHttpClientError;
 use oci_client::Reference;
 use oci_client::errors::OciDistributionError;
