@@ -1,5 +1,6 @@
 use super::inventory::Inventory;
 use super::layout_error::ProtoLayoutError;
+use crate::helpers::get_download_cache_dir;
 use crate::id::Id;
 use crate::tool_manifest::ToolManifest;
 use once_cell::sync::OnceCell;
@@ -10,7 +11,7 @@ use starbase_utils::{fs, path};
 use std::fmt;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use tracing::instrument;
+use tracing::{debug, instrument};
 
 #[derive(Clone, Default, Serialize)]
 pub struct Store {
@@ -31,6 +32,16 @@ pub struct Store {
 impl Store {
     #[instrument(name = "create_store")]
     pub fn new(dir: &Path) -> Self {
+        // Allow overriding the temp/download cache directory via PROTO_DOWNLOAD_CACHE
+        let temp_dir = get_download_cache_dir().unwrap_or_else(|| dir.join("temp"));
+
+        if temp_dir != dir.join("temp") {
+            debug!(
+                temp_dir = ?temp_dir,
+                "Using custom download cache directory from PROTO_DOWNLOAD_CACHE"
+            );
+        }
+
         Self {
             dir: dir.to_path_buf(),
             backends_dir: dir.join("backends"),
@@ -40,7 +51,7 @@ impl Store {
             inventory_dir: dir.join("tools"),
             plugins_dir: dir.join("plugins"),
             shims_dir: dir.join("shims"),
-            temp_dir: dir.join("temp"),
+            temp_dir,
             shim_binary: Arc::new(OnceCell::new()),
         }
     }

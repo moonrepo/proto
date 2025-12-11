@@ -9,7 +9,7 @@ use starbase_utils::{
     net,
 };
 use std::env;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::{LazyLock, OnceLock};
 use std::time::SystemTime;
 
@@ -78,6 +78,12 @@ pub fn is_cache_enabled() -> bool {
 
 pub fn is_archive_file<P: AsRef<Path>>(path: P) -> bool {
     is_supported_archive_extension(path.as_ref())
+}
+
+/// Returns the download cache directory from the `PROTO_DOWNLOAD_CACHE` environment variable.
+/// If the variable is not set or is empty, returns `None`.
+pub fn get_download_cache_dir() -> Option<PathBuf> {
+    envx::path_var("PROTO_DOWNLOAD_CACHE").filter(|p| !p.as_os_str().is_empty())
 }
 
 pub fn now() -> u128 {
