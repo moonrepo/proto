@@ -20,6 +20,7 @@
 #### ⚙️ Internal
 
 - Updated Rust to v1.92.0.
+- Updated wasmtime to v37 (from v30).
 - Updated dependencies.
 
 ## 0.54.0
