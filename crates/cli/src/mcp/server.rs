@@ -46,6 +46,7 @@ impl ProtoMcp {
                 RawResource::new("proto://tools", "Installed tools".to_string()).no_annotation(),
             ],
             next_cursor: None,
+            meta: None,
         }
     }
 

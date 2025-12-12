@@ -1,3 +1,5 @@
+#![allow(unused_assignments)]
+
 use miette::Diagnostic;
 use proto_core::flow::resolve::ProtoResolveError;
 use proto_core::flow::setup::ProtoSetupError;

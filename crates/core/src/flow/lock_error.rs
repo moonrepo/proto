@@ -1,3 +1,5 @@
+#![allow(unused_assignments)]
+
 use crate::config_error::ProtoConfigError;
 use starbase_styles::{Style, Stylize};
 use starbase_utils::toml::TomlError;

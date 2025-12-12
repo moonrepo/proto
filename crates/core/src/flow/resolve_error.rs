@@ -1,3 +1,5 @@
+#![allow(unused_assignments)]
+
 use crate::config_error::ProtoConfigError;
 use crate::flow::lock::ProtoLockError;
 use crate::id::IdError;

@@ -83,16 +83,16 @@ mod clean {
         // Set stale last-used timestamps for versions 1.0.0 and 2.0.0
         sandbox.create_file(
             ".proto/tools/protostar/1.0.0/.last-used",
-            &stale_time.to_string(),
+            stale_time.to_string(),
         );
         sandbox.create_file(
             ".proto/tools/protostar/2.0.0/.last-used",
-            &stale_time.to_string(),
+            stale_time.to_string(),
         );
         // Version 3.0.0 is recent (within 1 day)
         sandbox.create_file(
             ".proto/tools/protostar/3.0.0/.last-used",
-            &now_millis.to_string(),
+            now_millis.to_string(),
         );
 
         sandbox
