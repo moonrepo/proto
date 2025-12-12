@@ -1,5 +1,6 @@
 use super::inventory::Inventory;
 use super::layout_error::ProtoLayoutError;
+use crate::helpers::get_temp_dir;
 use crate::id::Id;
 use crate::tool_manifest::ToolManifest;
 use once_cell::sync::OnceCell;
@@ -10,7 +11,7 @@ use starbase_utils::{fs, path};
 use std::fmt;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use tracing::instrument;
+use tracing::{debug, instrument};
 
 #[derive(Clone, Default, Serialize)]
 pub struct Store {
@@ -31,6 +32,17 @@ pub struct Store {
 impl Store {
     #[instrument(name = "create_store")]
     pub fn new(dir: &Path) -> Self {
+        let temp_dir = match get_temp_dir() {
+            Some(custom) => {
+                debug!(
+                    temp_dir = ?custom,
+                    "Using custom temp directory from PROTO_TEMP_DIR"
+                );
+                custom
+            }
+            None => std::env::temp_dir(),
+        };
+
         Self {
             dir: dir.to_path_buf(),
             backends_dir: dir.join("backends"),
@@ -40,7 +52,7 @@ impl Store {
             inventory_dir: dir.join("tools"),
             plugins_dir: dir.join("plugins"),
             shims_dir: dir.join("shims"),
-            temp_dir: dir.join("temp"),
+            temp_dir,
             shim_binary: Arc::new(OnceCell::new()),
         }
     }
