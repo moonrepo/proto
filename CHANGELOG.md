@@ -17,6 +17,10 @@
 
 ## Unreleased
 
+#### 🐞 Fixes
+
+- Fixed `proto clean` not removing all stale versions.
+
 #### ⚙️ Internal
 
 - Updated Rust to v1.92.0.
