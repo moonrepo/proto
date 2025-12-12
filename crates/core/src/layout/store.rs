@@ -1,6 +1,6 @@
 use super::inventory::Inventory;
 use super::layout_error::ProtoLayoutError;
-use crate::helpers::get_download_cache_dir;
+use crate::helpers::get_temp_dir;
 use crate::id::Id;
 use crate::tool_manifest::ToolManifest;
 use once_cell::sync::OnceCell;
@@ -32,15 +32,16 @@ pub struct Store {
 impl Store {
     #[instrument(name = "create_store")]
     pub fn new(dir: &Path) -> Self {
-        // Allow overriding the temp/download cache directory via PROTO_DOWNLOAD_CACHE
-        let temp_dir = get_download_cache_dir().unwrap_or_else(|| dir.join("temp"));
-
-        if temp_dir != dir.join("temp") {
-            debug!(
-                temp_dir = ?temp_dir,
-                "Using custom download cache directory from PROTO_DOWNLOAD_CACHE"
-            );
-        }
+        let temp_dir = match get_temp_dir() {
+            Some(custom) => {
+                debug!(
+                    temp_dir = ?custom,
+                    "Using custom temp directory from PROTO_TEMP_DIR"
+                );
+                custom
+            }
+            None => std::env::temp_dir(),
+        };
 
         Self {
             dir: dir.to_path_buf(),

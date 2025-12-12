@@ -80,10 +80,8 @@ pub fn is_archive_file<P: AsRef<Path>>(path: P) -> bool {
     is_supported_archive_extension(path.as_ref())
 }
 
-/// Returns the download cache directory from the `PROTO_DOWNLOAD_CACHE` environment variable.
-/// If the variable is not set or is empty, returns `None`.
-pub fn get_download_cache_dir() -> Option<PathBuf> {
-    envx::path_var("PROTO_DOWNLOAD_CACHE").filter(|p| !p.as_os_str().is_empty())
+pub fn get_temp_dir() -> Option<PathBuf> {
+    envx::path_var("PROTO_TEMP_DIR")
 }
 
 pub fn now() -> u128 {
