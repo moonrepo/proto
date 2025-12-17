@@ -271,9 +271,9 @@ dependencies = [
 
 [[package]]
 name = "bumpalo"
-version = "3.19.0"
+version = "3.19.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46c5e41b57b8bba42a04676d81cb89e9ee8e859a1a66f80a5a72e1cb76b34d43"
+checksum = "5dd9dc738b7a8311c7ade152424974d8115f2cdad61e8dab8dac9f2362298510"
 dependencies = [
  "allocator-api2",
 ]
@@ -422,7 +422,7 @@ dependencies = [
  "serde_json",
  "syn",
  "tempfile",
- "toml 0.9.8",
+ "toml 0.9.9+spec-1.0.0",
 ]
 
 [[package]]
@@ -1241,7 +1241,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
- "toml 0.9.8",
+ "toml 0.9.9+spec-1.0.0",
  "tracing",
  "tracing-subscriber",
  "ureq",
@@ -2347,13 +2347,13 @@ checksum = "f9fbbcab51052fe104eb5e5d351cf728d30a5be1fe14d9be8a3b097481fb97de"
 
 [[package]]
 name = "libredox"
-version = "0.1.10"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "416f7e718bdb06000964960ffa43b4335ad4012ae8b99060261aa4a8088d5ccb"
+checksum = "df15f6eac291ed1cf25865b1ee60399f57e7c227e7f51bdbd4c5270396a9ed50"
 dependencies = [
  "bitflags",
  "libc",
- "redox_syscall",
+ "redox_syscall 0.6.0",
 ]
 
 [[package]]
@@ -2718,9 +2718,9 @@ dependencies = [
 
 [[package]]
 name = "oci-spec"
-version = "0.8.3"
+version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2eb4684653aeaba48dea019caa17b2773e1212e281d50b6fa759f36fe032239d"
+checksum = "fc3da52b83ce3258fbf29f66ac784b279453c2ac3c22c5805371b921ede0d308"
 dependencies = [
  "const_format",
  "derive_builder",
@@ -2859,7 +2859,7 @@ checksum = "2621685985a2ebf1c516881c026032ac7deafcda1a2c9b7850dc81e3dfcb64c1"
 dependencies = [
  "cfg-if",
  "libc",
- "redox_syscall",
+ "redox_syscall 0.5.18",
  "smallvec",
  "windows-link 0.2.1",
 ]
@@ -2872,9 +2872,9 @@ checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
 
 [[package]]
 name = "pastey"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57d6c094ee800037dff99e02cab0eaf3142826586742a270ab3d7a62656bd27a"
+checksum = "b867cad97c0791bbd3aaa6472142568c6c9e8f71937e98379f584cfb0cf35bec"
 
 [[package]]
 name = "percent-encoding"
@@ -2991,7 +2991,7 @@ version = "3.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "219cb19e96be00ab2e37d6e299658a0cfa83e52429179969b0f0121b4ac46983"
 dependencies = [
- "toml_edit 0.23.9",
+ "toml_edit 0.23.10+spec-1.0.0",
 ]
 
 [[package]]
@@ -3147,12 +3147,13 @@ dependencies = [
  "starbase_archive",
  "starbase_console",
  "starbase_sandbox",
+ "starbase_shell",
  "starbase_styles",
  "starbase_utils",
  "system_env",
  "thiserror 2.0.17",
  "tokio",
- "toml_edit 0.23.9",
+ "toml_edit 0.23.10+spec-1.0.0",
  "tracing",
  "url",
  "uuid",
@@ -3174,7 +3175,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.31.3"
+version = "0.31.4"
 dependencies = [
  "derive_setters",
  "proto_pdk_api",
@@ -3392,6 +3393,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "redox_syscall"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ec96166dafa0886eb81fe1c0a388bece180fbef2135f97c1e2cf8302e74b43b5"
+dependencies = [
+ "bitflags",
+]
+
+[[package]]
 name = "redox_users"
 version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3490,9 +3500,9 @@ checksum = "7a2d987857b319362043e95f5353c0535c1f58eec5336fdfcf626430af7def58"
 
 [[package]]
 name = "reqwest"
-version = "0.12.25"
+version = "0.12.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6eff9328d40131d43bd911d42d79eb6a47312002a4daefc9e37f17e74a7701a"
+checksum = "3b4c14b2d9afca6a60277086b0cc6a6ae0b568f6f7916c943a8cdc79f8be240f"
 dependencies = [
  "base64 0.22.1",
  "bytes",
@@ -3725,9 +3735,9 @@ dependencies = [
 
 [[package]]
 name = "rustls-pki-types"
-version = "1.13.1"
+version = "1.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "708c0f9d5f54ba0272468c1d306a52c495b31fa155e91bc25371e6df7996908c"
+checksum = "21e6f2ab2928ca4291b86736a8bd920a277a399bba1589409d72154ff87c1282"
 dependencies = [
  "web-time",
  "zeroize",
@@ -3785,9 +3795,9 @@ checksum = "28d3b2b1366ec20994f1fd18c3c594f05c5dd4bc44d8bb0c1c632c8d6829481f"
 
 [[package]]
 name = "saa"
-version = "5.4.0"
+version = "5.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3192d99ee2f69effeacef86c9fa80e75b6604e2a5d3ade6856d206b519521e53"
+checksum = "77cb23a1da9bcf98289bea29df468b782ddf2993836d1ebd171c403210b86baa"
 
 [[package]]
 name = "same-file"
@@ -3800,9 +3810,9 @@ dependencies = [
 
 [[package]]
 name = "scc"
-version = "3.4.6"
+version = "3.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b6f8686af8563182fc6b63ab7bd7b5cad8f40fbe660675627caedc6c073eca8"
+checksum = "aad2fce7723ccd611108e74ff1a1b4db35bf474240ebdf2e44b1bac663f31b4b"
 dependencies = [
  "saa",
  "sdd",
@@ -3875,7 +3885,7 @@ dependencies = [
  "serde_path_to_error",
  "starbase_styles",
  "thiserror 2.0.17",
- "toml 0.9.8",
+ "toml 0.9.9+spec-1.0.0",
  "tracing",
 ]
 
@@ -3903,7 +3913,7 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
- "toml 0.9.8",
+ "toml 0.9.9+spec-1.0.0",
  "url",
 ]
 
@@ -4055,9 +4065,9 @@ dependencies = [
 
 [[package]]
 name = "serde_spanned"
-version = "1.0.3"
+version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e24345aa0fe688594e73770a5f6d1b216508b4f93484c0026d521acd30134392"
+checksum = "f8bbf91e5a4d6315eee45e704372590b30e260ee83af6639d64557f51b067776"
 dependencies = [
  "serde_core",
 ]
@@ -4399,7 +4409,7 @@ dependencies = [
  "serde_norway",
  "starbase_styles",
  "thiserror 2.0.17",
- "toml 0.9.8",
+ "toml 0.9.9+spec-1.0.0",
  "tracing",
  "url",
  "wax",
@@ -4452,9 +4462,9 @@ dependencies = [
 
 [[package]]
 name = "supports-hyperlinks"
-version = "3.1.0"
+version = "3.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "804f44ed3c63152de6a9f90acbea1a110441de43006ea51bcce8f436196a288b"
+checksum = "e396b6523b11ccb83120b115a0b7366de372751aa6edf19844dfb13a6af97e91"
 
 [[package]]
 name = "supports-unicode"
@@ -4815,14 +4825,14 @@ dependencies = [
 
 [[package]]
 name = "toml"
-version = "0.9.8"
+version = "0.9.9+spec-1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0dc8b1fb61449e27716ec0e1bdf0f6b8f3e8f6b05391e8497b8b6d7804ea6d8"
+checksum = "eb5238e643fc34a1d5d7e753e1532a91912d74b63b92b3ea51fde8d1b7bc79dd"
 dependencies = [
  "indexmap",
  "serde_core",
- "serde_spanned 1.0.3",
- "toml_datetime 0.7.3",
+ "serde_spanned 1.0.4",
+ "toml_datetime 0.7.4+spec-1.0.0",
  "toml_parser",
  "toml_writer",
  "winnow",
@@ -4839,9 +4849,9 @@ dependencies = [
 
 [[package]]
 name = "toml_datetime"
-version = "0.7.3"
+version = "0.7.4+spec-1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f2cdb639ebbc97961c51720f858597f7f24c4fc295327923af55b74c3c724533"
+checksum = "fe3cea6b2aa3b910092f6abd4053ea464fab5f9c170ba5e9a6aead16ec4af2b6"
 dependencies = [
  "serde_core",
 ]
@@ -4862,12 +4872,12 @@ dependencies = [
 
 [[package]]
 name = "toml_edit"
-version = "0.23.9"
+version = "0.23.10+spec-1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d7cbc3b4b49633d57a0509303158ca50de80ae32c265093b24c414705807832"
+checksum = "84c8b9f757e028cee9fa244aea147aab2a9ec09d5325a9b01e0a49730c2b5269"
 dependencies = [
  "indexmap",
- "toml_datetime 0.7.3",
+ "toml_datetime 0.7.4+spec-1.0.0",
  "toml_parser",
  "toml_writer",
  "winnow",
@@ -4875,9 +4885,9 @@ dependencies = [
 
 [[package]]
 name = "toml_parser"
-version = "1.0.4"
+version = "1.0.5+spec-1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c0cbe268d35bdb4bb5a56a2de88d0ad0eb70af5384a99d648cd4b3d04039800e"
+checksum = "4c03bee5ce3696f31250db0bbaff18bc43301ce0e8db2ed1f07cbb2acf89984c"
 dependencies = [
  "winnow",
 ]
@@ -4890,9 +4900,9 @@ checksum = "5d99f8c9a7727884afe522e9bd5edbfc91a3312b36a77b5fb8926e4c31a41801"
 
 [[package]]
 name = "toml_writer"
-version = "1.0.4"
+version = "1.0.5+spec-1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df8b2b54733674ad286d16267dcfc7a71ed5c776e4ac7aa3c3e2561f7c637bf2"
+checksum = "a9cd6190959dce0994aa8970cd32ab116d1851ead27e866039acaf2524ce44fa"
 
 [[package]]
 name = "tower"

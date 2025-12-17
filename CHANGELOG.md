@@ -17,6 +17,21 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- Added `PROTO_TEMP_DIR` environment variable to customize the temporary directory used by proto.
+- Added the ability for plugins to run post-install scripts after installing a prebuilt.
+- **WASM API**
+  - Added `/temp` virtual path support.
+  - Added `DownloadPrebuiltOutput.post_script` field.
+
+#### 🧩 Plugins
+
+- Updated `moon_tool` to v0.4.0.
+  - Added support for the future moon v2 distribution format.
+- Updated `node_tool` to v0.17.4.
+  - Added experimental support for musl on Linux ARM64.
+
 #### 🐞 Fixes
 
 - Fixed `proto clean` not removing all stale versions.

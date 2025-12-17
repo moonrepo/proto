@@ -577,6 +577,11 @@ api_struct!(
 
         /// A secure URL to download the tool/archive.
         pub download_url: String,
+
+        /// A script, relative from the install directory, to execute after
+        /// the prebuilt has been installed.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub post_script: Option<PathBuf>,
     }
 );
 

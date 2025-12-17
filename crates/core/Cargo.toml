@@ -9,7 +9,7 @@ repository = "https://github.com/moonrepo/proto"
 rust-version = "1.89.0"
 
 [dependencies]
-proto_pdk_api = { version = "0.31.3", path = "../pdk-api", features = [
+proto_pdk_api = { version = "0.31.4", path = "../pdk-api", features = [
     "schematic",
 ] }
 proto_shim = { version = "0.7.9", path = "../shim" }
@@ -51,6 +51,7 @@ sha2 = { workspace = true }
 shell-words = { workspace = true }
 starbase_archive = { workspace = true }
 starbase_console = { workspace = true, features = ["ui"] }
+starbase_shell = { workspace = true }
 starbase_styles = { workspace = true }
 starbase_utils = { workspace = true, features = ["fs-lock", "yaml"] }
 thiserror = { workspace = true }

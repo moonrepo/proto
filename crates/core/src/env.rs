@@ -114,17 +114,10 @@ impl ProtoEnvironment {
 
     pub fn get_virtual_paths(&self) -> BTreeMap<PathBuf, PathBuf> {
         BTreeMap::from_iter([
-            (self.working_dir.clone(), "/cwd".into()),
+            (self.store.temp_dir.clone(), "/temp".into()),
             (self.store.dir.clone(), "/proto".into()),
             (self.home_dir.clone(), "/userhome".into()),
         ])
-    }
-
-    pub fn get_virtual_paths_compat(&self) -> BTreeMap<String, PathBuf> {
-        self.get_virtual_paths()
-            .into_iter()
-            .map(|(key, value)| (key.to_string_lossy().to_string(), value))
-            .collect()
     }
 
     pub fn load_config(&self) -> Result<&ProtoConfig, ProtoConfigError> {
