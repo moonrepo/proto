@@ -1,3 +1,5 @@
+#![allow(unused_assignments)]
+
 use starbase_styles::{Style, Stylize};
 use starbase_utils::fs::FsError;
 use std::path::PathBuf;

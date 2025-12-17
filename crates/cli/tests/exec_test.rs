@@ -70,7 +70,7 @@ mod exec {
             cmd.args(["exec", "node", "--", "node", "--version"]);
         });
 
-        assert.inner.stdout(predicate::str::contains("v20.19.5"));
+        assert.inner.stdout(predicate::str::contains("v20.19.6"));
     }
 
     #[test]
@@ -105,7 +105,7 @@ bun = "1.2"
 
         assert
             .inner
-            .stdout(predicate::str::contains("v20.19.5").and(predicate::str::contains("1.2.23")));
+            .stdout(predicate::str::contains("v20.19.6").and(predicate::str::contains("1.2.23")));
     }
 
     #[test]
@@ -139,7 +139,7 @@ bun = "1.2"
 
         assert
             .inner
-            .stdout(predicate::str::contains("v20.19.5").and(predicate::str::contains("1.2.23")));
+            .stdout(predicate::str::contains("v20.19.6").and(predicate::str::contains("1.2.23")));
     }
 
     #[test]
