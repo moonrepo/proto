@@ -11,6 +11,7 @@ use proto_pdk_api::{
     PluginContext, PluginFunction, PluginUnresolvedContext, RegisterBackendInput,
     RegisterBackendOutput, RegisterToolInput, RegisterToolOutput, SourceLocation, VersionSpec,
 };
+use rustc_hash::FxHashMap;
 use starbase_styles::color;
 use starbase_utils::{fs, path};
 use std::fmt::{self, Debug};
@@ -136,10 +137,18 @@ impl Tool {
         wasm: Wasm,
     ) -> Result<PluginManifest, ProtoToolError> {
         let proto = proto.as_ref();
+        let mut virtual_paths = FxHashMap::default();
+
+        for (host, guest) in proto.get_virtual_paths() {
+            virtual_paths.insert(host.to_string_lossy().to_string(), guest);
+
+            // The host path must exist or extism errors!
+            fs::create_dir_all(host)?;
+        }
 
         let mut manifest = PluginManifest::new([wasm]);
         manifest = manifest.with_allowed_host("*");
-        manifest = manifest.with_allowed_paths(proto.get_virtual_paths_compat().into_iter());
+        manifest = manifest.with_allowed_paths(virtual_paths.into_iter());
         // manifest = manifest.with_timeout(Duration::from_secs(90));
 
         #[cfg(debug_assertions)]
