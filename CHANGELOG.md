@@ -29,6 +29,8 @@
 
 - Updated `moon_tool` to v0.4.0.
   - Added support for the future moon v2 distribution format.
+- Updated `node_tool` to v0.17.4.
+  - Added experimental support for musl on Linux ARM64.
 
 #### 🐞 Fixes
 
