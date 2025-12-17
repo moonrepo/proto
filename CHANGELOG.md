@@ -17,6 +17,12 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- Added `PROTO_TEMP_DIR` environment variable to customize the temporary directory used by proto.
+- **WASM API**
+  - Added `/temp` virtual path support.
+
 #### 🐞 Fixes
 
 - Fixed `proto clean` not removing all stale versions.

@@ -1,13 +1,13 @@
 use super::inventory::Inventory;
 use super::layout_error::ProtoLayoutError;
-use crate::helpers::get_temp_dir;
 use crate::id::Id;
 use crate::tool_manifest::ToolManifest;
 use once_cell::sync::OnceCell;
 use proto_pdk_api::ToolInventoryOptions;
 use proto_shim::{create_shim, locate_proto_exe};
 use serde::Serialize;
-use starbase_utils::{fs, path};
+use starbase_styles::color;
+use starbase_utils::{envx, fs, path};
 use std::fmt;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -32,15 +32,17 @@ pub struct Store {
 impl Store {
     #[instrument(name = "create_store")]
     pub fn new(dir: &Path) -> Self {
-        let temp_dir = match get_temp_dir() {
+        let temp_dir = match envx::path_var("PROTO_TEMP_DIR") {
             Some(custom) => {
                 debug!(
                     temp_dir = ?custom,
-                    "Using custom temp directory from PROTO_TEMP_DIR"
+                    "Using custom temp directory from {}",
+                    color::symbol("PROTO_TEMP_DIR")
                 );
+
                 custom
             }
-            None => std::env::temp_dir(),
+            None => dir.join("temp"),
         };
 
         Self {

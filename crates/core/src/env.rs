@@ -114,7 +114,7 @@ impl ProtoEnvironment {
 
     pub fn get_virtual_paths(&self) -> BTreeMap<PathBuf, PathBuf> {
         BTreeMap::from_iter([
-            (self.working_dir.clone(), "/cwd".into()),
+            (self.store.temp_dir.clone(), "/temp".into()),
             (self.store.dir.clone(), "/proto".into()),
             (self.home_dir.clone(), "/userhome".into()),
         ])
