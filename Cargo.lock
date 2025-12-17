@@ -3175,7 +3175,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.31.3"
+version = "0.31.4"
 dependencies = [
  "derive_setters",
  "proto_pdk_api",
