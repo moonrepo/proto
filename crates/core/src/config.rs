@@ -177,7 +177,7 @@ impl ProtoConfig {
         if !tools.contains_key("moon") && is_allowed("moon") {
             tools.insert(
                 Id::raw("moon"),
-                find_debug_locator_with_url_fallback("moon_tool", "0.3.3"),
+                find_debug_locator_with_url_fallback("moon_tool", "0.4.0"),
             );
         }
 

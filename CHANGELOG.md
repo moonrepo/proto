@@ -25,6 +25,11 @@
   - Added `/temp` virtual path support.
   - Added `DownloadPrebuiltOutput.post_script` field.
 
+#### 🧩 Plugins
+
+- Updated `moon_tool` to v0.4.0.
+  - Added support for the future moon v2 distribution format.
+
 #### 🐞 Fixes
 
 - Fixed `proto clean` not removing all stale versions.
