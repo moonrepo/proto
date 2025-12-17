@@ -80,6 +80,19 @@ pub fn is_archive_file<P: AsRef<Path>>(path: P) -> bool {
     is_supported_archive_extension(path.as_ref())
 }
 
+#[cfg(unix)]
+pub fn is_executable<P: AsRef<Path>>(path: P) -> bool {
+    use std::os::unix::fs::PermissionsExt;
+
+    fs::metadata(path.as_ref())
+        .is_ok_and(|meta| meta.is_file() && meta.permissions().mode() & 0o111 != 0)
+}
+
+#[cfg(windows)]
+pub fn is_executable<P: AsRef<Path>>(path: P) -> bool {
+    path.as_ref().extension().is_some_and(|ext| ext == "exe")
+}
+
 pub fn now() -> u128 {
     SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)

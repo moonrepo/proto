@@ -3,6 +3,7 @@ use super::lock_error::ProtoLockError;
 use crate::checksum::ProtoChecksumError;
 use crate::config_error::ProtoConfigError;
 use crate::utils::archive::ProtoArchiveError;
+use crate::utils::process::ProtoProcessError;
 use starbase_styles::{Style, Stylize, apply_style_tags};
 use starbase_utils::fs::FsError;
 use starbase_utils::net::NetError;
@@ -47,6 +48,10 @@ pub enum ProtoInstallError {
     #[diagnostic(transparent)]
     #[error(transparent)]
     Plugin(#[from] Box<WarpgatePluginError>),
+
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Process(#[from] Box<ProtoProcessError>),
 
     #[diagnostic(code(proto::install::failed))]
     #[error("Failed to install {tool}. {}", apply_style_tags(.error))]
@@ -131,5 +136,11 @@ impl From<NetError> for ProtoInstallError {
 impl From<WarpgatePluginError> for ProtoInstallError {
     fn from(e: WarpgatePluginError) -> ProtoInstallError {
         ProtoInstallError::Plugin(Box::new(e))
+    }
+}
+
+impl From<ProtoProcessError> for ProtoInstallError {
+    fn from(e: ProtoProcessError) -> ProtoInstallError {
+        ProtoInstallError::Process(Box::new(e))
     }
 }

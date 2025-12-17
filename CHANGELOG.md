@@ -20,8 +20,10 @@
 #### 🚀 Updates
 
 - Added `PROTO_TEMP_DIR` environment variable to customize the temporary directory used by proto.
+- Added the ability for plugins to run post-install scripts after installing a prebuilt.
 - **WASM API**
   - Added `/temp` virtual path support.
+  - Added `DownloadPrebuiltOutput.post_script` field.
 
 #### 🐞 Fixes
 

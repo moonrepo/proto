@@ -3147,6 +3147,7 @@ dependencies = [
  "starbase_archive",
  "starbase_console",
  "starbase_sandbox",
+ "starbase_shell",
  "starbase_styles",
  "starbase_utils",
  "system_env",

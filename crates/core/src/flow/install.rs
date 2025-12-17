@@ -3,19 +3,21 @@ pub use super::build_error::ProtoBuildError;
 pub use super::install_error::ProtoInstallError;
 use crate::checksum::*;
 use crate::env::ProtoConsole;
-use crate::helpers::{extract_filename_from_url, is_archive_file, is_offline};
+use crate::helpers::{extract_filename_from_url, is_archive_file, is_executable, is_offline};
 use crate::lockfile::*;
 use crate::tool::Tool;
-use crate::utils::archive;
 use crate::utils::log::LogWriter;
+use crate::utils::{archive, process};
 use proto_pdk_api::*;
+use starbase_shell::ShellType;
 use starbase_styles::color;
 use starbase_utils::net::DownloadOptions;
 use starbase_utils::{fs, net, path};
 use std::path::Path;
 use std::sync::Arc;
 use system_env::System;
-use tracing::{debug, instrument};
+use tokio::process::Command;
+use tracing::{debug, instrument, warn};
 
 // Prebuilt: Download -> Verify -> Unpack
 // Build: InstallDeps -> CheckRequirements -> ExecuteInstructions -> ...
@@ -408,6 +410,39 @@ impl Tool {
 
             fs::rename(&download_file, &install_path)?;
             fs::update_perms(install_path, None)?;
+        }
+
+        // Execute post install script
+        if let Some(rel_script) = output.post_script {
+            let abs_script = install_dir.join(rel_script);
+
+            if !abs_script.exists() {
+                warn!(
+                    tool = self.context.as_str(),
+                    script = ?abs_script,
+                    "Post-install script does not exist",
+                );
+            } else if !is_executable(&abs_script) {
+                warn!(
+                    tool = self.context.as_str(),
+                    script = ?abs_script,
+                    "Post-install script is not executable",
+                );
+            } else {
+                debug!(
+                    tool = self.context.as_str(),
+                    script = ?abs_script,
+                    "Executing post-install script",
+                );
+
+                let shell = ShellType::detect_with_fallback().build();
+                let mut command = Command::new(shell.to_string());
+                command.arg("-c");
+                command.arg(shell.quote(&abs_script.to_string_lossy()));
+                command.current_dir(install_dir);
+
+                process::exec_command(&mut command).await?;
+            }
         }
 
         Ok(record)
