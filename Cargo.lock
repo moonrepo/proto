@@ -3119,7 +3119,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.54.2"
+version = "0.54.3"
 dependencies = [
  "clap",
  "convert_case",
