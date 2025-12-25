@@ -113,11 +113,17 @@ impl ProtoEnvironment {
     }
 
     pub fn get_virtual_paths(&self) -> BTreeMap<PathBuf, PathBuf> {
-        BTreeMap::from_iter([
+        let mut paths = BTreeMap::from_iter([
             (self.store.temp_dir.clone(), "/temp".into()),
             (self.store.dir.clone(), "/proto".into()),
             (self.home_dir.clone(), "/userhome".into()),
-        ])
+        ]);
+
+        if self.test_only {
+            paths.insert(self.working_dir.clone(), "/sandbox".into());
+        }
+
+        paths
     }
 
     pub fn load_config(&self) -> Result<&ProtoConfig, ProtoConfigError> {
