@@ -1,12 +1,13 @@
 mod utils;
 
-use proto_core::flow::install::InstallOptions;
 use proto_core::{
-    Id, PluginLocator, ProtoEnvironment, Tool, ToolSpec, UnresolvedVersionSpec,
-    load_tool_from_locator, warpgate::FileLocator, warpgate::UrlLocator,
+    PluginLocator, ProtoEnvironment, ProtoLoaderError, Tool, ToolContext, ToolSpec,
+    UnresolvedVersionSpec, flow::install::InstallOptions, load_tool_from_locator,
+    warpgate::FileLocator, warpgate::UrlLocator,
 };
 use starbase_sandbox::assert_snapshot;
 use starbase_sandbox::predicates::prelude::*;
+use starbase_utils::envx;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
@@ -15,7 +16,7 @@ use utils::*;
 async fn run_tests<F, Fut>(factory: F)
 where
     F: FnOnce(&ProtoEnvironment) -> Fut,
-    Fut: Future<Output = miette::Result<Tool>>,
+    Fut: Future<Output = Result<Tool, ProtoLoaderError>>,
 {
     let sandbox = create_empty_proto_sandbox();
     let proto = ProtoEnvironment::new_testing(sandbox.path()).unwrap();
@@ -61,11 +62,11 @@ mod plugins {
             let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
             load_tool_from_locator(
-                Id::raw("moon"),
+                ToolContext::parse("moon").unwrap(),
                 env.to_owned(),
                 PluginLocator::File(Box::new(FileLocator {
-                    file: "./tests/fixtures/moon-schema.toml".into(),
-                    path: Some(root_dir.join("./tests/fixtures/moon-schema.toml")),
+                    file: "./tests/__fixtures__/moon-schema.toml".into(),
+                    path: Some(root_dir.join("./tests/__fixtures__/moon-schema.toml")),
                 })),
             )
         })
@@ -78,11 +79,11 @@ mod plugins {
             let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
             load_tool_from_locator(
-                Id::raw("moon"),
+                ToolContext::parse("moon").unwrap(),
                 env.to_owned(),
                 PluginLocator::File(Box::new(FileLocator {
-                    file: "./tests/fixtures/moon-schema.json".into(),
-                    path: Some(root_dir.join("./tests/fixtures/moon-schema.json")),
+                    file: "./tests/__fixtures__/moon-schema.json".into(),
+                    path: Some(root_dir.join("./tests/__fixtures__/moon-schema.json")),
                 })),
             )
         })
@@ -95,11 +96,11 @@ mod plugins {
             let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
             load_tool_from_locator(
-                Id::raw("moon"),
+                ToolContext::parse("moon").unwrap(),
                 env.to_owned(),
                 PluginLocator::File(Box::new(FileLocator {
-                    file: "./tests/fixtures/moon-schema.yaml".into(),
-                    path: Some(root_dir.join("./tests/fixtures/moon-schema.yaml")),
+                    file: "./tests/__fixtures__/moon-schema.yaml".into(),
+                    path: Some(root_dir.join("./tests/__fixtures__/moon-schema.yaml")),
                 })),
             )
         })
@@ -107,13 +108,13 @@ mod plugins {
     }
 
     #[tokio::test]
-    #[should_panic(expected = "does not exist")]
+    #[should_panic(expected = "MissingSourceFile")]
     async fn errors_for_missing_file() {
         run_tests(|env| {
             let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
             load_tool_from_locator(
-                Id::raw("moon"),
+                ToolContext::parse("moon").unwrap(),
                 env.to_owned(),
                 PluginLocator::File(Box::new(FileLocator {
                     file: "./some/fake/path.toml".into(),
@@ -128,7 +129,7 @@ mod plugins {
     async fn downloads_and_installs_plugin_from_url() {
         run_tests(|env| {
             load_tool_from_locator(
-                Id::raw("moon"),
+                ToolContext::parse("moon").unwrap(),
                 env.to_owned(),
                 PluginLocator::Url(Box::new(UrlLocator {
                     url: "https://raw.githubusercontent.com/moonrepo/moon/master/proto-plugin.toml"
@@ -140,11 +141,11 @@ mod plugins {
     }
 
     #[tokio::test]
-    #[should_panic(expected = "does not exist")]
+    #[should_panic(expected = "NotFound")]
     async fn errors_for_broken_url() {
         run_tests(|env| {
             load_tool_from_locator(
-                Id::raw("moon"),
+                ToolContext::parse("moon").unwrap(),
                 env.to_owned(),
                 PluginLocator::Url(Box::new(UrlLocator {
                     url: "https://raw.githubusercontent.com/moonrepo/moon/some/fake/path.toml"
@@ -239,39 +240,18 @@ mod plugins {
         }
 
         #[test]
-        fn supports_node() {
+        fn supports_node_and_package_managers() {
             let sandbox = create_empty_proto_sandbox();
 
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install")
-                        .arg("node")
-                        .arg("--")
-                        .arg("--no-bundled-npm");
+                    cmd.arg("install").arg("node");
                 })
                 .success();
 
             create_shim_command(sandbox.path(), "node")
                 .arg("--version")
                 .assert()
-                .success();
-
-            assert_snapshot!(
-                fs::read_to_string(sandbox.path().join(".proto/shims/registry.json")).unwrap()
-            );
-        }
-
-        #[test]
-        fn supports_npm() {
-            let sandbox = create_empty_proto_sandbox();
-
-            sandbox
-                .run_bin(|cmd| {
-                    cmd.arg("install")
-                        .arg("node")
-                        .arg("--")
-                        .arg("--no-bundled-npm");
-                })
                 .success();
 
             sandbox
@@ -285,24 +265,6 @@ mod plugins {
                 .assert()
                 .success();
 
-            assert_snapshot!(
-                fs::read_to_string(sandbox.path().join(".proto/shims/registry.json")).unwrap()
-            );
-        }
-
-        #[test]
-        fn supports_pnpm() {
-            let sandbox = create_empty_proto_sandbox();
-
-            sandbox
-                .run_bin(|cmd| {
-                    cmd.arg("install")
-                        .arg("node")
-                        .arg("--")
-                        .arg("--no-bundled-npm");
-                })
-                .success();
-
             sandbox
                 .run_bin(|cmd| {
                     cmd.arg("install").arg("pnpm");
@@ -312,24 +274,6 @@ mod plugins {
             create_shim_command(sandbox.path(), "pnpm")
                 .arg("--version")
                 .assert()
-                .success();
-
-            assert_snapshot!(
-                fs::read_to_string(sandbox.path().join(".proto/shims/registry.json")).unwrap()
-            );
-        }
-
-        #[test]
-        fn supports_yarn() {
-            let sandbox = create_empty_proto_sandbox();
-
-            sandbox
-                .run_bin(|cmd| {
-                    cmd.arg("install")
-                        .arg("node")
-                        .arg("--")
-                        .arg("--no-bundled-npm");
-                })
                 .success();
 
             sandbox
@@ -382,7 +326,7 @@ mod plugins {
             // `poetry` is called in a post-install hook,
             // so we need to make it available on PATH
             let mut paths = vec![sandbox.path().join(".proto/shims")];
-            paths.extend(starbase_utils::env::paths());
+            paths.extend(envx::paths());
 
             sandbox
                 .run_bin(|cmd| {
@@ -445,6 +389,11 @@ mod plugins {
 
         #[test]
         fn supports_rust() {
+            // This can break local machines
+            if !envx::is_ci() {
+                return;
+            }
+
             let sandbox = create_empty_proto_sandbox();
 
             sandbox

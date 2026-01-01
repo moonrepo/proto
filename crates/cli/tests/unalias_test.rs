@@ -1,6 +1,6 @@
 mod utils;
 
-use proto_core::{Id, PartialProtoToolConfig, ProtoConfig, UnresolvedVersionSpec};
+use proto_core::{PartialProtoToolConfig, ProtoConfig, UnresolvedVersionSpec};
 use starbase_sandbox::predicates::prelude::*;
 use std::collections::BTreeMap;
 use utils::*;
@@ -26,12 +26,12 @@ mod unalias_local {
         let sandbox = create_empty_proto_sandbox();
 
         ProtoConfig::update(sandbox.path(), |config| {
-            config.tools.get_or_insert(Default::default()).insert(
-                Id::raw("node"),
+            config.tools.get_or_insert_default().insert(
+                "protostar".into(),
                 PartialProtoToolConfig {
                     aliases: Some(BTreeMap::from_iter([(
                         "example".into(),
-                        UnresolvedVersionSpec::parse("19.0.0").unwrap().into(),
+                        UnresolvedVersionSpec::parse("1.0.0").unwrap().into(),
                     )])),
                     ..Default::default()
                 },
@@ -41,13 +41,13 @@ mod unalias_local {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("unalias").arg("node").arg("example");
+                cmd.arg("unalias").arg("protostar").arg("example");
             })
             .success();
 
         let config = load_config(sandbox.path());
 
-        assert!(config.tools.get("node").unwrap().aliases.is_empty());
+        assert!(!config.tools.contains_key("protostar"));
     }
 
     #[test]
@@ -55,12 +55,12 @@ mod unalias_local {
         let sandbox = create_empty_proto_sandbox();
 
         ProtoConfig::update(sandbox.path(), |config| {
-            config.tools.get_or_insert(Default::default()).insert(
-                Id::raw("node"),
+            config.tools.get_or_insert_default().insert(
+                "protostar".into(),
                 PartialProtoToolConfig {
                     aliases: Some(BTreeMap::from_iter([(
                         "example".into(),
-                        UnresolvedVersionSpec::parse("19.0.0").unwrap().into(),
+                        UnresolvedVersionSpec::parse("1.0.0").unwrap().into(),
                     )])),
                     ..Default::default()
                 },
@@ -70,19 +70,54 @@ mod unalias_local {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("unalias").arg("node").arg("unknown");
+                cmd.arg("unalias").arg("protostar").arg("unknown");
             })
             .failure();
 
         let config = load_config(sandbox.path());
 
         assert_eq!(
-            config.tools.get("node").unwrap().aliases,
+            config.tools.get("protostar").unwrap().aliases,
             BTreeMap::from_iter([(
                 "example".into(),
-                UnresolvedVersionSpec::parse("19.0.0").unwrap().into()
+                UnresolvedVersionSpec::parse("1.0.0").unwrap().into()
             )])
         );
+    }
+
+    // Windows doesn't support asdf
+    #[cfg(unix)]
+    mod backend {
+        use super::*;
+
+        #[test]
+        fn can_remove() {
+            let sandbox = create_empty_proto_sandbox();
+
+            ProtoConfig::update(sandbox.path(), |config| {
+                config.tools.get_or_insert_default().insert(
+                    "asdf:act".into(),
+                    PartialProtoToolConfig {
+                        aliases: Some(BTreeMap::from_iter([(
+                            "example".into(),
+                            UnresolvedVersionSpec::parse("1.0.0").unwrap().into(),
+                        )])),
+                        ..Default::default()
+                    },
+                );
+            })
+            .unwrap();
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("unalias").arg("asdf:act").arg("example");
+                })
+                .success();
+
+            let config = load_config(sandbox.path());
+
+            assert!(!config.tools.contains_key("asdf:act"));
+        }
     }
 }
 
@@ -94,12 +129,12 @@ mod unalias_global {
         let sandbox = create_empty_proto_sandbox();
 
         ProtoConfig::update(sandbox.path().join(".proto"), |config| {
-            config.tools.get_or_insert(Default::default()).insert(
-                Id::raw("node"),
+            config.tools.get_or_insert_default().insert(
+                "protostar".into(),
                 PartialProtoToolConfig {
                     aliases: Some(BTreeMap::from_iter([(
                         "example".into(),
-                        UnresolvedVersionSpec::parse("19.0.0").unwrap().into(),
+                        UnresolvedVersionSpec::parse("1.0.0").unwrap().into(),
                     )])),
                     ..Default::default()
                 },
@@ -110,7 +145,7 @@ mod unalias_global {
         sandbox
             .run_bin(|cmd| {
                 cmd.arg("unalias")
-                    .arg("node")
+                    .arg("protostar")
                     .arg("example")
                     .arg("--from")
                     .arg("global");
@@ -119,7 +154,7 @@ mod unalias_global {
 
         let config = load_config(sandbox.path().join(".proto"));
 
-        assert!(config.tools.get("node").unwrap().aliases.is_empty());
+        assert!(!config.tools.contains_key("protostar"));
     }
 }
 
@@ -131,12 +166,12 @@ mod unalias_user {
         let sandbox = create_empty_proto_sandbox();
 
         ProtoConfig::update(sandbox.path().join(".home"), |config| {
-            config.tools.get_or_insert(Default::default()).insert(
-                Id::raw("node"),
+            config.tools.get_or_insert_default().insert(
+                "protostar".into(),
                 PartialProtoToolConfig {
                     aliases: Some(BTreeMap::from_iter([(
                         "example".into(),
-                        UnresolvedVersionSpec::parse("19.0.0").unwrap().into(),
+                        UnresolvedVersionSpec::parse("1.0.0").unwrap().into(),
                     )])),
                     ..Default::default()
                 },
@@ -147,7 +182,7 @@ mod unalias_user {
         sandbox
             .run_bin(|cmd| {
                 cmd.arg("unalias")
-                    .arg("node")
+                    .arg("protostar")
                     .arg("example")
                     .arg("--from")
                     .arg("user");
@@ -156,6 +191,6 @@ mod unalias_user {
 
         let config = load_config(sandbox.path().join(".home"));
 
-        assert!(config.tools.get("node").unwrap().aliases.is_empty());
+        assert!(!config.tools.contains_key("protostar"));
     }
 }

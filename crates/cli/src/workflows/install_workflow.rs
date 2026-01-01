@@ -1,23 +1,24 @@
 use crate::commands::pin::internal_pin;
 use crate::components::{InstallAllProgress, InstallProgress, InstallProgressProps};
+use crate::error::ProtoCliError;
 use crate::session::ProtoConsole;
 use crate::shell::{self, Export};
 use crate::telemetry::*;
 use crate::utils::tool_record::ToolRecord;
 use iocraft::element;
-use miette::IntoDiagnostic;
 use proto_core::flow::install::{InstallOptions, InstallPhase};
 use proto_core::utils::log::LogWriter;
-use proto_core::{Id, LockfileRecord, PinLocation, ToolSpec};
+use proto_core::{Id, LockRecord, PinLocation, ToolSpec};
 use proto_pdk_api::{
-    InstallHook, InstallStrategy, Switch, SyncShellProfileInput, SyncShellProfileOutput,
+    HookFunction, InstallHook, InstallStrategy, PluginFunction, Switch, SyncShellProfileInput,
+    SyncShellProfileOutput,
 };
 use starbase_console::ConsoleError;
 use starbase_console::ui::{OwnedOrShared, ProgressDisplay, ProgressReporter, ProgressState};
 use starbase_console::utils::formats::format_duration;
 use starbase_shell::ShellType;
 use starbase_styles::{apply_style_tags, color};
-use starbase_utils::env::bool_var;
+use starbase_utils::envx;
 use std::collections::BTreeMap;
 use std::env;
 use std::sync::Arc;
@@ -85,7 +86,7 @@ impl InstallWorkflow {
         &mut self,
         spec: ToolSpec,
         params: InstallWorkflowParams,
-    ) -> miette::Result<InstallOutcome> {
+    ) -> Result<InstallOutcome, ProtoCliError> {
         let started = Instant::now();
 
         self.progress_reporter.set_message(format!(
@@ -106,7 +107,7 @@ impl InstallWorkflow {
             self.pin_version(&spec, &params.pin_to).await?;
             self.finish_progress(started);
 
-            return Ok(InstallOutcome::AlreadyInstalled(self.tool.id.clone()));
+            return Ok(InstallOutcome::AlreadyInstalled(self.tool.get_id().clone()));
         }
 
         // Run pre-install hooks
@@ -116,7 +117,7 @@ impl InstallWorkflow {
         let record = self.do_install(&spec, &params).await?;
 
         if record.is_none() {
-            return Ok(InstallOutcome::FailedToInstall(self.tool.id.clone()));
+            return Ok(InstallOutcome::FailedToInstall(self.tool.get_id().clone()));
         }
 
         let pinned = self.pin_version(&spec, &params.pin_to).await?;
@@ -129,7 +130,7 @@ impl InstallWorkflow {
         track_usage(
             &self.tool.proto,
             Metric::InstallTool {
-                id: self.tool.id.to_string(),
+                id: self.tool.get_id().to_string(),
                 plugin: self
                     .tool
                     .locator
@@ -143,14 +144,14 @@ impl InstallWorkflow {
         )
         .await?;
 
-        Ok(InstallOutcome::Installed(self.tool.id.clone()))
+        Ok(InstallOutcome::Installed(self.tool.get_id().clone()))
     }
 
     pub async fn install_with_logging(
         &mut self,
         spec: ToolSpec,
         mut params: InstallWorkflowParams,
-    ) -> miette::Result<InstallOutcome> {
+    ) -> Result<InstallOutcome, ProtoCliError> {
         let log = match params.log_writer.clone() {
             Some(writer) => writer,
             None => {
@@ -163,7 +164,7 @@ impl InstallWorkflow {
             .tool
             .proto
             .working_dir
-            .join(format!("proto-{}-install.log", self.tool.id));
+            .join(format!("proto-{}-install.log", self.tool.get_id()));
 
         // Capture plugin calls
         let on_log = log.clone();
@@ -213,21 +214,21 @@ impl InstallWorkflow {
         }
     }
 
-    async fn pre_install(&self, params: &InstallWorkflowParams) -> miette::Result<()> {
+    async fn pre_install(&self, params: &InstallWorkflowParams) -> Result<(), ProtoCliError> {
         let tool = &self.tool;
 
         params.log_writer.as_ref().inspect(|log| {
             log.add_header("Running pre-install hooks");
         });
 
-        unsafe { env::set_var("PROTO_INSTALL", tool.id.to_string()) };
+        unsafe { env::set_var("PROTO_INSTALL", tool.get_id()) };
 
-        if tool.plugin.has_func("pre_install").await {
+        if tool.plugin.has_func(HookFunction::PreInstall).await {
             tool.plugin
                 .call_func_without_output(
-                    "pre_install",
+                    HookFunction::PreInstall,
                     InstallHook {
-                        context: tool.create_context(),
+                        context: tool.create_plugin_context(),
                         forced: params.force,
                         passthrough_args: params.passthrough_args.clone(),
                         pinned: params.pin_to.is_some(),
@@ -244,7 +245,7 @@ impl InstallWorkflow {
         &mut self,
         spec: &ToolSpec,
         params: &InstallWorkflowParams,
-    ) -> miette::Result<Option<LockfileRecord>> {
+    ) -> Result<Option<LockRecord>, ProtoCliError> {
         params.log_writer.as_ref().inspect(|log| {
             log.add_header("Installing tool");
         });
@@ -319,7 +320,8 @@ impl InstallWorkflow {
             });
         });
 
-        self.tool
+        let record = self
+            .tool
             .setup(
                 spec,
                 InstallOptions {
@@ -335,22 +337,24 @@ impl InstallWorkflow {
                     strategy: params.strategy.unwrap_or(default_strategy),
                 },
             )
-            .await
+            .await?;
+
+        Ok(record)
     }
 
-    async fn post_install(&self, params: &InstallWorkflowParams) -> miette::Result<()> {
+    async fn post_install(&self, params: &InstallWorkflowParams) -> Result<(), ProtoCliError> {
         let tool = &self.tool;
 
         params.log_writer.as_ref().inspect(|log| {
             log.add_header("Running post-install hooks");
         });
 
-        if tool.plugin.has_func("post_install").await {
+        if tool.plugin.has_func(HookFunction::PostInstall).await {
             tool.plugin
                 .call_func_without_output(
-                    "post_install",
+                    HookFunction::PostInstall,
                     InstallHook {
-                        context: tool.create_context(),
+                        context: tool.create_plugin_context(),
                         forced: params.force,
                         passthrough_args: params.passthrough_args.clone(),
                         pinned: params.pin_to.is_some(),
@@ -369,7 +373,7 @@ impl InstallWorkflow {
         &mut self,
         spec: &ToolSpec,
         arg_pin_to: &Option<PinLocation>,
-    ) -> miette::Result<bool> {
+    ) -> Result<bool, ProtoCliError> {
         let config = self.tool.proto.load_config()?;
         let mut pin_to = PinLocation::Local;
         let mut pin = false;
@@ -386,38 +390,36 @@ impl InstallWorkflow {
         }
 
         // via `pin-latest` setting
-        if spec.req.is_latest() {
-            if let Some(custom_type) = &config.settings.pin_latest {
-                pin_to = *custom_type;
-                pin = true;
-            }
+        if spec.req.is_latest()
+            && let Some(custom_type) = &config.settings.pin_latest
+        {
+            pin_to = *custom_type;
+            pin = true;
         }
 
         if pin {
-            let resolved_spec = ToolSpec::new_backend(
-                self.tool.get_resolved_version().to_unresolved_spec(),
-                spec.backend,
-            );
+            let resolved_spec =
+                ToolSpec::new(self.tool.get_resolved_version().to_unresolved_spec());
 
-            internal_pin(&mut self.tool.tool, &resolved_spec, pin_to).await?;
+            internal_pin(&self.tool.tool, &resolved_spec, pin_to).await?;
         }
 
         Ok(pin)
     }
 
-    async fn update_shell(&self, params: &InstallWorkflowParams) -> miette::Result<()> {
+    async fn update_shell(&self, params: &InstallWorkflowParams) -> Result<(), ProtoCliError> {
         let tool = &self.tool;
 
-        if !tool.plugin.has_func("sync_shell_profile").await {
+        if !tool.plugin.has_func(PluginFunction::SyncShellProfile).await {
             return Ok(());
         }
 
         let output: SyncShellProfileOutput = tool
             .plugin
             .call_func_with(
-                "sync_shell_profile",
+                PluginFunction::SyncShellProfile,
                 SyncShellProfileInput {
-                    context: tool.create_context(),
+                    context: tool.create_plugin_context(),
                     passthrough_args: params.passthrough_args.clone(),
                 },
             )
@@ -467,7 +469,7 @@ impl InstallWorkflow {
         });
 
         if let Some(updated_profile) = profile_path {
-            let exported_content = shell::format_exports(&shell, &tool.id, exports);
+            let exported_content = shell::format_exports(&shell, tool.get_id(), exports);
 
             if shell::update_profile_if_not_setup(
                 &updated_profile,
@@ -530,14 +532,16 @@ impl InstallWorkflowManager {
     pub fn create_workflow(&mut self, tool: ToolRecord) -> InstallWorkflow {
         let workflow = InstallWorkflow::new(tool, self.console.clone());
 
-        self.progress_reporters
-            .insert(workflow.tool.id.clone(), workflow.progress_reporter.clone());
+        self.progress_reporters.insert(
+            workflow.tool.get_id().clone(),
+            workflow.progress_reporter.clone(),
+        );
 
         workflow
     }
 
     pub fn is_tty(&self) -> bool {
-        !bool_var("NO_TTY") && self.console.out.is_terminal()
+        !envx::bool_var("NO_TTY") && self.console.out.is_terminal()
     }
 
     pub async fn render_single_progress(&mut self) {
@@ -618,7 +622,7 @@ impl InstallWorkflowManager {
         for (id, reporter) in &self.progress_reporters {
             let reporter = reporter.clone();
             let console = self.console.clone();
-            let prefix = color::muted_light(format!("[{}] ", id));
+            let prefix = color::muted_light(format!("[{id}] "));
 
             self.monitor_handles.push(tokio::spawn(async move {
                 let mut receiver = reporter.subscribe();
@@ -649,6 +653,8 @@ impl InstallWorkflowManager {
     }
 
     pub async fn stop_rendering(mut self) -> miette::Result<()> {
+        use miette::IntoDiagnostic;
+
         self.progress_reporters.values().for_each(|reporter| {
             reporter.exit();
         });

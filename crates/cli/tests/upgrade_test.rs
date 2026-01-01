@@ -1,11 +1,9 @@
 mod utils;
 
-use proto_shim::get_exe_file_name;
-use utils::*;
-
 #[cfg(unix)]
 mod upgrade {
-    use super::*;
+    use super::utils::*;
+    use proto_shim::get_exe_file_name;
 
     #[test]
     fn upgrades_to_a_version() {

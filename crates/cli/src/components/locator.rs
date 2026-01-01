@@ -22,6 +22,18 @@ pub fn Locator<'a>(props: &LocatorProps<'a>) -> impl Into<AnyElement<'a>> + use<
             )
         }
         .into_any(),
+        PluginLocator::Registry(path) => element! {
+            Entry(
+                name: "Registry image",
+                value: element! {
+                    StyledText(
+                        content: path.image.clone(),
+                        style: Style::File
+                    )
+                }.into_any()
+            )
+        }
+        .into_any(),
         PluginLocator::GitHub(github) => element! {
             Entry(
                 name: "Source",

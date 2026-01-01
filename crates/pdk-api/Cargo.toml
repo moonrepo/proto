@@ -1,16 +1,17 @@
 [package]
 name = "proto_pdk_api"
-version = "0.27.13"
+version = "0.31.4"
 edition = "2024"
 license = "MIT"
 description = "Core APIs for creating proto WASM plugins."
 homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
+rust-version = "1.85.0"
 
 [dependencies]
-system_env = { version = "0.8.0", path = "../system-env" }
-version_spec = { version = "0.9.1", path = "../version-spec" }
-warpgate_api = { version = "0.14.5", path = "../warpgate-api" }
+system_env = { version = "0.9.0", path = "../system-env" }
+version_spec = { version = "0.10.0", path = "../version-spec" }
+warpgate_api = { version = "0.17.2", path = "../warpgate-api" }
 derive_setters = { workspace = true }
 rustc-hash = { workspace = true }
 schematic = { workspace = true, features = [

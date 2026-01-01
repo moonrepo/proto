@@ -190,6 +190,19 @@
       ]
     },
     {
+      "id": "commitlint",
+      "locator": "https://raw.githubusercontent.com/ageha734/proto-plugins/refs/heads/master/toml/commitlint.toml",
+      "format": "toml",
+      "name": "commitlint",
+      "description": "A linter that checks whether commit messages comply with standards.",
+      "author": "ageha734",
+      "homepageUrl": "https://github.com/conventionalcommit/commitlint",
+      "repositoryUrl": "https://github.com/ageha734/proto-plugins",
+      "bins": [
+        "commitlint"
+      ]
+    },
+    {
       "id": "conan",
       "locator": "https://raw.githubusercontent.com/isaac10334/conan-proto/main/conan.toml",
       "format": "toml",
@@ -267,6 +280,19 @@
       "globalsDirs": [
         "$PUB_CACHE/bin",
         "$HOME/.pub-cache/bin"
+      ]
+    },
+    {
+      "id": "dbmate",
+      "locator": "https://raw.githubusercontent.com/risk1996/proto-plugins/refs/heads/main/dbmate/plugin.toml",
+      "format": "toml",
+      "name": "dbmate",
+      "description": "A lightweight, framework-agnostic database migration tool.",
+      "author": "risk1996",
+      "homepageUrl": "https://github.com/amacneil/dbmate",
+      "repositoryUrl": "https://github.com/risk1996/proto-plugins",
+      "bins": [
+        "dbmate"
       ]
     },
     {
@@ -403,6 +429,19 @@
       ]
     },
     {
+      "id": "gcloud",
+      "locator": "github://ageha734/proto-gcloud",
+      "format": "wasm",
+      "name": "Goocle Cloud SDK",
+      "description": "The primary command-line tool for creating and managing Google Cloud resources.",
+      "author": "ageha734",
+      "homepageUrl": "https://cloud.google.com/sdk/docs",
+      "repositoryUrl": "https://github.com/ageha734/proto-gcloud",
+      "bins": [
+        "gcloud"
+      ]
+    },
+    {
       "id": "gh",
       "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/gh/plugin.toml",
       "format": "toml",
@@ -466,6 +505,19 @@
       "repositoryUrl": "https://github.com/b4nst/proto-plugins/blob/main/toml/golangci-lint.toml",
       "bins": [
         "golangci-lint"
+      ]
+    },
+    {
+      "id": "gradle",
+      "locator": "https://raw.githubusercontent.com/eplightning/openjdk-adoptium-proto-plugin/main/build-plugins/gradle.toml",
+      "format": "toml",
+      "name": "gradle",
+      "description": "Gradle is the open source build system of choice for Java, Android, and Kotlin developers.",
+      "author": "eplightning",
+      "homepageUrl": "https://gradle.org/",
+      "repositoryUrl": "https://github.com/eplightning/openjdk-adoptium-proto-plugin/blob/main/build-plugins/gradle.toml",
+      "bins": [
+        "gradle"
       ]
     },
     {
@@ -572,6 +624,19 @@
       "author": "Phault",
       "homepageUrl": "https://infisical.com/",
       "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
+      "bins": [
+        "infisical"
+      ]
+    },
+    {
+      "id": "infisical-cli",
+      "locator": "https://raw.githubusercontent.com/edocli/proto-plugins/main/infisical/plugin.toml",
+      "format": "toml",
+      "name": "Infisical CLI",
+      "description": "The official Infisical CLI: Inject secrets into applications and manage your Infisical infrastructure.",
+      "author": "9:06 PM",
+      "homepageUrl": "https://infisical.com/",
+      "repositoryUrl": "https://github.com/Infisical/cli",
       "bins": [
         "infisical"
       ]
@@ -711,6 +776,32 @@
       ]
     },
     {
+      "id": "kustomize",
+      "locator": "https://raw.githubusercontent.com/ageha734/proto-plugins/refs/heads/master/toml/kustomize.toml",
+      "format": "toml",
+      "name": "kustomize",
+      "description": "A tool for customizing Kubernetes YAML files without using templates.",
+      "author": "ageha734",
+      "homepageUrl": "https://kustomize.io/",
+      "repositoryUrl": "https://github.com/ageha734/proto-plugins",
+      "bins": [
+        "kustomize"
+      ]
+    },
+    {
+      "id": "lefthook",
+      "locator": "https://raw.githubusercontent.com/ageha734/proto-plugins/refs/heads/master/toml/lefthook.toml",
+      "format": "toml",
+      "name": "lefthook",
+      "description": "A fast, multilingual Git hook manager.",
+      "author": "ageha734",
+      "homepageUrl": "https://lefthook.dev/",
+      "repositoryUrl": "https://github.com/ageha734/proto-plugins",
+      "bins": [
+        "lefthook"
+      ]
+    },
+    {
       "id": "mage",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/mage/plugin.toml",
       "format": "toml",
@@ -829,6 +920,23 @@
       ]
     },
     {
+      "id": "openjdk",
+      "locator": "github://eplightning/openjdk-adoptium-proto-plugin",
+      "format": "wasm",
+      "name": "Eclipse Adoptium OpenJDK",
+      "description": "Eclipse Adoptium OpenJDK is an open-source distribution of the Java Development Kit.",
+      "author": "eplightning",
+      "homepageUrl": "https://adoptium.net/",
+      "repositoryUrl": "https://github.com/eplightning/openjdk-adoptium-proto-plugin",
+      "bins": [
+        "java",
+        "javac",
+        "jar",
+        "javadoc",
+        "keytool"
+      ]
+    },
+    {
       "id": "oxlint",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/oxlint/plugin.toml",
       "format": "toml",
@@ -892,6 +1000,19 @@
       "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
       "bins": [
         "rattler-build"
+      ]
+    },
+    {
+      "id": "ruff",
+      "locator": "https://raw.githubusercontent.com/risk1996/proto-plugins/refs/heads/main/ruff/plugin.toml",
+      "format": "toml",
+      "name": "Ruff",
+      "description": "An extremely fast Python linter and code formatter, written in Rust.",
+      "author": "risk1996",
+      "homepageUrl": "https://docs.astral.sh/ruff/",
+      "repositoryUrl": "https://github.com/risk1996/proto-plugins",
+      "bins": [
+        "ruff"
       ]
     },
     {
@@ -1039,6 +1160,19 @@
       ]
     },
     {
+      "id": "terraform-docs",
+      "locator": "https://raw.githubusercontent.com/ageha734/proto-plugins/refs/heads/master/toml/terraform-docs.toml",
+      "format": "toml",
+      "name": "terraform-docs",
+      "description": "A utility to generate Terraform module documentation in various formats.",
+      "author": "ageha734",
+      "homepageUrl": "https://terraform-docs.io/",
+      "repositoryUrl": "https://github.com/ageha734/proto-plugins",
+      "bins": [
+        "terraform-docs"
+      ]
+    },
+    {
       "id": "terragrunt",
       "locator": "https://raw.githubusercontent.com/stk0vrfl0w/proto-toml-plugins/main/plugins/terragrunt.toml",
       "format": "toml",
@@ -1117,6 +1251,19 @@
       ]
     },
     {
+      "id": "trivy",
+      "locator": "https://raw.githubusercontent.com/ageha734/proto-plugins/refs/heads/master/toml/trivy.toml",
+      "format": "toml",
+      "name": "trivy",
+      "description": "A comprehensive security scanner that detects vulnerabilities and misconfigurations in container images, file systems, Git repositories, and more.",
+      "author": "ageha734",
+      "homepageUrl": "https://trivy.dev/",
+      "repositoryUrl": "https://github.com/ageha734/proto-plugins",
+      "bins": [
+        "trivy"
+      ]
+    },
+    {
       "id": "trufflehog",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/trufflehog/plugin.toml",
       "format": "toml",
@@ -1140,6 +1287,19 @@
       "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
       "bins": [
         "uv"
+      ]
+    },
+    {
+      "id": "vale",
+      "locator": "https://raw.githubusercontent.com/risk1996/proto-plugins/refs/heads/main/vale/plugin.toml",
+      "format": "toml",
+      "name": "vale",
+      "description": "Vale is an open-source, command-line tool that brings your editorial style guide to life.",
+      "author": "risk1996",
+      "homepageUrl": "https://vale.sh/",
+      "repositoryUrl": "https://github.com/risk1996/proto-plugins",
+      "bins": [
+        "vale"
       ]
     },
     {
@@ -1179,6 +1339,32 @@
       "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
       "bins": [
         "wizer"
+      ]
+    },
+    {
+      "id": "xcodes",
+      "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/xcodes/plugin.toml",
+      "format": "toml",
+      "name": "xcodes",
+      "description": "xcodes is the command-line tool to install and switch between multiple versions of Xcode.",
+      "author": "appthrust",
+      "homepageUrl": "https://github.com/XcodesOrg/xcodes",
+      "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins/tree/main/xcodes",
+      "bins": [
+        "xcodes"
+      ]
+    },
+    {
+      "id": "xurl",
+      "locator": "https://raw.githubusercontent.com/davearel/proto-plugins/main/xurl/plugin.toml",
+      "format": "toml",
+      "name": "xurl",
+      "description": "A curl-like command-line tool for interacting with the X (formerly Twitter) API, with built in authentication.",
+      "author": "davearel",
+      "homepageUrl": "https://github.com/xdevplatform/xurl",
+      "repositoryUrl": "https://github.com/davearel/proto-plugins/tree/main/xurl",
+      "bins": [
+        "xurl"
       ]
     },
     {

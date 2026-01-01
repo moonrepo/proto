@@ -1,16 +1,21 @@
-# elixir = "asdf:latest"
+node = "24.5.0"
 
-[plugins]
+[settings]
+unstable-lockfile = true
+
+# [plugins.backends]
 # asdf = "file://../moonrepo/plugins/target/wasm32-wasip1/release/asdf_backend.wasm"
-# deno-test = "file://../moonrepo/plugins/target/wasm32-wasip1/debug/deno_tool.wasm"
-# go-test = "file://../moonrepo/plugins/target/wasm32-wasip1/debug/go_tool.wasm"
-# node-test = "file://../moonrepo/plugins/target/wasm32-wasip1/debug/node_tool.wasm"
-# moon-test = "file://../moonrepo/plugins/target/wasm32-wasip1/debug/moon_tool.wasm"
-# python-test = "file://../moonrepo/plugins/target/wasm32-wasip1/debug/python_tool.wasm"
-# ruby-test = "file://../moonrepo/plugins/target/wasm32-wasip1/debug/ruby_tool.wasm"
-wasm-test = "file://./plugins/target/wasm32-wasip1/debug/proto_wasm_test.wasm"
 
-# [tools.wasm-test]
+# [plugins.tools]
+# deno-test = "file://../moonrepo/plugins/target/wasm32-wasip1/release/deno_tool.wasm"
+# go-test = "file://../moonrepo/plugins/target/wasm32-wasip1/release/go_tool.wasm"
+# node-test = "file://../moonrepo/plugins/target/wasm32-wasip1/release/node_tool.wasm"
+# moon-test = "file://../moonrepo/plugins/target/wasm32-wasip1/release/moon_tool.wasm"
+# python-test = "file://../moonrepo/plugins/target/wasm32-wasip1/release/python_tool.wasm"
+# ruby-test = "file://../moonrepo/plugins/target/wasm32-wasip1/release/ruby_tool.wasm"
+# api-usage = "file://./plugins/target/wasm32-wasip1/release/proto_api_usage.wasm"
+
+# [tools.api-usage]
 # number = 123
 # string = "foo"
 # boolean = true

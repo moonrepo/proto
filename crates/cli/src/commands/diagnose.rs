@@ -1,4 +1,5 @@
 use crate::components::{Issue, IssuesList};
+use crate::error::ProtoCliError;
 use crate::helpers::fetch_latest_version;
 use crate::session::ProtoSession;
 use clap::Args;
@@ -7,7 +8,7 @@ use serde::Serialize;
 use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_shell::ShellType;
-use starbase_utils::json;
+use starbase_utils::{envx, json};
 use std::env;
 use std::path::PathBuf;
 
@@ -34,7 +35,7 @@ pub async fn diagnose(session: ProtoSession, args: DiagnoseArgs) -> AppResult {
     };
 
     let mut tips = vec![];
-    let paths = starbase_utils::env::paths();
+    let paths = envx::paths();
     let errors = gather_errors(&session, &paths, &mut tips).await?;
     let warnings = gather_warnings(&session, &paths, &mut tips).await?;
 
@@ -145,7 +146,7 @@ async fn gather_errors(
     session: &ProtoSession,
     paths: &[PathBuf],
     _tips: &mut [String],
-) -> miette::Result<Vec<Issue>> {
+) -> Result<Vec<Issue>, ProtoCliError> {
     let mut errors = vec![];
     let mut has_shims_before_bins = false;
     let mut found_shims = false;
@@ -186,7 +187,7 @@ async fn gather_warnings(
     session: &ProtoSession,
     paths: &[PathBuf],
     tips: &mut Vec<String>,
-) -> miette::Result<Vec<Issue>> {
+) -> Result<Vec<Issue>, ProtoCliError> {
     let mut warnings = vec![];
 
     let current_version = &session.cli_version;

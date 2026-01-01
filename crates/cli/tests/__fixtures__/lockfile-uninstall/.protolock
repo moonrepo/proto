@@ -1,0 +1,17 @@
+[[tools.moonstone]]
+os = "{os}"
+arch = "{arch}"
+spec = "5.0.0"
+version = "5.0.0"
+
+[[tools.protostar]]
+os = "{os}"
+arch = "{arch}"
+spec = "^4.5"
+version = "4.5.15"
+
+[[tools.protostar]]
+os = "{os}"
+arch = "{arch}"
+spec = "5.10.0"
+version = "5.10.0"

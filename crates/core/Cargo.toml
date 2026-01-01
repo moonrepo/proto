@@ -1,32 +1,36 @@
 [package]
 name = "proto_core"
-version = "0.49.4"
+version = "0.54.3"
 edition = "2024"
 license = "MIT"
 description = "Core proto APIs."
 homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
+rust-version = "1.89.0"
 
 [dependencies]
-proto_pdk_api = { version = "0.27.13", path = "../pdk-api", features = [
+proto_pdk_api = { version = "0.31.4", path = "../pdk-api", features = [
     "schematic",
 ] }
-proto_shim = { version = "0.7.3", path = "../shim" }
-system_env = { version = "0.8.0", path = "../system-env" }
-version_spec = { version = "0.9.1", path = "../version-spec", features = [
+proto_shim = { version = "0.7.9", path = "../shim" }
+system_env = { version = "0.9.0", path = "../system-env" }
+version_spec = { version = "0.10.0", path = "../version-spec", features = [
     "schematic",
 ] }
-warpgate = { version = "0.24.3", path = "../warpgate", features = [
+warpgate = { version = "0.28.4", path = "../warpgate", features = [
+    "miette",
     "schematic",
 ] }
 clap = { workspace = true, optional = true }
-convert_case = "0.8.0"
+convert_case = "0.10.0"
 dotenvy = "0.15.7"
 indexmap = { workspace = true }
 iocraft = { workspace = true }
 miette = { workspace = true }
 minisign-verify = "0.2.4"
 once_cell = { workspace = true }
+oci-client = { workspace = true }
+docker_credential = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true }
 rustc-hash = { workspace = true }
@@ -36,6 +40,7 @@ schematic = { workspace = true, features = [
     "env",
     "toml",
     "type_indexmap",
+    "type_regex",
     "type_url",
     "validate",
 ] }
@@ -46,18 +51,24 @@ sha2 = { workspace = true }
 shell-words = { workspace = true }
 starbase_archive = { workspace = true }
 starbase_console = { workspace = true, features = ["ui"] }
+starbase_shell = { workspace = true }
 starbase_styles = { workspace = true }
 starbase_utils = { workspace = true, features = ["fs-lock", "yaml"] }
 thiserror = { workspace = true }
 tokio = { workspace = true }
+toml_edit = { workspace = true }
 tracing = { workspace = true }
-url = { version = "2.5.4", features = ["serde"] }
+url = { version = "2.5.7", features = ["serde"] }
 uuid = { workspace = true }
 
 [dev-dependencies]
+proto_core = { path = ".", features = ["test-plugins"] }
 starbase_sandbox = { workspace = true }
 tokio = { workspace = true }
 
 [features]
 default = []
 clap = ["dep:clap"]
+
+# Internal only!
+test-plugins = []

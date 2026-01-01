@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use proto_core::{ProtoConfig, ProtoConfigManager};
+use proto_core::{ProtoConfig, ProtoFileManager};
 use proto_shim::get_exe_file_name;
 use starbase_sandbox::{Sandbox, assert_cmd};
 use std::collections::HashMap;
@@ -62,7 +62,7 @@ pub fn create_empty_proto_sandbox() -> ProtoSandbox {
 pub fn create_empty_proto_sandbox_with_tools(ext: &str) -> ProtoSandbox {
     let sandbox = create_empty_proto_sandbox();
     let schema_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("./tests/fixtures")
+        .join("./tests/__fixtures__")
         .join(format!("moon-schema.{ext}"));
 
     sandbox.create_file(
@@ -71,7 +71,7 @@ pub fn create_empty_proto_sandbox_with_tools(ext: &str) -> ProtoSandbox {
             r#"
 moon-test = "1.0.0"
 
-[plugins]
+[plugins.tools]
 moon-test = "file://{}"
 "#,
             schema_path.to_string_lossy().replace("\\", "/")
@@ -86,7 +86,7 @@ pub fn create_proto_sandbox<N: AsRef<str>>(fixture: N) -> ProtoSandbox {
 }
 
 pub fn load_config<T: AsRef<Path>>(dir: T) -> ProtoConfig {
-    let manager = ProtoConfigManager::load(dir, None, None).unwrap();
+    let manager = ProtoFileManager::load(dir, None, None).unwrap();
     let config = manager.get_merged_config().unwrap();
     config.to_owned()
 }

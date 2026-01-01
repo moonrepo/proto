@@ -1,15 +1,28 @@
-use miette::Diagnostic;
+#![allow(unused_assignments)]
+
 use starbase_styles::{Style, Stylize};
+use starbase_utils::fs::FsError;
 use std::path::PathBuf;
 use thiserror::Error;
 
-#[derive(Error, Debug, Diagnostic)]
+#[derive(Error, Debug, miette::Diagnostic)]
 pub enum ProtoChecksumError {
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Fs(#[from] Box<FsError>),
+
     #[diagnostic(code(proto::checksum::minisign))]
     #[error("Failed to verify minisign checksum.")]
     Minisign {
         #[source]
         error: Box<minisign_verify::Error>,
+    },
+
+    #[diagnostic(code(proto::checksum::sha))]
+    #[error("Failed to verify SHA checksum.")]
+    Sha {
+        #[source]
+        error: Box<FsError>,
     },
 
     #[diagnostic(code(proto::checksum::missing_public_key))]
@@ -34,4 +47,10 @@ pub enum ProtoChecksumError {
         .algo.style(Style::Symbol)
     )]
     UnsupportedAlgorithm { algo: String },
+}
+
+impl From<FsError> for ProtoChecksumError {
+    fn from(e: FsError) -> ProtoChecksumError {
+        ProtoChecksumError::Fs(Box::new(e))
+    }
 }

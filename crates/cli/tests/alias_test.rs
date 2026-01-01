@@ -1,8 +1,6 @@
 mod utils;
 
-use proto_core::{
-    Backend, Id, PartialProtoToolConfig, ProtoConfig, ToolSpec, UnresolvedVersionSpec,
-};
+use proto_core::{PartialProtoToolConfig, ProtoConfig, ToolSpec, UnresolvedVersionSpec};
 use starbase_sandbox::predicates::prelude::*;
 use std::collections::BTreeMap;
 use utils::*;
@@ -33,9 +31,9 @@ mod alias_local {
         sandbox
             .run_bin(|cmd| {
                 cmd.arg("alias")
-                    .arg("node")
+                    .arg("protostar")
                     .arg("example")
-                    .arg("19.0.0")
+                    .arg("1.0.0")
                     .current_dir(sandbox.path());
             })
             .success();
@@ -45,10 +43,10 @@ mod alias_local {
         let config = load_config(sandbox.path());
 
         assert_eq!(
-            config.tools.get("node").unwrap().aliases,
+            config.tools.get("protostar").unwrap().aliases,
             BTreeMap::from_iter([(
                 "example".into(),
-                UnresolvedVersionSpec::parse("19.0.0").unwrap().into()
+                UnresolvedVersionSpec::parse("1.0.0").unwrap().into()
             )])
         );
     }
@@ -58,12 +56,12 @@ mod alias_local {
         let sandbox = create_empty_proto_sandbox();
 
         ProtoConfig::update(sandbox.path(), |config| {
-            config.tools.get_or_insert(Default::default()).insert(
-                Id::raw("node"),
+            config.tools.get_or_insert_default().insert(
+                "protostar".into(),
                 PartialProtoToolConfig {
                     aliases: Some(BTreeMap::from_iter([(
                         "example".into(),
-                        UnresolvedVersionSpec::parse("19.0.0").unwrap().into(),
+                        UnresolvedVersionSpec::parse("1.0.0").unwrap().into(),
                     )])),
                     ..Default::default()
                 },
@@ -73,17 +71,20 @@ mod alias_local {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("alias").arg("node").arg("example").arg("20.0.0");
+                cmd.arg("alias")
+                    .arg("protostar")
+                    .arg("example")
+                    .arg("2.0.0");
             })
             .success();
 
         let config = load_config(sandbox.path());
 
         assert_eq!(
-            config.tools.get("node").unwrap().aliases,
+            config.tools.get("protostar").unwrap().aliases,
             BTreeMap::from_iter([(
                 "example".into(),
-                UnresolvedVersionSpec::parse("20.0.0").unwrap().into()
+                UnresolvedVersionSpec::parse("2.0.0").unwrap().into()
             )])
         );
     }
@@ -93,7 +94,7 @@ mod alias_local {
         let sandbox = create_empty_proto_sandbox();
 
         let assert = sandbox.run_bin(|cmd| {
-            cmd.arg("alias").arg("node").arg("1.2.3").arg("4.5.6");
+            cmd.arg("alias").arg("protostar").arg("1.2.3").arg("4.5.6");
         });
 
         assert.inner.stderr(predicate::str::contains(
@@ -106,7 +107,10 @@ mod alias_local {
         let sandbox = create_empty_proto_sandbox();
 
         let assert = sandbox.run_bin(|cmd| {
-            cmd.arg("alias").arg("node").arg("example").arg("example");
+            cmd.arg("alias")
+                .arg("protostar")
+                .arg("example")
+                .arg("example");
         });
 
         assert
@@ -114,12 +118,13 @@ mod alias_local {
             .stderr(predicate::str::contains("Cannot map an alias to itself."));
     }
 
-    #[cfg(not(windows))]
+    // Windows doesn't support asdf
+    #[cfg(unix)]
     mod backend {
         use super::*;
 
         #[test]
-        fn can_set_asdf() {
+        fn can_set() {
             let sandbox = create_empty_proto_sandbox();
             let config_file = sandbox.path().join(".prototools");
 
@@ -128,9 +133,9 @@ mod alias_local {
             sandbox
                 .run_bin(|cmd| {
                     cmd.arg("alias")
-                        .arg("act")
+                        .arg("asdf:act")
                         .arg("example")
-                        .arg("asdf:0.2")
+                        .arg("0.2")
                         .current_dir(sandbox.path());
                 })
                 .success();
@@ -140,13 +145,12 @@ mod alias_local {
             let config = load_config(sandbox.path());
 
             assert_eq!(
-                config.tools.get("act").unwrap().aliases,
+                config.tools.get("asdf:act").unwrap().aliases,
                 BTreeMap::from_iter([(
                     "example".into(),
                     ToolSpec {
-                        backend: Some(Backend::Asdf),
                         req: UnresolvedVersionSpec::parse("0.2").unwrap(),
-                        res: None,
+                        ..Default::default()
                     }
                 )])
             );
@@ -167,9 +171,9 @@ mod alias_global {
         sandbox
             .run_bin(|cmd| {
                 cmd.arg("alias")
-                    .arg("node")
+                    .arg("protostar")
                     .arg("example")
-                    .arg("19.0.0")
+                    .arg("1.0.0")
                     .arg("--to")
                     .arg("global");
             })
@@ -180,10 +184,10 @@ mod alias_global {
         let config = load_config(sandbox.path().join(".proto"));
 
         assert_eq!(
-            config.tools.get("node").unwrap().aliases,
+            config.tools.get("protostar").unwrap().aliases,
             BTreeMap::from_iter([(
                 "example".into(),
-                UnresolvedVersionSpec::parse("19.0.0").unwrap().into()
+                UnresolvedVersionSpec::parse("1.0.0").unwrap().into()
             )])
         );
     }
@@ -202,9 +206,9 @@ mod alias_user {
         sandbox
             .run_bin(|cmd| {
                 cmd.arg("alias")
-                    .arg("node")
+                    .arg("protostar")
                     .arg("example")
-                    .arg("19.0.0")
+                    .arg("1.0.0")
                     .arg("--to")
                     .arg("user");
             })
@@ -215,10 +219,10 @@ mod alias_user {
         let config = load_config(sandbox.path().join(".home"));
 
         assert_eq!(
-            config.tools.get("node").unwrap().aliases,
+            config.tools.get("protostar").unwrap().aliases,
             BTreeMap::from_iter([(
                 "example".into(),
-                UnresolvedVersionSpec::parse("19.0.0").unwrap().into()
+                UnresolvedVersionSpec::parse("1.0.0").unwrap().into()
             )])
         );
     }

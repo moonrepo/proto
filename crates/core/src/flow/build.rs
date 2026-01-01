@@ -1,26 +1,27 @@
 use super::build_error::*;
 use super::install::{InstallPhase, OnPhaseFn};
-use crate::config::ProtoBuildConfig;
+use crate::config::ProtoConfig;
 use crate::env::{ProtoConsole, ProtoEnvironment};
 use crate::helpers::extract_filename_from_url;
-use crate::lockfile::LockfileRecord;
+use crate::id::Id;
+use crate::lockfile::LockRecord;
 use crate::utils::log::LogWriter;
-use crate::utils::process::{self, ProcessResult};
+use crate::utils::process::{self, ProcessResult, ProtoProcessError};
 use crate::utils::{archive, git};
 use iocraft::prelude::{FlexDirection, View, element};
-use miette::IntoDiagnostic;
 use proto_pdk_api::{
     BuildInstruction, BuildInstructionsOutput, BuildRequirement, GitSource, SourceLocation,
 };
 use rustc_hash::FxHashMap;
 use semver::{Version, VersionReq};
+use starbase_console::ConsoleError;
 use starbase_console::ui::{
     Confirm, Container, Entry, ListCheck, ListItem, Section, Select, SelectOption, Style,
     StyledText,
 };
 use starbase_styles::{apply_style_tags, remove_style_tags};
 use starbase_utils::fs::LOCK_FILE;
-use starbase_utils::{env::is_ci, fs, net};
+use starbase_utils::{envx::is_ci, fs, net, path};
 use std::env;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, OnceLock};
@@ -37,7 +38,7 @@ use warpgate::HttpClient;
 static BUILD_LOCKS: OnceLock<scc::HashMap<String, Arc<Mutex<()>>>> = OnceLock::new();
 
 pub struct BuilderOptions<'a> {
-    pub config: &'a ProtoBuildConfig,
+    pub config: &'a ProtoConfig,
     pub console: &'a ProtoConsole,
     pub http_client: &'a HttpClient,
     pub install_dir: &'a Path,
@@ -68,7 +69,7 @@ impl Builder<'_> {
         self.errors > 0
     }
 
-    pub fn render_header(&mut self, title: impl AsRef<str>) -> miette::Result<()> {
+    pub fn render_header(&mut self, title: impl AsRef<str>) -> Result<(), ConsoleError> {
         let title = title.as_ref();
 
         self.errors = 0;
@@ -89,7 +90,11 @@ impl Builder<'_> {
         Ok(())
     }
 
-    pub fn render_check(&mut self, message: impl AsRef<str>, passed: bool) -> miette::Result<()> {
+    pub fn render_check(
+        &mut self,
+        message: impl AsRef<str>,
+        passed: bool,
+    ) -> Result<(), ConsoleError> {
         let message = message.as_ref();
 
         if self.options.skip_ui {
@@ -115,7 +120,7 @@ impl Builder<'_> {
         Ok(())
     }
 
-    pub fn render_checkpoint(&mut self, message: impl AsRef<str>) -> miette::Result<()> {
+    pub fn render_checkpoint(&mut self, message: impl AsRef<str>) -> Result<(), ConsoleError> {
         let message = message.as_ref();
 
         self.options
@@ -135,7 +140,7 @@ impl Builder<'_> {
         Ok(())
     }
 
-    pub async fn prompt_continue(&self, label: &str) -> miette::Result<()> {
+    pub async fn prompt_continue(&self, label: &str) -> Result<(), ProtoBuildError> {
         if self.options.skip_prompts || self.options.skip_ui {
             return Ok(());
         }
@@ -150,7 +155,7 @@ impl Builder<'_> {
             .await?;
 
         if !confirmed {
-            return Err(ProtoBuildError::Cancelled.into());
+            return Err(ProtoBuildError::Cancelled);
         }
 
         Ok(())
@@ -161,7 +166,7 @@ impl Builder<'_> {
         label: &str,
         options: Vec<SelectOption>,
         default_index: usize,
-    ) -> miette::Result<usize> {
+    ) -> Result<usize, ProtoBuildError> {
         let mut selected_index = default_index;
 
         if self.options.skip_prompts || self.options.skip_ui {
@@ -182,7 +187,7 @@ impl Builder<'_> {
         &mut self,
         command: &mut Command,
         piped: bool,
-    ) -> miette::Result<Arc<ProcessResult>> {
+    ) -> Result<Arc<ProcessResult>, ProtoProcessError> {
         self.handle_process_result(if self.options.skip_ui || piped {
             process::exec_command_piped(command).await?
         } else {
@@ -195,7 +200,7 @@ impl Builder<'_> {
         command: &mut Command,
         elevated_program: Option<&str>,
         piped: bool,
-    ) -> miette::Result<Arc<ProcessResult>> {
+    ) -> Result<Arc<ProcessResult>, ProtoProcessError> {
         self.handle_process_result(if self.options.skip_ui || piped {
             process::exec_command_with_privileges_piped(command, elevated_program).await?
         } else {
@@ -206,7 +211,7 @@ impl Builder<'_> {
     fn handle_process_result(
         &mut self,
         result: ProcessResult,
-    ) -> miette::Result<Arc<ProcessResult>> {
+    ) -> Result<Arc<ProcessResult>, ProtoProcessError> {
         let result = Arc::new(result);
 
         let log = self.options.log_writer;
@@ -220,12 +225,11 @@ impl Builder<'_> {
         log.add_code("STDOUT", &result.stdout);
 
         if result.exit_code > 0 {
-            return Err(process::ProtoProcessError::FailedCommandNonZeroExit {
+            return Err(ProtoProcessError::FailedCommandNonZeroExit {
                 command: result.command.clone(),
                 code: result.exit_code,
                 stderr: result.stderr.clone(),
-            }
-            .into());
+            });
         }
 
         Ok(result)
@@ -233,7 +237,7 @@ impl Builder<'_> {
 
     pub async fn acquire_lock(&self, pm: &SystemPackageManager) -> OwnedMutexGuard<()> {
         let locks = BUILD_LOCKS.get_or_init(scc::HashMap::default);
-        let entry = locks.entry(pm.to_string()).or_default();
+        let entry = locks.entry_async(pm.to_string()).await.or_default();
 
         entry.get().clone().lock_owned().await
     }
@@ -243,7 +247,7 @@ async fn checkout_git_repo(
     git: &GitSource,
     cwd: &Path,
     builder: &mut Builder<'_>,
-) -> miette::Result<()> {
+) -> Result<(), ProtoBuildError> {
     if cwd.join(".git").exists() {
         builder.exec_command(&mut git::new_pull(cwd), false).await?;
 
@@ -257,7 +261,7 @@ async fn checkout_git_repo(
         .await?;
 
     if let Some(reference) = &git.reference {
-        builder.render_checkpoint(format!("Checking out reference <hash>{}</hash>", reference))?;
+        builder.render_checkpoint(format!("Checking out reference <hash>{reference}</hash>"))?;
 
         builder
             .exec_command(&mut git::new_checkout(reference, cwd), false)
@@ -272,7 +276,7 @@ async fn checkout_git_repo(
 pub fn log_build_information(
     builder: &mut Builder,
     build: &BuildInstructionsOutput,
-) -> miette::Result<()> {
+) -> Result<(), ProtoBuildError> {
     let system = &builder.options.system;
 
     if builder.options.skip_ui {
@@ -314,10 +318,17 @@ pub fn log_build_information(
 
 // STEP 1
 
+enum InstallSystemDepsChoice {
+    NoAndAbort = 0,
+    NoButContinue = 1,
+    Yes = 2,
+    YesButElevated = 3,
+}
+
 pub async fn install_system_dependencies(
     builder: &mut Builder<'_>,
     build: &BuildInstructionsOutput,
-) -> miette::Result<()> {
+) -> Result<(), ProtoBuildError> {
     let Some(pm) = builder.options.system.manager else {
         return Ok(());
     };
@@ -336,7 +347,7 @@ pub async fn install_system_dependencies(
             .flatten(),
     );
 
-    for excluded in &builder.options.config.exclude_packages {
+    for excluded in &builder.options.config.settings.build.exclude_packages {
         not_installed_packages.remove(excluded);
     }
 
@@ -431,7 +442,14 @@ pub async fn install_system_dependencies(
         SelectOption::new("No, but try building anyways"),
         SelectOption::new("Yes, as current user"),
     ];
-    let mut default_index = select_options.len() - 1;
+
+    // When installing multiple tools, we can't prompt the user to install
+    // deps, but we should try to build anyways
+    let mut default_index = if builder.options.skip_ui {
+        InstallSystemDepsChoice::NoButContinue
+    } else {
+        InstallSystemDepsChoice::Yes
+    };
 
     if let Some(sudo) = elevated_command {
         select_options.push(SelectOption::new(format!(
@@ -440,21 +458,25 @@ pub async fn install_system_dependencies(
 
         // Always run with elevated in CI
         if is_ci() {
-            default_index += 1;
+            default_index = InstallSystemDepsChoice::YesButElevated;
         }
     }
 
     match builder
-        .prompt_select("Install missing packages?", select_options, default_index)
+        .prompt_select(
+            "Install missing packages?",
+            select_options,
+            default_index as usize,
+        )
         .await?
     {
-        0 => {
-            return Err(ProtoBuildError::Cancelled.into());
+        x if x == InstallSystemDepsChoice::NoAndAbort as usize => {
+            return Err(ProtoBuildError::Cancelled);
         }
-        1 => {
+        x if x == InstallSystemDepsChoice::NoButContinue as usize => {
             return Ok(());
         }
-        2 => {
+        x if x == InstallSystemDepsChoice::Yes as usize => {
             elevated_command = None;
         }
         _ => {}
@@ -463,8 +485,7 @@ pub async fn install_system_dependencies(
     // 3) Update the current registry index
     if let Some(mut index_args) = builder
         .get_system()
-        .get_update_index_command(!builder.options.skip_prompts)
-        .into_diagnostic()?
+        .get_update_index_command(!builder.options.skip_prompts)?
     {
         let _lock = builder.acquire_lock(&pm).await;
 
@@ -492,8 +513,7 @@ pub async fn install_system_dependencies(
     // 4) Install the missing packages
     if let Some(mut install_args) = builder
         .get_system()
-        .get_install_packages_command(&dep_configs, !builder.options.skip_prompts)
-        .into_diagnostic()?
+        .get_install_packages_command(&dep_configs, !builder.options.skip_prompts)?
     {
         let _lock = builder.acquire_lock(&pm).await;
 
@@ -517,7 +537,7 @@ async fn get_command_version(
     cmd: &str,
     version_arg: &str,
     builder: &mut Builder<'_>,
-) -> miette::Result<Version> {
+) -> Result<Version, ProtoBuildError> {
     let output = builder
         .exec_command(Command::new(cmd).arg(version_arg), true)
         .await?;
@@ -531,18 +551,16 @@ async fn get_command_version(
         .map(|res| res.as_str())
         .unwrap_or(&output.stdout);
 
-    Ok(
-        Version::parse(value).map_err(|error| ProtoBuildError::FailedVersionParse {
-            value: value.to_owned(),
-            error: Box::new(error),
-        })?,
-    )
+    Version::parse(value).map_err(|error| ProtoBuildError::FailedVersionParse {
+        value: value.to_owned(),
+        error: Box::new(error),
+    })
 }
 
 pub async fn check_requirements(
     builder: &mut Builder<'_>,
     build: &BuildInstructionsOutput,
-) -> miette::Result<()> {
+) -> Result<(), ProtoBuildError> {
     if build.requirements.is_empty() {
         return Ok(());
     }
@@ -685,7 +703,7 @@ pub async fn check_requirements(
     }
 
     if builder.has_errors() {
-        return Err(ProtoBuildError::RequirementsNotMet.into());
+        return Err(ProtoBuildError::RequirementsNotMet);
     }
 
     Ok(())
@@ -696,8 +714,8 @@ pub async fn check_requirements(
 pub async fn download_sources(
     builder: &mut Builder<'_>,
     build: &BuildInstructionsOutput,
-    lockfile: &mut LockfileRecord,
-) -> miette::Result<()> {
+    lockfile: &mut LockRecord,
+) -> Result<(), ProtoBuildError> {
     // Ensure the install directory is empty, otherwise Git will fail and
     // we also want to avoid colliding/stale artifacts. This should also
     // run if there's no source, as it's required for instructions!
@@ -712,10 +730,13 @@ pub async fn download_sources(
 
     match source {
         SourceLocation::Archive(archive) => {
+            let mut archive = archive.to_owned();
+            archive.url = builder.options.config.rewrite_url(archive.url);
+
             lockfile.source = Some(archive.url.clone());
 
-            if archive::should_unpack(archive, builder.options.install_dir)? {
-                let filename = extract_filename_from_url(&archive.url)?;
+            if archive::should_unpack(&archive, builder.options.install_dir)? {
+                let filename = extract_filename_from_url(&archive.url);
 
                 // Download
                 builder.options.on_phase_change.as_ref().inspect(|func| {
@@ -731,7 +752,7 @@ pub async fn download_sources(
                 ))?;
 
                 let download_file = archive::download(
-                    archive,
+                    &archive,
                     builder.options.temp_dir,
                     builder.options.http_client.to_inner(),
                 )
@@ -749,7 +770,7 @@ pub async fn download_sources(
                     builder.options.install_dir.display()
                 ))?;
 
-                archive::unpack(archive, builder.options.install_dir, &download_file)?;
+                archive::unpack(&archive, builder.options.install_dir, &download_file)?;
             }
         }
         SourceLocation::Git(git) => {
@@ -779,7 +800,7 @@ pub async fn execute_instructions(
     builder: &mut Builder<'_>,
     build: &BuildInstructionsOutput,
     proto: &ProtoEnvironment,
-) -> miette::Result<()> {
+) -> Result<(), ProtoBuildError> {
     if build.instructions.is_empty() {
         return Ok(());
     }
@@ -792,9 +813,12 @@ pub async fn execute_instructions(
 
     let make_absolute = |path: &Path| {
         if path.is_absolute() {
-            path.to_path_buf()
+            PathBuf::from(path::normalize_separators(path))
         } else {
-            builder.options.install_dir.join(path)
+            builder
+                .options
+                .install_dir
+                .join(path::normalize_separators(path))
         }
     };
 
@@ -813,7 +837,7 @@ pub async fn execute_instructions(
                     item.id, item.git.url
                 ))?;
 
-                let builder_dir = proto.store.builders_dir.join(&item.id);
+                let builder_dir = proto.store.builders_dir.join(item.id.as_str());
 
                 checkout_git_repo(&item.git, &builder_dir, builder).await?;
 
@@ -823,21 +847,20 @@ pub async fn execute_instructions(
                 exes.insert(&main_exe_name, &item.exe);
 
                 for (exe_name, exe_rel_path) in exes {
-                    let exe_abs_path = builder_dir.join(exe_rel_path);
+                    let exe_abs_path = builder_dir.join(path::normalize_separators(exe_rel_path));
 
                     if !exe_abs_path.exists() {
                         return Err(ProtoBuildError::MissingBuilderExe {
                             exe: exe_abs_path,
                             id: item.id.clone(),
-                        }
-                        .into());
+                        });
                     }
 
                     fs::update_perms(&exe_abs_path, None)?;
 
                     builder_exes.insert(
                         if exe_name.is_empty() {
-                            item.id.clone()
+                            item.id.to_string()
                         } else {
                             format!("{}:{exe_name}", item.id)
                         },
@@ -909,14 +932,15 @@ pub async fn execute_instructions(
                 fs::remove_file(file)?;
             }
             BuildInstruction::RequestScript(url) => {
-                let filename = extract_filename_from_url(url)?;
+                let url = builder.options.config.rewrite_url(url);
+                let filename = extract_filename_from_url(&url);
                 let download_file = builder.options.temp_dir.join(&filename);
 
                 builder
                     .render_checkpoint(format!("{prefix} Requesting script <url>{url}</url>"))?;
 
                 net::download_from_url_with_client(
-                    url,
+                    &url,
                     &download_file,
                     builder.options.http_client.to_inner(),
                 )
@@ -926,13 +950,13 @@ pub async fn execute_instructions(
             }
             BuildInstruction::RunCommand(cmd) => {
                 let exe = if cmd.builder {
-                    builder_exes.get(&cmd.bin).cloned().ok_or_else(|| {
+                    builder_exes.get(&cmd.exe).cloned().ok_or_else(|| {
                         ProtoBuildError::MissingBuilder {
-                            id: cmd.bin.clone(),
+                            id: Id::raw(&cmd.exe),
                         }
                     })?
                 } else {
-                    PathBuf::from(&cmd.bin)
+                    PathBuf::from(&cmd.exe)
                 };
 
                 builder.render_checkpoint(format!(

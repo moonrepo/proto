@@ -1,16 +1,19 @@
-use crate::client::HttpClient;
-use crate::client_error::WarpgateClientError;
+use crate::clients::{HttpClient, WarpgateHttpClientError};
 use crate::helpers;
 use crate::plugin_error::WarpgatePluginError;
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
+use starbase_shell::{ShellType, join_args};
 use starbase_styles::{apply_style_tags, color};
-use starbase_utils::env::paths;
-use starbase_utils::fs;
+use starbase_utils::{envx, fs};
 use std::collections::BTreeMap;
 use std::env;
+use std::io::Write;
 use std::path::PathBuf;
-use std::sync::Arc;
-use system_env::{create_process_command, find_command_on_path};
+use std::process::{Command, Stdio};
+use std::str::FromStr;
+use std::sync::{Arc, OnceLock};
+use std::time::Instant;
+use system_env::find_command_on_path;
 use tokio::runtime::Handle;
 use tracing::{debug, error, instrument, trace, warn};
 use warpgate_api::{
@@ -129,6 +132,24 @@ fn host_log(
 
 // Commands
 
+fn get_default_shell() -> ShellType {
+    static SHELL_CACHE: OnceLock<ShellType> = OnceLock::new();
+
+    *SHELL_CACHE.get_or_init(ShellType::detect_with_fallback)
+}
+
+fn get_shell_exe_path(name: &str) -> PathBuf {
+    // pwsh.exe isn't available on all Windows machines by default,
+    // but powershell.exe typically is!
+    if name == "pwsh" {
+        return find_command_on_path("pwsh")
+            .or_else(|| find_command_on_path("powershell"))
+            .unwrap_or_else(|| "powershell".into());
+    }
+
+    find_command_on_path(name).unwrap_or_else(|| name.into())
+}
+
 #[instrument(name = "host_func_exec_command", skip_all)]
 fn exec_command(
     plugin: &mut CurrentPlugin,
@@ -136,6 +157,7 @@ fn exec_command(
     outputs: &mut [Val],
     user_data: UserData<HostData>,
 ) -> Result<(), Error> {
+    let instant = Instant::now();
     let input_raw: String = plugin.memory_get_val(&inputs[0])?;
     let input: ExecCommandInput = serde_json::from_str(&input_raw)?;
     let uuid = plugin.id().to_string();
@@ -150,8 +172,14 @@ fn exec_command(
     let data = user_data.get()?;
     let data = data.lock().unwrap();
 
+    let debug_output = env::var("WARPGATE_DEBUG_COMMAND").ok();
+    let should_stream = input.stream
+        || debug_output
+            .as_ref()
+            .is_some_and(|level| level == "all" || level == "stream");
+
     // Relative or absolute file path
-    let maybe_bin = if input.command.contains('/') || input.command.contains('\\') {
+    let maybe_exe = if input.command.contains('/') || input.command.contains('\\') {
         let path = helpers::from_virtual_path(&data.virtual_paths, PathBuf::from(&input.command));
 
         if path.exists() {
@@ -164,12 +192,13 @@ fn exec_command(
         } else {
             None
         }
+    }
     // Command on PATH
-    } else {
+    else {
         find_command_on_path(&input.command)
     };
 
-    let Some(bin) = &maybe_bin else {
+    let Some(exe) = &maybe_exe else {
         return Err(WarpgatePluginError::MissingCommand {
             command: input.command.clone(),
         }
@@ -177,33 +206,75 @@ fn exec_command(
     };
 
     // Determine working directory
-    let cwd = if let Some(working_dir) = &input.working_dir {
-        helpers::from_virtual_path(&data.virtual_paths, working_dir)
+    let cwd = if let Some(cwd) = &input.cwd {
+        helpers::from_virtual_path(&data.virtual_paths, cwd)
     } else {
         data.working_dir.clone()
     };
 
+    // Determine the shell
+    let shell = match input.shell.or_else(|| env::var("PROTO_SHELL").ok()) {
+        Some(name) => ShellType::from_str(&name)?.build(),
+        None => get_default_shell().build(),
+    };
+    let shell_command = shell.get_exec_command();
+    let shell_exe_name = shell.to_string();
+    let shell_exe_path = get_shell_exe_path(&shell_exe_name);
+
     // Create and execute command
+    let command_line = format!("{} {}", input.command, join_args(&shell, &input.args));
+
+    let mut command = Command::new(&shell_exe_path);
+    command.args(shell_command.shell_args);
+    command.envs(&input.env);
+    command.current_dir(&cwd);
+
+    for (key, value) in &input.env {
+        if let Some(key) = key.strip_suffix('?') {
+            if env::var_os(key).is_none() {
+                command.env(key, value);
+            }
+        } else if let Some(key) = key.strip_suffix('!') {
+            command.env_remove(key);
+        } else {
+            command.env(key, value);
+        }
+    }
+
+    if shell_command.pass_args_stdin {
+        command.stdin(Stdio::piped());
+    } else {
+        command.arg(&command_line);
+        command.stdin(Stdio::null());
+    }
+
+    if should_stream {
+        command.stderr(Stdio::inherit()).stdout(Stdio::inherit());
+    } else {
+        command.stderr(Stdio::piped()).stdout(Stdio::piped());
+    }
+
+    let mut child = command.spawn()?;
+    let pid = child.id();
+
+    if shell_command.pass_args_stdin
+        && let Some(mut stdin) = child.stdin.take()
+    {
+        stdin.write_all(command_line.as_bytes())?;
+    }
+
     trace!(
         plugin = &uuid,
-        command = ?bin,
+        shell = &shell_exe_name,
+        exe = &input.command,
         args = ?input.args,
         cwd = ?cwd,
+        pid = pid,
         "Executing command on host machine"
     );
 
-    let mut command = create_process_command(bin, &input.args);
-    command.envs(&input.env);
-    command.current_dir(cwd);
-
-    let debug_output = env::var("WARPGATE_DEBUG_COMMAND").ok();
-
-    let output = if input.stream
-        || debug_output
-            .as_ref()
-            .is_some_and(|level| level == "all" || level == "stream")
-    {
-        let result = command.spawn()?.wait()?;
+    let output = if should_stream {
+        let result = child.wait()?;
 
         ExecCommandOutput {
             command: input.command.clone(),
@@ -212,7 +283,7 @@ fn exec_command(
             stdout: String::new(),
         }
     } else {
-        let result = command.output()?;
+        let result = child.wait_with_output()?;
 
         ExecCommandOutput {
             command: input.command.clone(),
@@ -224,7 +295,9 @@ fn exec_command(
 
     trace!(
         plugin = plugin.id().to_string(),
-        command = ?bin,
+        shell = ?shell_exe_path,
+        exe = ?exe,
+        pid = pid,
         exit_code = output.exit_code,
         stderr = if debug_output.is_some() {
             Some(&output.stderr)
@@ -238,8 +311,9 @@ fn exec_command(
             None
         },
         stdout_len = output.stdout.len(),
-        "Called host function {}",
+        "Called host function {} in {:?}",
         color::label("exec_command"),
+        instant.elapsed()
     );
 
     plugin.memory_set_val(&mut outputs[0], serde_json::to_string(&output)?)?;
@@ -254,6 +328,7 @@ fn send_request(
     outputs: &mut [Val],
     user_data: UserData<HostData>,
 ) -> Result<(), Error> {
+    let instant = Instant::now();
     let input_raw: String = plugin.memory_get_val(&inputs[0])?;
     let input: SendRequestInput = serde_json::from_str(&input_raw)?;
     let uuid = plugin.id().to_string();
@@ -298,7 +373,7 @@ fn send_request(
         response
             .bytes()
             .await
-            .map_err(|error| WarpgateClientError::Http {
+            .map_err(|error| WarpgateHttpClientError::Http {
                 url: input.url.clone(),
                 error: Box::new(error),
             })
@@ -319,8 +394,9 @@ fn send_request(
         ok,
         status,
         length = memory.length,
-        "Called host function {}",
+        "Called host function {} in {:?}",
         color::label("send_request"),
+        instant.elapsed()
     );
 
     plugin.memory_set_val(&mut outputs[0], serde_json::to_string(&output)?)?;
@@ -398,7 +474,7 @@ fn set_env_var(
             color::label("set_env_var"),
         );
 
-        let mut path = paths();
+        let mut path = envx::paths();
         path.extend(new_path);
 
         unsafe { env::set_var("PATH", env::join_paths(path)?) };

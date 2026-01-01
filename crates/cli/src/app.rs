@@ -1,7 +1,8 @@
 use crate::commands::{
-    ActivateArgs, AliasArgs, BinArgs, CleanArgs, CompletionsArgs, DiagnoseArgs, InstallArgs,
-    MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs, SetupArgs, StatusArgs, UnaliasArgs,
-    UninstallArgs, UnpinArgs, UpgradeArgs, VersionsArgs,
+    ActivateArgs, AliasArgs, BinArgs, CleanArgs, CompletionsArgs, DiagnoseArgs, ExecArgs,
+    InstallArgs, McpArgs, MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs, SetupArgs,
+    ShellArgs, StatusArgs, UnaliasArgs, UninstallArgs, UnpinArgs, UpgradeArgs, VersionsArgs,
+    debug::{DebugConfigArgs, DebugEnvArgs},
     plugin::{AddPluginArgs, InfoPluginArgs, ListPluginsArgs, RemovePluginArgs, SearchPluginArgs},
 };
 use clap::builder::styling::{Color, Style, Styles};
@@ -199,8 +200,8 @@ pub enum Commands {
 
     #[command(
         name = "bin",
-        about = "Display the absolute path to a tools executable.",
-        long_about = "Display the absolute path to a tools executable. If no version is provided,\nit will be detected from the current environment."
+        about = "Display the absolute path to a tool's executable(s).",
+        long_about = "Display the absolute path to a tool's executable(s). If no version is provided,\nit will be detected from the current environment."
     )]
     Bin(BinArgs),
 
@@ -230,12 +231,25 @@ pub enum Commands {
     Diagnose(DiagnoseArgs),
 
     #[command(
+        alias = "x",
+        name = "exec",
+        about = "Initialize a list of tools into the environment and execute an arbitrary command."
+    )]
+    Exec(ExecArgs),
+
+    #[command(
         aliases = ["i", "u", "use"],
         name = "install",
         about = "Download and install one or many tools.",
         long_about = "Download and install one or many tools by version into ~/.proto/tools.\n\nIf no arguments are provided, will install all tools configured in .prototools.\n\nIf a name argument is provided, will install a single tool by version."
     )]
     Install(InstallArgs),
+
+    #[command(
+        name = "mcp",
+        about = "Start an MCP server to handle tool, resource, and prompt requests for AI agents."
+    )]
+    Mcp(McpArgs),
 
     #[command(
         name = "migrate",
@@ -286,6 +300,13 @@ pub enum Commands {
     Setup(SetupArgs),
 
     #[command(
+        aliases = ["sh", "session"],
+        name = "shell",
+        about = "Initialize a list of tools into the environment and start an interactive shell session."
+    )]
+    Shell(ShellArgs),
+
+    #[command(
         name = "status",
         about = "List all configured tools and their current installation status."
     )]
@@ -331,10 +352,10 @@ pub enum DebugCommands {
         name = "config",
         about = "Debug all loaded .prototools config's for the current directory."
     )]
-    Config,
+    Config(DebugConfigArgs),
 
     #[command(name = "env", about = "Debug the current proto environment and store.")]
-    Env,
+    Env(DebugEnvArgs),
 }
 
 #[derive(Clone, Debug, Subcommand)]

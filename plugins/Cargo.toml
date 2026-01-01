@@ -1,8 +1,10 @@
 [workspace]
 resolver = "3"
-members = ["wasm-test"]
+members = ["api-usage", "mocked-tool"]
 
 [workspace.dependencies]
-extism-pdk = "1.4.0"
-serde = { version = "1.0.219", features = ["derive"] }
-tokio = { version = "1.45.0", features = ["full"] }
+extism-pdk = "1.4.1"
+serde = { version = "1.0.228", features = ["derive"] }
+starbase_utils = { version = "0.12.0", default-features = false }
+tokio = { version = "1.48.0", features = ["full"] }
+tracing = "0.1.41"

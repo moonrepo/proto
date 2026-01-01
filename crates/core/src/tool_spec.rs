@@ -1,98 +1,91 @@
-use crate::tool_error::ProtoToolError;
-use schematic::{ConfigEnum, derive_enum};
+use crate::flow::resolve::ProtoResolveError;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;
 use version_spec::{UnresolvedVersionSpec, VersionSpec};
 
-derive_enum!(
-    #[derive(Copy, ConfigEnum, Hash)]
-    pub enum Backend {
-        Asdf,
-    }
-);
-
-#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(into = "String", try_from = "String")]
 pub struct ToolSpec {
-    pub backend: Option<Backend>,
-
-    // Requested version/requirement
+    /// Requested version/requirement.
     pub req: UnresolvedVersionSpec,
 
-    // Resolved version
-    pub res: Option<VersionSpec>,
+    /// Resolved version.
+    pub version: Option<VersionSpec>,
+
+    /// Resolve a version from the lockfile?
+    pub resolve_from_lockfile: bool,
+
+    /// Resolve a version from the manifest?
+    pub resolve_from_manifest: bool,
+
+    /// Update the lockfile when applicable?
+    pub update_lockfile: bool,
 }
 
 impl ToolSpec {
     pub fn new(req: UnresolvedVersionSpec) -> Self {
         Self {
-            backend: None,
             req,
-            res: None,
+            ..Default::default()
         }
     }
 
-    pub fn new_backend(req: UnresolvedVersionSpec, backend: Option<Backend>) -> Self {
-        Self {
-            backend,
-            req,
-            res: None,
-        }
+    pub fn is_fully_qualified(&self) -> bool {
+        matches!(
+            self.req,
+            UnresolvedVersionSpec::Canary
+                | UnresolvedVersionSpec::Calendar(_)
+                | UnresolvedVersionSpec::Semantic(_)
+        )
     }
 
-    pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, ProtoToolError> {
+    pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, ProtoResolveError> {
         Self::from_str(value.as_ref())
     }
 
     pub fn resolve(&mut self, res: VersionSpec) {
-        self.res = Some(res);
+        self.version = Some(res);
     }
 
     pub fn to_resolved_spec(&self) -> VersionSpec {
-        match self.res.clone() {
+        match self.version.clone() {
             Some(res) => res,
             None => self.req.to_resolved_spec(),
         }
     }
 }
 
+impl Default for ToolSpec {
+    fn default() -> Self {
+        Self {
+            req: UnresolvedVersionSpec::default(),
+            version: None,
+            resolve_from_lockfile: true,
+            resolve_from_manifest: true,
+            update_lockfile: true,
+        }
+    }
+}
+
 impl FromStr for ToolSpec {
-    type Err = ProtoToolError;
+    type Err = ProtoResolveError;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
-        let (backend, spec) = if let Some((prefix, suffix)) = value.split_once(':') {
-            let backend = if prefix == "proto" {
-                None
-            } else if prefix == "asdf" {
-                Some(Backend::Asdf)
-            } else {
-                return Err(ProtoToolError::UnknownBackend {
-                    backends: Backend::variants(),
-                    spec: value.to_owned(),
-                });
-            };
-
-            (backend, suffix)
-        } else {
-            (None, value)
-        };
-
         Ok(Self {
-            backend,
-            req: UnresolvedVersionSpec::parse(spec).map_err(|error| {
-                ProtoToolError::InvalidVersionSpec {
-                    spec: value.to_owned(),
+            req: UnresolvedVersionSpec::parse(if value.is_empty() { "*" } else { value }).map_err(
+                |error| ProtoResolveError::InvalidVersionSpec {
+                    version: value.to_owned(),
                     error: Box::new(error),
-                }
-            })?,
-            res: None,
+                },
+            )?,
+            ..Default::default()
         })
     }
 }
 
 impl TryFrom<String> for ToolSpec {
-    type Error = ProtoToolError;
+    type Error = ProtoResolveError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         Self::from_str(&value)
@@ -138,14 +131,6 @@ impl AsRef<UnresolvedVersionSpec> for ToolSpec {
 
 impl fmt::Display for ToolSpec {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if let Some(backend) = self.backend {
-            match backend {
-                Backend::Asdf => {
-                    write!(f, "asdf:")?;
-                }
-            };
-        }
-
         write!(f, "{}", self.req)
     }
 }

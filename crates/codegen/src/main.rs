@@ -30,13 +30,17 @@ fn generate_types() {
     generator.add::<VirtualPath>();
 
     // proto
-    generator.add::<ToolContext>();
+    generator.add::<PluginContext>();
+    generator.add::<PluginUnresolvedContext>();
     generator.add::<PluginType>();
-    generator.add::<ToolInventoryMetadata>();
+    generator.add::<ToolInventoryOptions>();
+    generator.add::<ToolLockOptions>();
     generator.add::<RegisterToolInput>();
     generator.add::<RegisterToolOutput>();
+    generator.add::<DefineToolConfigOutput>();
     generator.add::<RegisterBackendInput>();
     generator.add::<RegisterBackendOutput>();
+    generator.add::<DefineBackendConfigOutput>();
     generator.add::<DetectVersionOutput>();
     generator.add::<ParseVersionFileInput>();
     generator.add::<ParseVersionFileOutput>();

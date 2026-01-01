@@ -1,9 +1,10 @@
 use std::fs;
-use std::io::{self, Error, ErrorKind};
+use std::io::{self, Error};
 use std::path::Path;
 use std::process::{Command, exit};
-use windows_sys::Win32::Foundation::{BOOL, FALSE, TRUE};
+use windows_sys::Win32::Foundation::{FALSE, TRUE};
 use windows_sys::Win32::System::Console::SetConsoleCtrlHandler;
+use windows_sys::core::BOOL;
 
 // @see https://github.com/rust-lang/cargo/blob/master/crates/cargo-util/src/process_builder.rs#L605
 unsafe extern "system" fn ctrlc_handler(_: u32) -> BOOL {
@@ -17,10 +18,7 @@ unsafe extern "system" fn ctrlc_handler(_: u32) -> BOOL {
 pub fn exec_command_and_replace(mut command: Command) -> io::Result<()> {
     unsafe {
         if SetConsoleCtrlHandler(Some(ctrlc_handler), TRUE) == FALSE {
-            return Err(Error::new(
-                ErrorKind::Other,
-                "Could not set Ctrl-C handler.",
-            ));
+            return Err(Error::other("Could not set Ctrl-C handler."));
         }
     }
 

@@ -1,34 +1,37 @@
+use crate::config::PluginType;
 use crate::env::ProtoEnvironment;
-use crate::env_error::ProtoEnvError;
-use crate::helpers::{get_proto_version, is_offline};
+use crate::helpers::get_proto_version;
+use crate::id::Id;
 use crate::layout::{Inventory, Product};
+use crate::lockfile::LockRecord;
+use crate::tool_context::ToolContext;
 use crate::tool_error::ProtoToolError;
-use crate::tool_spec::Backend;
 use crate::utils::{archive, git};
-use proto_pdk_api::*;
-use schematic::ConfigEnum;
+use proto_pdk_api::{
+    PluginContext, PluginFunction, PluginUnresolvedContext, RegisterBackendInput,
+    RegisterBackendOutput, RegisterToolInput, RegisterToolOutput, SourceLocation, VersionSpec,
+};
+use rustc_hash::FxHashMap;
 use starbase_styles::color;
-use starbase_utils::fs;
-use std::collections::{BTreeMap, BTreeSet};
+use starbase_utils::{fs, path};
 use std::fmt::{self, Debug};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::time::Duration;
 use tracing::{debug, instrument};
 use warpgate::{
-    Id, PluginContainer, PluginLocator, PluginManifest, VirtualPath, Wasm,
+    PluginContainer, PluginLocator, PluginManifest, VirtualPath, Wasm,
     host::{HostData, create_host_functions},
 };
 
 pub type ToolMetadata = RegisterToolOutput;
 
 pub struct Tool {
-    pub backend: Option<Backend>,
-    pub id: Id,
+    pub context: ToolContext,
     pub locator: Option<PluginLocator>,
     pub metadata: ToolMetadata,
     pub plugin: Arc<PluginContainer>,
     pub proto: Arc<ProtoEnvironment>,
+    pub ty: PluginType,
     pub version: Option<VersionSpec>,
 
     // Store
@@ -38,81 +41,89 @@ pub struct Tool {
     // Cache
     pub(crate) backend_registered: bool,
     pub(crate) cache: bool,
+    pub(crate) cache_internal: bool,
     pub(crate) exe_file: Option<PathBuf>,
     pub(crate) exes_dirs: Vec<PathBuf>,
     pub(crate) globals_dir: Option<PathBuf>,
     pub(crate) globals_dirs: Vec<PathBuf>,
     pub(crate) globals_prefix: Option<String>,
+    pub(crate) version_locked: Option<LockRecord>,
 }
 
 impl Tool {
     pub async fn new(
-        id: Id,
+        context: ToolContext,
         proto: Arc<ProtoEnvironment>,
         plugin: Arc<PluginContainer>,
-    ) -> miette::Result<Self> {
+    ) -> Result<Self, ProtoToolError> {
         debug!(
             "Created tool {} and its WASM runtime",
-            color::id(id.as_str())
+            color::id(context.as_str())
         );
 
         let mut tool = Tool {
-            backend: None,
             backend_registered: false,
             cache: true,
+            cache_internal: true,
+            context,
             exe_file: None,
             exes_dirs: vec![],
             globals_dir: None,
             globals_dirs: vec![],
             globals_prefix: None,
-            id,
             inventory: Inventory::default(),
             locator: None,
             metadata: ToolMetadata::default(),
             plugin,
             product: Product::default(),
             proto,
+            ty: PluginType::Tool,
             version: None,
+            version_locked: None,
         };
 
         tool.register_tool().await?;
+
+        if tool.context.backend.is_some() {
+            tool.register_backend().await?;
+        }
 
         Ok(tool)
     }
 
     #[instrument(name = "new_tool", skip(proto, wasm))]
-    pub async fn load<I: AsRef<Id> + fmt::Debug, P: AsRef<ProtoEnvironment>>(
-        id: I,
+    pub async fn load<I: AsRef<ToolContext> + fmt::Debug, P: AsRef<ProtoEnvironment>>(
+        context: I,
         proto: P,
         wasm: Wasm,
-    ) -> miette::Result<Self> {
+    ) -> Result<Self, ProtoToolError> {
         let proto = proto.as_ref();
 
-        Self::load_from_manifest(id, proto, Self::create_plugin_manifest(proto, wasm)?).await
+        Self::load_from_manifest(context, proto, Self::create_plugin_manifest(proto, wasm)?).await
     }
 
-    pub async fn load_from_manifest<I: AsRef<Id>, P: AsRef<ProtoEnvironment>>(
-        id: I,
+    pub async fn load_from_manifest<I: AsRef<ToolContext>, P: AsRef<ProtoEnvironment>>(
+        context: I,
         proto: P,
         manifest: PluginManifest,
-    ) -> miette::Result<Self> {
-        let id = id.as_ref();
+    ) -> Result<Self, ProtoToolError> {
+        let context = context.as_ref();
         let proto = proto.as_ref();
 
         debug!(
             "Creating tool {} and instantiating plugin",
-            color::id(id.as_str())
+            color::id(context.as_str())
         );
 
         Self::new(
-            id.to_owned(),
+            context.to_owned(),
             Arc::new(proto.to_owned()),
             Arc::new(PluginContainer::new(
-                id.to_owned(),
+                context.id.clone(),
                 manifest,
                 create_host_functions(HostData {
                     cache_dir: proto.store.cache_dir.clone(),
-                    http_client: Arc::clone(proto.get_plugin_loader()?.get_client()?),
+                    http_client: Arc::clone(proto.get_plugin_loader()?.get_http_client()?),
                     virtual_paths: proto.get_virtual_paths(),
                     working_dir: proto.working_dir.clone(),
                 }),
@@ -124,36 +135,87 @@ impl Tool {
     pub fn create_plugin_manifest<P: AsRef<ProtoEnvironment>>(
         proto: P,
         wasm: Wasm,
-    ) -> miette::Result<PluginManifest> {
+    ) -> Result<PluginManifest, ProtoToolError> {
         let proto = proto.as_ref();
+        let mut virtual_paths = FxHashMap::default();
+
+        for (host, guest) in proto.get_virtual_paths() {
+            virtual_paths.insert(host.to_string_lossy().to_string(), guest);
+
+            // The host path must exist or extism errors!
+            fs::create_dir_all(host)?;
+        }
 
         let mut manifest = PluginManifest::new([wasm]);
         manifest = manifest.with_allowed_host("*");
-        manifest = manifest.with_allowed_paths(proto.get_virtual_paths_compat().into_iter());
+        manifest = manifest.with_allowed_paths(virtual_paths.into_iter());
         // manifest = manifest.with_timeout(Duration::from_secs(90));
 
         #[cfg(debug_assertions)]
         {
-            manifest = manifest.with_timeout(Duration::from_secs(120));
+            use std::time::Duration;
+
+            manifest = manifest.with_timeout(Duration::from_secs(300));
         }
 
         Ok(manifest)
     }
 
-    /// Disable internal caching when applicable.
+    /// Clear all in-memory cache on this tool instance.
+    pub fn clear_instance_cache(&mut self) {
+        self.exe_file = None;
+        self.exes_dirs.clear();
+        self.globals_dir = None;
+        self.globals_dirs.clear();
+        self.globals_prefix = None;
+        self.version = None;
+
+        // Don't clear this field because it will cause issues based on order of
+        // operations. It will be set when a version is resolved.
+        // self.version_locked = None;
+    }
+
+    /// Disable caching when applicable.
     pub fn disable_caching(&mut self) {
         self.cache = false;
     }
 
+    /// Disable in-memory instance caching.
+    pub fn disable_instance_caching(&mut self) {
+        self.cache_internal = false;
+    }
+
+    /// Return the backend identifier.
+    pub fn get_backend(&self) -> Option<&Id> {
+        self.context.backend.as_ref()
+    }
+
     /// Return the prefix for environment variable names.
     pub fn get_env_var_prefix(&self) -> String {
-        format!("PROTO_{}", self.id.to_uppercase().replace('-', "_"))
+        format!("PROTO_{}", self.get_id().to_env_var())
+    }
+
+    /// Return the tool identifier for use within file names.
+    pub fn get_file_name(&self) -> &str {
+        let id = self.get_id().as_str();
+
+        // May be an npm package with a scope,
+        // so remove the scope and return the name
+        match id.rfind('/') {
+            Some(index) => &id[index + 1..],
+            None => id,
+        }
+    }
+
+    /// Return the tool identifier.
+    pub fn get_id(&self) -> &Id {
+        &self.context.id
     }
 
     /// Return an absolute path to the tool's inventory directory.
     /// The inventory houses installed versions, the manifest, and more.
-    pub fn get_inventory_dir(&self) -> PathBuf {
-        self.inventory.dir.clone()
+    pub fn get_inventory_dir(&self) -> &Path {
+        &self.inventory.dir
     }
 
     /// Return a human readable name for the tool.
@@ -167,30 +229,23 @@ impl Tool {
     }
 
     /// Return an absolute path to a temp directory solely for this tool.
-    pub fn get_temp_dir(&self) -> PathBuf {
-        self.inventory
-            .temp_dir
-            .join(self.get_resolved_version().to_string())
+    pub fn get_temp_dir(&self) -> &Path {
+        &self.inventory.temp_dir
     }
 
     /// Return an absolute path to the tool's install directory for the currently resolved version.
-    pub fn get_product_dir(&self) -> PathBuf {
-        self.product.dir.clone()
+    pub fn get_product_dir(&self) -> &Path {
+        &self.product.dir
     }
 
     /// Return true if this tool instance is a backend plugin.
     pub async fn is_backend_plugin(&self) -> bool {
-        if self.plugin.has_func("register_backend").await {
-            Backend::variants()
-                .iter()
-                .any(|var| var.to_string() == self.id.as_str())
-        } else {
-            false
-        }
+        self.ty == PluginType::Backend
     }
 
     /// Explicitly set the version to use.
     pub fn set_version(&mut self, version: VersionSpec) {
+        self.clear_instance_cache();
         self.product = self.inventory.create_product(&version);
         self.version = Some(version);
     }
@@ -210,8 +265,8 @@ impl Tool {
 
 impl Tool {
     /// Return contextual information to pass to WASM plugin functions.
-    pub fn create_context(&self) -> ToolContext {
-        ToolContext {
+    pub fn create_plugin_context(&self) -> PluginContext {
+        PluginContext {
             proto_version: Some(get_proto_version().to_owned()),
             temp_dir: self.to_virtual_path(self.get_temp_dir()),
             tool_dir: self.to_virtual_path(self.get_product_dir()),
@@ -222,8 +277,8 @@ impl Tool {
     /// Return contextual information to pass to WASM plugin functions,
     /// representing an unresolved state, which has no version or tool
     /// data.
-    pub fn create_unresolved_context(&self) -> ToolUnresolvedContext {
-        ToolUnresolvedContext {
+    pub fn create_plugin_unresolved_context(&self) -> PluginUnresolvedContext {
+        PluginUnresolvedContext {
             proto_version: Some(get_proto_version().to_owned()),
             temp_dir: self.to_virtual_path(&self.inventory.temp_dir),
             // version: self.version.clone(),
@@ -236,15 +291,30 @@ impl Tool {
         }
     }
 
+    /// Create an initial lock record.
+    pub fn create_locked_record(&self) -> LockRecord {
+        let mut record = LockRecord {
+            backend: self.context.backend.clone(),
+            ..Default::default()
+        };
+
+        if !self.metadata.lock_options.ignore_os_arch {
+            record.os = Some(self.proto.os);
+            record.arch = Some(self.proto.arch);
+        }
+
+        record
+    }
+
     /// Register the tool by loading initial metadata and persisting it.
     #[instrument(skip_all)]
-    pub async fn register_tool(&mut self) -> miette::Result<()> {
+    pub async fn register_tool(&mut self) -> Result<(), ProtoToolError> {
         let metadata: RegisterToolOutput = self
             .plugin
             .cache_func_with(
-                "register_tool",
+                PluginFunction::RegisterTool,
                 RegisterToolInput {
-                    id: self.id.to_string(),
+                    id: self.get_id().to_owned(),
                 },
             )
             .await?;
@@ -256,7 +326,7 @@ impl Tool {
             if actual_version < expected_version {
                 return Err(ProtoToolError::InvalidMinimumVersion {
                     tool: metadata.name,
-                    id: self.id.clone(),
+                    id: self.get_id().clone(),
                     expected: expected_version.to_string(),
                     actual: actual_version.to_string(),
                 }
@@ -264,29 +334,33 @@ impl Tool {
             }
         }
 
+        let inventory_id =
+            if metadata.inventory_options.scoped_backend_dir && self.context.backend.is_some() {
+                Id::raw(self.context.as_str().replace(':', "-"))
+            } else {
+                self.context.id.clone()
+            };
+
         let mut inventory = self
             .proto
             .store
-            .create_inventory(&self.id, &metadata.inventory)?;
+            .create_inventory(&inventory_id, &metadata.inventory_options)?;
 
-        if let Some(override_dir) = &metadata.inventory.override_dir {
+        if let Some(override_dir) = &metadata.inventory_options.override_dir {
             let override_dir_path = override_dir.real_path();
 
             debug!(
-                tool = self.id.as_str(),
-                override_virtual = ?override_dir,
+                tool = self.context.as_str(),
+                override_virtual = ?override_dir.real_path(),
                 override_real = ?override_dir_path,
                 "Attempting to override inventory directory"
             );
 
-            if override_dir_path.is_none()
-                || override_dir_path.as_ref().is_some_and(|p| p.is_relative())
-            {
+            if override_dir_path.as_ref().is_none_or(|p| p.is_relative()) {
                 return Err(ProtoToolError::RequiredAbsoluteInventoryDir {
                     tool: metadata.name.clone(),
                     dir: override_dir_path.unwrap_or_else(|| PathBuf::from("<unknown>")),
-                }
-                .into());
+                });
             }
 
             inventory.dir_original = Some(inventory.dir);
@@ -302,21 +376,22 @@ impl Tool {
 
     /// Register the backend by acquiring necessary source files.
     #[instrument(skip_all)]
-    pub async fn register_backend(&mut self) -> miette::Result<()> {
-        if !self.plugin.has_func("register_backend").await
-            || self.backend.is_none()
-            || self.backend_registered
-        {
+    pub async fn register_backend(&mut self) -> Result<(), ProtoToolError> {
+        if !self.plugin.has_func(PluginFunction::RegisterBackend).await || self.backend_registered {
             return Ok(());
         }
+
+        let Some(backend) = &self.context.backend else {
+            return Ok(());
+        };
 
         let metadata: RegisterBackendOutput = self
             .plugin
             .cache_func_with(
-                "register_backend",
+                PluginFunction::RegisterBackend,
                 RegisterBackendInput {
-                    context: self.create_unresolved_context(),
-                    id: self.id.to_string(),
+                    context: self.create_plugin_unresolved_context(),
+                    id: self.get_id().to_owned(),
                 },
             )
             .await?;
@@ -328,25 +403,33 @@ impl Tool {
         };
 
         let backend_id = metadata.backend_id;
-        let backend_dir = self.proto.store.backends_dir.join(&backend_id);
+        let backend_dir = self
+            .proto
+            .store
+            .backends_dir
+            .join(path::encode_component(backend)) // asdf
+            .join(path::encode_component(&backend_id)); // node
         let update_perms = !backend_dir.exists();
+        let config = self.proto.load_config()?;
 
-        if is_offline() {
-            return Err(ProtoEnvError::RequiredInternetConnection.into());
-        }
+        // if is_offline() {
+        //     return Err(ProtoEnvError::RequiredInternetConnection.into());
+        // }
 
         debug!(
-            tool = self.id.as_str(),
-            backend_id,
+            tool = self.context.as_str(),
+            backend_id = ?backend_id,
             backend_dir = ?backend_dir,
             "Acquiring backend sources",
         );
 
         match source {
-            SourceLocation::Archive(src) => {
+            SourceLocation::Archive(mut src) => {
                 if !backend_dir.exists() {
+                    src.url = config.rewrite_url(src.url);
+
                     debug!(
-                        tool = self.id.as_str(),
+                        tool = self.context.as_str(),
                         url = &src.url,
                         "Downloading backend archive",
                     );
@@ -355,14 +438,17 @@ impl Tool {
                         &src,
                         &backend_dir,
                         &self.proto.store.temp_dir,
-                        self.proto.get_plugin_loader()?.get_client()?.to_inner(),
+                        self.proto
+                            .get_plugin_loader()?
+                            .get_http_client()?
+                            .to_inner(),
                     )
                     .await?;
                 }
             }
             SourceLocation::Git(src) => {
                 debug!(
-                    tool = self.id.as_str(),
+                    tool = self.context.as_str(),
                     url = &src.url,
                     "Cloning backend repository",
                 );
@@ -373,7 +459,7 @@ impl Tool {
 
         if update_perms {
             for exe in metadata.exes {
-                let exe_path = backend_dir.join(exe);
+                let exe_path = backend_dir.join(path::normalize_separators(exe));
 
                 if exe_path.exists() {
                     fs::update_perms(exe_path, None)?;
@@ -381,57 +467,8 @@ impl Tool {
             }
         }
 
+        self.ty = PluginType::Backend;
         self.backend_registered = true;
-
-        Ok(())
-    }
-
-    /// Sync the local tool manifest with changes from the plugin.
-    #[instrument(skip_all)]
-    pub async fn sync_manifest(&mut self) -> miette::Result<()> {
-        if !self.plugin.has_func("sync_manifest").await {
-            return Ok(());
-        }
-
-        debug!(tool = self.id.as_str(), "Syncing manifest with changes");
-
-        let output: SyncManifestOutput = self
-            .plugin
-            .call_func_with(
-                "sync_manifest",
-                SyncManifestInput {
-                    context: self.create_context(),
-                },
-            )
-            .await?;
-
-        if output.skip_sync {
-            return Ok(());
-        }
-
-        let mut modified = false;
-        let manifest = &mut self.inventory.manifest;
-
-        if let Some(versions) = output.versions {
-            modified = true;
-
-            let mut entries = BTreeMap::default();
-            let mut installed = BTreeSet::default();
-
-            for key in versions {
-                let value = manifest.versions.get(&key).cloned().unwrap_or_default();
-
-                installed.insert(key.clone());
-                entries.insert(key, value);
-            }
-
-            manifest.versions = entries;
-            manifest.installed_versions = installed;
-        }
-
-        if modified {
-            manifest.save()?;
-        }
 
         Ok(())
     }
@@ -440,7 +477,7 @@ impl Tool {
 impl fmt::Debug for Tool {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Tool")
-            .field("id", &self.id)
+            .field("id", self.get_id())
             .field("metadata", &self.metadata)
             .field("locator", &self.locator)
             .field("proto", &self.proto)

@@ -15,6 +15,411 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## 0.54.1
+
+#### 🚀 Updates
+
+- Added `PROTO_TEMP_DIR` environment variable to customize the temporary directory used by proto.
+- Added the ability for plugins to run post-install scripts after installing a prebuilt.
+- **WASM API**
+  - Added `/temp` virtual path support.
+  - Added `DownloadPrebuiltOutput.post_script` field.
+
+#### 🧩 Plugins
+
+- Updated `moon_tool` to v0.4.0.
+  - Added support for the future moon v2 distribution format.
+- Updated `node_tool` to v0.17.4.
+  - Added experimental support for musl on Linux ARM64.
+
+#### 🐞 Fixes
+
+- Fixed `proto clean` not removing all stale versions.
+
+#### ⚙️ Internal
+
+- Updated Rust to v1.92.0.
+- Updated wasmtime to v37 (from v30).
+- Updated dependencies.
+
+## 0.54.0
+
+#### 🚀 Updates
+
+- Added a new command, `proto mcp`, that will start an MCP server for AI agents to interact with.
+  - Supports the following tools:
+    - `install_tool` - Install a tool with a specified version.
+    - `uninstall_tool` - Uninstall a tool with a specified version.
+    - `list_tool_versions` - List available and installed versions for a tool.
+    - `get_config` - Get the current proto configuration.
+  - Supports the following resources:
+    - `proto://config` - Get the current proto configuration.
+    - `proto://env` - Get the current proto environment, store, variables, and more.
+    - `proto://tools` - List installed tools and their versions.
+- Added a new command, `proto shell`, that will initialize a list of tools into the environment and start an interactive shell session.
+  - By default, it will use the current shell, but you can override this with the `--shell` option.
+  - Example: `proto shell node@20 npm@10`
+
+#### 🧩 Plugins
+
+- Updated `ruby_tool` to v0.2.5.
+  - Added `irb` shim support.
+
+#### ⚙️ Internal
+
+- Updated Rust to v1.91.0.
+- Updated dependencies.
+
+## 0.53.4
+
+#### 🧩 Plugins
+
+- Updated `python_tool` to v0.14.5.
+  - Pre-builts will now use a much smaller archive when downloading.
+  - Fixed a UTF-8 unpacking error.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
+## 0.53.3
+
+#### 🚀 Updates
+
+- Added a `--quiet` flag to `proto uninstall`.
+
+#### 🐞 Fixes
+
+- Fixed an issue where `global` config mode wasn't respected during version detection.
+
+## 0.53.2
+
+#### 🐞 Fixes
+
+- Minor fixes for the activate workflow.
+
+#### 🧩 Plugins
+
+- Updated `node_depman_tool` to v0.17.0.
+  - Added an internal shims feature that resolves issues when npm/pnpm/yarn binaries are ran in isolation (from the install directory). This typically only happens for activate workflows.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
+## 0.53.1
+
+#### 🐞 Fixes
+
+- Fixed some environment variable loading order issues for activate/run flows.
+
+#### 🧩 Plugins
+
+- Updated `schema_tool` to v0.17.7.
+  - Fixed an unwanted primary executable being injected with the tool identifier, instead of inheriting the user configured primary.
+
+#### ⚙️ Internal
+
+- Reworked identifier handling. This _should_ be backwards compatible.
+- Updated dependencies.
+
+## 0.53.0
+
+#### 💥 Breaking
+
+- Backend managed tools must now include the backend prefix when configuring in `[tools]`, to avoid naming collisions with non-backend tools. Example: `[tools."asdf:zig"]` instead of `[tools.zig]`.
+  - We'll temporarily support the old format until the next release, in which it will be removed completely.
+- **WASM API**
+  - Removed `RegisterToolOutput.config_schema` field. Use `define_tool_config` instead.
+
+#### 🚀 Updates
+
+- Added a new command, `proto exec`, that can be used to execute a command in the context of a temporarily activated proto environment. A list of tools and versions can be provided, and the command will run with those tools available in `PATH`.
+  - Example: `proto exec node@20 npm@10 -- node --version`
+- Improved backend plugin support.
+  - Added a `[backends.<id>]` setting for configuring the backend (not the tool) itself.
+  - Improved interoperability between plugins.
+- Added a mechanism for plugins to setup the environment during activation and execution workflows.
+- **WASM API**
+  - Added a `get_backend_config` helper function to retrieve the backend configuration.
+  - Added a `define_tool_config`, `define_backend_config`, and `activate_environment` plugin (guest) functions.
+  - Added a `DefineToolConfigOutput`, `DefineBackendConfigOutput`, `ActivateEnvironmentInput`, and `ActivateEnvironmentOutput` types.
+  - Added a `ToolInventoryOptions.scoped_backend_dir` field.
+  - Added a `NativeInstallInput.force` field.
+
+#### 🐞 Fixes
+
+- Fixed an issue where shims that belong to a backend (like `asdf`) would fail to run.
+  - You may need to regenerate your shims or reinstall the tool to mitigate this.
+
+#### ⚙️ Internal
+
+- Updated Rust to v1.90.0.
+- Updated dependencies.
+
+## 0.52.5
+
+#### 🐞 Fixes
+
+- Fixed some `package.json` parsing issues for JavaScript related plugins.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
+## 0.52.4
+
+#### 🚀 Updates
+
+- Added a `--raw` flag to `proto debug config` and `proto debug env` for deeper debugging purposes.
+
+#### 🐞 Fixes
+
+- Fixed an issue where relative `file://` plugins would not resolve relative to the directory it's configured in.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
+## 0.52.3
+
+#### 🐞 Fixes
+
+- Potential fix for the "Failed to rename" error that occurs when downloading plugins. This error can easily trigger when parallel processes are all attempting to download the same plugins.
+- Fixed an issue where xz/liblzma was dynamically linked, instead of statically.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
+## 0.52.2
+
+#### 🐞 Fixes
+
+- Fixed an issue where the "new proto version check" would run more often than necessary.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
+## 0.52.1
+
+#### 🐞 Fixes
+
+- Fixed an unexpected "operating system/architecture mismatch" error that can arise when installing tools.
+
+## 0.52.0
+
+#### 💥 Breaking
+
+- Reworked how backends (asdf, etc) are configured. Instead of being prefixed on the version, they are now on the tool identifier. Example: `zig = "asdf:0.14"` -> `"asdf:zig" = "0.14"`
+  - This opens the door for new functionality in the future, and also makes more logical sense.
+  - We tried to keep the old functionality intact as much as possible, but it may be buggy. We highly suggest migrating to the new format!
+- Removed the `[tools.*.backend]` setting, as it doesn't work with this new pattern.
+- **WASM API**
+  - Renamed `ToolContext` to `PluginContext`.
+  - Renamed `ToolUnresolvedContext` to `PluginUnresolvedContext`.
+  - Renamed `CommandInstruction.bin` field to `exe`.
+  - Renamed `RegisterToolOutput.inventory` field to `inventory_options`.
+  - Renamed `ToolInventoryMetadata` to `ToolInventoryOptions`.
+
+#### 🚀 Updates
+
+- Added support for custom and third-party backend plugins, which can be configured with the new `[plugins.backends]` setting.
+  - To differentiate between tool plugins, a new `[plugins.tools]` setting was also added. Existing plugins should continue to work without modification.
+  - Added a `--type` option to `proto plugin add` and `proto plugin remove`.
+- Updated lockfiles to track `os` and `arch` information.
+  - For existing entries, we attempt to backfill these values. If you run into issues, delete the lockfile and regenerate it with `--force`.
+- **WASM API**
+  - Added a `RegisterToolOutput.lock_options` field, so that tools can customize how to interact with the lockfile.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
+## 0.51.6
+
+#### 🚀 Updates
+
+- Added unstable support for bubbling up logs from WASM plugins (when applicable).
+- Improved argument quoting for child processes to be based on the current shell.
+
+#### ⚙️ Internal
+
+- Updated Rust to v1.89.0.
+- Updated dependencies.
+
+## 0.51.5
+
+#### 🚀 Updates
+
+- Improved `registry://` fallthrough handling.
+
+#### 🐞 Fixes
+
+- Fixed an issue where auto-clean would delete a tool, but our "last used" logic would leave around stale artifacts, resulting in missing tool/executable errors.
+- Fixed an issue where activated tools would not track a last used at, and could be accidentally deleted by auto-clean.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
+## 0.51.4
+
+#### 🐞 Fixes
+
+- Fixed an issue where `proto install <tool> <req>` would resolve to a version from the local manifest, instead of remote available versions.
+- Fixed an issue that would cache remote versions for a tool when there were none available (network issue, etc).
+
+#### ⚙️ Internal
+
+- Added MSRV (`package.rust-version`) to all Rust crates.
+
+## 0.51.3
+
+#### 🐞 Fixes
+
+- Fixed an issue with build from source flows that would not attempt to auto-install system dependencies in CI.
+
+## 0.51.2
+
+#### 🐞 Fixes
+
+- Fixed an issue what would cause an "unknown field `spec`" error within moon when there were conflicting proto versions.
+  - Tools that were installed with proto 0.51.x before this patch will have a broken manifest. You'll need to manually modify the manifest and remove the `spec` and `version` fields within the `lock` entry, or force re-install the tool.
+
+## 0.51.1
+
+#### 🐞 Fixes
+
+- Fixed a GLIBC version not found error. We built on Ubuntu v24 instead of v22 by accident (oops).
+
+## 0.51.0
+
+#### 💥 Breaking
+
+- Removed `--canary` from `proto install`, just use `canary` as the version specifier instead.
+
+#### 🚀 Updates
+
+- Added unstable lockfile support through a `.protolock` file.
+  - Can be enabled per-project with the new `settings.unstable-lockfile` setting.
+  - This feature is still a work in progress and hasn't been fully implemented yet.
+  - Updated `proto install` to support lockfiles.
+    - Versions will be inherited from the lockfile if there's a matching specification record.
+    - Checksums of downloaded tools are stored and validated in the lockfile.
+    - Added an `--update-lockfile` flag, which will bypass the lockfile record.
+  - Updated `proto uninstall` to support lockfiles.
+    - Will remove any matching record from the lockfile.
+- Added unstable support for OCI registries as a plugin storage mechanism.
+  - Added a new `registry://` locator: `registry://ghcr.io/org/plugin`.
+  - Plugins are stored as a layer/artifact within the OCI image.
+  - Supports all plugin formats, WASM, TOML, JSON, and YAML.
+  - Can customize registries with the new `settings.unstable-registries` setting.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
+## 0.50.5
+
+#### 🐞 Fixes
+
+- Fixed an issue where `proto activate` would remove manually inserted `~/.proto` paths.
+
+## 0.50.4
+
+#### 🚀 Updates
+
+- Added timing information to plugin process executions and network requests.
+
+#### 🐞 Fixes
+
+- Fixed an issue where installing multiple tools would fail when one of the tools is building from source and attempts to install system dependencies. For now when installing multiple tools, system dependencies will not be installed and the build assumes they exist.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
+## 0.50.3
+
+#### 🐞 Fixes
+
+- Fixed an issue with `proto activate` that would generate invalid Fish syntax.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
+## 0.50.2
+
+#### 🐞 Fixes
+
+- Fixed an issue with `proto activate` where previously set environment variables would not be unset when changing directories.
+- Fixed an issue with `proto activate` where `[env]` variables would sometimes not be set.
+
+#### ⚙️ Internal
+
+- Updated Rust to v1.88.0.
+- Updated dependencies.
+
+## 0.50.1
+
+#### 🚀 Updates
+
+- Added a `cache-duration` setting and `PROTO_CACHE_DURATION` environment variable, to control how long plugins are cached for (in seconds).
+- Updated Windows shell to use `powershell.exe` if `pwsh.exe` is not available.
+
+#### 🧩 Plugins
+
+- Updated `schema_tool` to v0.17.4.
+  - Added `metadata.default-version` and `metadata.plugin-version` fields.
+
+## 0.50.0
+
+#### 💥 Breaking
+
+- Updated `proto install <tool>` (without version) to install a version pinned in `.prototools`, instead of the latest version. If you want to install the latest version, you can use `proto install <tool> latest`.
+
+#### 🚀 Updates
+
+- Comments are now preserved when updating TOML config files (`.prototools`, etc).
+- Commands executed from WASM plugins will now always run within a shell.
+  - Added a `PROTO_SHELL` environment variable that can be set to define which shell to use, otherwise defaults to the current process shell.
+- Added environment variable support to many non-tool related `.prototools` settings.
+- Added a new `settings.url-rewrites` setting that allows you to rewrite URLs using regex patterns.
+  - This is useful if you have an internal mirror or proxy that you want to use.
+- Updated the `proto activate` command:
+  - Will now run the initialization hook immediately, instead of waiting for a directory change. Because of this, the `--on-init` option has been deprecated.
+  - Added a new `--no-init` option that will skip the initialization hook. This will function like it did previously.
+- Updated the `proto bin` command:
+  - Added a new `--dir` option that will print a directory instead of a file. Supports the value "exes" or "globals".
+  - Added a new `--all` option that will print all paths, instead of just the first.
+
+#### 🐞 Fixes
+
+- Fixed an issue where plugins that provide a checksum directly, instead of a URL, would fail to verify the checksum correctly.
+- Fixed an issue with the asdf backend where a plugin expects the checkout folder to have a specific name.
+- Fixed some path normalization issues on Windows.
+
+#### 🧩 Plugins
+
+- Updated `asdf_backend` to v0.3.
+  - Updated the backend ID/path to `asdf/<tool>` instead of `asdf-<tool>`.
+  - Updated scripts to extract the command/shell to execute with from its shebang.
+- Updated `bun_tool` to v0.16.
+  - Added detection sources: `.bumrc`, `.bun-version`, `package.json` (volta, engines, packageManager)
+- Updated `node_tool` to v0.17.
+  - Added support for `volta.extends` when detecting a version.
+- Updated `node_depman_tool` to v0.16.
+  - Improved `package.json` parsing.
+- Updated `python_uv_tool` to v0.3.
+  - Added detection sources: `uv.toml`, `pyproject.toml`
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.49.5
 
 #### 🚀 Updates

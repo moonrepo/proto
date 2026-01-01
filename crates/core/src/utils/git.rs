@@ -1,4 +1,4 @@
-use super::process::{exec_command_piped, handle_exec};
+use super::process::{ProtoProcessError, exec_command_piped, handle_exec};
 use crate::helpers::now;
 use proto_pdk_api::GitSource;
 use starbase_utils::fs;
@@ -32,7 +32,10 @@ pub fn new_pull(cwd: &Path) -> Command {
     cmd
 }
 
-pub async fn clone_or_pull_repo(src: &GitSource, target_dir: &Path) -> miette::Result<()> {
+pub async fn clone_or_pull_repo(
+    src: &GitSource,
+    target_dir: &Path,
+) -> Result<(), ProtoProcessError> {
     fs::create_dir_all(target_dir)?;
 
     let mut update_last_pull = false;
@@ -41,20 +44,19 @@ pub async fn clone_or_pull_repo(src: &GitSource, target_dir: &Path) -> miette::R
     if target_dir.join(".git").exists() {
         let mut should_pull = true;
 
-        if last_pull_path.exists() {
-            if let Some(last_timestamp) = fs::read_file(&last_pull_path)
+        if last_pull_path.exists()
+            && let Some(last_timestamp) = fs::read_file(&last_pull_path)
                 .ok()
                 .and_then(|value| value.parse::<u128>().ok())
-            {
-                let now_millis = SystemTime::now()
-                    .duration_since(SystemTime::UNIX_EPOCH)
-                    .unwrap()
-                    .as_millis();
+        {
+            let now_millis = SystemTime::now()
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .unwrap()
+                .as_millis();
 
-                // Every 7 days
-                if (now_millis - last_timestamp) < (7 * 24 * 60 * 60 * 1000) {
-                    should_pull = false;
-                }
+            // Every 7 days
+            if (now_millis - last_timestamp) < (7 * 24 * 60 * 60 * 1000) {
+                should_pull = false;
             }
         }
 

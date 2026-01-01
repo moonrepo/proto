@@ -3,21 +3,21 @@ pub use super::build_error::ProtoBuildError;
 pub use super::install_error::ProtoInstallError;
 use crate::checksum::*;
 use crate::env::ProtoConsole;
-use crate::env_error::ProtoEnvError;
-use crate::helpers::{extract_filename_from_url, is_archive_file, is_offline};
+use crate::helpers::{extract_filename_from_url, is_archive_file, is_executable, is_offline};
 use crate::lockfile::*;
 use crate::tool::Tool;
-use crate::utils::archive;
 use crate::utils::log::LogWriter;
+use crate::utils::{archive, process};
 use proto_pdk_api::*;
-use proto_shim::*;
+use starbase_shell::ShellType;
 use starbase_styles::color;
 use starbase_utils::net::DownloadOptions;
-use starbase_utils::{fs, net};
+use starbase_utils::{fs, net, path};
 use std::path::Path;
 use std::sync::Arc;
 use system_env::System;
-use tracing::{debug, instrument};
+use tokio::process::Command;
+use tracing::{debug, instrument, warn};
 
 // Prebuilt: Download -> Verify -> Unpack
 // Build: InstallDeps -> CheckRequirements -> ExecuteInstructions -> ...
@@ -68,9 +68,9 @@ impl Tool {
         checksum_file: &Path,
         download_file: &Path,
         checksum_public_key: Option<&str>,
-    ) -> miette::Result<Checksum> {
+    ) -> Result<Checksum, ProtoInstallError> {
         debug!(
-            tool = self.id.as_str(),
+            tool = self.context.as_str(),
             download_file = ?download_file,
             checksum_file = ?checksum_file,
             "Verifying checksum of downloaded file",
@@ -80,16 +80,16 @@ impl Tool {
         let verified;
 
         // Allow plugin to provide their own checksum verification method
-        if self.plugin.has_func("verify_checksum").await {
+        if self.plugin.has_func(PluginFunction::VerifyChecksum).await {
             let output: VerifyChecksumOutput = self
                 .plugin
                 .call_func_with(
-                    "verify_checksum",
+                    PluginFunction::VerifyChecksum,
                     VerifyChecksumInput {
                         checksum_file: self.to_virtual_path(checksum_file),
                         download_file: self.to_virtual_path(download_file),
                         download_checksum: Some(checksum.clone()),
-                        context: self.create_context(),
+                        context: self.create_plugin_context(),
                     },
                 )
                 .await?;
@@ -103,7 +103,7 @@ impl Tool {
 
         if verified {
             debug!(
-                tool = self.id.as_str(),
+                tool = self.context.as_str(),
                 "Successfully verified, checksum matches"
             );
 
@@ -113,65 +113,7 @@ impl Tool {
         Err(ProtoInstallError::InvalidChecksum {
             checksum: checksum_file.to_path_buf(),
             download: download_file.to_path_buf(),
-        }
-        .into())
-    }
-
-    /// Verify the installation is legitimate by comparing it to a lockfile record.
-    #[instrument(skip(self))]
-    pub fn verify_lockfile(&self, record: &LockfileRecord) -> miette::Result<()> {
-        let Some(version) = &self.version else {
-            return Ok(());
-        };
-
-        // No lockfile record yet
-        let Some(lockfile) = self.inventory.get_locked_record(version) else {
-            return Ok(());
-        };
-
-        // If we have different backends, then the installation strategy
-        // and content/files which are hashed may differ, so avoid verify
-        if record.backend != lockfile.backend {
-            return Ok(());
-        }
-
-        let make_error = |actual: String, expected: String| match &record.source {
-            Some(source) => ProtoInstallError::MismatchedChecksumWithSource {
-                checksum: actual,
-                lockfile_checksum: expected,
-                source_url: source.to_owned(),
-            },
-            None => ProtoInstallError::MismatchedChecksum {
-                checksum: actual,
-                lockfile_checksum: expected,
-            },
-        };
-
-        match (&record.checksum, &lockfile.checksum) {
-            (Some(rc), Some(lc)) => {
-                debug!(
-                    tool = self.id.as_str(),
-                    checksum = rc.to_string(),
-                    "Verifying checksum against lockfile",
-                );
-
-                if rc != lc {
-                    return Err(make_error(rc.to_string(), lc.to_string()).into());
-                }
-            }
-            // Only the lockfile has a checksum, so compare the sources.
-            // If the sources are the same, something wrong is happening,
-            // but if they are different, then it may be a different install
-            // strategy, so let it happen
-            (None, Some(lc)) => {
-                if record.source == lockfile.source {
-                    return Err(make_error("(missing)".into(), lc.to_string()).into());
-                }
-            }
-            _ => {}
-        };
-
-        Ok(())
+        })
     }
 
     /// Build the tool from source using a set of requirements and instructions
@@ -182,25 +124,28 @@ impl Tool {
         install_dir: &Path,
         temp_dir: &Path,
         options: InstallOptions,
-    ) -> miette::Result<LockfileRecord> {
+    ) -> Result<LockRecord, ProtoInstallError> {
         debug!(
-            tool = self.id.as_str(),
+            tool = self.context.as_str(),
             "Installing tool by building from source"
         );
 
-        if !self.plugin.has_func("build_instructions").await {
+        if !self
+            .plugin
+            .has_func(PluginFunction::BuildInstructions)
+            .await
+        {
             return Err(ProtoInstallError::UnsupportedBuildFromSource {
                 tool: self.get_name().to_owned(),
-            }
-            .into());
+            });
         }
 
         let output: BuildInstructionsOutput = self
             .plugin
             .cache_func_with(
-                "build_instructions",
+                PluginFunction::BuildInstructions,
                 BuildInstructionsInput {
-                    context: self.create_context(),
+                    context: self.create_plugin_context(),
                     install_dir: self.to_virtual_path(install_dir),
                 },
             )
@@ -214,13 +159,14 @@ impl Tool {
                 system.manager = Some(*pm);
 
                 debug!(
-                    "Overwriting system package manager to {} for {}",
-                    pm, system.os
+                    tool = self.context.as_str(),
+                    "Overwriting system package manager to {} for {}", pm, system.os
                 );
             } else {
                 system.manager = None;
 
                 debug!(
+                    tool = self.context.as_str(),
                     "Disabling system package manager because {} was disabled for {}",
                     color::property("settings.build.system-package-manager"),
                     system.os
@@ -229,13 +175,13 @@ impl Tool {
         }
 
         let mut builder = Builder::new(BuilderOptions {
-            config: &config.settings.build,
+            config,
             console: options
                 .console
                 .as_ref()
                 .expect("Console required for builder!"),
             install_dir,
-            http_client: self.proto.get_plugin_loader()?.get_client()?,
+            http_client: self.proto.get_plugin_loader()?.get_http_client()?,
             log_writer: options
                 .log_writer
                 .as_ref()
@@ -252,7 +198,7 @@ impl Tool {
         // so allow proto to use any available version instead of failing
         unsafe { std::env::set_var(format!("{}_VERSION", self.get_env_var_prefix()), "*") };
 
-        let mut record = LockfileRecord::new(self.backend);
+        let mut record = self.create_locked_record();
 
         // Step 0
         log_build_information(&mut builder, &output)?;
@@ -262,6 +208,7 @@ impl Tool {
             install_system_dependencies(&mut builder, &output).await?;
         } else {
             debug!(
+                tool = self.context.as_str(),
                 "Not installing system dependencies because {} was disabled",
                 color::property("settings.build.install-system-packages"),
             );
@@ -287,39 +234,39 @@ impl Tool {
         install_dir: &Path,
         temp_dir: &Path,
         options: InstallOptions,
-    ) -> miette::Result<LockfileRecord> {
+    ) -> Result<LockRecord, ProtoInstallError> {
         debug!(
-            tool = self.id.as_str(),
+            tool = self.context.as_str(),
             "Installing tool by downloading a pre-built archive"
         );
 
-        if !self.plugin.has_func("download_prebuilt").await {
+        if !self.plugin.has_func(PluginFunction::DownloadPrebuilt).await {
             return Err(ProtoInstallError::UnsupportedDownloadPrebuilt {
                 tool: self.get_name().to_owned(),
-            }
-            .into());
+            });
         }
 
-        let client = self.proto.get_plugin_loader()?.get_client()?;
+        let client = self.proto.get_plugin_loader()?.get_http_client()?;
+        let config = self.proto.load_config()?;
 
         let output: DownloadPrebuiltOutput = self
             .plugin
             .cache_func_with(
-                "download_prebuilt",
+                PluginFunction::DownloadPrebuilt,
                 DownloadPrebuiltInput {
-                    context: self.create_context(),
+                    context: self.create_plugin_context(),
                     install_dir: self.to_virtual_path(install_dir),
                 },
             )
             .await?;
 
-        let mut record = LockfileRecord::new(self.backend);
+        let mut record = self.create_locked_record();
 
         // Download the prebuilt
-        let download_url = output.download_url;
+        let download_url = config.rewrite_url(output.download_url);
         let download_filename = match output.download_name {
             Some(name) => name,
-            None => extract_filename_from_url(&download_url)?,
+            None => extract_filename_from_url(&download_url),
         };
         let download_file = temp_dir.join(&download_filename);
 
@@ -331,7 +278,7 @@ impl Tool {
             });
         });
 
-        debug!(tool = self.id.as_str(), "Downloading tool archive");
+        debug!(tool = self.context.as_str(), "Downloading tool archive");
 
         net::download_from_url_with_options(
             &download_url,
@@ -345,9 +292,10 @@ impl Tool {
 
         // Verify against a URL that contains the checksum
         if let Some(checksum_url) = output.checksum_url {
+            let checksum_url = config.rewrite_url(checksum_url);
             let checksum_filename = match output.checksum_name {
                 Some(name) => name,
-                None => extract_filename_from_url(&checksum_url)?,
+                None => extract_filename_from_url(&checksum_url),
             };
             let checksum_file = temp_dir.join(&checksum_filename);
 
@@ -358,7 +306,7 @@ impl Tool {
                 });
             });
 
-            debug!(tool = self.id.as_str(), "Downloading tool checksum");
+            debug!(tool = self.context.as_str(), "Downloading tool checksum");
 
             net::download_from_url_with_options(
                 &checksum_url,
@@ -381,12 +329,13 @@ impl Tool {
         }
         // Verify against an explicitly provided checksum
         else if let Some(checksum) = output.checksum {
-            let checksum_file = temp_dir.join("CHECKSUM");
+            let checksum_file =
+                temp_dir.join(format!("CHECKSUM.{:?}", checksum.algo).to_lowercase());
 
-            fs::write_file(&checksum_file, checksum.to_string())?;
+            fs::write_file(&checksum_file, checksum.hash.as_deref().unwrap_or_default())?;
 
             debug!(
-                tool = self.id.as_str(),
+                tool = self.context.as_str(),
                 checksum = checksum.to_string(),
                 "Using provided checksum"
             );
@@ -395,7 +344,10 @@ impl Tool {
                 self.verify_checksum(
                     &checksum_file,
                     &download_file,
-                    output.checksum_public_key.as_deref(),
+                    output
+                        .checksum_public_key
+                        .as_deref()
+                        .or(checksum.key.as_deref()),
                 )
                 .await?,
             );
@@ -405,18 +357,15 @@ impl Tool {
             record.checksum = Some(Checksum::sha256(hash_file_contents_sha256(&download_file)?));
         }
 
-        // Verify against lockfile
-        self.verify_lockfile(&record)?;
-
         // Attempt to unpack the archive
         debug!(
-            tool = self.id.as_str(),
+            tool = self.context.as_str(),
             download_file = ?download_file,
             install_dir = ?install_dir,
             "Attempting to unpack archive",
         );
 
-        if self.plugin.has_func("unpack_archive").await {
+        if self.plugin.has_func(PluginFunction::UnpackArchive).await {
             options.on_phase_change.as_ref().inspect(|func| {
                 func(InstallPhase::Unpack {
                     file: download_filename.clone(),
@@ -425,11 +374,11 @@ impl Tool {
 
             self.plugin
                 .call_func_without_output(
-                    "unpack_archive",
+                    PluginFunction::UnpackArchive,
                     UnpackArchiveInput {
                         input_file: self.to_virtual_path(&download_file),
                         output_dir: self.to_virtual_path(install_dir),
-                        context: self.create_context(),
+                        context: self.create_plugin_context(),
                     },
                 )
                 .await?;
@@ -449,17 +398,51 @@ impl Tool {
             )?;
 
             // If the archive was `.gz` without tar or other formats,
-            // it's a single file, so assume a binary and update perms
+            // it's a single file, so assume a file and update perms
             if ext == "gz" && unpacked_path.is_file() {
                 fs::update_perms(unpacked_path, None)?;
             }
         }
-        // Not an archive, assume a binary and copy
+        // Not an archive, assume a file and copy
         else {
-            let install_path = install_dir.join(get_exe_file_name(&self.id));
+            let install_path =
+                install_dir.join(path::exe_name(path::encode_component(self.get_file_name())));
 
             fs::rename(&download_file, &install_path)?;
             fs::update_perms(install_path, None)?;
+        }
+
+        // Execute post install script
+        if let Some(rel_script) = output.post_script {
+            let abs_script = install_dir.join(rel_script);
+
+            if !abs_script.exists() {
+                warn!(
+                    tool = self.context.as_str(),
+                    script = ?abs_script,
+                    "Post-install script does not exist",
+                );
+            } else if !is_executable(&abs_script) {
+                warn!(
+                    tool = self.context.as_str(),
+                    script = ?abs_script,
+                    "Post-install script is not executable",
+                );
+            } else {
+                debug!(
+                    tool = self.context.as_str(),
+                    script = ?abs_script,
+                    "Executing post-install script",
+                );
+
+                let shell = ShellType::detect_with_fallback().build();
+                let mut command = Command::new(shell.to_string());
+                command.arg("-c");
+                command.arg(shell.quote(&abs_script.to_string_lossy()));
+                command.current_dir(install_dir);
+
+                process::exec_command(&mut command).await?;
+            }
         }
 
         Ok(record)
@@ -471,10 +454,10 @@ impl Tool {
     pub async fn install(
         &mut self,
         options: InstallOptions,
-    ) -> miette::Result<Option<LockfileRecord>> {
+    ) -> Result<Option<LockRecord>, ProtoInstallError> {
         if self.is_installed() && !options.force {
             debug!(
-                tool = self.id.as_str(),
+                tool = self.context.as_str(),
                 "Tool already installed, continuing"
             );
 
@@ -482,7 +465,7 @@ impl Tool {
         }
 
         if is_offline() {
-            return Err(ProtoEnvError::RequiredInternetConnection.into());
+            return Err(ProtoInstallError::RequiredInternetConnection);
         }
 
         let temp_dir = self.get_temp_dir();
@@ -491,33 +474,37 @@ impl Tool {
         // Lock the temporary directory instead of the install directory,
         // because the latter needs to be clean for "build from source",
         // and the `.lock` file breaks that contract
-        let mut install_lock = fs::lock_directory(&temp_dir)?;
+        let mut install_lock = fs::lock_directory(temp_dir)?;
 
         // If this function is defined, it acts like an escape hatch and
         // takes precedence over all other install strategies
-        if self.plugin.has_func("native_install").await {
-            debug!(tool = self.id.as_str(), "Installing tool natively");
+        if self.plugin.has_func(PluginFunction::NativeInstall).await {
+            debug!(tool = self.context.as_str(), "Installing tool natively");
 
             options.on_phase_change.as_ref().inspect(|func| {
                 func(InstallPhase::Native);
             });
 
-            fs::create_dir_all(&install_dir)?;
+            fs::create_dir_all(install_dir)?;
 
             let output: NativeInstallOutput = self
                 .plugin
                 .call_func_with(
-                    "native_install",
+                    PluginFunction::NativeInstall,
                     NativeInstallInput {
-                        context: self.create_context(),
-                        install_dir: self.to_virtual_path(&install_dir),
+                        context: self.create_plugin_context(),
+                        install_dir: self.to_virtual_path(install_dir),
+                        force: options.force,
                     },
                 )
                 .await?;
 
             if output.installed {
-                let mut record = LockfileRecord::new(self.backend);
+                let mut record = self.create_locked_record();
                 record.checksum = output.checksum;
+
+                // Verify against lockfile
+                self.verify_locked_record(&record)?;
 
                 return Ok(Some(record));
             }
@@ -526,26 +513,27 @@ impl Tool {
                 return Err(ProtoInstallError::FailedInstall {
                     tool: self.get_name().to_owned(),
                     error: output.error.unwrap_or_default(),
-                }
-                .into());
+                });
             }
         }
 
         // Build the tool from source
         let result = if matches!(options.strategy, InstallStrategy::BuildFromSource) {
-            self.build_from_source(&install_dir, &temp_dir, options)
-                .await
+            self.build_from_source(install_dir, temp_dir, options).await
         }
         // Install from a prebuilt archive
         else {
-            self.install_from_prebuilt(&install_dir, &temp_dir, options)
+            self.install_from_prebuilt(install_dir, temp_dir, options)
                 .await
         };
 
         match result {
             Ok(record) => {
+                // Verify against lockfile
+                self.verify_locked_record(&record)?;
+
                 debug!(
-                    tool = self.id.as_str(),
+                    tool = self.context.as_str(),
                     install_dir = ?install_dir,
                     "Successfully installed tool",
                 );
@@ -556,15 +544,15 @@ impl Tool {
             // Clean up if the install failed
             Err(error) => {
                 debug!(
-                    tool = self.id.as_str(),
+                    tool = self.context.as_str(),
                     install_dir = ?install_dir,
                     "Failed to install tool, cleaning up",
                 );
 
                 install_lock.unlock()?;
 
-                fs::remove_dir_all(&install_dir)?;
-                fs::remove_dir_all(&temp_dir)?;
+                fs::remove_dir_all(install_dir)?;
+                fs::remove_dir_all(temp_dir)?;
 
                 Err(error)
             }
@@ -573,28 +561,28 @@ impl Tool {
 
     /// Uninstall the tool by deleting the current install directory.
     #[instrument(skip_all)]
-    pub async fn uninstall(&self) -> miette::Result<bool> {
+    pub async fn uninstall(&self) -> Result<bool, ProtoInstallError> {
         let install_dir = self.get_product_dir();
 
         if !install_dir.exists() {
             debug!(
-                tool = self.id.as_str(),
+                tool = self.context.as_str(),
                 "Tool has not been installed, aborting"
             );
 
             return Ok(false);
         }
 
-        if self.plugin.has_func("native_uninstall").await {
-            debug!(tool = self.id.as_str(), "Uninstalling tool natively");
+        if self.plugin.has_func(PluginFunction::NativeUninstall).await {
+            debug!(tool = self.context.as_str(), "Uninstalling tool natively");
 
             let output: NativeUninstallOutput = self
                 .plugin
                 .call_func_with(
-                    "native_uninstall",
+                    PluginFunction::NativeUninstall,
                     NativeUninstallInput {
-                        context: self.create_context(),
-                        uninstall_dir: self.to_virtual_path(&install_dir),
+                        context: self.create_plugin_context(),
+                        uninstall_dir: self.to_virtual_path(install_dir),
                     },
                 )
                 .await?;
@@ -603,20 +591,22 @@ impl Tool {
                 return Err(ProtoInstallError::FailedUninstall {
                     tool: self.get_name().to_owned(),
                     error: output.error.unwrap_or_default(),
-                }
-                .into());
+                });
             }
         }
 
         debug!(
-            tool = self.id.as_str(),
+            tool = self.context.as_str(),
             install_dir = ?install_dir,
             "Deleting install directory"
         );
 
         fs::remove_dir_all(install_dir)?;
 
-        debug!(tool = self.id.as_str(), "Successfully uninstalled tool");
+        debug!(
+            tool = self.context.as_str(),
+            "Successfully uninstalled tool"
+        );
 
         Ok(true)
     }

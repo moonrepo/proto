@@ -14,17 +14,23 @@ pub fn verify_checksum(
     download_file: &Path,
     checksum_file: &Path,
     checksum: &Checksum,
-) -> miette::Result<bool> {
+) -> Result<bool, ProtoChecksumError> {
     match checksum.algo {
         ChecksumAlgorithm::Minisign => minisign::verify_checksum(
             download_file,
             checksum_file,
-            checksum.key.as_deref().unwrap(),
+            checksum
+                .key
+                .as_deref()
+                .expect("Expected a public key for minisign checksum"),
         ),
         ChecksumAlgorithm::Sha256 | ChecksumAlgorithm::Sha512 => sha::verify_checksum(
             download_file,
             checksum_file,
-            checksum.hash.as_deref().unwrap(),
+            checksum
+                .hash
+                .as_deref()
+                .expect("Expected a hash for SHA checksum"),
         ),
     }
 }
@@ -34,22 +40,30 @@ pub fn generate_checksum(
     download_file: &Path,
     checksum_file: &Path,
     checksum_public_key: Option<&str>,
-) -> miette::Result<Checksum> {
+) -> Result<Checksum, ProtoChecksumError> {
     match detect_checksum_algorithm(checksum_file)? {
         ChecksumAlgorithm::Minisign => Ok(Checksum::minisign(
             checksum_public_key
                 .ok_or(ProtoChecksumError::MissingPublicKey)?
                 .to_owned(),
         )),
-        ChecksumAlgorithm::Sha512 => {
-            Ok(Checksum::sha512(hash_file_contents_sha512(download_file)?))
-        }
-        _ => Ok(Checksum::sha256(hash_file_contents_sha256(download_file)?)),
+        ChecksumAlgorithm::Sha512 => Ok(Checksum::sha512(
+            hash_file_contents_sha512(download_file).map_err(|error| ProtoChecksumError::Sha {
+                error: Box::new(error),
+            })?,
+        )),
+        _ => Ok(Checksum::sha256(
+            hash_file_contents_sha256(download_file).map_err(|error| ProtoChecksumError::Sha {
+                error: Box::new(error),
+            })?,
+        )),
     }
 }
 
 #[tracing::instrument(skip_all)]
-pub fn detect_checksum_algorithm(checksum_file: &Path) -> miette::Result<ChecksumAlgorithm> {
+pub fn detect_checksum_algorithm(
+    checksum_file: &Path,
+) -> Result<ChecksumAlgorithm, ProtoChecksumError> {
     // Check file extension
     let mut algo = match checksum_file.extension().and_then(|ext| ext.to_str()) {
         Some("minisig" | "minisign") => Some(ChecksumAlgorithm::Minisign),
@@ -78,21 +92,20 @@ pub fn detect_checksum_algorithm(checksum_file: &Path) -> miette::Result<Checksu
 
             // Windows
             if line.contains(':') {
-                if let Some((label, value)) = line.split_once(':') {
-                    if label.trim() == "Algorithm" {
-                        algo = match value.trim() {
-                            "SHA256" => Some(ChecksumAlgorithm::Sha256),
-                            "SHA512" => Some(ChecksumAlgorithm::Sha512),
-                            other => {
-                                return Err(ProtoChecksumError::UnsupportedAlgorithm {
-                                    algo: other.into(),
-                                }
-                                .into());
-                            }
-                        };
+                if let Some((label, value)) = line.split_once(':')
+                    && label.trim() == "Algorithm"
+                {
+                    algo = match value.trim() {
+                        "SHA256" => Some(ChecksumAlgorithm::Sha256),
+                        "SHA512" => Some(ChecksumAlgorithm::Sha512),
+                        other => {
+                            return Err(ProtoChecksumError::UnsupportedAlgorithm {
+                                algo: other.into(),
+                            });
+                        }
+                    };
 
-                        break;
-                    }
+                    break;
                 }
 
                 continue;
@@ -111,10 +124,7 @@ pub fn detect_checksum_algorithm(checksum_file: &Path) -> miette::Result<Checksu
         }
     }
 
-    algo.ok_or_else(|| {
-        ProtoChecksumError::UnknownAlgorithm {
-            path: checksum_file.to_path_buf(),
-        }
-        .into()
+    algo.ok_or_else(|| ProtoChecksumError::UnknownAlgorithm {
+        path: checksum_file.to_path_buf(),
     })
 }

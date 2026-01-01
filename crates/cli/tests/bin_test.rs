@@ -11,11 +11,11 @@ mod bin {
         let sandbox = create_empty_proto_sandbox();
 
         let assert = sandbox.run_bin(|cmd| {
-            cmd.arg("bin").arg("node").arg("19.0.0");
+            cmd.arg("bin").arg("protostar").arg("1.0.0");
         });
 
         assert.inner.stderr(predicate::str::contains(
-            "Unable to find an executable for Node.js",
+            "Unable to find an executable for protostar",
         ));
     }
 
@@ -25,22 +25,22 @@ mod bin {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("install").arg("node").arg("19.0.0");
+                cmd.arg("install").arg("protostar").arg("1.0.0");
             })
             .success();
 
         let assert = sandbox.run_bin(|cmd| {
-            cmd.arg("bin").arg("node").arg("19.0.0");
+            cmd.arg("bin").arg("protostar").arg("1.0.0");
         });
 
         if cfg!(windows) {
-            assert
-                .inner
-                .stdout(predicate::str::contains("tools\\node\\19.0.0\\node.exe"));
+            assert.inner.stdout(predicate::str::contains(
+                "tools\\protostar\\1.0.0\\protostar.exe",
+            ));
         } else {
             assert
                 .inner
-                .stdout(predicate::str::contains("tools/node/19.0.0/bin/node"));
+                .stdout(predicate::str::contains("tools/protostar/1.0.0/protostar"));
         }
     }
 
@@ -50,18 +50,20 @@ mod bin {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("install").arg("node").arg("19.0.0");
+                cmd.arg("install").arg("protostar").arg("1.0.0");
             })
             .success();
 
         let assert = sandbox.run_bin(|cmd| {
-            cmd.arg("bin").arg("node").arg("19.0.0").arg("--bin");
+            cmd.arg("bin").arg("protostar").arg("1.0.0").arg("--bin");
         });
 
         if cfg!(windows) {
-            assert.inner.stdout(predicate::str::contains("node.exe"));
+            assert
+                .inner
+                .stdout(predicate::str::contains("protostar.exe"));
         } else {
-            assert.inner.stdout(predicate::str::contains("bin/node"));
+            assert.inner.stdout(predicate::str::contains("protostar"));
         }
     }
 
@@ -71,20 +73,80 @@ mod bin {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("install").arg("node").arg("19.0.0");
+                cmd.arg("install").arg("protostar").arg("1.0.0");
             })
             .success();
 
         let assert = sandbox.run_bin(|cmd| {
-            cmd.arg("bin").arg("node").arg("19.0.0").arg("--shim");
+            cmd.arg("bin").arg("protostar").arg("1.0.0").arg("--shim");
         });
 
         if cfg!(windows) {
             assert
                 .inner
-                .stdout(predicate::str::contains("shims\\node.exe"));
+                .stdout(predicate::str::contains("shims\\protostar.exe"));
         } else {
-            assert.inner.stdout(predicate::str::contains("shims/node"));
+            assert
+                .inner
+                .stdout(predicate::str::contains("shims/protostar"));
+        }
+    }
+
+    #[test]
+    fn returns_exes_dir() {
+        let sandbox = create_empty_proto_sandbox();
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install").arg("protostar").arg("1.0.0");
+            })
+            .success();
+
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.arg("bin")
+                .arg("protostar")
+                .arg("1.0.0")
+                .arg("--dir")
+                .arg("exes");
+        });
+
+        if cfg!(windows) {
+            assert
+                .inner
+                .stdout(predicate::str::contains("tools\\protostar\\1.0.0\\lib"));
+        } else {
+            assert
+                .inner
+                .stdout(predicate::str::contains("tools/protostar/1.0.0/lib"));
+        }
+    }
+
+    #[test]
+    fn returns_globals_dir() {
+        let sandbox = create_empty_proto_sandbox();
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install").arg("protostar").arg("1.0.0");
+            })
+            .success();
+
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.arg("bin")
+                .arg("protostar")
+                .arg("1.0.0")
+                .arg("--dir")
+                .arg("globals");
+        });
+
+        if cfg!(windows) {
+            assert
+                .inner
+                .stdout(predicate::str::contains(".home\\.protostar\\bin"));
+        } else {
+            assert
+                .inner
+                .stdout(predicate::str::contains(".home/.protostar/bin"));
         }
     }
 }

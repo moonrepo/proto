@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use warpgate_api::{FileLocator, GitHubLocator, PluginLocator, UrlLocator};
+use warpgate_api::{FileLocator, GitHubLocator, PluginLocator, RegistryLocator, UrlLocator};
 
 mod locator {
     use super::*;
@@ -92,6 +92,113 @@ mod locator {
     #[should_panic(expected = "MissingLocation")]
     fn errors_empty_location() {
         PluginLocator::try_from("file://".to_string()).unwrap();
+    }
+
+    mod registry {
+        use super::*;
+
+        #[test]
+        #[should_panic(expected = "MissingLocation")]
+        fn error_no_image() {
+            PluginLocator::try_from("registry://".to_string()).unwrap();
+        }
+
+        #[test]
+        #[should_panic(expected = "MissingRegistryImage")]
+        fn error_no_image_but_tag() {
+            PluginLocator::try_from("registry://:v0.0.0".to_string()).unwrap();
+        }
+
+        #[test]
+        fn parses_image() {
+            assert_eq!(
+                PluginLocator::try_from("registry://java".to_string()).unwrap(),
+                PluginLocator::Registry(Box::new(RegistryLocator {
+                    registry: None,
+                    namespace: None,
+                    tag: None,
+                    image: "java".into(),
+                }))
+            );
+        }
+
+        #[test]
+        fn parses_slug() {
+            assert_eq!(
+                PluginLocator::try_from("registry://moonrepo/java".to_string()).unwrap(),
+                PluginLocator::Registry(Box::new(RegistryLocator {
+                    registry: None,
+                    namespace: Some("moonrepo".into()),
+                    tag: None,
+                    image: "java".into(),
+                }))
+            );
+        }
+
+        #[test]
+        fn parses_deep_slug() {
+            assert_eq!(
+                PluginLocator::try_from(
+                    "registry://moonrepo/org/namespace1/namspace2/java".to_string()
+                )
+                .unwrap(),
+                PluginLocator::Registry(Box::new(RegistryLocator {
+                    registry: None,
+                    namespace: Some("moonrepo/org/namespace1/namspace2".into()),
+                    tag: None,
+                    image: "java".into(),
+                }))
+            );
+        }
+
+        #[test]
+        fn parses_deep_slug_with_domain() {
+            assert_eq!(
+                PluginLocator::try_from(
+                    "registry://registry.moonrepo.dev/org/namespace1/namspace2/java".to_string()
+                )
+                .unwrap(),
+                PluginLocator::Registry(Box::new(RegistryLocator {
+                    registry: Some("registry.moonrepo.dev".into()),
+                    namespace: Some("org/namespace1/namspace2".into()),
+                    tag: None,
+                    image: "java".into(),
+                }))
+            );
+        }
+
+        #[test]
+        fn parses_tag_data() {
+            assert_eq!(
+                PluginLocator::try_from(
+                    "registry://moonrepo/org/namespace1/namspace2/java:something".to_string()
+                )
+                .unwrap(),
+                PluginLocator::Registry(Box::new(RegistryLocator {
+                    registry: None,
+                    namespace: Some("moonrepo/org/namespace1/namspace2".into()),
+                    tag: Some("something".into()),
+                    image: "java".into(),
+                }))
+            );
+        }
+
+        #[test]
+        fn parses_tag_data_with_domain() {
+            assert_eq!(
+                PluginLocator::try_from(
+                    "registry://ghcr.io/moonrepo/org/namespace1/namspace2/java:something"
+                        .to_string()
+                )
+                .unwrap(),
+                PluginLocator::Registry(Box::new(RegistryLocator {
+                    registry: Some("ghcr.io".into()),
+                    namespace: Some("moonrepo/org/namespace1/namspace2".into()),
+                    tag: Some("something".into()),
+                    image: "java".into(),
+                }))
+            );
+        }
     }
 
     mod file {

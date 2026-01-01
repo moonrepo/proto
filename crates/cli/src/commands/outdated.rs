@@ -3,8 +3,9 @@ use crate::session::{LoadToolOptions, ProtoSession};
 use clap::Args;
 use iocraft::prelude::{Size, element};
 use miette::IntoDiagnostic;
+use proto_core::flow::resolve::ProtoResolveError;
 use proto_core::{
-    Id, PROTO_CONFIG_NAME, ProtoConfig, ToolSpec, UnresolvedVersionSpec, VersionSpec,
+    PROTO_CONFIG_NAME, ProtoConfig, ToolContext, ToolSpec, UnresolvedVersionSpec, VersionSpec, cfg,
 };
 use semver::VersionReq;
 use serde::Serialize;
@@ -82,7 +83,7 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
             let version_resolver = tool.load_version_resolver(&initial_version).await?;
 
             debug!(
-                id = tool.id.as_str(),
+                tool = tool.context.as_str(),
                 config = config_version.to_string(),
                 "Resolving current version"
             );
@@ -93,7 +94,7 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
             let newest_range = get_in_major_range(&config_version.req);
 
             debug!(
-                id = tool.id.as_str(),
+                tool = tool.context.as_str(),
                 range = newest_range.to_string(),
                 "Resolving newest version"
             );
@@ -103,7 +104,7 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
                 .await?;
 
             debug!(
-                id = tool.id.as_str(),
+                tool = tool.context.as_str(),
                 alias = initial_version.to_string(),
                 "Resolving latest version"
             );
@@ -112,8 +113,8 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
                 .resolve_version_candidate(&version_resolver, &initial_version, true)
                 .await?;
 
-            Result::<_, miette::Report>::Ok((
-                tool.id.clone(),
+            Result::<_, ProtoResolveError>::Ok((
+                tool.context.clone(),
                 OutdatedItem {
                     is_latest: current_version == latest_version,
                     is_outdated: newest_version > current_version
@@ -131,9 +132,9 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
     let mut items = BTreeMap::default();
 
     for future in futures {
-        let (id, item) = future.await.into_diagnostic()??;
+        let (context, item) = future.await.into_diagnostic()??;
 
-        items.insert(id, item);
+        items.insert(context, item);
     }
 
     if items.is_empty() {
@@ -141,7 +142,7 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
     }
 
     debug!(
-        tools = ?items.keys().map(|id| id.as_str()).collect::<Vec<_>>(),
+        tools = ?items.keys().map(|ctx| ctx.as_str()).collect::<Vec<_>>(),
         "Found tools with configured versions, loading them",
     );
 
@@ -154,25 +155,25 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
         return Ok(None);
     }
 
-    let id_width = items.keys().fold(0, |acc, id| acc.max(id.as_str().len()));
+    let ctx_width = items.keys().fold(0, |acc, ctx| acc.max(ctx.as_str().len()));
 
     session.console.render(element! {
         Container {
             Table(
                 headers: vec![
-                    TableHeader::new("Tool", Size::Length((id_width + 3).max(10) as u32)),
+                    TableHeader::new("Tool", Size::Length((ctx_width + 3).max(10) as u32)),
                     TableHeader::new("Current", Size::Length(10)),
                     TableHeader::new("Newest", Size::Length(10)),
                     TableHeader::new("Latest", Size::Length(10)),
                     TableHeader::new("Config", Size::Auto),
                 ]
             ) {
-                #(items.iter().enumerate().map(|(i, (id, item))| {
+                #(items.iter().enumerate().map(|(i, (ctx, item))| {
                     element! {
                         TableRow(row: i as i32) {
                             TableCol(col: 0) {
                                 StyledText(
-                                    content: id.to_string(),
+                                    content: ctx.to_string(),
                                     style: Style::Id
                                 )
                             }
@@ -252,9 +253,10 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
     }
 
     if skip_prompts || confirmed {
-        let mut updates: BTreeMap<PathBuf, BTreeMap<Id, UnresolvedVersionSpec>> = BTreeMap::new();
+        let mut updates: BTreeMap<PathBuf, BTreeMap<ToolContext, UnresolvedVersionSpec>> =
+            BTreeMap::new();
 
-        for (id, item) in &items {
+        for (context, item) in &items {
             let Some(src) = &item.config_source else {
                 continue;
             };
@@ -263,7 +265,7 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
                 warn!(
                     config = ?src,
                     "Unable to update the version for {}, as its config source is not a {} file",
-                    color::id(id),
+                    color::id(context),
                     color::file(PROTO_CONFIG_NAME),
                 );
 
@@ -271,7 +273,7 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
             }
 
             updates.entry(src.to_owned()).or_default().insert(
-                id.to_owned(),
+                context.to_owned(),
                 if args.latest {
                     item.latest_version.to_unresolved_spec()
                 } else {
@@ -290,17 +292,9 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
                 "Updating config with versions",
             );
 
-            ProtoConfig::update(config_path, |config| {
-                let versions = config.versions.get_or_insert(Default::default());
-
-                // Try and preserve any spec backend's
-                for (id, updated_version) in updated_versions {
-                    versions
-                        .entry(id)
-                        .and_modify(|spec| {
-                            spec.req = updated_version.clone();
-                        })
-                        .or_insert_with(|| ToolSpec::new(updated_version));
+            ProtoConfig::update_document(config_path, |doc| {
+                for (context, updated_version) in updated_versions {
+                    doc[context.as_str()] = cfg::value(ToolSpec::new(updated_version).to_string());
                 }
             })?;
         }

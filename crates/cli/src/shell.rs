@@ -1,9 +1,9 @@
-use crate::session::ProtoConsole;
+use crate::{error::ProtoCliError, session::ProtoConsole};
 use iocraft::prelude::element;
 use starbase_console::ui::*;
 use starbase_shell::{BoxedShell, ShellType};
 use starbase_styles::color;
-use starbase_utils::fs;
+use starbase_utils::fs::{self, FsError};
 use std::{
     env::{self, consts},
     io::{self, BufRead},
@@ -16,25 +16,25 @@ pub enum Export {
     Var(String, String),
 }
 
-pub fn find_profiles(shell: &BoxedShell, home_dir: &Path) -> miette::Result<Vec<PathBuf>> {
+pub fn find_profiles(shell: &BoxedShell, home_dir: &Path) -> Vec<PathBuf> {
     debug!("Finding profile files for {}", shell);
 
     if let Ok(profile_env) = env::var("PROTO_SHELL_PROFILE") {
-        return Ok(vec![PathBuf::from(profile_env)]);
+        return vec![PathBuf::from(profile_env)];
     }
 
-    Ok(shell.get_profile_paths(home_dir))
+    shell.get_profile_paths(home_dir)
 }
 
-pub fn find_first_profile(shell: &BoxedShell, home_dir: &Path) -> miette::Result<PathBuf> {
-    for profile in find_profiles(shell, home_dir)? {
+pub fn find_first_profile(shell: &BoxedShell, home_dir: &Path) -> PathBuf {
+    for profile in find_profiles(shell, home_dir) {
         if profile.exists() {
-            return Ok(profile);
+            return profile;
         }
     }
 
     // Otherwise return the common profile for setting env vars
-    Ok(shell.get_env_path(home_dir))
+    shell.get_env_path(home_dir)
 }
 
 pub fn format_exports(shell: &BoxedShell, comment: &str, exports: Vec<Export>) -> String {
@@ -47,7 +47,7 @@ pub fn format_exports(shell: &BoxedShell, comment: &str, exports: Vec<Export>) -
 
     for export in exports {
         lines.push(match export {
-            Export::Path(paths) => shell.format_path_set(&paths),
+            Export::Path(paths) => shell.format_path_prepend(&paths),
             Export::Var(key, value) => shell.format_env_set(&key, &value),
         });
     }
@@ -55,7 +55,7 @@ pub fn format_exports(shell: &BoxedShell, comment: &str, exports: Vec<Export>) -
     lines.join(newline)
 }
 
-pub fn update_profile(profile: &Path, contents: &str, env_var: &str) -> miette::Result<()> {
+pub fn update_profile(profile: &Path, contents: &str, env_var: &str) -> Result<(), FsError> {
     debug!("Updating profile {} with {}", color::path(profile), env_var);
 
     fs::append_file(profile, contents)?;
@@ -67,7 +67,7 @@ pub fn update_profile_if_not_setup(
     profile: &Path,
     contents: &str,
     env_var: &str,
-) -> miette::Result<bool> {
+) -> Result<bool, FsError> {
     if !profile.exists() {
         update_profile(profile, contents, env_var)?;
 
@@ -99,7 +99,7 @@ pub fn update_profile_if_not_setup(
     Ok(true)
 }
 
-pub async fn prompt_for_shell(console: &ProtoConsole) -> miette::Result<ShellType> {
+pub async fn prompt_for_shell(console: &ProtoConsole) -> Result<ShellType, ProtoCliError> {
     let options = ShellType::os_variants();
     let mut selected_index = 0;
 
@@ -123,8 +123,8 @@ pub async fn prompt_for_shell_profile(
     console: &ProtoConsole,
     shell: &BoxedShell,
     home_dir: &Path,
-) -> miette::Result<Option<PathBuf>> {
-    let profiles = find_profiles(shell, home_dir)?;
+) -> Result<Option<PathBuf>, ProtoCliError> {
+    let profiles = find_profiles(shell, home_dir);
 
     let mut options = profiles
         .iter()

@@ -1,6 +1,6 @@
 pub use super::detect_error::ProtoDetectError;
-use super::resolve_error::ProtoResolveError;
-use crate::config::{DetectStrategy, PROTO_CONFIG_NAME, ProtoConfigFile};
+use crate::config::{DetectStrategy, PROTO_CONFIG_NAME};
+use crate::file_manager::ProtoConfigFile;
 use crate::tool::Tool;
 use crate::tool_spec::ToolSpec;
 use proto_pdk_api::*;
@@ -16,20 +16,20 @@ fn set_detected_env_var(prefix: String, path: &Path) {
 fn detect_from_proto_config(
     tool: &Tool,
     file: &ProtoConfigFile,
-) -> miette::Result<Option<UnresolvedVersionSpec>> {
-    if let Some(versions) = &file.config.versions {
-        if let Some(version) = versions.get(tool.id.as_str()) {
-            debug!(
-                tool = tool.id.as_str(),
-                version = version.to_string(),
-                file = ?file.path,
-                "Detected version from {} file", PROTO_CONFIG_NAME
-            );
+) -> Result<Option<UnresolvedVersionSpec>, ProtoDetectError> {
+    if let Some(versions) = &file.config.versions
+        && let Some(version) = versions.get(&tool.context)
+    {
+        debug!(
+            tool = tool.context.as_str(),
+            version = version.to_string(),
+            file = ?file.path,
+            "Detected version from {} file", PROTO_CONFIG_NAME
+        );
 
-            set_detected_env_var(tool.get_env_var_prefix(), &file.path);
+        set_detected_env_var(tool.get_env_var_prefix(), &file.path);
 
-            return Ok(Some(version.req.to_owned()));
-        }
+        return Ok(Some(version.req.to_owned()));
     }
 
     Ok(None)
@@ -38,13 +38,13 @@ fn detect_from_proto_config(
 async fn detect_from_tool_ecosystem(
     tool: &Tool,
     file: &ProtoConfigFile,
-) -> miette::Result<Option<UnresolvedVersionSpec>> {
+) -> Result<Option<UnresolvedVersionSpec>, ProtoDetectError> {
     if let Some((version, file)) = tool
         .detect_version_from(file.path.parent().unwrap())
         .await?
     {
         debug!(
-            tool = tool.id.as_str(),
+            tool = tool.context.as_str(),
             version = version.to_string(),
             file = ?file,
             "Detected version from tool's ecosystem"
@@ -62,7 +62,7 @@ async fn detect_from_tool_ecosystem(
 pub async fn detect_version_first_available(
     tool: &Tool,
     config_files: &[&ProtoConfigFile],
-) -> miette::Result<Option<UnresolvedVersionSpec>> {
+) -> Result<Option<UnresolvedVersionSpec>, ProtoDetectError> {
     for file in config_files {
         if let Some(version) = detect_from_proto_config(tool, file)? {
             return Ok(Some(version));
@@ -80,7 +80,7 @@ pub async fn detect_version_first_available(
 pub async fn detect_version_only_prototools(
     tool: &Tool,
     config_files: &[&ProtoConfigFile],
-) -> miette::Result<Option<UnresolvedVersionSpec>> {
+) -> Result<Option<UnresolvedVersionSpec>, ProtoDetectError> {
     for file in config_files {
         if let Some(version) = detect_from_proto_config(tool, file)? {
             return Ok(Some(version));
@@ -94,7 +94,7 @@ pub async fn detect_version_only_prototools(
 pub async fn detect_version_prefer_prototools(
     tool: &Tool,
     config_files: &[&ProtoConfigFile],
-) -> miette::Result<Option<UnresolvedVersionSpec>> {
+) -> Result<Option<UnresolvedVersionSpec>, ProtoDetectError> {
     // Check config files first
     if let Some(version) = detect_version_only_prototools(tool, config_files).await? {
         return Ok(Some(version));
@@ -112,31 +112,32 @@ pub async fn detect_version_prefer_prototools(
 
 impl Tool {
     #[instrument(skip(self))]
-    pub async fn detect_version(&self) -> miette::Result<ToolSpec> {
+    pub async fn detect_version(&self) -> Result<ToolSpec, ProtoDetectError> {
         // Env var takes highest priority
         let env_var = format!("{}_VERSION", self.get_env_var_prefix());
 
-        if let Ok(session_version) = env::var(&env_var) {
-            if !session_version.is_empty() {
-                debug!(
-                    tool = self.id.as_str(),
-                    env_var,
-                    version = session_version,
-                    "Detected version from environment variable",
-                );
+        if let Ok(session_version) = env::var(&env_var)
+            && !session_version.is_empty()
+        {
+            debug!(
+                tool = self.context.as_str(),
+                env_var,
+                version = session_version,
+                "Detected version from environment variable",
+            );
 
-                return Ok(UnresolvedVersionSpec::parse(&session_version)
-                    .map_err(|error| ProtoResolveError::InvalidVersionSpec {
-                        version: session_version,
-                        error: Box::new(error),
-                    })?
-                    .into());
-            }
+            return Ok(UnresolvedVersionSpec::parse(&session_version)
+                .map_err(|error| ProtoDetectError::InvalidDetectedVersionSpec {
+                    path: PathBuf::from(env_var),
+                    version: session_version,
+                    error: Box::new(error),
+                })?
+                .into());
         }
 
         // Traverse upwards and attempt to detect a version
         trace!(
-            tool = self.id.as_str(),
+            tool = self.context.as_str(),
             "Attempting to find version from {} files", PROTO_CONFIG_NAME
         );
 
@@ -162,8 +163,7 @@ impl Tool {
         // We didn't find anything!
         Err(ProtoDetectError::FailedVersionDetect {
             tool: self.get_name().to_owned(),
-        }
-        .into())
+        })
     }
 
     /// Attempt to detect a version from the provided directory by scanning for applicable files.
@@ -171,32 +171,35 @@ impl Tool {
     pub async fn detect_version_from(
         &self,
         current_dir: &Path,
-    ) -> miette::Result<Option<(UnresolvedVersionSpec, PathBuf)>> {
-        if !self.plugin.has_func("detect_version_files").await {
+    ) -> Result<Option<(UnresolvedVersionSpec, PathBuf)>, ProtoDetectError> {
+        if !self
+            .plugin
+            .has_func(PluginFunction::DetectVersionFiles)
+            .await
+        {
             return Ok(None);
         }
 
-        let has_parser = self.plugin.has_func("parse_version_file").await;
+        let has_parser = self.plugin.has_func(PluginFunction::ParseVersionFile).await;
         let output: DetectVersionOutput = self
             .plugin
             .cache_func_with(
-                "detect_version_files",
+                PluginFunction::DetectVersionFiles,
                 DetectVersionInput {
-                    context: self.create_unresolved_context(),
+                    context: self.create_plugin_unresolved_context(),
                 },
             )
             .await?;
 
-        if !output.ignore.is_empty() {
-            if let Some(dir) = current_dir.to_str() {
-                if output.ignore.iter().any(|ignore| dir.contains(ignore)) {
-                    return Ok(None);
-                }
-            }
+        if !output.ignore.is_empty()
+            && let Some(dir) = current_dir.to_str()
+            && output.ignore.iter().any(|ignore| dir.contains(ignore))
+        {
+            return Ok(None);
         }
 
         trace!(
-            tool = self.id.as_str(),
+            tool = self.context.as_str(),
             dir = ?current_dir,
             "Attempting to detect a version from directory"
         );
@@ -218,10 +221,10 @@ impl Tool {
                 let output: ParseVersionFileOutput = self
                     .plugin
                     .call_func_with(
-                        "parse_version_file",
+                        PluginFunction::ParseVersionFile,
                         ParseVersionFileInput {
                             content,
-                            context: self.create_unresolved_context(),
+                            context: self.create_plugin_unresolved_context(),
                             file: file.clone(),
                             path: self.to_virtual_path(&file_path),
                         },
@@ -244,7 +247,7 @@ impl Tool {
             };
 
             debug!(
-                tool = self.id.as_str(),
+                tool = self.context.as_str(),
                 file = ?file_path,
                 version = version.to_string(),
                 "Detected a version"

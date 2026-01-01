@@ -276,4 +276,38 @@ mod unresolved_spec {
             UnresolvedVersionSpec::Req(VersionReq::parse("~1").unwrap())
         );
     }
+
+    #[test]
+    fn to_partial_string() {
+        assert_eq!(
+            UnresolvedVersionSpec::parse("1")
+                .unwrap()
+                .to_partial_string(),
+            "1"
+        );
+        assert_eq!(
+            UnresolvedVersionSpec::parse("~1.2")
+                .unwrap()
+                .to_partial_string(),
+            "1.2"
+        );
+        assert_eq!(
+            UnresolvedVersionSpec::parse("^1.2.3")
+                .unwrap()
+                .to_partial_string(),
+            "1.2.3"
+        );
+        assert_eq!(
+            UnresolvedVersionSpec::parse("1.2.3-rc.0")
+                .unwrap()
+                .to_partial_string(),
+            "1.2.3-rc.0"
+        );
+        assert_eq!(
+            UnresolvedVersionSpec::parse("1.2.3+build")
+                .unwrap()
+                .to_partial_string(),
+            "1.2.3"
+        );
+    }
 }

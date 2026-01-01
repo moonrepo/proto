@@ -15,7 +15,7 @@ pub struct RegenArgs {
 #[tracing::instrument(skip_all)]
 pub async fn regen(session: ProtoSession, args: RegenArgs) -> AppResult {
     let store = &session.env.store;
-    let progress = session.render_progress_loader().await?;
+    let progress = session.render_progress_loader().await;
 
     progress.set_message(if args.bin {
         "Regenerating shims and bins..."
@@ -56,7 +56,7 @@ pub async fn regen(session: ProtoSession, args: RegenArgs) -> AppResult {
         progress.set_message(format!("Regenerating {}", tool.get_name()));
 
         // Shims - Create once if tool has a configured version
-        if let Some(version) = config.versions.get(&tool.id) {
+        if let Some(version) = config.versions.get(&tool.context) {
             debug!("Regenerating {} shim", tool.get_name());
 
             tool.resolve_version(version, true).await?;

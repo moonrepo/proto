@@ -1,5 +1,5 @@
 use serde::Serialize;
-use starbase_utils::env::{is_ci, path_var};
+use starbase_utils::envx::{is_ci, path_var};
 use starbase_utils::fs;
 use std::collections::HashMap;
 use std::env;
@@ -61,23 +61,35 @@ pub fn find_target_dir<T: AsRef<Path>>(search_dir: T) -> Option<PathBuf> {
 /// Find an applicable WASM file to run tests with. Will attempt to find
 /// the file based on the Cargo package name and target directories.
 pub fn find_wasm_file() -> PathBuf {
-    let wasm_file = format!(
-        "{}.wasm",
-        env::var("CARGO_PKG_NAME").expect("Missing CARGO_PKG_NAME!")
-    );
+    let name = env::var("CARGO_PKG_NAME").expect("Missing CARGO_PKG_NAME!");
 
-    for env_var in ["CARGO_MANIFEST_DIR", "CARGO_TARGET_DIR"] {
-        if let Some(env_path) = path_var(env_var) {
-            if let Some(wasm_path) = traverse_target_dir(env_path, &wasm_file) {
-                return wasm_path;
-            }
+    find_wasm_file_with_name(&name).unwrap_or_else(|| {
+        panic!("WASM file `{name}.wasm` does not exist. Please build it with `cargo build --target wasm32-wasip1` before running tests!")
+    })
+}
+
+/// Find an applicable WASM file with the provided name to run tests with.
+/// Will attempt to find the file based on the Cargo package name and target directories.
+pub fn find_wasm_file_with_name(name: &str) -> Option<PathBuf> {
+    let wasm_file = format!("{name}.wasm");
+
+    for env_var in [
+        "WARPGATE_PLUGINS_DIR",
+        "CARGO_MANIFEST_DIR",
+        "CARGO_TARGET_DIR",
+    ] {
+        if let Some(env_path) = path_var(env_var)
+            && let Some(wasm_path) = traverse_target_dir(env_path, &wasm_file)
+        {
+            return Some(wasm_path);
         }
     }
 
-    panic!(
-        "WASM file `{}` does not exist. Please build it with `cargo build --target wasm32-wasip1` before running tests!",
-        wasm_file
-    );
+    if let Some(wasm_path) = traverse_target_dir(env::current_dir().unwrap(), &wasm_file) {
+        return Some(wasm_path);
+    }
+
+    None
 }
 
 /// Enable logging for the provided WASM file by extracting any `tracing` logs
@@ -112,6 +124,7 @@ pub fn enable_wasm_logging(wasm_file: &Path) {
     );
 }
 
+#[derive(Debug)]
 pub struct ConfigBuilder {
     config: HashMap<String, String>,
     sandbox_root: PathBuf,
@@ -158,6 +171,21 @@ impl ConfigBuilder {
         })
     }
 
+    pub fn host_with(&mut self, mut op: impl FnMut(&mut HostEnvironment)) -> &mut Self {
+        let os = HostOS::default();
+        let mut host = HostEnvironment {
+            arch: HostArch::default(),
+            ci: is_ci(),
+            libc: HostLibc::detect(os),
+            os,
+            home_dir: VirtualPath::default(),
+        };
+
+        op(&mut host);
+
+        self.host_environment(host)
+    }
+
     pub fn host_environment(&mut self, mut env: HostEnvironment) -> &mut Self {
         if env.home_dir.real_path().is_none() || env.home_dir.virtual_path().is_none() {
             env.home_dir = VirtualPath::Virtual {
@@ -175,6 +203,7 @@ impl ConfigBuilder {
     }
 
     pub fn plugin_id(&mut self, id: impl AsRef<str>) -> &mut Self {
-        self.insert("plugin_id", id.as_ref())
+        self.config.insert("plugin_id".into(), id.as_ref().into());
+        self
     }
 }

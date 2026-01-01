@@ -38,11 +38,11 @@ impl InstallGraph {
         let mut requires = FxHashMap::default();
 
         for tool in tools {
-            ids.insert(tool.id.clone());
+            ids.insert(tool.get_id().clone());
 
             if !tool.metadata.requires.is_empty() {
                 requires.insert(
-                    tool.id.clone(),
+                    tool.get_id().clone(),
                     tool.metadata.requires.iter().map(Id::raw).collect(),
                 );
             }

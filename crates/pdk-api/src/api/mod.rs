@@ -5,6 +5,7 @@ mod source;
 use crate::shapes::*;
 use derive_setters::Setters;
 use rustc_hash::FxHashMap;
+use schematic::Schema;
 use std::path::PathBuf;
 use version_spec::{CalVer, SemVer, SpecError, UnresolvedVersionSpec, VersionSpec};
 use warpgate_api::*;
@@ -14,13 +15,196 @@ pub use checksum::*;
 pub use semver::{Version, VersionReq};
 pub use source::*;
 
+/// Enumeration of all available plugin functions that can be implemented by plugins.
+///
+/// This enum provides type-safe access to plugin function names and eliminates
+/// the risk of typos when calling plugin functions. Each variant corresponds to
+/// a specific plugin function with its associated input/output types.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum PluginFunction {
+    /// Register and configure a tool with proto.
+    ///
+    /// Called when proto first loads a plugin to get basic metadata about the tool
+    /// including its name, type, and configuration schema.
+    ///
+    /// **Input:** [`RegisterToolInput`] | **Output:** [`RegisterToolOutput`]
+    RegisterTool,
+
+    /// Define the tool configuration schema.
+    ///
+    /// **Input:** [`DefineToolConfigInput`] | **Output:** [`DefineToolConfigOutput`]
+    DefineToolConfig,
+
+    /// Register a backend with proto.
+    ///
+    /// Allows plugins to define custom backends for sourcing tools from locations
+    /// other than the default registry.
+    ///
+    /// **Input:** [`RegisterBackendInput`] | **Output:** [`RegisterBackendOutput`]
+    RegisterBackend,
+
+    /// Define the backend configuration schema.
+    ///
+    /// **Input:** [`DefineBackendConfigInput`] | **Output:** [`DefineBackendConfigOutput`]
+    DefineBackendConfig,
+
+    /// Detect version files in a project.
+    ///
+    /// Returns a list of file patterns that should be checked for version information
+    /// when auto-detecting tool versions.
+    ///
+    /// **Input:** [`DetectVersionInput`] | **Output:** [`DetectVersionOutput`]
+    DetectVersionFiles,
+
+    /// Parse version information from files.
+    ///
+    /// Extracts version specifications from configuration files like `.nvmrc`,
+    /// `package.json`, `pyproject.toml`, etc.
+    ///
+    /// **Input:** [`ParseVersionFileInput`] | **Output:** [`ParseVersionFileOutput`]
+    ParseVersionFile,
+
+    /// Load available versions for a tool.
+    ///
+    /// Fetches the list of available versions that can be installed, including
+    /// version aliases like "latest" or "lts".
+    ///
+    /// **Input:** [`LoadVersionsInput`] | **Output:** [`LoadVersionsOutput`]
+    LoadVersions,
+
+    /// Resolve version specifications to concrete versions.
+    ///
+    /// Takes version requirements or aliases and resolves them to specific
+    /// installable versions.
+    ///
+    /// **Input:** [`ResolveVersionInput`] | **Output:** [`ResolveVersionOutput`]
+    ResolveVersion,
+
+    /// Download prebuilt tool archives.
+    ///
+    /// Provides URLs and metadata for downloading pre-compiled tool binaries
+    /// instead of building from source.
+    ///
+    /// **Input:** [`DownloadPrebuiltInput`] | **Output:** [`DownloadPrebuiltOutput`]
+    DownloadPrebuilt,
+
+    /// Provide build instructions for tools.
+    ///
+    /// Returns the steps needed to build a tool from source, including dependencies,
+    /// build commands, and environment requirements.
+    ///
+    /// **Input:** [`BuildInstructionsInput`] | **Output:** [`BuildInstructionsOutput`]
+    BuildInstructions,
+
+    /// Unpack downloaded archives.
+    ///
+    /// Handles custom unpacking logic for tool archives when the default extraction
+    /// methods are insufficient.
+    ///
+    /// **Input:** [`UnpackArchiveInput`] | **Output:** None
+    UnpackArchive,
+
+    /// Verify download checksums.
+    ///
+    /// Provides custom checksum verification logic for downloaded tool archives
+    /// to ensure integrity.
+    ///
+    /// **Input:** [`VerifyChecksumInput`] | **Output:** [`VerifyChecksumOutput`]
+    VerifyChecksum,
+
+    /// Native tool installation.
+    ///
+    /// Handles tool installation using the tool's own installation methods rather
+    /// than proto's standard process.
+    ///
+    /// **Input:** [`NativeInstallInput`] | **Output:** [`NativeInstallOutput`]
+    NativeInstall,
+
+    /// Native tool uninstallation.
+    ///
+    /// Handles tool removal using the tool's own uninstallation methods rather
+    /// than simple directory deletion.
+    ///
+    /// **Input:** [`NativeUninstallInput`] | **Output:** [`NativeUninstallOutput`]
+    NativeUninstall,
+
+    /// Locate tool executables.
+    ///
+    /// Identifies where executables are located within an installed tool and
+    /// configures them for proto's shim system.
+    ///
+    /// **Input:** [`LocateExecutablesInput`] | **Output:** [`LocateExecutablesOutput`]
+    LocateExecutables,
+
+    /// Sync the tool manifest.
+    ///
+    /// Allows plugins to update proto's inventory of installed versions with
+    /// external changes.
+    ///
+    /// **Input:** [`SyncManifestInput`] | **Output:** [`SyncManifestOutput`]
+    SyncManifest,
+
+    /// Sync shell profile configuration.
+    ///
+    /// Configures shell environment variables and PATH modifications needed for
+    /// the tool to work properly.
+    ///
+    /// **Input:** [`SyncShellProfileInput`] | **Output:** [`SyncShellProfileOutput`]
+    SyncShellProfile,
+
+    /// Setup the environment during activation or execution.
+    ///
+    /// **Input:** [`ActivateEnvironmentInput`] | **Output:** [`ActivateEnvironmentOutput`]
+    ActivateEnvironment,
+}
+
+impl PluginFunction {
+    /// Get the string representation of the plugin function name.
+    ///
+    /// This returns the actual function name that should be used when calling
+    /// the plugin function via WASM.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::RegisterTool => "register_tool",
+            Self::DefineToolConfig => "define_tool_config",
+            Self::RegisterBackend => "register_backend",
+            Self::DefineBackendConfig => "define_backend_config",
+            Self::DetectVersionFiles => "detect_version_files",
+            Self::ParseVersionFile => "parse_version_file",
+            Self::LoadVersions => "load_versions",
+            Self::ResolveVersion => "resolve_version",
+            Self::DownloadPrebuilt => "download_prebuilt",
+            Self::BuildInstructions => "build_instructions",
+            Self::UnpackArchive => "unpack_archive",
+            Self::VerifyChecksum => "verify_checksum",
+            Self::NativeInstall => "native_install",
+            Self::NativeUninstall => "native_uninstall",
+            Self::LocateExecutables => "locate_executables",
+            Self::SyncManifest => "sync_manifest",
+            Self::SyncShellProfile => "sync_shell_profile",
+            Self::ActivateEnvironment => "activate_environment",
+        }
+    }
+}
+
+impl AsRef<str> for PluginFunction {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
 pub(crate) fn is_false(value: &bool) -> bool {
     !(*value)
 }
 
+pub(crate) fn is_default<T: Default + PartialEq>(value: &T) -> bool {
+    value == &T::default()
+}
+
 api_struct!(
-    /// Information about the current state of the tool.
-    pub struct ToolContext {
+    /// Information about the current state of the plugin,
+    /// after a version has been resolved.
+    pub struct PluginContext {
         /// The version of proto (the core crate) calling plugin functions.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub proto_version: Option<Version>,
@@ -37,8 +221,9 @@ api_struct!(
 );
 
 api_struct!(
-    /// Information about the current state of the tool.
-    pub struct ToolUnresolvedContext {
+    /// Information about the current state of the plugin,
+    /// before a version has been resolved.
+    pub struct PluginUnresolvedContext {
         /// The version of proto (the core crate) calling plugin functions.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub proto_version: Option<Version>,
@@ -75,7 +260,7 @@ api_struct!(
     /// Input passed to the `register_tool` function.
     pub struct RegisterToolInput {
         /// ID of the tool, as it was configured.
-        pub id: String,
+        pub id: Id,
     }
 );
 
@@ -85,11 +270,16 @@ pub type ToolMetadataInput = RegisterToolInput;
 api_struct!(
     /// Controls aspects of the tool inventory.
     #[serde(default)]
-    pub struct ToolInventoryMetadata {
+    pub struct ToolInventoryOptions {
         /// Override the tool inventory directory (where all versions are installed).
         /// This is an advanced feature and should only be used when absolutely necessary.
         #[serde(skip_serializing_if = "Option::is_none")]
         pub override_dir: Option<VirtualPath>,
+
+        /// When the inventory is backend managed, scope the inventory directory name
+        /// with the backend as a prefix.
+        #[serde(skip_serializing_if = "is_false")]
+        pub scoped_backend_dir: bool,
 
         /// Suffix to append to all versions when labeling directories.
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -109,12 +299,23 @@ api_unit_enum!(
 );
 
 api_struct!(
+    /// Options related to lockfile integration.
+    #[serde(default)]
+    pub struct ToolLockOptions {
+        /// Ignore operating system and architecture values
+        /// when matching against records in the lockfile.
+        #[serde(skip_serializing_if = "is_false")]
+        pub ignore_os_arch: bool,
+
+        /// Do not record the install in the lockfile.
+        #[serde(skip_serializing_if = "is_false")]
+        pub no_record: bool,
+    }
+);
+
+api_struct!(
     /// Output returned by the `register_tool` function.
     pub struct RegisterToolOutput {
-        /// Schema shape of the tool's configuration.
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        pub config_schema: Option<schematic::Schema>,
-
         /// Default strategy to use when installing a tool.
         #[serde(default)]
         pub default_install_strategy: InstallStrategy,
@@ -129,8 +330,12 @@ api_struct!(
         pub deprecations: Vec<String>,
 
         /// Controls aspects of the tool inventory.
-        #[serde(default)]
-        pub inventory: ToolInventoryMetadata,
+        #[serde(default, skip_serializing_if = "is_default", alias = "inventory")]
+        pub inventory_options: ToolInventoryOptions,
+
+        /// Options for integrating with a lockfile.
+        #[serde(default, skip_serializing_if = "is_default")]
+        pub lock_options: ToolLockOptions,
 
         /// Minimum version of proto required to execute this plugin.
         #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -165,16 +370,26 @@ api_struct!(
 #[deprecated(note = "Use `RegisterToolOutput` instead.")]
 pub type ToolMetadataOutput = RegisterToolOutput;
 
+pub type ConfigSchema = Schema;
+
+api_struct!(
+    /// Output returned from the `define_tool_config` function.
+    pub struct DefineToolConfigOutput {
+        /// Schema shape of the tool's configuration.
+        pub schema: ConfigSchema,
+    }
+);
+
 // BACKEND
 
 api_struct!(
     /// Input passed to the `register_backend` function.
     pub struct RegisterBackendInput {
         /// Current tool context.
-        pub context: ToolUnresolvedContext,
+        pub context: PluginUnresolvedContext,
 
         /// ID of the tool, as it was configured.
-        pub id: String,
+        pub id: Id,
     }
 );
 
@@ -182,7 +397,7 @@ api_struct!(
     /// Output returned by the `register_backend` function.
     pub struct RegisterBackendOutput {
         /// Unique identifier for this backend. Will be used as the folder name.
-        pub backend_id: String,
+        pub backend_id: Id,
 
         /// List of executables, relative from the backend directory,
         /// that will be executed in the context of proto.
@@ -195,13 +410,21 @@ api_struct!(
     }
 );
 
+api_struct!(
+    /// Output returned from the `define_backend_config` function.
+    pub struct DefineBackendConfigOutput {
+        /// Schema shape of the backend's configuration.
+        pub schema: ConfigSchema,
+    }
+);
+
 // VERSION DETECTION
 
 api_struct!(
     /// Input passed to the `detect_version_files` function.
     pub struct DetectVersionInput {
         /// Current tool context.
-        pub context: ToolUnresolvedContext,
+        pub context: PluginUnresolvedContext,
     }
 );
 
@@ -226,7 +449,7 @@ api_struct!(
         pub content: String,
 
         /// Current tool context.
-        pub context: ToolUnresolvedContext,
+        pub context: PluginUnresolvedContext,
 
         /// Name of file that's being parsed.
         pub file: String,
@@ -253,7 +476,10 @@ api_struct!(
     /// Input passed to the `native_install` function.
     pub struct NativeInstallInput {
         /// Current tool context.
-        pub context: ToolContext,
+        pub context: PluginContext,
+
+        /// Whether to force install or not.
+        pub force: bool,
 
         /// Virtual directory to install to.
         pub install_dir: VirtualPath,
@@ -284,7 +510,7 @@ api_struct!(
     /// Input passed to the `native_uninstall` function.
     pub struct NativeUninstallInput {
         /// Current tool context.
-        pub context: ToolContext,
+        pub context: PluginContext,
 
         /// Virtual directory to uninstall from.
         pub uninstall_dir: VirtualPath,
@@ -311,7 +537,7 @@ api_struct!(
     /// Input passed to the `download_prebuilt` function.
     pub struct DownloadPrebuiltInput {
         /// Current tool context.
-        pub context: ToolContext,
+        pub context: PluginContext,
 
         /// Virtual directory to install to.
         pub install_dir: VirtualPath,
@@ -351,6 +577,11 @@ api_struct!(
 
         /// A secure URL to download the tool/archive.
         pub download_url: String,
+
+        /// A script, relative from the install directory, to execute after
+        /// the prebuilt has been installed.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub post_script: Option<PathBuf>,
     }
 );
 
@@ -358,12 +589,12 @@ api_struct!(
     /// Input passed to the `unpack_archive` function.
     pub struct UnpackArchiveInput {
         /// Current tool context.
-        pub context: ToolContext,
+        pub context: PluginContext,
 
         /// Virtual path to the downloaded file.
         pub input_file: VirtualPath,
 
-        /// Virtual directory to unpack the archive into, or copy the binary to.
+        /// Virtual directory to unpack the archive into, or copy the executable to.
         pub output_dir: VirtualPath,
     }
 );
@@ -372,7 +603,7 @@ api_struct!(
     /// Output returned by the `verify_checksum` function.
     pub struct VerifyChecksumInput {
         /// Current tool context.
-        pub context: ToolContext,
+        pub context: PluginContext,
 
         /// Virtual path to the checksum file.
         pub checksum_file: VirtualPath,
@@ -402,7 +633,7 @@ api_struct!(
     /// Input passed to the `locate_executables` function.
     pub struct LocateExecutablesInput {
         /// Current tool context.
-        pub context: ToolContext,
+        pub context: PluginContext,
 
         /// Virtual directory the tool was installed to.
         pub install_dir: VirtualPath,
@@ -410,19 +641,19 @@ api_struct!(
 );
 
 api_struct!(
-    /// Configuration for generated shim and symlinked binary files.
+    /// Configuration for generated shim and symlinked executable files.
     #[derive(Setters)]
     #[serde(default)]
     pub struct ExecutableConfig {
         /// The file to execute, relative from the tool directory.
         /// Does *not* support virtual paths.
-        #[setters(no_option)]
+        #[setters(strip_option)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub exe_path: Option<PathBuf>,
 
-        /// The executable path to use for symlinking binaries instead of `exe_path`.
+        /// The executable path to use for symlinking instead of `exe_path`.
         /// This should only be used when `exe_path` is a non-standard executable.
-        #[setters(no_option)]
+        #[setters(strip_option)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub exe_link_path: Option<PathBuf>,
 
@@ -440,7 +671,7 @@ api_struct!(
         pub parent_exe_args: Vec<String>,
 
         /// The parent executable name required to execute the local executable path.
-        #[setters(into, no_option)]
+        #[setters(into, strip_option)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub parent_exe_name: Option<String>,
 
@@ -449,19 +680,24 @@ api_struct!(
         pub primary: bool,
 
         /// Custom args to prepend to user-provided args within the generated shim.
-        #[setters(no_option)]
+        #[setters(strip_option)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub shim_before_args: Option<StringOrVec>,
 
         /// Custom args to append to user-provided args within the generated shim.
-        #[setters(no_option)]
+        #[setters(strip_option)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub shim_after_args: Option<StringOrVec>,
 
         /// Custom environment variables to set when executing the shim.
-        #[setters(no_option)]
+        #[setters(strip_option)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub shim_env_vars: Option<FxHashMap<String, String>>,
+
+        /// Update the file permissions to executable. This only exists as these
+        /// values cannot be changed from within WASM.
+        #[serde(skip_serializing_if = "is_false")]
+        pub update_perms: bool,
     }
 );
 
@@ -514,10 +750,32 @@ api_struct!(
         #[serde(skip_serializing_if = "Vec::is_empty")]
         pub globals_lookup_dirs: Vec<String>,
 
-        /// A string that all global binaries are prefixed with, and will be removed
+        /// A string that all global executables are prefixed with, and will be removed
         /// when listing and filtering available globals.
         #[serde(skip_serializing_if = "Option::is_none")]
         pub globals_prefix: Option<String>,
+    }
+);
+
+api_struct!(
+    /// Input passed to the `activate_environment` function.
+    pub struct ActivateEnvironmentInput {
+        /// Current tool context.
+        pub context: PluginContext,
+    }
+);
+
+api_struct!(
+    /// Output returned by the `activate_environment` function.
+    #[serde(default)]
+    pub struct ActivateEnvironmentOutput {
+        /// Additional environment variables to set. Will overwrite any existing variables.
+        pub env: FxHashMap<String, String>,
+
+        /// Additional paths to prepend to `PATH`. Tool specific executables
+        /// and globals directories do NOT need to be included here, as they
+        /// are automatically included.
+        pub paths: Vec<PathBuf>,
     }
 );
 
@@ -527,7 +785,7 @@ api_struct!(
     /// Input passed to the `load_versions` function.
     pub struct LoadVersionsInput {
         /// Current tool context.
-        pub context: ToolUnresolvedContext,
+        pub context: PluginUnresolvedContext,
 
         /// The alias or version currently being resolved.
         pub initial: UnresolvedVersionSpec,
@@ -605,7 +863,7 @@ api_struct!(
     /// Input passed to the `resolve_version` function.
     pub struct ResolveVersionInput {
         /// Current tool context.
-        pub context: ToolUnresolvedContext,
+        pub context: PluginUnresolvedContext,
 
         /// The alias or version currently being resolved.
         pub initial: UnresolvedVersionSpec,
@@ -633,7 +891,7 @@ api_struct!(
     /// Input passed to the `sync_manifest` function.
     pub struct SyncManifestInput {
         /// Current tool context.
-        pub context: ToolContext,
+        pub context: PluginContext,
     }
 );
 
@@ -655,9 +913,9 @@ api_struct!(
     /// Input passed to the `sync_shell_profile` function.
     pub struct SyncShellProfileInput {
         /// Current tool context.
-        pub context: ToolContext,
+        pub context: PluginContext,
 
-        /// Arguments passed after `--` that was directly passed to the tool's binary.
+        /// Arguments passed after `--` that was directly passed to the tool's executable.
         pub passthrough_args: Vec<String>,
     }
 );

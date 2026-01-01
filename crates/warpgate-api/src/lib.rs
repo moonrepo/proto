@@ -9,6 +9,7 @@ pub use host::*;
 pub use host_funcs::*;
 pub use locator::*;
 pub use locator_error::*;
+pub use starbase_id::*;
 pub use virtual_path::*;
 
 /// Wrap a struct with common derives and serde required attributes.

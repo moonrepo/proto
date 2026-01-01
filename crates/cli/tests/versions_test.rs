@@ -12,7 +12,7 @@ mod versions {
         let sandbox = create_empty_proto_sandbox();
 
         let assert = sandbox.run_bin(|cmd| {
-            cmd.arg("versions").arg("npm");
+            cmd.arg("versions").arg("protostar");
         });
 
         // Without stderr
@@ -24,10 +24,11 @@ mod versions {
     #[test]
     fn lists_local_versions() {
         let sandbox = create_empty_proto_sandbox();
-        let versions = vec!["19.0.0", "18.0.0", "17.0.0"];
+        let versions = vec!["1.0.0", "2.0.0", "3.0.0"];
 
         let mut manifest =
-            ToolManifest::load(sandbox.path().join(".proto/tools/node/manifest.json")).unwrap();
+            ToolManifest::load(sandbox.path().join(".proto/tools/protostar/manifest.json"))
+                .unwrap();
 
         for version in &versions {
             manifest.versions.insert(
@@ -39,7 +40,7 @@ mod versions {
         manifest.save().unwrap();
 
         let assert = sandbox.run_bin(|cmd| {
-            cmd.arg("versions").arg("node");
+            cmd.arg("versions").arg("protostar");
         });
 
         // Without stderr
@@ -61,10 +62,11 @@ mod versions {
     #[test]
     fn only_displays_local_versions() {
         let sandbox = create_empty_proto_sandbox();
-        let versions = vec!["19.0.0", "18.0.0", "17.0.0"];
+        let versions = vec!["1.0.0", "2.0.0", "3.0.0"];
 
         let mut manifest =
-            ToolManifest::load(sandbox.path().join(".proto/tools/node/manifest.json")).unwrap();
+            ToolManifest::load(sandbox.path().join(".proto/tools/protostar/manifest.json"))
+                .unwrap();
 
         for version in &versions {
             manifest.versions.insert(
@@ -76,14 +78,32 @@ mod versions {
         manifest.save().unwrap();
 
         let assert = sandbox.run_bin(|cmd| {
-            cmd.arg("versions").arg("node").arg("--installed");
+            cmd.arg("versions").arg("protostar").arg("--installed");
         });
-
-        assert.debug();
 
         // Without stderr
         let output = output_to_string(&assert.inner.get_output().stdout);
 
         assert_eq!(output.lines().collect::<Vec<_>>().len(), 3);
+    }
+
+    // Windows doesn't support asdf
+    #[cfg(unix)]
+    mod backend {
+        use super::*;
+
+        #[test]
+        fn lists_remote_versions() {
+            let sandbox = create_empty_proto_sandbox();
+
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("versions").arg("asdf:zig");
+            });
+
+            // Without stderr
+            let output = output_to_string(&assert.inner.get_output().stdout);
+
+            assert!(output.split('\n').collect::<Vec<_>>().len() > 1);
+        }
     }
 }

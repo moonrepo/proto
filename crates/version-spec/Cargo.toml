@@ -1,11 +1,12 @@
 [package]
 name = "version_spec"
-version = "0.9.1"
+version = "0.10.0"
 edition = "2024"
 license = "MIT"
 description = "A specification for working with partial, full, or aliased versions. Supports semver and calver."
 homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
+rust-version = "1.85.0"
 
 [dependencies]
 compact_str = { workspace = true }

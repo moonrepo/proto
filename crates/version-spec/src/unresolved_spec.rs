@@ -5,8 +5,11 @@ use crate::unresolved_parser::*;
 use crate::version_types::*;
 use crate::{VersionSpec, clean_version_req_string, clean_version_string, is_alias_name};
 use compact_str::CompactString;
+use human_sort::compare;
+use semver::Prerelease;
 use semver::VersionReq;
 use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
 
@@ -83,6 +86,55 @@ impl UnresolvedVersionSpec {
             Self::Calendar(version) => VersionSpec::Calendar(version.to_owned()),
             Self::Semantic(version) => VersionSpec::Semantic(version.to_owned()),
             _ => VersionSpec::default(),
+        }
+    }
+
+    /// Convert the current unresolved specification to a partial string, where
+    /// minor and patch versions are omitted if not defined, and the comparator
+    /// operator is also omitted. For example, "~1.2" would simply print "1.2".
+    ///
+    /// Furthermore, `Canary` will return "canary", `ReqAny` will return "latest",
+    /// and aliases will return as-is.
+    pub fn to_partial_string(&self) -> String {
+        fn from_parts(
+            major: u64,
+            minor: Option<u64>,
+            patch: Option<u64>,
+            pre: &Prerelease,
+        ) -> String {
+            let mut version = format!("{major}");
+
+            minor.inspect(|m| {
+                version.push_str(&format!(".{m}"));
+            });
+
+            patch.inspect(|p| {
+                version.push_str(&format!(".{p}"));
+            });
+
+            if !pre.is_empty() {
+                version.push('-');
+                version.push_str(pre.as_str());
+            }
+
+            version
+        }
+
+        match self {
+            UnresolvedVersionSpec::Canary => "canary".into(),
+            UnresolvedVersionSpec::Alias(alias) => alias.to_string(),
+            UnresolvedVersionSpec::Req(req) => {
+                let req = req.comparators.first().unwrap();
+
+                from_parts(req.major, req.minor, req.patch, &req.pre)
+            }
+            UnresolvedVersionSpec::ReqAny(_) => "latest".into(),
+            UnresolvedVersionSpec::Calendar(ver) => {
+                from_parts(ver.major, Some(ver.minor), Some(ver.patch), &ver.pre)
+            }
+            UnresolvedVersionSpec::Semantic(ver) => {
+                from_parts(ver.major, Some(ver.minor), Some(ver.patch), &ver.pre)
+            }
         }
     }
 }
@@ -162,8 +214,8 @@ impl Display for UnresolvedVersionSpec {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Canary => write!(f, "canary"),
-            Self::Alias(alias) => write!(f, "{}", alias),
-            Self::Req(req) => write!(f, "{}", req),
+            Self::Alias(alias) => write!(f, "{alias}"),
+            Self::Req(req) => write!(f, "{req}"),
             Self::ReqAny(reqs) => write!(
                 f,
                 "{}",
@@ -172,8 +224,8 @@ impl Display for UnresolvedVersionSpec {
                     .collect::<Vec<_>>()
                     .join(" || ")
             ),
-            Self::Calendar(version) => write!(f, "{}", version),
-            Self::Semantic(version) => write!(f, "{}", version),
+            Self::Calendar(version) => write!(f, "{version}"),
+            Self::Semantic(version) => write!(f, "{version}"),
         }
     }
 }
@@ -181,6 +233,7 @@ impl Display for UnresolvedVersionSpec {
 impl PartialEq<VersionSpec> for UnresolvedVersionSpec {
     fn eq(&self, other: &VersionSpec) -> bool {
         match (self, other) {
+            (Self::Canary, VersionSpec::Canary) => true,
             (Self::Canary, VersionSpec::Alias(a)) => a == "canary",
             (Self::Alias(a1), VersionSpec::Alias(a2)) => a1 == a2,
             (Self::Calendar(v1), VersionSpec::Calendar(v2)) => v1 == v2,
@@ -193,5 +246,23 @@ impl PartialEq<VersionSpec> for UnresolvedVersionSpec {
 impl AsRef<UnresolvedVersionSpec> for UnresolvedVersionSpec {
     fn as_ref(&self) -> &UnresolvedVersionSpec {
         self
+    }
+}
+
+impl PartialOrd<UnresolvedVersionSpec> for UnresolvedVersionSpec {
+    fn partial_cmp(&self, other: &UnresolvedVersionSpec) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for UnresolvedVersionSpec {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match (self, other) {
+            (Self::Canary, Self::Canary) => Ordering::Equal,
+            (Self::Alias(l), Self::Alias(r)) => l.cmp(r),
+            (Self::Calendar(l), Self::Calendar(r)) => l.cmp(r),
+            (Self::Semantic(l), Self::Semantic(r)) => l.cmp(r),
+            _ => compare(&self.to_string(), &other.to_string()),
+        }
     }
 }

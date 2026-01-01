@@ -3,7 +3,7 @@ use crate::session::{LoadToolOptions, ProtoSession};
 use clap::Args;
 use indexmap::IndexMap;
 use iocraft::prelude::{View, element};
-use proto_core::{Id, ToolSpec, VersionSpec};
+use proto_core::{ToolContext, ToolSpec, VersionSpec};
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_console::ui::*;
@@ -13,8 +13,8 @@ use tracing::debug;
 
 #[derive(Args, Clone, Debug)]
 pub struct VersionsArgs {
-    #[arg(required = true, help = "ID of tool")]
-    id: Id,
+    #[arg(required = true, help = "Tool to list for")]
+    context: ToolContext,
 
     #[arg(long, help = "Include aliases in the output")]
     aliases: bool,
@@ -41,8 +41,7 @@ pub struct VersionsResult {
 pub async fn versions(session: ProtoSession, args: VersionsArgs) -> AppResult {
     let tool = session
         .load_tool_with_options(
-            &args.id,
-            None,
+            &args.context,
             LoadToolOptions {
                 inherit_local: true,
                 inherit_remote: true,

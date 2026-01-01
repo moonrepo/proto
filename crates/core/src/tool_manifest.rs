@@ -1,8 +1,8 @@
 use crate::helpers::{now, read_json_file_with_lock, write_json_file_with_lock};
-use crate::lockfile::LockfileRecord;
-use crate::tool_spec::Backend;
+use crate::lockfile::LockRecord;
 use serde::{Deserialize, Serialize};
-use starbase_utils::env::bool_var;
+use starbase_utils::envx;
+use starbase_utils::json::JsonError;
 use std::collections::{BTreeMap, BTreeSet};
 use std::{
     fmt::Debug,
@@ -16,16 +16,12 @@ pub const MANIFEST_NAME: &str = "manifest.json";
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(default)]
 pub struct ToolManifestVersion {
-    // TODO deprecated
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub backend: Option<Backend>,
-
     pub no_clean: bool,
 
     pub installed_at: u128,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub lock: Option<LockfileRecord>,
+    pub lock: Option<LockRecord>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub suffix: Option<String>,
@@ -34,8 +30,7 @@ pub struct ToolManifestVersion {
 impl Default for ToolManifestVersion {
     fn default() -> Self {
         Self {
-            backend: None,
-            no_clean: bool_var("PROTO_NO_CLEAN"),
+            no_clean: envx::bool_var("PROTO_NO_CLEAN"),
             installed_at: now(),
             lock: None,
             suffix: None,
@@ -55,12 +50,12 @@ pub struct ToolManifest {
 }
 
 impl ToolManifest {
-    pub fn load_from<P: AsRef<Path>>(dir: P) -> miette::Result<Self> {
+    pub fn load_from<P: AsRef<Path>>(dir: P) -> Result<Self, JsonError> {
         Self::load(dir.as_ref().join(MANIFEST_NAME))
     }
 
     #[instrument(name = "load_tool_manifest")]
-    pub fn load<P: AsRef<Path> + Debug>(path: P) -> miette::Result<Self> {
+    pub fn load<P: AsRef<Path> + Debug>(path: P) -> Result<Self, JsonError> {
         let path = path.as_ref();
 
         debug!(file = ?path, "Loading {}", MANIFEST_NAME);
@@ -77,7 +72,7 @@ impl ToolManifest {
     }
 
     #[instrument(name = "save_tool_manifest", skip(self))]
-    pub fn save(&self) -> miette::Result<()> {
+    pub fn save(&self) -> Result<(), JsonError> {
         debug!(file = ?self.path, "Saving manifest");
 
         write_json_file_with_lock(&self.path, self)?;

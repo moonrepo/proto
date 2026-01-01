@@ -56,7 +56,7 @@ mod activate {
     #[test]
     fn supports_one_tool() {
         let sandbox = create_empty_proto_sandbox();
-        sandbox.create_file(".prototools", r#"node = "20.0.0""#);
+        sandbox.create_file(".prototools", r#"protostar = "1.0.0""#);
 
         let assert = sandbox.run_bin(|cmd| {
             cmd.arg("activate").arg("zsh");
@@ -71,9 +71,8 @@ mod activate {
         sandbox.create_file(
             ".prototools",
             r#"
-node = "20.0.0"
-yarn = "4.0.0"
-bun = "1.1.0"
+protostar = "1.0.0"
+moonstone = "2.0.0"
 "#,
         );
 
@@ -87,8 +86,8 @@ bun = "1.1.0"
     #[test]
     fn can_include_global_tools() {
         let sandbox = create_empty_proto_sandbox();
-        sandbox.create_file(".proto/.prototools", r#"npm = "10.0.0""#);
-        sandbox.create_file(".prototools", r#"pnpm = "8.0.0""#);
+        sandbox.create_file(".proto/.prototools", r#"protostar = "1.0.0""#);
+        sandbox.create_file(".prototools", r#"moonstone = "2.0.0""#);
 
         let assert = sandbox.run_bin(|cmd| {
             cmd.arg("activate")
@@ -100,6 +99,116 @@ bun = "1.1.0"
 
         let output = get_activate_output(&assert, &sandbox);
 
-        assert!(output.contains("<WORKSPACE>/.proto/activate-start:<WORKSPACE>/.proto/shims:<WORKSPACE>/.proto/bin:<WORKSPACE>/.proto/activate-stop"));
+        assert!(output.contains("<WORKSPACE>/.proto/activate-start <WORKSPACE>/.proto/shims <WORKSPACE>/.proto/bin <WORKSPACE>/.proto/activate-stop"));
+    }
+
+    #[test]
+    fn can_disable_init() {
+        let sandbox = create_empty_proto_sandbox();
+        sandbox.create_file(".prototools", r#"protostar = "1.0.0""#);
+
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.arg("activate").arg("zsh").arg("--no-init");
+        });
+
+        assert_snapshot!(get_activate_output(&assert, &sandbox));
+    }
+
+    mod export {
+        use super::*;
+
+        #[test]
+        fn includes_shared_env_if_no_tools() {
+            let sandbox = create_empty_proto_sandbox();
+
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[env]
+KEY = "value"
+"#,
+            );
+
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("activate").arg("bash").arg("--export");
+            });
+
+            let output = get_activate_output(&assert, &sandbox);
+
+            assert!(output.contains("export KEY=value;"));
+            assert!(output.contains("export _PROTO_ACTIVATED_ENV=KEY;"));
+        }
+
+        #[test]
+        fn includes_tool_env() {
+            let sandbox = create_empty_proto_sandbox();
+
+            sandbox.create_file(
+                ".prototools",
+                r#"
+protostar = "1.0.0"
+
+[env]
+KEY1 = "value1"
+
+[tools.protostar.env]
+KEY2 = "value2"
+"#,
+            );
+
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("activate").arg("bash").arg("--export");
+            });
+
+            let output = get_activate_output(&assert, &sandbox);
+
+            assert!(output.contains("export KEY1=value1;"));
+            assert!(output.contains("export KEY2=value2;"));
+            assert!(output.contains("export _PROTO_ACTIVATED_ENV=KEY1,KEY2;"));
+        }
+
+        #[test]
+        fn can_include_global_tools() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file(".proto/.prototools", r#"protostar = "1.0.0""#);
+            sandbox.create_file(".prototools", r#"moonstone = "2.0.0""#);
+
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("activate")
+                    .arg("elvish")
+                    .arg("--export")
+                    .arg("--config-mode")
+                    .arg("all"); // upwards-global
+            });
+
+            let output = get_activate_output(&assert, &sandbox);
+
+            assert!(output.contains("<WORKSPACE>/.proto/activate-start <WORKSPACE>/.proto/shims <WORKSPACE>/.proto/bin <WORKSPACE>/.proto/activate-stop"));
+        }
+
+        #[test]
+        fn tracks_used_at() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file(".prototools", r#"protostar = "1.0.0""#);
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("protostar").arg("1.0.0");
+                })
+                .success();
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("activate").arg("zsh").arg("--export");
+                })
+                .success();
+
+            assert!(
+                sandbox
+                    .path()
+                    .join(".proto/tools/protostar/1.0.0/.last-used")
+                    .exists()
+            );
+        }
     }
 }

@@ -6,7 +6,7 @@ use std::fmt;
 use std::process::Command;
 
 /// Architecture of the system environment.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
 #[serde(rename_all = "lowercase")]
 pub enum SystemArch {
@@ -60,12 +60,12 @@ impl Default for SystemArch {
 
 impl fmt::Display for SystemArch {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", format!("{:?}", self).to_lowercase())
+        write!(f, "{}", format!("{self:?}").to_lowercase())
     }
 }
 
 /// Operating system of the current environment.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
 #[serde(rename_all = "lowercase")]
 pub enum SystemOS {
@@ -115,7 +115,7 @@ impl SystemOS {
         let ext = windows_ext.as_ref();
 
         if self.is_windows() && !name.ends_with(ext) {
-            format!("{}.{ext}", name)
+            format!("{name}.{ext}")
         } else {
             name.to_owned()
         }
@@ -169,7 +169,7 @@ impl Default for SystemOS {
 
 impl fmt::Display for SystemOS {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", format!("{:?}", self).to_lowercase())
+        write!(f, "{}", format!("{self:?}").to_lowercase())
     }
 }
 
@@ -231,6 +231,6 @@ impl SystemLibc {
 
 impl fmt::Display for SystemLibc {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", format!("{:?}", self).to_lowercase())
+        write!(f, "{}", format!("{self:?}").to_lowercase())
     }
 }

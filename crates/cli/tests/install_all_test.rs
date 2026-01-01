@@ -1,9 +1,10 @@
 mod utils;
 
-use proto_core::{LockfileRecord, ToolManifest, VersionSpec};
+use proto_core::{LockRecord, ToolManifest, VersionSpec};
 use proto_pdk_api::Checksum;
 use starbase_sandbox::predicates::prelude::*;
 use std::path::Path;
+use system_env::{SystemArch, SystemOS};
 use utils::*;
 
 mod install_all {
@@ -12,21 +13,21 @@ mod install_all {
     #[test]
     fn installs_all_tools() {
         let sandbox = create_empty_proto_sandbox();
-        let node_path = sandbox.path().join(".proto/tools/node/19.0.0");
-        let npm_path = sandbox.path().join(".proto/tools/npm/9.0.0");
-        let deno_path = sandbox.path().join(".proto/tools/deno/1.30.0");
+        let protostar_path = sandbox.path().join(".proto/tools/protostar/1.0.0");
+        let moonstone_path = sandbox.path().join(".proto/tools/moonstone/2.0.0");
+        let moonbase_path = sandbox.path().join(".proto/tools/moonbase/3.0.0");
 
         sandbox.create_file(
             ".prototools",
-            r#"node = "19.0.0"
-npm = "9.0.0"
-deno = "1.30.0"
+            r#"protostar = "1.0.0"
+moonstone = "2.0.0"
+moonbase = "3.0.0"
     "#,
         );
 
-        assert!(!node_path.exists());
-        assert!(!npm_path.exists());
-        assert!(!deno_path.exists());
+        assert!(!protostar_path.exists());
+        assert!(!moonstone_path.exists());
+        assert!(!moonbase_path.exists());
 
         sandbox
             .run_bin(|cmd| {
@@ -34,19 +35,19 @@ deno = "1.30.0"
             })
             .success();
 
-        assert!(node_path.exists());
-        assert!(npm_path.exists());
-        assert!(deno_path.exists());
+        assert!(protostar_path.exists());
+        assert!(moonstone_path.exists());
+        assert!(moonbase_path.exists());
     }
 
     #[test]
     fn installs_tool_via_detection() {
         let sandbox = create_empty_proto_sandbox();
-        let node_path = sandbox.path().join(".proto/tools/node/19.0.0");
+        let protostar_path = sandbox.path().join(".proto/tools/protostar/1.0.0");
 
-        sandbox.create_file(".nvmrc", "19.0.0");
+        sandbox.create_file(".protostarrc", "1.0.0");
 
-        assert!(!node_path.exists());
+        assert!(!protostar_path.exists());
 
         sandbox
             .run_bin(|cmd| {
@@ -54,20 +55,20 @@ deno = "1.30.0"
             })
             .success();
 
-        assert!(node_path.exists());
+        assert!(protostar_path.exists());
     }
 
     #[test]
     fn doesnt_install_global_tools() {
         let sandbox = create_empty_proto_sandbox();
-        let node_path = sandbox.path().join(".proto/tools/node/19.0.0");
-        let deno_path = sandbox.path().join(".proto/tools/deno/1.30.0");
+        let protostar_path = sandbox.path().join(".proto/tools/protostar/1.0.0");
+        let moonstone_path = sandbox.path().join(".proto/tools/moonstone/3.0.0");
 
-        sandbox.create_file(".prototools", r#"node = "19.0.0""#);
-        sandbox.create_file(".proto/.prototools", r#"deno = "1.30.0""#);
+        sandbox.create_file(".prototools", r#"protostar = "1.0.0""#);
+        sandbox.create_file(".proto/.prototools", r#"moonstone = "3.0.0""#);
 
-        assert!(!node_path.exists());
-        assert!(!deno_path.exists());
+        assert!(!protostar_path.exists());
+        assert!(!moonstone_path.exists());
 
         sandbox
             .run_bin(|cmd| {
@@ -75,21 +76,21 @@ deno = "1.30.0"
             })
             .success();
 
-        assert!(node_path.exists());
-        assert!(!deno_path.exists());
+        assert!(protostar_path.exists());
+        assert!(!moonstone_path.exists());
     }
 
     #[test]
     fn installs_global_tools_when_included() {
         let sandbox = create_empty_proto_sandbox();
-        let node_path = sandbox.path().join(".proto/tools/node/19.0.0");
-        let deno_path = sandbox.path().join(".proto/tools/deno/1.30.0");
+        let protostar_path = sandbox.path().join(".proto/tools/protostar/1.0.0");
+        let moonstone_path = sandbox.path().join(".proto/tools/moonstone/3.0.0");
 
-        sandbox.create_file(".prototools", r#"node = "19.0.0""#);
-        sandbox.create_file(".proto/.prototools", r#"deno = "1.30.0""#);
+        sandbox.create_file(".prototools", r#"protostar = "1.0.0""#);
+        sandbox.create_file(".proto/.prototools", r#"moonstone = "3.0.0""#);
 
-        assert!(!node_path.exists());
-        assert!(!deno_path.exists());
+        assert!(!protostar_path.exists());
+        assert!(!moonstone_path.exists());
 
         sandbox
             .run_bin(|cmd| {
@@ -99,8 +100,8 @@ deno = "1.30.0"
             })
             .success();
 
-        assert!(node_path.exists());
-        assert!(deno_path.exists());
+        assert!(protostar_path.exists());
+        assert!(moonstone_path.exists());
     }
 
     #[test]
@@ -109,9 +110,9 @@ deno = "1.30.0"
 
         sandbox.create_file(
             ".prototools",
-            r#"node = "invalid"
-bun = "invalid"
-deno = "latest"
+            r#"protostar = "invalid"
+protoform = "invalid"
+moonstone = "latest"
     "#,
         );
 
@@ -121,18 +122,18 @@ deno = "latest"
             })
             .failure();
 
-        assert!(sandbox.path().join("proto-node-install.log").exists());
-        assert!(sandbox.path().join("proto-bun-install.log").exists());
-        assert!(!sandbox.path().join("proto-deno-install.log").exists());
+        assert!(sandbox.path().join("proto-protostar-install.log").exists());
+        assert!(sandbox.path().join("proto-protoform-install.log").exists());
+        assert!(!sandbox.path().join("proto-moonstone-install.log").exists());
     }
 
-    mod reqs {
+    mod requirements {
         use super::*;
 
         #[test]
         fn errors_if_reqs_not_met() {
             let sandbox = create_empty_proto_sandbox();
-            sandbox.create_file(".prototools", r#"npm = "9.0.0""#);
+            sandbox.create_file(".prototools", r#"moonbase = "2.0.0""#);
 
             let assert = sandbox
                 .run_bin(|cmd| {
@@ -141,7 +142,7 @@ deno = "latest"
                 .failure();
 
             assert.stderr(predicate::str::contains(
-                "npm requires node to function correctly",
+                "moonbase requires moonstone to function correctly",
             ));
         }
 
@@ -150,8 +151,8 @@ deno = "latest"
             let sandbox = create_empty_proto_sandbox();
             sandbox.create_file(
                 ".prototools",
-                r#"node = "19.0.0"
-npm = "10.0.0"
+                r#"moonbase = "1.0.0"
+moonstone = "2.0.0"
         "#,
             );
 
@@ -162,33 +163,33 @@ npm = "10.0.0"
                 .success();
 
             assert.stdout(
-                predicate::str::contains("Waiting on requirements: node")
-                    .and(predicate::str::contains("npm 10.0.0 installed")),
+                predicate::str::contains("moonstone 2.0.0 installed")
+                    .and(predicate::str::contains("moonbase 1.0.0 installed")),
             );
         }
     }
 
-    mod lockfile {
+    mod manifest_lockfile {
         use super::*;
 
         #[test]
         fn creates_all_lockfiles() {
             let sandbox = create_empty_proto_sandbox();
-            let node_path = sandbox.path().join(".proto/tools/node/19.0.0");
-            let npm_path = sandbox.path().join(".proto/tools/npm/9.0.0");
-            let deno_path = sandbox.path().join(".proto/tools/deno/1.30.0");
+            let protostar_path = sandbox.path().join(".proto/tools/protostar/1.0.0");
+            let moonstone_path = sandbox.path().join(".proto/tools/moonstone/2.0.0");
+            let moonbase_path = sandbox.path().join(".proto/tools/moonbase/3.0.0");
 
             sandbox.create_file(
                 ".prototools",
-                r#"node = "19.0.0"
-npm = "9.0.0"
-deno = "1.30.0"
+                r#"protostar = "1.0.0"
+moonstone = "2.0.0"
+moonbase = "3.0.0"
     "#,
             );
 
-            assert!(!node_path.exists());
-            assert!(!npm_path.exists());
-            assert!(!deno_path.exists());
+            assert!(!protostar_path.exists());
+            assert!(!moonstone_path.exists());
+            assert!(!moonbase_path.exists());
 
             sandbox
                 .run_bin(|cmd| {
@@ -196,155 +197,65 @@ deno = "1.30.0"
                 })
                 .success();
 
-            assert!(node_path.exists());
-            assert!(npm_path.exists());
-            assert!(deno_path.exists());
+            assert!(protostar_path.exists());
+            assert!(moonstone_path.exists());
+            assert!(moonbase_path.exists());
 
-            fn get_lock(dir: &Path, spec: VersionSpec) -> LockfileRecord {
+            fn get_lock(dir: &Path, spec: VersionSpec) -> LockRecord {
                 let mut manifest = ToolManifest::load_from(dir).unwrap();
                 manifest.versions.remove(&spec).unwrap().lock.unwrap()
             }
 
-            #[cfg(target_os = "linux")]
-            {
-                assert_eq!(
-                    get_lock(node_path.parent().unwrap(), VersionSpec::parse("19.0.0").unwrap()),
-                    LockfileRecord {
-                        checksum: Some(Checksum::sha256(
-                            "a16fa0fd4ba7dff0f9476778dbabe535250c99a121db4c65c2a68a2506097698"
-                                .into()
-                        )),
-                        source: Some("https://nodejs.org/download/release/v19.0.0/node-v19.0.0-linux-x64.tar.xz".into()),
-                        ..Default::default()
-                    }
-                );
+            assert_eq!(
+                get_lock(
+                    protostar_path.parent().unwrap(),
+                    VersionSpec::parse("1.0.0").unwrap()
+                ),
+                LockRecord {
+                    os: Some(SystemOS::default()),
+                    arch: Some(SystemArch::default()),
+                    // spec: Some(UnresolvedVersionSpec::parse("1.0.0").unwrap()),
+                    // version: Some(VersionSpec::parse("1.0.0").unwrap()),
+                    checksum: Some(Checksum::sha256(
+                        "92521fc3cbd964bdc9f584a991b89fddaa5754ed1cc96d6d42445338669c1305".into()
+                    )),
+                    ..Default::default()
+                }
+            );
 
-                assert_eq!(
-                    get_lock(
-                        npm_path.parent().unwrap(),
-                        VersionSpec::parse("9.0.0").unwrap()
-                    ),
-                    LockfileRecord {
-                        checksum: Some(Checksum::sha256(
-                            "84e7b6c2b573a549782056f4348c76969a90cd861441fa25469545d3600e2ee3"
-                                .into()
-                        )),
-                        source: Some("https://registry.npmjs.org/npm/-/npm-9.0.0.tgz".into()),
-                        ..Default::default()
-                    }
-                );
+            assert_eq!(
+                get_lock(
+                    moonstone_path.parent().unwrap(),
+                    VersionSpec::parse("2.0.0").unwrap()
+                ),
+                LockRecord {
+                    os: Some(SystemOS::default()),
+                    arch: Some(SystemArch::default()),
+                    // spec: Some(UnresolvedVersionSpec::parse("2.0.0").unwrap()),
+                    // version: Some(VersionSpec::parse("2.0.0").unwrap()),
+                    checksum: Some(Checksum::sha256(
+                        "f22abd6773ab232869321ad4b1e47ac0c908febf4f3a2bd10c8066140f741261".into()
+                    )),
+                    ..Default::default()
+                }
+            );
 
-                assert_eq!(
-                    get_lock(deno_path.parent().unwrap(), VersionSpec::parse("1.30.0").unwrap()),
-                    LockfileRecord {
-                        checksum: Some(Checksum::sha256(
-                            "77ebb253b3bc8ba5ca62b44b60e8b8555c1b3d0011fbcebd1d52291652f834a8"
-                                .into()
-                        )),
-                        source: Some(
-                            "https://github.com/denoland/deno/releases/download/v1.30.0/deno-x86_64-unknown-linux-gnu.zip"
-                                .into()
-                        ),
-                        ..Default::default()
-                    }
-                );
-            }
-
-            #[cfg(target_os = "macos")]
-            {
-                assert_eq!(
-                    get_lock(node_path.parent().unwrap(), VersionSpec::parse("19.0.0").unwrap()),
-                    LockfileRecord {
-                        checksum: Some(Checksum::sha256(
-                            "76c550a8f2aa9611ce9148d6d3a5af900c2cbbc4b35ba68d545f63239c2d24e9"
-                                .into()
-                        )),
-                        source: Some("https://nodejs.org/download/release/v19.0.0/node-v19.0.0-darwin-arm64.tar.xz".into()),
-                        ..Default::default()
-                    }
-                );
-
-                assert_eq!(
-                    get_lock(
-                        npm_path.parent().unwrap(),
-                        VersionSpec::parse("9.0.0").unwrap()
-                    ),
-                    LockfileRecord {
-                        checksum: Some(Checksum::sha256(
-                            "84e7b6c2b573a549782056f4348c76969a90cd861441fa25469545d3600e2ee3"
-                                .into()
-                        )),
-                        source: Some("https://registry.npmjs.org/npm/-/npm-9.0.0.tgz".into()),
-                        ..Default::default()
-                    }
-                );
-
-                assert_eq!(
-                    get_lock(deno_path.parent().unwrap(), VersionSpec::parse("1.30.0").unwrap()),
-                    LockfileRecord {
-                        checksum: Some(Checksum::sha256(
-                            "80c6a6f9e4dbda8cd024dd6ac39a64306eded98d532efa8bf12ddc9c12626a1d"
-                                .into()
-                        )),
-                        source: Some(
-                            "https://github.com/denoland/deno/releases/download/v1.30.0/deno-aarch64-apple-darwin.zip"
-                                .into()
-                        ),
-                        ..Default::default()
-                    }
-                );
-            }
-
-            #[cfg(target_os = "windows")]
-            {
-                assert_eq!(
-                    get_lock(
-                        node_path.parent().unwrap(),
-                        VersionSpec::parse("19.0.0").unwrap()
-                    ),
-                    LockfileRecord {
-                        checksum: Some(Checksum::sha256(
-                            "94fdfb96a041b1a9cafd1ee1bb42ab57a5b73f6a3606cd222ae96c5768bdb31d"
-                                .into()
-                        )),
-                        source: Some(
-                            "https://nodejs.org/download/release/v19.0.0/node-v19.0.0-win-x64.zip"
-                                .into()
-                        ),
-                        ..Default::default()
-                    }
-                );
-
-                assert_eq!(
-                    get_lock(
-                        npm_path.parent().unwrap(),
-                        VersionSpec::parse("9.0.0").unwrap()
-                    ),
-                    LockfileRecord {
-                        checksum: Some(Checksum::sha256(
-                            "84e7b6c2b573a549782056f4348c76969a90cd861441fa25469545d3600e2ee3"
-                                .into()
-                        )),
-                        source: Some("https://registry.npmjs.org/npm/-/npm-9.0.0.tgz".into()),
-                        ..Default::default()
-                    }
-                );
-
-                assert_eq!(
-                    get_lock(deno_path.parent().unwrap(), VersionSpec::parse("1.30.0").unwrap()),
-                    LockfileRecord {
-                        checksum: Some(Checksum::sha256(
-                            "3644c734d4a21e9db8e3992d081ca0e742e986674a6be0eff113ffc5fa5416eb"
-                                .into()
-                        )),
-                        source: Some(
-                            "https://github.com/denoland/deno/releases/download/v1.30.0/deno-x86_64-pc-windows-msvc.zip"
-                                .into()
-                        ),
-                        ..Default::default()
-                    }
-                );
-            }
+            assert_eq!(
+                get_lock(
+                    moonbase_path.parent().unwrap(),
+                    VersionSpec::parse("3.0.0").unwrap()
+                ),
+                LockRecord {
+                    os: Some(SystemOS::default()),
+                    arch: Some(SystemArch::default()),
+                    // spec: Some(UnresolvedVersionSpec::parse("3.0.0").unwrap()),
+                    // version: Some(VersionSpec::parse("3.0.0").unwrap()),
+                    checksum: Some(Checksum::sha256(
+                        "c9163ff21f1f2b0390dc48bdda47179718f772f507a7cebceca59ce1a7129029".into()
+                    )),
+                    ..Default::default()
+                }
+            );
         }
     }
 }

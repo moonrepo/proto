@@ -1,19 +1,22 @@
 [package]
 name = "warpgate"
-version = "0.24.3"
+version = "0.28.4"
 edition = "2024"
 license = "MIT"
 description = "Download, resolve, and manage Extism WASM plugins."
 repository = "https://github.com/moonrepo/proto"
+rust-version = "1.89.0"
 
 [dependencies]
-system_env = { version = "0.8.0", path = "../system-env" }
-warpgate_api = { version = "0.14.5", path = "../warpgate-api" }
+system_env = { version = "0.9.0", path = "../system-env" }
+warpgate_api = { version = "0.17.2", path = "../warpgate-api" }
 async-trait = { workspace = true }
 compact_str = { workspace = true }
+docker_credential = { workspace = true }
 extism = { workspace = true, features = ["http"] }
 http-cache-reqwest = { workspace = true }
-miette = { workspace = true }
+miette = { workspace = true, optional = true }
+oci-client = { workspace = true }
 once_cell = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true, features = ["json", "rustls-tls-native-roots"] }
@@ -25,18 +28,20 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
 starbase_archive = { workspace = true }
-starbase_utils = { workspace = true, features = ["glob", "net"] }
+starbase_shell = { workspace = true }
 starbase_styles = { workspace = true }
+starbase_utils = { workspace = true, features = ["glob", "net"] }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 
 # Enabling certs for extism!
-ureq = { version = "3.0.11", features = ["rustls", "platform-verifier"] }
+ureq = { version = "3.1.4", features = ["rustls", "platform-verifier"] }
 
 [dev-dependencies]
 starbase_sandbox = { workspace = true }
 
 [features]
 default = []
+miette = ["dep:miette"]
 schematic = ["dep:schematic", "system_env/schematic", "warpgate_api/schematic"]

@@ -1,4 +1,4 @@
-use proto_core::{Backend, Tool};
+use proto_core::Tool;
 use proto_pdk_api::*;
 
 #[derive(Debug)]
@@ -7,17 +7,12 @@ pub struct WasmTestWrapper {
 }
 
 impl WasmTestWrapper {
-    pub async fn set_backend(&mut self, backend: Backend) {
-        self.tool.backend = Some(backend);
-        self.tool.register_backend().await.unwrap();
-    }
-
     pub async fn detect_version_files(&self, mut input: DetectVersionInput) -> DetectVersionOutput {
         input.context = self.prepare_unresolved_context(input.context);
 
         self.tool
             .plugin
-            .call_func_with("detect_version_files", input)
+            .call_func_with(PluginFunction::DetectVersionFiles, input)
             .await
             .unwrap()
     }
@@ -27,10 +22,11 @@ impl WasmTestWrapper {
         mut input: DownloadPrebuiltInput,
     ) -> DownloadPrebuiltOutput {
         input.context = self.prepare_context(input.context);
+        input.install_dir = self.tool.to_virtual_path(input.install_dir);
 
         self.tool
             .plugin
-            .call_func_with("download_prebuilt", input)
+            .call_func_with(PluginFunction::DownloadPrebuilt, input)
             .await
             .unwrap()
     }
@@ -40,7 +36,7 @@ impl WasmTestWrapper {
 
         self.tool
             .plugin
-            .call_func_with("load_versions", input)
+            .call_func_with(PluginFunction::LoadVersions, input)
             .await
             .unwrap()
     }
@@ -50,30 +46,33 @@ impl WasmTestWrapper {
         mut input: LocateExecutablesInput,
     ) -> LocateExecutablesOutput {
         input.context = self.prepare_context(input.context);
+        input.install_dir = self.tool.to_virtual_path(input.install_dir);
 
         self.tool
             .plugin
-            .call_func_with("locate_executables", input)
+            .call_func_with(PluginFunction::LocateExecutables, input)
             .await
             .unwrap()
     }
 
     pub async fn native_install(&self, mut input: NativeInstallInput) -> NativeInstallOutput {
         input.context = self.prepare_context(input.context);
+        input.install_dir = self.tool.to_virtual_path(input.install_dir);
 
         self.tool
             .plugin
-            .call_func_with("native_install", input)
+            .call_func_with(PluginFunction::NativeInstall, input)
             .await
             .unwrap()
     }
 
     pub async fn native_uninstall(&self, mut input: NativeUninstallInput) -> NativeUninstallOutput {
         input.context = self.prepare_context(input.context);
+        input.uninstall_dir = self.tool.to_virtual_path(input.uninstall_dir);
 
         self.tool
             .plugin
-            .call_func_with("native_uninstall", input)
+            .call_func_with(PluginFunction::NativeUninstall, input)
             .await
             .unwrap()
     }
@@ -83,11 +82,11 @@ impl WasmTestWrapper {
         mut input: ParseVersionFileInput,
     ) -> ParseVersionFileOutput {
         input.context = self.prepare_unresolved_context(input.context);
-        input.path = self.tool.to_virtual_path(&input.path);
+        input.path = self.tool.to_virtual_path(input.path);
 
         self.tool
             .plugin
-            .call_func_with("parse_version_file", input)
+            .call_func_with(PluginFunction::ParseVersionFile, input)
             .await
             .unwrap()
     }
@@ -97,7 +96,7 @@ impl WasmTestWrapper {
 
         self.tool
             .plugin
-            .call_func_without_output("pre_install", input)
+            .call_func_without_output(HookFunction::PreInstall, input)
             .await
             .unwrap();
     }
@@ -107,7 +106,7 @@ impl WasmTestWrapper {
 
         self.tool
             .plugin
-            .call_func_with("pre_run", input)
+            .call_func_with(HookFunction::PreRun, input)
             .await
             .unwrap()
     }
@@ -117,7 +116,7 @@ impl WasmTestWrapper {
 
         self.tool
             .plugin
-            .call_func_without_output("post_install", input)
+            .call_func_without_output(HookFunction::PostInstall, input)
             .await
             .unwrap();
     }
@@ -127,7 +126,7 @@ impl WasmTestWrapper {
 
         self.tool
             .plugin
-            .call_func_with("register_backend", input)
+            .call_func_with(PluginFunction::RegisterBackend, input)
             .await
             .unwrap()
     }
@@ -135,7 +134,7 @@ impl WasmTestWrapper {
     pub async fn register_tool(&self, input: RegisterToolInput) -> RegisterToolOutput {
         self.tool
             .plugin
-            .call_func_with("register_tool", input)
+            .call_func_with(PluginFunction::RegisterTool, input)
             .await
             .unwrap()
     }
@@ -145,7 +144,7 @@ impl WasmTestWrapper {
 
         self.tool
             .plugin
-            .call_func_with("resolve_version", input)
+            .call_func_with(PluginFunction::ResolveVersion, input)
             .await
             .unwrap()
     }
@@ -155,7 +154,7 @@ impl WasmTestWrapper {
 
         self.tool
             .plugin
-            .call_func_with("sync_manifest", input)
+            .call_func_with(PluginFunction::SyncManifest, input)
             .await
             .unwrap()
     }
@@ -168,63 +167,66 @@ impl WasmTestWrapper {
 
         self.tool
             .plugin
-            .call_func_with("sync_shell_profile", input)
+            .call_func_with(PluginFunction::SyncShellProfile, input)
             .await
             .unwrap()
     }
 
     pub async fn unpack_archive(&self, mut input: UnpackArchiveInput) {
-        input.input_file = self.tool.to_virtual_path(&input.input_file);
-        input.output_dir = self.tool.to_virtual_path(&input.output_dir);
+        input.input_file = self.tool.to_virtual_path(input.input_file);
+        input.output_dir = self.tool.to_virtual_path(input.output_dir);
 
         let _: EmptyInput = self
             .tool
             .plugin
-            .call_func_with("unpack_archive", input)
+            .call_func_with(PluginFunction::UnpackArchive, input)
             .await
             .unwrap();
     }
 
     pub async fn verify_checksum(&self, mut input: VerifyChecksumInput) -> VerifyChecksumOutput {
-        input.checksum_file = self.tool.to_virtual_path(&input.checksum_file);
-        input.download_file = self.tool.to_virtual_path(&input.download_file);
+        input.checksum_file = self.tool.to_virtual_path(input.checksum_file);
+        input.download_file = self.tool.to_virtual_path(input.download_file);
 
         self.tool
             .plugin
-            .call_func_with("verify_checksum", input)
+            .call_func_with(PluginFunction::VerifyChecksum, input)
             .await
             .unwrap()
     }
 
-    fn prepare_context(&self, context: ToolContext) -> ToolContext {
+    fn prepare_context(&self, context: PluginContext) -> PluginContext {
         let tool_dir = if context.tool_dir.any_path().components().count() == 0 {
             self.tool.get_product_dir()
         } else {
-            context.tool_dir.any_path().to_path_buf()
+            context.tool_dir.any_path()
         };
 
         let temp_dir = if context.temp_dir.any_path().components().count() == 0 {
             self.tool.get_temp_dir()
         } else {
-            context.temp_dir.any_path().to_path_buf()
+            context.temp_dir.any_path()
         };
 
-        ToolContext {
-            temp_dir: self.tool.to_virtual_path(&temp_dir),
-            tool_dir: self.tool.to_virtual_path(&tool_dir),
+        PluginContext {
+            temp_dir: self.tool.to_virtual_path(temp_dir),
+            tool_dir: self.tool.to_virtual_path(tool_dir),
             ..context
         }
     }
 
-    fn prepare_unresolved_context(&self, context: ToolUnresolvedContext) -> ToolUnresolvedContext {
+    fn prepare_unresolved_context(
+        &self,
+        context: PluginUnresolvedContext,
+    ) -> PluginUnresolvedContext {
         let temp_dir = if context.temp_dir.any_path().components().count() == 0 {
             self.tool.get_temp_dir()
         } else {
-            context.temp_dir.any_path().to_path_buf()
+            context.temp_dir.any_path()
         };
 
-        ToolUnresolvedContext {
-            temp_dir: self.tool.to_virtual_path(&temp_dir),
+        PluginUnresolvedContext {
+            temp_dir: self.tool.to_virtual_path(temp_dir),
             ..context
         }
     }

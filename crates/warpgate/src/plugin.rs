@@ -1,13 +1,10 @@
-use crate::endpoints::Empty;
 use crate::helpers::{from_virtual_path, to_virtual_path};
-use crate::id::Id;
 use crate::plugin_error::WarpgatePluginError;
 use extism::{Error, Function, Manifest, Plugin};
-use miette::IntoDiagnostic;
-use serde::Serialize;
 use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
 use starbase_styles::{apply_style_tags, color};
-use starbase_utils::env::{bool_var, is_ci};
+use starbase_utils::envx::{bool_var, is_ci};
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
@@ -17,7 +14,7 @@ use system_env::{SystemArch, SystemLibc, SystemOS};
 use tokio::sync::RwLock;
 use tokio::task::block_in_place;
 use tracing::{instrument, trace};
-use warpgate_api::{HostEnvironment, VirtualPath};
+use warpgate_api::{HostEnvironment, Id, VirtualPath};
 
 fn is_incompatible_runtime(error: &Error) -> bool {
     let check = |message: String| {
@@ -25,10 +22,10 @@ fn is_incompatible_runtime(error: &Error) -> bool {
         message.contains("unknown import") && message.contains("env::")
     };
 
-    if let Some(source) = error.source() {
-        if check(source.to_string()) {
-            return true;
-        }
+    if let Some(source) = error.source()
+        && check(source.to_string())
+    {
+        return true;
     }
 
     check(error.to_string())
@@ -49,29 +46,36 @@ pub fn inject_default_manifest_config(
     id: &Id,
     home_dir: &Path,
     manifest: &mut Manifest,
-) -> miette::Result<()> {
-    let os = SystemOS::from_env();
-    let env = serde_json::to_string(&HostEnvironment {
-        arch: SystemArch::from_env(),
-        ci: is_ci(),
-        libc: SystemLibc::detect(os),
-        os,
-        home_dir: to_virtual_path(
-            &map_virtual_paths(manifest.allowed_paths.as_ref().unwrap()),
-            home_dir,
-        ),
-    })
-    .into_diagnostic()?;
+) -> Result<(), WarpgatePluginError> {
+    if !manifest.config.contains_key("plugin_id") {
+        trace!(id = id.as_str(), "Storing plugin identifier");
 
-    trace!(id = id.as_str(), "Storing plugin identifier");
+        manifest.config.insert("plugin_id".into(), id.to_string());
+    }
 
-    manifest
-        .config
-        .insert("plugin_id".to_string(), id.to_string());
+    if !manifest.config.contains_key("host_environment") {
+        let os = SystemOS::from_env();
 
-    trace!(id = id.as_str(), env = %env, "Storing host environment");
+        let env = serde_json::to_string(&HostEnvironment {
+            arch: SystemArch::from_env(),
+            ci: is_ci(),
+            libc: SystemLibc::detect(os),
+            os,
+            home_dir: to_virtual_path(
+                &map_virtual_paths(manifest.allowed_paths.as_ref().unwrap()),
+                home_dir,
+            ),
+        })
+        .map_err(|error| WarpgatePluginError::InvalidInput {
+            id: id.to_owned(),
+            func: "host_environment".into(),
+            error: Box::new(error),
+        })?;
 
-    manifest.config.insert("host_environment".to_string(), env);
+        trace!(id = id.as_str(), env = %env, "Storing host environment");
+
+        manifest.config.insert("host_environment".into(), env);
+    }
 
     Ok(())
 }
@@ -91,9 +95,6 @@ pub struct PluginContainer {
     plugin: Arc<RwLock<Plugin>>,
 }
 
-unsafe impl Send for PluginContainer {}
-unsafe impl Sync for PluginContainer {}
-
 impl PluginContainer {
     /// Create a new container with the provided manifest and host functions.
     #[instrument(name = "new_plugin", skip(manifest, functions))]
@@ -101,7 +102,7 @@ impl PluginContainer {
         id: Id,
         manifest: Manifest,
         functions: impl IntoIterator<Item = Function>,
-    ) -> miette::Result<PluginContainer> {
+    ) -> Result<PluginContainer, WarpgatePluginError> {
         trace!(id = id.as_str(), "Creating plugin container");
 
         let plugin = Plugin::new(&manifest, functions, true).map_err(|error| {
@@ -132,7 +133,10 @@ impl PluginContainer {
     }
 
     /// Create a new container with the provided manifest.
-    pub fn new_without_functions(id: Id, manifest: Manifest) -> miette::Result<PluginContainer> {
+    pub fn new_without_functions(
+        id: Id,
+        manifest: Manifest,
+    ) -> Result<PluginContainer, WarpgatePluginError> {
         Self::new(id, manifest, [])
     }
 
@@ -143,8 +147,9 @@ impl PluginContainer {
 
     /// Call a function on the plugin with no input and cache the output before returning it.
     /// Subsequent calls will read from the cache.
-    pub async fn cache_func<O>(&self, func: &str) -> miette::Result<O>
+    pub async fn cache_func<F, O>(&self, func: F) -> Result<O, WarpgatePluginError>
     where
+        F: Debug + AsRef<str>,
         O: Debug + DeserializeOwned,
     {
         self.cache_func_with(func, Empty::default()).await
@@ -153,31 +158,41 @@ impl PluginContainer {
     /// Call a function on the plugin with the given input and cache the output
     /// before returning it. Subsequent calls with the same input will read from the cache.
     #[instrument(skip(self))]
-    pub async fn cache_func_with<I, O>(&self, func: &str, input: I) -> miette::Result<O>
+    pub async fn cache_func_with<F, I, O>(
+        &self,
+        func: F,
+        input: I,
+    ) -> Result<O, WarpgatePluginError>
     where
+        F: Debug + AsRef<str>,
         I: Debug + Serialize,
         O: Debug + DeserializeOwned,
     {
+        use scc::hash_map::Entry;
+
+        let func = func.as_ref();
         let input = self.format_input(func, input)?;
         let cache_key = format!("{func}-{input}");
 
-        // Check if cache exists already
-        if let Some(data) = self.func_cache.get(&cache_key) {
-            return self.parse_output(func, data.get());
+        match self.func_cache.entry_async(cache_key).await {
+            // Check if cache exists already
+            Entry::Occupied(entry) => self.parse_output(func, entry.get()),
+            // Otherwise call the function and cache the result
+            Entry::Vacant(entry) => {
+                let data = self.call(func, input).await?;
+                let output: O = self.parse_output(func, &data)?;
+
+                entry.insert_entry(data);
+
+                Ok(output)
+            }
         }
-
-        // Otherwise call the function and cache the result
-        let data = self.call(func, input).await?;
-        let output: O = self.parse_output(func, &data)?;
-
-        let _ = self.func_cache.insert(cache_key, data);
-
-        Ok(output)
     }
 
     /// Call a function on the plugin with no input and return the output.
-    pub async fn call_func<O>(&self, func: &str) -> miette::Result<O>
+    pub async fn call_func<F, O>(&self, func: F) -> Result<O, WarpgatePluginError>
     where
+        F: Debug + AsRef<str>,
         O: Debug + DeserializeOwned,
     {
         self.call_func_with(func, Empty::default()).await
@@ -185,11 +200,14 @@ impl PluginContainer {
 
     /// Call a function on the plugin with the given input and return the output.
     #[instrument(skip(self))]
-    pub async fn call_func_with<I, O>(&self, func: &str, input: I) -> miette::Result<O>
+    pub async fn call_func_with<F, I, O>(&self, func: F, input: I) -> Result<O, WarpgatePluginError>
     where
+        F: Debug + AsRef<str>,
         I: Debug + Serialize,
         O: Debug + DeserializeOwned,
     {
+        let func = func.as_ref();
+
         self.parse_output(
             func,
             &self.call(func, self.format_input(func, input)?).await?,
@@ -198,17 +216,25 @@ impl PluginContainer {
 
     /// Call a function on the plugin with the given input and ignore the output.
     #[instrument(skip(self))]
-    pub async fn call_func_without_output<I>(&self, func: &str, input: I) -> miette::Result<()>
+    pub async fn call_func_without_output<F, I>(
+        &self,
+        func: F,
+        input: I,
+    ) -> Result<(), WarpgatePluginError>
     where
+        F: Debug + AsRef<str>,
         I: Debug + Serialize,
     {
+        let func = func.as_ref();
+
         self.call(func, self.format_input(func, input)?).await?;
+
         Ok(())
     }
 
     /// Return true if the plugin has a function with the given id.
-    pub async fn has_func(&self, func: &str) -> bool {
-        self.plugin.read().await.function_exists(func)
+    pub async fn has_func(&self, func: impl AsRef<str>) -> bool {
+        self.plugin.read().await.function_exists(func.as_ref())
     }
 
     /// Convert the provided virtual guest path to an absolute host path.
@@ -235,7 +261,11 @@ impl PluginContainer {
     }
 
     /// Call a function on the plugin with the given raw input and return the raw output.
-    pub async fn call(&self, func: &str, input: impl AsRef<[u8]>) -> miette::Result<Vec<u8>> {
+    pub async fn call(
+        &self,
+        func: &str,
+        input: impl AsRef<[u8]>,
+    ) -> Result<Vec<u8>, WarpgatePluginError> {
         let mut instance = self.plugin.write().await;
         let input = input.as_ref();
         let input_string = String::from_utf8_lossy(input);
@@ -315,23 +345,30 @@ impl PluginContainer {
         Ok(output.to_vec())
     }
 
-    fn format_input<I: Serialize>(&self, func: &str, input: I) -> miette::Result<String> {
-        Ok(
-            serde_json::to_string(&input).map_err(|error| WarpgatePluginError::InvalidInput {
-                id: self.id.clone(),
-                func: func.to_owned(),
-                error: Box::new(error),
-            })?,
-        )
+    fn format_input<I: Serialize>(
+        &self,
+        func: &str,
+        input: I,
+    ) -> Result<String, WarpgatePluginError> {
+        serde_json::to_string(&input).map_err(|error| WarpgatePluginError::InvalidInput {
+            id: self.id.clone(),
+            func: func.to_owned(),
+            error: Box::new(error),
+        })
     }
 
-    fn parse_output<O: DeserializeOwned>(&self, func: &str, data: &[u8]) -> miette::Result<O> {
-        Ok(
-            serde_json::from_slice(data).map_err(|error| WarpgatePluginError::InvalidOutput {
-                id: self.id.clone(),
-                func: func.to_owned(),
-                error: Box::new(error),
-            })?,
-        )
+    fn parse_output<O: DeserializeOwned>(
+        &self,
+        func: &str,
+        data: &[u8],
+    ) -> Result<O, WarpgatePluginError> {
+        serde_json::from_slice(data).map_err(|error| WarpgatePluginError::InvalidOutput {
+            id: self.id.clone(),
+            func: func.to_owned(),
+            error: Box::new(error),
+        })
     }
 }
+
+#[derive(Debug, Default, Deserialize, Serialize)]
+struct Empty {}

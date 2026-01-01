@@ -1,13 +1,13 @@
-use miette::IntoDiagnostic;
 use regex::Regex;
 use semver::Version;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use starbase_archive::is_supported_archive_extension;
-use starbase_utils::env::bool_var;
-use starbase_utils::fs;
-use starbase_utils::json::{self, JsonError};
-use starbase_utils::net;
+use starbase_utils::{
+    envx, fs,
+    json::{self, JsonError},
+    net,
+};
 use std::env;
 use std::path::Path;
 use std::sync::{LazyLock, OnceLock};
@@ -45,7 +45,7 @@ pub fn is_offline() -> bool {
             };
         }
 
-        let override_default = bool_var("PROTO_OFFLINE_OVERRIDE_HOSTS");
+        let override_default = envx::bool_var("PROTO_OFFLINE_OVERRIDE_HOSTS");
 
         let timeout: u64 = env::var("PROTO_OFFLINE_TIMEOUT")
             .map(|value| value.parse().expect("Invalid offline timeout."))
@@ -80,6 +80,19 @@ pub fn is_archive_file<P: AsRef<Path>>(path: P) -> bool {
     is_supported_archive_extension(path.as_ref())
 }
 
+#[cfg(unix)]
+pub fn is_executable<P: AsRef<Path>>(path: P) -> bool {
+    use std::os::unix::fs::PermissionsExt;
+
+    fs::metadata(path.as_ref())
+        .is_ok_and(|meta| meta.is_file() && meta.permissions().mode() & 0o111 != 0)
+}
+
+#[cfg(windows)]
+pub fn is_executable<P: AsRef<Path>>(path: P) -> bool {
+    path.as_ref().extension().is_some_and(|ext| ext == "exe")
+}
+
 pub fn now() -> u128 {
     SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
@@ -87,14 +100,27 @@ pub fn now() -> u128 {
         .unwrap_or(0)
 }
 
-pub fn extract_filename_from_url<U: AsRef<str>>(url: U) -> miette::Result<String> {
-    let url = url::Url::parse(url.as_ref()).into_diagnostic()?;
-    let mut segments = url.path_segments().unwrap();
+pub fn extract_filename_from_url<U: AsRef<str>>(url: U) -> String {
+    let base = url.as_ref();
 
-    Ok(segments.next_back().unwrap().to_owned())
+    match url::Url::parse(base) {
+        Ok(url) => {
+            let mut segments = url.path_segments().unwrap();
+
+            segments.next_back().unwrap().to_owned()
+        }
+        Err(_) => if let Some(i) = base.rfind('/') {
+            &base[i + 1..]
+        } else {
+            "unknown"
+        }
+        .into(),
+    }
 }
 
-pub fn read_json_file_with_lock<T: DeserializeOwned>(path: impl AsRef<Path>) -> miette::Result<T> {
+pub fn read_json_file_with_lock<T: DeserializeOwned>(
+    path: impl AsRef<Path>,
+) -> Result<T, JsonError> {
     let path = path.as_ref();
     let mut content = fs::read_file_with_lock(path)?;
 
@@ -117,7 +143,7 @@ pub fn read_json_file_with_lock<T: DeserializeOwned>(path: impl AsRef<Path>) -> 
 pub fn write_json_file_with_lock<T: Serialize>(
     path: impl AsRef<Path>,
     data: &T,
-) -> miette::Result<()> {
+) -> Result<(), JsonError> {
     let path = path.as_ref();
 
     let data = json::serde_json::to_string_pretty(data).map_err(|error| JsonError::WriteFile {

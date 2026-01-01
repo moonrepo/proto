@@ -11,6 +11,7 @@ use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_shell::{BoxedShell, ShellType};
 use starbase_styles::color;
+use starbase_utils::envx;
 use std::env;
 use std::path::PathBuf;
 use tracing::debug;
@@ -43,7 +44,7 @@ const DISCORD: &str = "https://discord.gg/qCh9MEynv2";
 
 #[tracing::instrument(skip_all)]
 pub async fn setup(session: ProtoSession, args: SetupArgs) -> AppResult {
-    let paths = starbase_utils::env::paths();
+    let paths = envx::paths();
 
     if paths.contains(&session.env.store.shims_dir) || paths.contains(&session.env.store.bin_dir) {
         debug!("Skipping setup, proto already exists in PATH");
@@ -244,7 +245,7 @@ async fn update_shell_profile(
     } else {
         debug!("Attempting to find a shell profile to update");
 
-        find_first_profile(shell, &session.env.home_dir).ok()
+        Some(find_first_profile(shell, &session.env.home_dir))
     };
 
     // If we found a profile, update the global config so we can reference it

@@ -1,10 +1,26 @@
-use miette::Diagnostic;
+#![allow(unused_assignments)]
+
+use crate::config_error::ProtoConfigError;
 use starbase_styles::{Style, Stylize};
+use starbase_utils::fs::FsError;
 use std::path::PathBuf;
 use thiserror::Error;
+use warpgate::WarpgatePluginError;
 
-#[derive(Error, Debug, Diagnostic)]
+#[derive(Error, Debug, miette::Diagnostic)]
 pub enum ProtoDetectError {
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Config(#[from] Box<ProtoConfigError>),
+
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Fs(#[from] Box<FsError>),
+
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Plugin(#[from] Box<WarpgatePluginError>),
+
     #[diagnostic(code(proto::detect::invalid_version))]
     #[error(
       "Invalid version or requirement {} detected from {}.",
@@ -24,4 +40,22 @@ pub enum ProtoDetectError {
         "proto pin".style(Style::Shell),
     )]
     FailedVersionDetect { tool: String },
+}
+
+impl From<ProtoConfigError> for ProtoDetectError {
+    fn from(e: ProtoConfigError) -> ProtoDetectError {
+        ProtoDetectError::Config(Box::new(e))
+    }
+}
+
+impl From<FsError> for ProtoDetectError {
+    fn from(e: FsError) -> ProtoDetectError {
+        ProtoDetectError::Fs(Box::new(e))
+    }
+}
+
+impl From<WarpgatePluginError> for ProtoDetectError {
+    fn from(e: WarpgatePluginError) -> ProtoDetectError {
+        ProtoDetectError::Plugin(Box::new(e))
+    }
 }

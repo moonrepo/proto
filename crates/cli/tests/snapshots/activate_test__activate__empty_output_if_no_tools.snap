@@ -22,3 +22,5 @@ if [[ ";${PROMPT_COMMAND[*]:-};" != *";_proto_activate_hook;"* ]]; then
     PROMPT_COMMAND="_proto_activate_hook${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
   fi
 fi
+
+_proto_activate_hook

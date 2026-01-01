@@ -1,10 +1,35 @@
-use miette::Diagnostic;
+use schematic::ConfigError;
 use starbase_styles::{Style, Stylize};
+use starbase_utils::fs::FsError;
+use starbase_utils::toml::TomlError;
 use std::path::PathBuf;
 use thiserror::Error;
 
-#[derive(Error, Debug, Diagnostic)]
+#[derive(Error, Debug, miette::Diagnostic)]
 pub enum ProtoConfigError {
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Fs(#[from] Box<FsError>),
+
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Schematic(#[from] Box<ConfigError>),
+
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Toml(#[from] Box<TomlError>),
+
+    #[diagnostic(code(proto::config::lockfile_already_exists))]
+    #[error(
+        "Unable to lock the directory {} as a lock file already exists in the child directory {}. Nested lock files are not supported. Instead, lock the parent directory.",
+        .parent_dir.style(Style::Path),
+        .child_dir.style(Style::Path),
+    )]
+    AlreadyLocked {
+        child_dir: PathBuf,
+        parent_dir: PathBuf,
+    },
+
     #[diagnostic(code(proto::config::env_parse_failed))]
     #[error(
         "Failed to parse .env file {}.",
@@ -14,6 +39,17 @@ pub enum ProtoConfigError {
         path: PathBuf,
         #[source]
         error: Box<dotenvy::Error>,
+    },
+
+    #[diagnostic(code(proto::config::failed_update))]
+    #[error(
+        "Failed to update config {}.",
+        .path.style(Style::Path),
+    )]
+    FailedUpdate {
+        path: PathBuf,
+        #[source]
+        error: Box<toml_edit::TomlError>,
     },
 
     #[diagnostic(code(proto::config::missing_env_file))]
@@ -28,4 +64,22 @@ pub enum ProtoConfigError {
         config: String,
         config_path: PathBuf,
     },
+}
+
+impl From<FsError> for ProtoConfigError {
+    fn from(e: FsError) -> ProtoConfigError {
+        ProtoConfigError::Fs(Box::new(e))
+    }
+}
+
+impl From<ConfigError> for ProtoConfigError {
+    fn from(e: ConfigError) -> ProtoConfigError {
+        ProtoConfigError::Schematic(Box::new(e))
+    }
+}
+
+impl From<TomlError> for ProtoConfigError {
+    fn from(e: TomlError) -> ProtoConfigError {
+        ProtoConfigError::Toml(Box::new(e))
+    }
 }

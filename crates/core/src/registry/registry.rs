@@ -4,7 +4,7 @@ use crate::registry::registry_error::ProtoRegistryError;
 use starbase_utils::{fs, json};
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
 use tracing::{debug, instrument};
 
 pub struct ProtoRegistry {
@@ -24,7 +24,7 @@ impl ProtoRegistry {
         }
     }
 
-    pub async fn load_plugins(&mut self) -> miette::Result<Vec<&PluginEntry>> {
+    pub async fn load_plugins(&mut self) -> Result<Vec<&PluginEntry>, ProtoRegistryError> {
         self.load_internal_plugins().await?;
         self.load_external_plugins().await?;
 
@@ -36,7 +36,7 @@ impl ProtoRegistry {
     }
 
     #[instrument(skip(self))]
-    pub async fn load_internal_plugins(&mut self) -> miette::Result<Vec<&PluginEntry>> {
+    pub async fn load_internal_plugins(&mut self) -> Result<Vec<&PluginEntry>, ProtoRegistryError> {
         if self.internal.is_empty() {
             debug!("Loading built-in plugins registry data");
 
@@ -55,7 +55,7 @@ impl ProtoRegistry {
     }
 
     #[instrument(skip(self))]
-    pub async fn load_external_plugins(&mut self) -> miette::Result<Vec<&PluginEntry>> {
+    pub async fn load_external_plugins(&mut self) -> Result<Vec<&PluginEntry>, ProtoRegistryError> {
         if self.external.is_empty() {
             debug!("Loading third-party plugins registry data");
 
@@ -77,12 +77,11 @@ impl ProtoRegistry {
         &self,
         temp_file: PathBuf,
         data_url: String,
-    ) -> miette::Result<Vec<PluginEntry>> {
+    ) -> Result<Vec<PluginEntry>, ProtoRegistryError> {
         // Cache should refresh every 24 hours
-        let now = SystemTime::now();
         let duration = Duration::from_secs(86400);
 
-        if temp_file.exists() && fs::is_stale(&temp_file, false, duration, now)?.is_none() {
+        if temp_file.exists() && !fs::is_stale(&temp_file, false, duration)? {
             debug!(file = ?temp_file, "Reading plugins data from local cache");
 
             let plugins: Vec<PluginEntry> = json::read_file(&temp_file)?;

@@ -1,0 +1,17 @@
+[package]
+name = "proto_mocked_tool"
+version = "0.0.1"
+edition = "2024"
+license = "MIT"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+proto_pdk = { path = "../../crates/pdk", features = ["tracing"] }
+extism-pdk = { workspace = true }
+serde = { workspace = true }
+sha2 = "0.10.9"
+starbase_utils = { workspace = true }
+tracing = { workspace = true }

@@ -1,15 +1,23 @@
 [package]
 name = "proto_pdk"
-version = "0.28.10"
+version = "0.32.4"
 edition = "2024"
 license = "MIT"
 description = "A plugin development kit for creating proto WASM plugins."
 homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
+rust-version = "1.85.0"
 
 [dependencies]
-proto_pdk_api = { version = "0.27.13", path = "../pdk-api" }
-warpgate_pdk = { version = "0.13.2", path = "../warpgate-pdk" }
+proto_pdk_api = { version = "0.31.4", path = "../pdk-api" }
+warpgate_pdk = { version = "0.16.2", path = "../warpgate-pdk" }
 extism-pdk = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
+
+[dev-dependencies]
+proto_pdk = { path = ".", features = ["tracing"] }
+
+[features]
+default = []
+tracing = ["warpgate_pdk/tracing"]

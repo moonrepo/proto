@@ -2,6 +2,7 @@ use crate::helpers::join_list;
 use crate::session::ProtoSession;
 use clap::{Args, ValueEnum};
 use iocraft::prelude::element;
+use proto_core::ToolSpec;
 use proto_core::{PROTO_PLUGIN_KEY, Tool, VersionSpec, flow::resolve::ProtoResolveError};
 use proto_shim::get_exe_file_name;
 use rustc_hash::FxHashSet;
@@ -73,13 +74,13 @@ pub async fn clean_tool(
 
     debug!("Checking {}", tool.get_name());
 
-    if tool.metadata.inventory.override_dir.is_some() {
+    if tool.metadata.inventory_options.override_dir.is_some() {
         debug!("Using an external inventory, skipping");
 
         return Ok(cleaned);
     }
 
-    let inventory_dir = tool.get_inventory_dir();
+    let inventory_dir = tool.get_inventory_dir().to_path_buf();
 
     if !inventory_dir.exists() {
         debug!("Not being used, skipping");
@@ -148,16 +149,16 @@ pub async fn clean_tool(
         // - It was recently installed but not used yet
         // - It was installed before we started tracking last used timestamps
         // - The tools run via external commands (e.g. moon)
-        if let Ok(Some(last_used)) = tool.inventory.create_product(version).load_used_at() {
-            if is_older_than_days(now_millis, last_used, days) {
-                debug!(
-                    "Version {} hasn't been used in over {} days, removing",
-                    color::hash(version.to_string()),
-                    days
-                );
+        if let Ok(Some(last_used)) = tool.inventory.create_product(version).load_used_at()
+            && is_older_than_days(now_millis, last_used, days)
+        {
+            debug!(
+                "Version {} hasn't been used in over {} days, removing",
+                color::hash(version.to_string()),
+                days
+            );
 
-                versions_to_clean.insert(version.to_owned());
-            }
+            versions_to_clean.insert(version.to_owned());
         }
     }
 
@@ -196,12 +197,15 @@ pub async fn clean_tool(
         for version in versions_to_clean {
             cleaned.push(StaleTool {
                 dir: inventory_dir.join(version.to_string()),
-                id: tool.id.to_string(),
+                id: tool.get_id().to_string(),
                 version: version.clone(),
             });
 
-            tool.set_version(version);
-            tool.teardown().await?;
+            // Reset any previously resolved version to ensure we teardown
+            // the correct version when called multiple times in a loop
+            tool.version = None;
+            tool.teardown(&ToolSpec::new(version.to_unresolved_spec()))
+                .await?;
         }
     } else {
         debug!("Skipping remove, continuing to next tool");
@@ -211,11 +215,7 @@ pub async fn clean_tool(
 }
 
 #[instrument(skip_all)]
-pub async fn clean_proto_tool(
-    session: &ProtoSession,
-    now: SystemTime,
-    days: u64,
-) -> miette::Result<Vec<StaleTool>> {
+pub async fn clean_proto_tool(session: &ProtoSession, days: u64) -> miette::Result<Vec<StaleTool>> {
     let duration = Duration::from_secs(86400 * days);
     let mut cleaned = vec![];
 
@@ -238,7 +238,7 @@ pub async fn clean_proto_tool(
         })?;
 
         let is_stale = if proto_file.exists() {
-            fs::is_stale(proto_file, true, duration, now)?.is_some()
+            fs::is_stale(proto_file, true, duration)?
         } else {
             true
         };
@@ -264,15 +264,24 @@ pub async fn clean_proto_tool(
 }
 
 #[instrument(skip_all)]
-pub async fn clean_dir(dir: &Path, now: SystemTime, days: u64) -> miette::Result<Vec<StaleFile>> {
+pub async fn clean_dir(dir: &Path, days: u64) -> miette::Result<Vec<StaleFile>> {
     let duration = Duration::from_secs(86400 * days);
     let mut cleaned = vec![];
 
     for file in fs::read_dir(dir)? {
         let path = file.path();
 
+        // Don't delete dot files/folders
+        if path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .is_some_and(|name| name.starts_with('.'))
+        {
+            continue;
+        }
+
         if path.is_file() {
-            let bytes = fs::remove_file_if_stale(&path, duration, now)?;
+            let bytes = fs::remove_file_if_stale(&path, duration)?;
 
             if bytes > 0 {
                 debug!(
@@ -305,7 +314,7 @@ pub async fn internal_clean(
         debug!("Cleaning installed tools...");
 
         for tool in session.load_all_tools().await? {
-            if tool.id == PROTO_PLUGIN_KEY {
+            if tool.get_id() == PROTO_PLUGIN_KEY {
                 continue;
             }
 
@@ -315,27 +324,25 @@ pub async fn internal_clean(
         }
 
         // proto has special handling
-        result
-            .tools
-            .extend(clean_proto_tool(session, now, days).await?);
+        result.tools.extend(clean_proto_tool(session, days).await?);
     }
 
     if matches!(args.target, CleanTarget::All | CleanTarget::Plugins) {
         debug!("Cleaning downloaded plugins...");
 
-        result.plugins = clean_dir(&session.env.store.plugins_dir, now, days).await?;
+        result.plugins = clean_dir(&session.env.store.plugins_dir, days).await?;
     }
 
     if matches!(args.target, CleanTarget::All | CleanTarget::Temp) {
         debug!("Cleaning temporary directory...");
 
-        result.temp = clean_dir(&session.env.store.temp_dir, now, days).await?;
+        result.temp = clean_dir(&session.env.store.temp_dir, days).await?;
     }
 
     if matches!(args.target, CleanTarget::All | CleanTarget::Cache) {
         debug!("Cleaning cache directory...");
 
-        result.cache = clean_dir(&session.env.store.cache_dir, now, days).await?;
+        result.cache = clean_dir(&session.env.store.cache_dir, days).await?;
     }
 
     Ok(result)

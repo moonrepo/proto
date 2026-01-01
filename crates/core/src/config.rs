@@ -1,293 +1,93 @@
 use crate::config_error::ProtoConfigError;
 use crate::helpers::ENV_VAR_SUB;
-use crate::tool_spec::{Backend, ToolSpec};
+use crate::tool_context::ToolContext;
+use crate::tool_spec::ToolSpec;
 use indexmap::IndexMap;
-use once_cell::sync::OnceCell;
 use rustc_hash::FxHashMap;
 use schematic::{
-    Config, ConfigEnum, ConfigError, ConfigLoader, DefaultValueResult, Format, MergeError,
-    MergeResult, PartialConfig, Path as ErrorPath, ValidateError, ValidateResult, ValidatorError,
-    derive_enum, env, merge,
+    Config, ConfigError, ConfigLoader, PartialConfig, Path as ErrorPath, ValidateError,
+    ValidatorError, merge,
 };
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use starbase_styles::color;
 use starbase_utils::fs::FsError;
-use starbase_utils::json::JsonValue;
 use starbase_utils::toml::TomlValue;
 use starbase_utils::{fs, toml};
 use std::collections::BTreeMap;
+use std::env;
 use std::ffi::OsStr;
 use std::fmt::Debug;
-use std::hash::Hash;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
-use system_env::{SystemOS, SystemPackageManager};
-use tracing::{debug, instrument};
-use warpgate::{HttpOptions, Id, PluginLocator, UrlLocator};
+use toml_edit::DocumentMut;
+use tracing::{debug, instrument, trace};
+use warpgate::{Id, PluginLocator, find_debug_locator_with_url_fallback};
+
+// Re-export settings from here!
+pub use crate::settings::*;
 
 pub const PROTO_CONFIG_NAME: &str = ".prototools";
 pub const SCHEMA_PLUGIN_KEY: &str = "internal-schema";
 pub const PROTO_PLUGIN_KEY: &str = "proto";
 pub const ENV_FILE_KEY: &str = "file";
 
-fn merge_tools(
-    mut prev: BTreeMap<Id, PartialProtoToolConfig>,
-    next: BTreeMap<Id, PartialProtoToolConfig>,
-    context: &(),
-) -> MergeResult<BTreeMap<Id, PartialProtoToolConfig>> {
-    for (key, value) in next {
-        prev.entry(key)
-            .or_default()
-            .merge(context, value)
-            .map_err(MergeError::new)?;
-    }
-
-    Ok(Some(prev))
-}
-
-fn merge_fxhashmap<K, V, C>(
-    mut prev: FxHashMap<K, V>,
-    next: FxHashMap<K, V>,
-    _context: &C,
-) -> MergeResult<FxHashMap<K, V>>
-where
-    K: Eq + Hash,
-{
-    for (key, value) in next {
-        prev.insert(key, value);
-    }
-
-    Ok(Some(prev))
-}
-
-fn merge_indexmap<K, V>(
-    mut prev: IndexMap<K, V>,
-    next: IndexMap<K, V>,
-    _context: &(),
-) -> MergeResult<IndexMap<K, V>>
-where
-    K: Eq + Hash,
-{
-    for (key, value) in next {
-        prev.insert(key, value);
-    }
-
-    Ok(Some(prev))
-}
-
-fn validate_reserved_words(
-    value: &BTreeMap<Id, PluginLocator>,
-    _partial: &PartialProtoConfig,
-    _context: &(),
-    _finalize: bool,
-) -> ValidateResult {
-    if value.contains_key(PROTO_PLUGIN_KEY) {
-        return Err(ValidateError::new(
-            "proto is a reserved keyword, cannot use as a plugin identifier",
-        ));
-    }
-
-    Ok(())
-}
-
-derive_enum!(
-    #[derive(ConfigEnum, Copy, Default)]
-    #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
-    pub enum ConfigMode {
-        Global,
-        Local,
-        Upwards,
-        #[default]
-        #[serde(alias = "all")]
-        #[cfg_attr(feature = "clap", value(alias("all")))]
-        UpwardsGlobal,
-    }
-);
-
-impl ConfigMode {
-    pub fn includes_global(&self) -> bool {
-        matches!(self, Self::Global | Self::UpwardsGlobal)
-    }
-
-    pub fn only_local(&self) -> bool {
-        matches!(self, Self::Local)
-    }
-}
-
-derive_enum!(
-    #[derive(ConfigEnum, Default)]
-    pub enum DetectStrategy {
-        #[default]
-        FirstAvailable,
-        PreferPrototools,
-        OnlyPrototools,
-    }
-);
-
-derive_enum!(
-    #[derive(Copy, ConfigEnum, Default)]
-    #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
-    pub enum PinLocation {
-        #[serde(alias = "store")]
-        #[cfg_attr(feature = "clap", value(alias("store")))]
-        Global,
-        #[default]
-        #[serde(alias = "cwd")]
-        #[cfg_attr(feature = "clap", value(alias("cwd")))]
-        Local,
-        #[serde(alias = "home")]
-        #[cfg_attr(feature = "clap", value(alias("home")))]
-        User,
-    }
-);
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct EnvFile {
-    pub path: PathBuf,
-    pub weight: usize,
-}
-
-#[derive(Clone, Config, Debug, PartialEq, Serialize)]
-#[serde(untagged)]
-pub enum EnvVar {
-    State(bool),
-    Value(String),
-}
-
-impl EnvVar {
-    pub fn to_value(&self) -> Option<String> {
-        match self {
-            Self::State(state) => state.then(|| "true".to_owned()),
-            Self::Value(value) => Some(value.to_owned()),
-        }
-    }
-}
-
-#[derive(Clone, Config, Debug, Deserialize, PartialEq, Serialize)]
-#[serde(untagged)]
-pub enum BuiltinPlugins {
-    Enabled(bool),
-    Allowed(Vec<String>),
-}
-
-fn default_builtin_plugins(_context: &()) -> DefaultValueResult<BuiltinPlugins> {
-    Ok(Some(BuiltinPlugins::Enabled(true)))
-}
-
-#[derive(Clone, Config, Debug, Serialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct ProtoBuildConfig {
-    pub exclude_packages: Vec<String>,
-
-    #[setting(default = true)]
-    pub install_system_packages: bool,
-
-    pub system_package_manager: FxHashMap<SystemOS, Option<SystemPackageManager>>,
-
-    pub write_log_file: bool,
-}
-
-#[derive(Clone, Config, Debug, Serialize)]
-#[config(allow_unknown_fields)]
-#[serde(rename_all = "kebab-case")]
-pub struct ProtoToolConfig {
-    #[setting(merge = merge::merge_btreemap)]
-    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
-    pub aliases: BTreeMap<String, ToolSpec>,
-
-    pub backend: Option<Backend>,
-
-    #[setting(nested, merge = merge_indexmap)]
-    #[serde(skip_serializing_if = "IndexMap::is_empty")]
-    pub env: IndexMap<String, EnvVar>,
-
-    // Custom configuration to pass to plugins
-    #[setting(merge = merge_fxhashmap)]
-    #[serde(flatten, skip_serializing_if = "FxHashMap::is_empty")]
-    pub config: FxHashMap<String, JsonValue>,
-
-    #[setting(exclude, merge = merge::append_vec)]
-    #[serde(skip)]
-    _env_files: Vec<EnvFile>,
-}
-
-#[derive(Clone, Config, Debug, Serialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct ProtoOfflineConfig {
-    pub custom_hosts: Vec<String>,
-
-    pub override_default_hosts: bool,
-
-    #[setting(default = 750)]
-    pub timeout: u64,
-}
-
-#[derive(Clone, Config, Debug, Serialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct ProtoSettingsConfig {
-    #[setting(env = "PROTO_AUTO_CLEAN", parse_env = env::parse_bool)]
-    pub auto_clean: bool,
-
-    #[setting(env = "PROTO_AUTO_INSTALL", parse_env = env::parse_bool)]
-    pub auto_install: bool,
-
-    #[setting(nested)]
-    pub build: ProtoBuildConfig,
-
-    #[setting(default = default_builtin_plugins)]
-    pub builtin_plugins: BuiltinPlugins,
-
-    #[setting(env = "PROTO_DETECT_STRATEGY")]
-    pub detect_strategy: DetectStrategy,
-
-    pub http: HttpOptions,
-
-    #[setting(nested)]
-    pub offline: ProtoOfflineConfig,
-
-    #[setting(env = "PROTO_PIN_LATEST")]
-    pub pin_latest: Option<PinLocation>,
-
-    #[setting(default = true)]
-    pub telemetry: bool,
-}
-
 #[derive(Clone, Config, Debug, Serialize)]
 #[config(allow_unknown_fields)]
 #[serde(rename_all = "kebab-case")]
 pub struct ProtoConfig {
-    #[setting(nested, merge = merge_indexmap)]
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    #[setting(nested, merge = merge_partials_iter)]
+    pub backends: BTreeMap<String, ProtoBackendConfig>,
+
     #[serde(skip_serializing_if = "IndexMap::is_empty")]
+    #[setting(nested, merge = merge_iter)]
     pub env: IndexMap<String, EnvVar>,
 
-    #[setting(nested, merge = merge_tools)]
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
-    pub tools: BTreeMap<Id, ProtoToolConfig>,
+    #[setting(nested, merge = merge_partials_iter)]
+    pub tools: BTreeMap<String, ProtoToolConfig>,
 
-    #[setting(merge = merge::merge_btreemap, validate = validate_reserved_words)]
-    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
-    pub plugins: BTreeMap<Id, PluginLocator>,
+    #[setting(nested)]
+    pub plugins: ProtoPluginsConfig,
 
     #[setting(nested)]
     pub settings: ProtoSettingsConfig,
 
-    #[setting(merge = merge::merge_btreemap)]
     #[serde(flatten)]
-    pub versions: BTreeMap<Id, ToolSpec>,
+    #[setting(merge = merge_iter)]
+    pub versions: BTreeMap<ToolContext, ToolSpec>,
 
-    #[setting(merge = merge_fxhashmap)]
     #[serde(flatten, skip_serializing)]
+    #[setting(merge = merge_iter)]
     pub unknown: FxHashMap<String, TomlValue>,
 
-    #[setting(exclude, merge = merge::append_vec)]
     #[serde(skip)]
-    _env_files: Vec<EnvFile>,
+    #[setting(exclude, merge = merge::append_vec)]
+    pub(crate) _env_files: Vec<EnvFile>,
 }
 
 impl ProtoConfig {
-    pub fn setup_env_vars(&self) {
-        use std::env;
+    pub fn get_backend_config(&self, context: &ToolContext) -> Option<&ProtoBackendConfig> {
+        context
+            .backend
+            .as_ref()
+            .and_then(|id| self.backends.get(id.as_str()))
+    }
 
+    pub fn get_tool_config(&self, context: &ToolContext) -> Option<&ProtoToolConfig> {
+        // To avoid ID collisions between tools and backend managed tools,
+        // the latter's configuration must include the backend prefix.
+        // For example, "npm:node" instead of just "node" (collision).
+        if context.backend.is_some() {
+            self.tools
+                .get(context.as_str())
+                // TODO remove in v0.54
+                .or_else(|| self.tools.get(context.id.as_str()))
+        } else {
+            self.tools.get(context.as_str())
+        }
+    }
+
+    pub fn setup_env_vars(&self) {
         if env::var("PROTO_OFFLINE_OVERRIDE_HOSTS").is_err()
             && self.settings.offline.override_default_hosts
         {
@@ -315,7 +115,7 @@ impl ProtoConfig {
         }
     }
 
-    pub fn builtin_plugins(&self) -> BTreeMap<Id, PluginLocator> {
+    pub fn builtin_plugins(&self) -> ProtoPluginsConfig {
         let mut config = ProtoConfig::default();
 
         // Inherit this setting in case builtins have been disabled
@@ -328,9 +128,11 @@ impl ProtoConfig {
     }
 
     pub fn builtin_proto_plugin(&self) -> PluginLocator {
-        PluginLocator::Url(Box::new(UrlLocator {
-            url: "https://github.com/moonrepo/plugins/releases/download/proto_tool-v0.5.4/proto_tool.wasm".into()
-        }))
+        find_debug_locator_with_url_fallback("proto_tool", "0.5.5")
+    }
+
+    pub fn builtin_schema_plugin(&self) -> PluginLocator {
+        find_debug_locator_with_url_fallback("schema_tool", "0.17.7")
     }
 
     pub fn inherit_builtin_plugins(&mut self) {
@@ -339,152 +141,129 @@ impl ProtoConfig {
             BuiltinPlugins::Allowed(list) => list.iter().any(|aid| aid == id),
         };
 
-        if !self.plugins.contains_key("asdf") && is_allowed("asdf") {
-            self.plugins.insert(
+        let proto_locator = self.builtin_proto_plugin();
+        let schema_locator = self.builtin_schema_plugin();
+        let backends = &mut self.plugins.backends;
+        let tools = &mut self.plugins.tools;
+
+        if !backends.contains_key("asdf") && is_allowed("asdf") {
+            backends.insert(
                 Id::raw("asdf"),
-                PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/asdf_backend-v0.2.1/asdf_backend.wasm".into()
-                }))
+                find_debug_locator_with_url_fallback("asdf_backend", "0.3.2"),
             );
         }
 
-        if !self.plugins.contains_key("bun") && is_allowed("bun") {
-            self.plugins.insert(
+        if !tools.contains_key("bun") && is_allowed("bun") {
+            tools.insert(
                 Id::raw("bun"),
-                PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/bun_tool-v0.15.2/bun_tool.wasm".into()
-                }))
+                find_debug_locator_with_url_fallback("bun_tool", "0.16.3"),
             );
         }
 
-        if !self.plugins.contains_key("deno") && is_allowed("deno") {
-            self.plugins.insert(
+        if !tools.contains_key("deno") && is_allowed("deno") {
+            tools.insert(
                 Id::raw("deno"),
-                PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/deno_tool-v0.15.4/deno_tool.wasm".into()
-                }))
+                find_debug_locator_with_url_fallback("deno_tool", "0.15.6"),
             );
         }
 
-        if !self.plugins.contains_key("go") && is_allowed("go") {
-            self.plugins.insert(
+        if !tools.contains_key("go") && is_allowed("go") {
+            tools.insert(
                 Id::raw("go"),
-                PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/go_tool-v0.16.2/go_tool.wasm".into()
-                }))
+                find_debug_locator_with_url_fallback("go_tool", "0.16.5"),
             );
         }
 
-        if !self.plugins.contains_key("moon") && is_allowed("moon") {
-            self.plugins.insert(
+        if !tools.contains_key("moon") && is_allowed("moon") {
+            tools.insert(
                 Id::raw("moon"),
-                PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/moon_tool-v0.3.2/moon_tool.wasm".into()
-                }))
+                find_debug_locator_with_url_fallback("moon_tool", "0.4.0"),
             );
         }
 
-        if !self.plugins.contains_key("node") && is_allowed("node") {
-            self.plugins.insert(
+        if !tools.contains_key("node") && is_allowed("node") {
+            tools.insert(
                 Id::raw("node"),
-                PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/node_tool-v0.16.4/node_tool.wasm".into()
-                }))
+                find_debug_locator_with_url_fallback("node_tool", "0.17.4"),
             );
         }
 
         for depman in ["npm", "pnpm", "yarn"] {
-            if !self.plugins.contains_key(depman) && is_allowed(depman) {
-                self.plugins.insert(
+            if !tools.contains_key(depman) && is_allowed(depman) {
+                tools.insert(
                     Id::raw(depman),
-                    PluginLocator::Url(Box::new(UrlLocator {
-                        url: "https://github.com/moonrepo/plugins/releases/download/node_depman_tool-v0.15.2/node_depman_tool.wasm".into()
-                    }))
+                    find_debug_locator_with_url_fallback("node_depman_tool", "0.17.0"),
                 );
             }
         }
 
-        if !self.plugins.contains_key("poetry") && is_allowed("poetry") {
-            self.plugins.insert(
+        if !tools.contains_key("poetry") && is_allowed("poetry") {
+            tools.insert(
                 Id::raw("poetry"),
-                PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/python_poetry_tool-v0.1.3/python_poetry_tool.wasm".into()
-                }))
+                find_debug_locator_with_url_fallback("python_poetry_tool", "0.1.5"),
             );
         }
 
-        if !self.plugins.contains_key("python") && is_allowed("python") {
-            self.plugins.insert(
+        if !tools.contains_key("python") && is_allowed("python") {
+            tools.insert(
                 Id::raw("python"),
-                PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/python_tool-v0.14.2/python_tool.wasm".into()
-                }))
+                find_debug_locator_with_url_fallback("python_tool", "0.14.5"),
             );
         }
 
-        if !self.plugins.contains_key("uv") && is_allowed("uv") {
-            self.plugins.insert(
+        if !tools.contains_key("uv") && is_allowed("uv") {
+            tools.insert(
                 Id::raw("uv"),
-                PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/python_uv_tool-v0.2.2/python_uv_tool.wasm".into()
-                }))
+                find_debug_locator_with_url_fallback("python_uv_tool", "0.3.1"),
             );
         }
 
-        if !self.plugins.contains_key("ruby") && is_allowed("ruby") {
-            self.plugins.insert(
+        if !tools.contains_key("ruby") && is_allowed("ruby") {
+            tools.insert(
                 Id::raw("ruby"),
-                PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/ruby_tool-v0.2.2/ruby_tool.wasm".into()
-                }))
+                find_debug_locator_with_url_fallback("ruby_tool", "0.2.5"),
             );
         }
 
-        if !self.plugins.contains_key("rust") && is_allowed("rust") {
-            self.plugins.insert(
+        if !tools.contains_key("rust") && is_allowed("rust") {
+            tools.insert(
                 Id::raw("rust"),
-                PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/rust_tool-v0.13.3/rust_tool.wasm".into()
-                }))
+                find_debug_locator_with_url_fallback("rust_tool", "0.13.7"),
             );
         }
 
-        if !self.plugins.contains_key(SCHEMA_PLUGIN_KEY) {
-            self.plugins.insert(
-                Id::raw(SCHEMA_PLUGIN_KEY),
-                PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/schema_tool-v0.17.3/schema_tool.wasm".into()
-                }))
-            );
+        if !tools.contains_key(SCHEMA_PLUGIN_KEY) {
+            tools.insert(Id::raw(SCHEMA_PLUGIN_KEY), schema_locator);
         }
 
-        if !self.plugins.contains_key(PROTO_PLUGIN_KEY) {
-            self.plugins
-                .insert(Id::raw(PROTO_PLUGIN_KEY), self.builtin_proto_plugin());
+        if !tools.contains_key(PROTO_PLUGIN_KEY) {
+            tools.insert(Id::raw(PROTO_PLUGIN_KEY), proto_locator);
+        }
+
+        #[cfg(all(any(debug_assertions, test), feature = "test-plugins"))]
+        {
+            let locator = warpgate::find_debug_locator("proto_mocked_tool")
+                .expect("Test plugins not available. Run `just build-wasm` to build them!");
+
+            tools.insert(Id::raw("moonbase"), locator.clone());
+            tools.insert(Id::raw("moonstone"), locator.clone());
+            tools.insert(Id::raw("protoform"), locator.clone());
+            tools.insert(Id::raw("protostar"), locator);
         }
     }
 
     pub fn load_from<P: AsRef<Path>>(
         dir: P,
         with_lock: bool,
-    ) -> miette::Result<PartialProtoConfig> {
-        let dir = dir.as_ref();
-
-        Self::load(
-            if dir.ends_with(PROTO_CONFIG_NAME) {
-                dir.to_path_buf()
-            } else {
-                dir.join(PROTO_CONFIG_NAME)
-            },
-            with_lock,
-        )
+    ) -> Result<PartialProtoConfig, ProtoConfigError> {
+        Self::load(Self::resolve_path(dir), with_lock)
     }
 
     #[instrument(name = "load_config")]
     pub fn load<P: AsRef<Path> + Debug>(
         path: P,
         with_lock: bool,
-    ) -> miette::Result<PartialProtoConfig> {
+    ) -> Result<PartialProtoConfig, ProtoConfigError> {
         let path = path.as_ref();
 
         if !path.exists() {
@@ -500,7 +279,7 @@ impl ProtoConfig {
         };
 
         let mut config = ConfigLoader::<ProtoConfig>::new()
-            .code(config_content, Format::Toml)?
+            .code(config_content, format!("{}.toml", PROTO_CONFIG_NAME))?
             .load_partial(&())?;
 
         config.validate(&(), true).map_err(|error| match error {
@@ -518,21 +297,23 @@ impl ProtoConfig {
             let mut error = ValidatorError { errors: vec![] };
 
             for (field, value) in fields {
-                // Versions show up in both flattened maps...
-                if config
-                    .versions
-                    .as_ref()
-                    .is_some_and(|versions| versions.contains_key(field.as_str()))
-                {
-                    continue;
-                }
-
                 let message = if value.is_array() || value.is_table() {
                     format!("unknown field `{field}`")
                 } else {
-                    match Id::new(field) {
-                        Ok(_) => format!("invalid version value `{value}`"),
-                        Err(e) => e.to_string(),
+                    match ToolContext::parse(field) {
+                        Ok(context) => {
+                            // Versions show up in both flattened maps...
+                            if config
+                                .versions
+                                .as_ref()
+                                .is_some_and(|versions| versions.contains_key(&context))
+                            {
+                                continue;
+                            } else {
+                                format!("invalid version value `{value}`")
+                            }
+                        }
+                        Err(error) => error.to_string(),
                     }
                 };
 
@@ -555,36 +336,66 @@ impl ProtoConfig {
         // Update file paths to be absolute
         fn make_absolute<T: AsRef<OsStr>>(file: T, current_path: &Path) -> PathBuf {
             let file = PathBuf::from(file.as_ref());
+            let mut log = true;
 
-            if file.is_absolute() {
-                file
+            let abs_file = if file.is_absolute() {
+                log = false;
+
+                file.clone()
             } else if let Some(dir) = current_path.parent() {
-                dir.join(file)
+                dir.join(&file)
             } else {
-                PathBuf::from("/").join(file)
+                std::env::current_dir().unwrap().join(&file)
+            };
+
+            if log {
+                trace!(
+                    in_file = ?file,
+                    out_file = ?abs_file,
+                    "Making file path absolute",
+                );
             }
+
+            abs_file
         }
 
         if let Some(plugins) = &mut config.plugins {
-            for locator in plugins.values_mut() {
-                if let PluginLocator::File(inner) = locator {
-                    inner.path = Some(make_absolute(inner.get_unresolved_path(), path));
+            if let Some(backends) = &mut plugins.backends {
+                for locator in backends.values_mut() {
+                    if let PluginLocator::File(inner) = locator {
+                        inner.path = Some(make_absolute(inner.get_unresolved_path(), path));
+                    }
+                }
+            }
+
+            if let Some(tools) = &mut plugins.tools {
+                for locator in tools.values_mut() {
+                    if let PluginLocator::File(inner) = locator {
+                        inner.path = Some(make_absolute(inner.get_unresolved_path(), path));
+                    }
+                }
+            }
+
+            if let Some(tools) = &mut plugins.legacy {
+                for locator in tools.values_mut() {
+                    if let PluginLocator::File(inner) = locator {
+                        inner.path = Some(make_absolute(inner.get_unresolved_path(), path));
+                    }
                 }
             }
         }
 
-        if let Some(settings) = &mut config.settings {
-            if let Some(http) = &mut settings.http {
-                if let Some(root_cert) = &mut http.root_cert {
-                    *root_cert = make_absolute(&root_cert, path);
-                }
-            }
+        if let Some(settings) = &mut config.settings
+            && let Some(http) = &mut settings.http
+            && let Some(root_cert) = &mut http.root_cert
+        {
+            *root_cert = make_absolute(&root_cert, path);
         }
 
         let push_env_file = |env_map: Option<&mut IndexMap<String, PartialEnvVar>>,
                              file_list: &mut Option<Vec<EnvFile>>,
                              extra_weight: usize|
-         -> miette::Result<()> {
+         -> Result<(), ProtoConfigError> {
             if let Some(map) = env_map {
                 if let Some(PartialEnvVar::Value(env_file)) = map.get(ENV_FILE_KEY) {
                     let list = file_list.get_or_insert(vec![]);
@@ -595,8 +406,7 @@ impl ProtoConfig {
                             path: env_file_path,
                             config: env_file.to_owned(),
                             config_path: path.to_path_buf(),
-                        }
-                        .into());
+                        });
                     }
 
                     list.push(EnvFile {
@@ -617,45 +427,84 @@ impl ProtoConfig {
             }
         }
 
+        if let Some(backends) = &mut config.backends {
+            for backend in backends.values_mut() {
+                push_env_file(backend.env.as_mut(), &mut backend._env_files, 3)?;
+            }
+        }
+
         push_env_file(config.env.as_mut(), &mut config._env_files, 0)?;
 
         Ok(config)
     }
 
     #[instrument(name = "save_config", skip(config))]
-    pub fn save_to<P: AsRef<Path> + Debug>(
+    pub fn save_to<P: AsRef<Path> + Debug, C: AsRef<[u8]>>(
         dir: P,
-        config: PartialProtoConfig,
-    ) -> miette::Result<PathBuf> {
-        let path = dir.as_ref();
-        let file = if path.ends_with(PROTO_CONFIG_NAME) {
-            path.to_path_buf()
-        } else {
-            path.join(PROTO_CONFIG_NAME)
-        };
+        config: C,
+    ) -> Result<PathBuf, ProtoConfigError> {
+        let file = Self::resolve_path(dir);
 
-        fs::write_file_with_lock(&file, toml::format(&config, true)?)?;
+        fs::write_file_with_lock(&file, &config)?;
 
         Ok(file)
+    }
+
+    pub fn save_partial_to<P: AsRef<Path> + Debug>(
+        dir: P,
+        config: PartialProtoConfig,
+    ) -> Result<PathBuf, ProtoConfigError> {
+        Self::save_to(dir, toml::format(&config, true)?)
     }
 
     pub fn update<P: AsRef<Path>, F: FnOnce(&mut PartialProtoConfig)>(
         dir: P,
         op: F,
-    ) -> miette::Result<PathBuf> {
+    ) -> Result<PathBuf, ProtoConfigError> {
         let dir = dir.as_ref();
         let mut config = Self::load_from(dir, true)?;
 
         op(&mut config);
 
-        Self::save_to(dir, config)
+        Self::save_partial_to(dir, config)
     }
 
-    pub fn get_env_files(&self, filter_id: Option<&Id>) -> Vec<&PathBuf> {
-        let mut paths: Vec<&EnvFile> = self._env_files.iter().collect();
+    pub fn update_document<P: AsRef<Path>, F: FnOnce(&mut DocumentMut)>(
+        dir: P,
+        op: F,
+    ) -> Result<PathBuf, ProtoConfigError> {
+        let path = Self::resolve_path(dir);
+        let config = if path.exists() {
+            fs::read_file_with_lock(&path)?
+        } else {
+            String::new()
+        };
+        let mut document =
+            config
+                .parse::<DocumentMut>()
+                .map_err(|error| ProtoConfigError::FailedUpdate {
+                    path: path.clone(),
+                    error: Box::new(error),
+                })?;
 
-        if let Some(id) = filter_id {
-            if let Some(tool_config) = self.tools.get(id) {
+        op(&mut document);
+
+        Self::save_to(path, document.to_string())
+    }
+
+    pub fn get_env_files(&self, options: ProtoConfigEnvOptions) -> Vec<&PathBuf> {
+        let mut paths: Vec<&EnvFile> = vec![];
+
+        if options.include_shared {
+            paths.extend(&self._env_files);
+        }
+
+        if let Some(context) = options.context {
+            if let Some(backend_config) = self.get_backend_config(context) {
+                paths.extend(&backend_config._env_files);
+            }
+
+            if let Some(tool_config) = self.get_tool_config(context) {
                 paths.extend(&tool_config._env_files);
             }
         }
@@ -672,16 +521,26 @@ impl ProtoConfig {
     // and order of declaration can work correctly!
     pub fn get_env_vars(
         &self,
-        filter_id: Option<&Id>,
-    ) -> miette::Result<IndexMap<String, Option<String>>> {
-        let env_files = self.get_env_files(filter_id);
+        options: ProtoConfigEnvOptions,
+    ) -> Result<IndexMap<String, Option<String>>, ProtoConfigError> {
+        let env_files = self.get_env_files(options.clone());
 
         let mut base_vars = IndexMap::new();
-        base_vars.extend(self.load_env_files(&env_files)?);
-        base_vars.extend(self.env.clone());
 
-        if let Some(id) = filter_id {
-            if let Some(tool_config) = self.tools.get(id) {
+        if !env_files.is_empty() {
+            base_vars.extend(self.load_env_files(&env_files)?);
+        }
+
+        if options.include_shared {
+            base_vars.extend(self.env.clone());
+        }
+
+        if let Some(context) = options.context {
+            if let Some(backend_config) = self.get_backend_config(context) {
+                base_vars.extend(backend_config.env.clone())
+            }
+
+            if let Some(tool_config) = self.get_tool_config(context) {
                 base_vars.extend(tool_config.env.clone())
             }
         }
@@ -693,7 +552,8 @@ impl ProtoConfig {
                 continue;
             }
 
-            let key_exists = std::env::var(&key).is_ok_and(|v| !v.is_empty());
+            let key_exists =
+                options.check_process && std::env::var(&key).is_ok_and(|v| !v.is_empty());
             let value = value.to_value();
 
             // Don't override parent inherited vars
@@ -724,21 +584,22 @@ impl ProtoConfig {
         Ok(vars)
     }
 
-    pub fn load_env_files(&self, paths: &[&PathBuf]) -> miette::Result<IndexMap<String, EnvVar>> {
+    pub fn load_env_files(
+        &self,
+        paths: &[&PathBuf],
+    ) -> Result<IndexMap<String, EnvVar>, ProtoConfigError> {
         let mut vars = IndexMap::default();
 
-        let map_error = |error: dotenvy::Error, path: &Path| -> miette::Report {
+        let map_error = |error: dotenvy::Error, path: &Path| -> ProtoConfigError {
             match error {
-                dotenvy::Error::Io(inner) => FsError::Read {
+                dotenvy::Error::Io(inner) => ProtoConfigError::Fs(Box::new(FsError::Read {
                     path: path.to_path_buf(),
                     error: Box::new(inner),
-                }
-                .into(),
+                })),
                 other => ProtoConfigError::FailedParseEnvFile {
                     path: path.to_path_buf(),
                     error: Box::new(other),
-                }
-                .into(),
+                },
             }
         };
 
@@ -752,164 +613,31 @@ impl ProtoConfig {
 
         Ok(vars)
     }
-}
 
-#[derive(Debug, Serialize)]
-pub struct ProtoConfigFile {
-    pub exists: bool,
-    pub location: PinLocation,
-    pub path: PathBuf,
-    pub config: PartialProtoConfig,
-}
+    pub fn rewrite_url(&self, url: impl AsRef<str>) -> String {
+        let mut url = url.as_ref().to_owned();
 
-#[derive(Debug)]
-pub struct ProtoConfigManager {
-    // Paths are sorted from current working directory,
-    // up until the root or user directory, whichever is first.
-    // The special `~/.proto/.prototools` config is always
-    // loaded last, and is the last entry in the list.
-    // For directories without a config, we still insert
-    // an empty entry. This helps with traversal logic.
-    pub files: Vec<ProtoConfigFile>,
-
-    all_config: Arc<OnceCell<ProtoConfig>>,
-    all_config_no_global: Arc<OnceCell<ProtoConfig>>,
-    global_config: Arc<OnceCell<ProtoConfig>>,
-    local_config: Arc<OnceCell<ProtoConfig>>,
-}
-
-impl ProtoConfigManager {
-    pub fn load(
-        start_dir: impl AsRef<Path>,
-        end_dir: Option<&Path>,
-        env_mode: Option<&String>,
-    ) -> miette::Result<Self> {
-        let mut current_dir = Some(start_dir.as_ref());
-        let mut files = vec![];
-
-        while let Some(dir) = current_dir {
-            let is_end = end_dir.is_some_and(|end| end == dir);
-            let location = if is_end {
-                PinLocation::User
-            } else {
-                PinLocation::Local
-            };
-
-            if let Some(env) = env_mode {
-                let env_path = dir.join(format!("{}.{env}", PROTO_CONFIG_NAME));
-
-                files.push(ProtoConfigFile {
-                    config: ProtoConfig::load(&env_path, false)?,
-                    exists: env_path.exists(),
-                    location,
-                    path: env_path,
-                });
-            }
-
-            let path = dir.join(PROTO_CONFIG_NAME);
-
-            files.push(ProtoConfigFile {
-                config: ProtoConfig::load(&path, false)?,
-                exists: path.exists(),
-                location,
-                path,
-            });
-
-            if is_end {
-                break;
-            }
-
-            current_dir = dir.parent();
+        for (pattern, replacement) in &self.settings.url_rewrites {
+            url = pattern.replace_all(&url, replacement).to_string();
         }
 
-        Ok(Self {
-            files,
-            all_config: Arc::new(OnceCell::new()),
-            all_config_no_global: Arc::new(OnceCell::new()),
-            global_config: Arc::new(OnceCell::new()),
-            local_config: Arc::new(OnceCell::new()),
-        })
+        url
     }
 
-    pub fn get_global_config(&self) -> miette::Result<&ProtoConfig> {
-        self.global_config.get_or_try_init(|| {
-            debug!("Loading global config only");
+    fn resolve_path(path: impl AsRef<Path>) -> PathBuf {
+        let path = path.as_ref();
 
-            self.merge_configs(
-                self.files
-                    .iter()
-                    .filter(|file| file.location == PinLocation::Global)
-                    .collect(),
-            )
-        })
-    }
-
-    pub fn get_local_config(&self, cwd: &Path) -> miette::Result<&ProtoConfig> {
-        self.local_config.get_or_try_init(|| {
-            debug!("Loading local config only");
-
-            self.merge_configs(
-                self.files
-                    .iter()
-                    .filter(|file| file.path.parent().is_some_and(|dir| dir == cwd))
-                    .collect(),
-            )
-        })
-    }
-
-    pub fn get_merged_config(&self) -> miette::Result<&ProtoConfig> {
-        self.all_config.get_or_try_init(|| {
-            debug!("Merging loaded configs with global");
-
-            self.merge_configs(self.files.iter().collect())
-        })
-    }
-
-    pub fn get_merged_config_without_global(&self) -> miette::Result<&ProtoConfig> {
-        self.all_config_no_global.get_or_try_init(|| {
-            debug!("Merging loaded configs without global");
-
-            self.merge_configs(
-                self.files
-                    .iter()
-                    .filter(|file| file.location != PinLocation::Global)
-                    .collect(),
-            )
-        })
-    }
-
-    pub(crate) fn remove_proto_pins(&mut self) {
-        self.files.iter_mut().for_each(|file| {
-            if file.location != PinLocation::Local {
-                if let Some(versions) = &mut file.config.versions {
-                    versions.remove(PROTO_PLUGIN_KEY);
-                }
-
-                if let Some(unknown) = &mut file.config.unknown {
-                    unknown.remove(PROTO_PLUGIN_KEY);
-                }
-            }
-        });
-    }
-
-    fn merge_configs(&self, files: Vec<&ProtoConfigFile>) -> miette::Result<ProtoConfig> {
-        let mut partial = PartialProtoConfig::default();
-        let mut count = 0;
-        let context = &();
-
-        for file in files.iter().rev() {
-            if file.exists {
-                partial.merge(context, file.config.to_owned())?;
-                count += 1;
-            }
+        if path.ends_with(PROTO_CONFIG_NAME) {
+            path.to_path_buf()
+        } else {
+            path.join(PROTO_CONFIG_NAME)
         }
-
-        let mut config = ProtoConfig::from_partial(partial.finalize(context)?);
-        config.inherit_builtin_plugins();
-        config.setup_env_vars();
-
-        debug!("Merged {} configs", count);
-
-        Ok(config)
     }
+}
+
+#[derive(Clone, Default)]
+pub struct ProtoConfigEnvOptions<'ctx> {
+    pub context: Option<&'ctx ToolContext>,
+    pub check_process: bool,
+    pub include_shared: bool,
 }

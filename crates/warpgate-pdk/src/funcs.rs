@@ -6,7 +6,7 @@ use std::ffi::OsStr;
 use std::path::PathBuf;
 use std::vec;
 use warpgate_api::{
-    AnyResult, ExecCommandInput, ExecCommandOutput, HostEnvironment, HostOS, SendRequestInput,
+    AnyResult, ExecCommandInput, ExecCommandOutput, HostEnvironment, HostOS, Id, SendRequestInput,
     SendRequestOutput, TestEnvironment, VirtualPath, anyhow,
 };
 
@@ -98,7 +98,7 @@ where
 }
 
 /// Load all Git tags from the provided remote URL.
-/// The `git` binary must exist on the host machine.
+/// The `git` executable must exist on the host machine.
 pub fn load_git_tags<U>(url: U) -> AnyResult<Vec<String>>
 where
     U: AsRef<str>,
@@ -226,8 +226,10 @@ where
 }
 
 /// Return the ID for the current plugin.
-pub fn get_plugin_id() -> AnyResult<String> {
-    Ok(config::get("plugin_id")?.expect("Missing plugin ID!"))
+pub fn get_plugin_id() -> AnyResult<Id> {
+    Ok(Id::raw(
+        config::get("plugin_id")?.expect("Missing plugin ID!"),
+    ))
 }
 
 /// Return information about the host environment.

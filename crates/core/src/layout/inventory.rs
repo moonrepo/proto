@@ -1,9 +1,10 @@
+use super::layout_error::ProtoLayoutError;
 use super::product::Product;
 use crate::helpers::{is_cache_enabled, is_offline};
-use crate::lockfile::LockfileRecord;
+use crate::lockfile::LockRecord;
 use crate::tool_manifest::ToolManifest;
-use proto_pdk_api::{LoadVersionsOutput, ToolInventoryMetadata};
-use starbase_utils::{fs, json};
+use proto_pdk_api::{LoadVersionsOutput, ToolInventoryOptions};
+use starbase_utils::{fs, json, path};
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
 use tracing::instrument;
@@ -11,7 +12,7 @@ use version_spec::VersionSpec;
 
 #[derive(Clone, Debug, Default)]
 pub struct Inventory {
-    pub config: ToolInventoryMetadata,
+    pub config: ToolInventoryOptions,
     pub dir: PathBuf,
     pub dir_original: Option<PathBuf>,
     pub manifest: ToolManifest,
@@ -24,16 +25,16 @@ impl Inventory {
         let mut name = spec.to_string();
 
         if let Some(suffix) = &self.config.version_suffix {
-            name = format!("{}{}", name, suffix);
+            name = format!("{name}{suffix}");
         }
 
         Product {
-            dir: self.dir.join(name),
+            dir: self.dir.join(path::encode_component(name)),
             version: spec.to_owned(),
         }
     }
 
-    pub fn get_locked_record(&self, version: &VersionSpec) -> Option<&LockfileRecord> {
+    pub fn get_locked_record(&self, version: &VersionSpec) -> Option<&LockRecord> {
         self.manifest
             .versions
             .get(version)
@@ -44,7 +45,7 @@ impl Inventory {
     pub fn load_remote_versions(
         &self,
         disable_cache: bool,
-    ) -> miette::Result<Option<LoadVersionsOutput>> {
+    ) -> Result<Option<LoadVersionsOutput>, ProtoLayoutError> {
         let cache_path = self
             .dir_original
             .as_ref()
@@ -82,7 +83,7 @@ impl Inventory {
     }
 
     #[instrument(skip_all)]
-    pub fn save_remote_versions(&self, data: &LoadVersionsOutput) -> miette::Result<()> {
+    pub fn save_remote_versions(&self, data: &LoadVersionsOutput) -> Result<(), ProtoLayoutError> {
         json::write_file(
             self.dir_original
                 .as_ref()

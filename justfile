@@ -11,7 +11,7 @@ build-shim:
 	cargo build --bin proto-shim
 
 build-wasm:
-	cd plugins && cargo build --workspace --target wasm32-wasip1
+	cd plugins && cargo build --workspace --target wasm32-wasip1 --release
 
 check:
 	cargo check --workspace
@@ -30,6 +30,9 @@ lint:
 
 lint-wasm:
 	cd plugins && cargo clippy --workspace --all-targets
+
+mcp:
+	PROTO_NPM_VERSION=* npx @modelcontextprotocol/inspector -- cargo run -- mcp --log trace
 
 test name="":
 	just build

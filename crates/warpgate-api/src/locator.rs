@@ -57,6 +57,22 @@ pub struct UrlLocator {
     pub url: String,
 }
 
+/// An OCI registry locator.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct RegistryLocator {
+    /// Registry host: `ghcr.io`.
+    pub registry: Option<String>,
+
+    /// Namespace or organization: `org/namespace`.
+    pub namespace: Option<String>,
+
+    /// The image name (plugin identifier): `plugin`
+    pub image: String,
+
+    /// Explicit release tag to use. Defaults to `latest`.
+    pub tag: Option<String>,
+}
+
 /// Strategies and protocols for locating plugins.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(untagged, into = "String", try_from = "String")]
@@ -72,6 +88,10 @@ pub enum PluginLocator {
 
     /// https://url/to/file.wasm
     Url(Box<UrlLocator>),
+
+    /// registry://plugins/python
+    /// registry://plugins/python:tag
+    Registry(Box<RegistryLocator>),
 }
 
 #[cfg(feature = "schematic")]
@@ -111,6 +131,20 @@ impl Display for PluginLocator {
                     .as_deref()
                     .map(|t| format!("@{t}"))
                     .unwrap_or_default()
+            ),
+            PluginLocator::Registry(registry) => write!(
+                f,
+                "registry://{}:{}",
+                vec![
+                    registry.registry.clone(),
+                    registry.namespace.clone(),
+                    Some(registry.image.clone())
+                ]
+                .into_iter()
+                .flatten()
+                .collect::<Vec<_>>()
+                .join("/"),
+                registry.tag.as_deref().unwrap_or("latest")
             ),
         }
     }
@@ -187,6 +221,43 @@ impl TryFrom<String> for PluginLocator {
             }
             "http" => Err(PluginLocatorError::SecureUrlsOnly),
             "https" => Ok(PluginLocator::Url(Box::new(UrlLocator { url: value }))),
+            "registry" => {
+                let mut registry = RegistryLocator::default();
+                let mut query = location;
+
+                if let Some(index) = query.find(":") {
+                    registry.tag = Some(query[index + 1..].into());
+                    query = &query[0..index];
+                }
+
+                if let Some(index) = query.find("/") {
+                    let inner = &query[0..index];
+
+                    // Domains contain a period for the TLD
+                    if inner.contains('.') {
+                        registry.registry = Some(inner.into());
+                        query = &query[index + 1..];
+                    }
+                }
+
+                if let Some(index) = query.rfind('/') {
+                    registry.image = query[index + 1..].into();
+                    query = &query[0..index];
+                } else {
+                    registry.image = query.into();
+                    query = &query[0..0];
+                }
+
+                if !query.is_empty() {
+                    registry.namespace = Some(query.into());
+                }
+
+                if registry.image.is_empty() {
+                    return Err(PluginLocatorError::MissingRegistryImage);
+                }
+
+                Ok(PluginLocator::Registry(Box::new(registry)))
+            }
             unknown => Err(PluginLocatorError::UnknownProtocol(unknown.to_owned())),
         }
     }

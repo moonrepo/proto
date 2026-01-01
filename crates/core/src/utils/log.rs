@@ -1,4 +1,4 @@
-use starbase_utils::fs;
+use starbase_utils::fs::{self, FsError};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
@@ -45,8 +45,7 @@ impl LogWriter {
         buffer.push("".into());
     }
 
-    pub fn add_error(&self, error: impl AsRef<dyn std::error::Error>) {
-        let error = error.as_ref();
+    pub fn add_error(&self, error: &dyn std::error::Error) {
         let ansi = regex::Regex::new(r"\x1b\[([\x30-\x3f]*[\x20-\x2f]*[\x40-\x7e])").unwrap();
 
         self.add_code("ERROR", ansi.replace_all(&error.to_string(), ""));
@@ -80,7 +79,7 @@ impl LogWriter {
         }
     }
 
-    pub fn write_to(&self, path: PathBuf) -> miette::Result<()> {
+    pub fn write_to(&self, path: PathBuf) -> Result<(), FsError> {
         let mut buffer = self.buffer.lock().unwrap();
 
         if !buffer.is_empty() {

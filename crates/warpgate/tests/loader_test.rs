@@ -16,7 +16,7 @@ mod loader {
         use super::*;
 
         #[tokio::test]
-        #[should_panic(expected = "Cannot load test plugin, source file")]
+        #[should_panic(expected = "MissingSourceFile")]
         async fn errors_missing_file() {
             let (_sandbox, loader) = create_loader();
 
@@ -56,7 +56,7 @@ mod loader {
         use super::*;
 
         #[tokio::test]
-        #[should_panic(expected = "does not exist")]
+        #[should_panic(expected = "NotFound")]
         async fn errors_broken_url() {
             let (_sandbox, loader) = create_loader();
 
@@ -104,9 +104,7 @@ mod loader {
         use super::*;
 
         #[tokio::test]
-        #[should_panic(
-            expected = "Cannot download test plugin from GitHub (moonrepo/invalid-repo)"
-        )]
+        #[should_panic(expected = "MissingGitHubAsset")]
         async fn errors_invalid_slug() {
             let (_sandbox, loader) = create_loader();
 
@@ -139,7 +137,7 @@ mod loader {
                 .await
                 .unwrap();
 
-            assert_eq!(path, sandbox.path().join("plugins/test-3659b10975b8c1f704254f47c17e93f76abf6878dfcab9f9b6346491cf5b5df1.wasm"));
+            assert_eq!(path, sandbox.path().join("plugins/test-b57997637137a9df50b7fb5db6385cd04d0d2b720d4f3089b25bd0cd4f572aa3.wasm"));
         }
 
         #[tokio::test]
@@ -158,7 +156,7 @@ mod loader {
                 .await
                 .unwrap();
 
-            assert_eq!(path, sandbox.path().join("plugins/test-latest-3659b10975b8c1f704254f47c17e93f76abf6878dfcab9f9b6346491cf5b5df1.wasm"));
+            assert_eq!(path, sandbox.path().join("plugins/test-latest-7ff27e4fe8d756bc40f1156a15fa26cd46c1650940fb0007802e7c7ea99cf0db.wasm"));
         }
     }
 }

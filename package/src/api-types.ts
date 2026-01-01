@@ -24,7 +24,7 @@ export type HostLogTarget = 'stderr' | 'stdout' | 'debug' | 'error' | 'trace' | 
 /** Input passed to the `host_log` host function. */
 export interface HostLogInput {
 	data?: Record<string, unknown>;
-	message: string;
+	message?: string;
 	/** @type {'stderr' | 'stdout' | 'debug' | 'error' | 'trace' | 'warn' | 'tracing'} */
 	target?: HostLogTarget;
 }
@@ -35,16 +35,35 @@ export type VirtualPath = string;
 export interface ExecCommandInput {
 	/** Arguments to pass to the command. */
 	args?: string[];
-	/** The command or script to execute. */
+	/**
+	 * The command or script to execute. Accepts an executable
+	 * on `PATH` or a virtual path.
+	 */
 	command?: string;
-	/** Environment variables to pass to the command. */
+	/** Override the current working directory. */
+	working_dir?: VirtualPath | null;
+	/** Override the current working directory. */
+	cwd?: VirtualPath | null;
+	/**
+	 * Environment variables to pass to the command. Variables
+	 * can customize behavior by appending one of the following
+	 * characters to the name:
+	 *
+	 * `?` - Will only set variable if it doesn't exist
+	 * in the current environment.
+	 * `!` - Will remove the variable from being inherited
+	 * by the child process.
+	 */
 	env?: Record<string, string>;
 	/** Mark the command as executable before executing. */
 	setExecutable?: boolean;
+	/**
+	 * Set the shell to execute the command with, for example "bash".
+	 * If not defined, will be detected from the parent process.
+	 */
+	shell?: string | null;
 	/** Stream the output instead of capturing it. */
 	stream?: boolean;
-	/** Override the current working directory. */
-	workingDir?: VirtualPath | null;
 }
 
 /** Output returned from the `exec_command` host function. */
@@ -59,6 +78,7 @@ export interface ExecCommandOutput {
 export interface HostEnvironment {
 	/** @type {'x86' | 'x64' | 'arm' | 'arm64' | 'longarm64' | 'm68k' | 'mips' | 'mips64' | 'powerpc' | 'powerpc64' | 'riscv64' | 's390x' | 'sparc64'} */
 	arch: SystemArch;
+	ci: boolean;
 	homeDir: VirtualPath;
 	/** @type {'gnu' | 'musl' | 'unknown'} */
 	libc: SystemLibc;
@@ -74,8 +94,11 @@ export interface TestEnvironment {
 
 export type PluginLocator = string;
 
-/** Information about the current state of the tool. */
-export interface ToolContext {
+/**
+ * Information about the current state of the plugin,
+ * after a version has been resolved.
+ */
+export interface PluginContext {
 	/** The version of proto (the core crate) calling plugin functions. */
 	protoVersion?: string | null;
 	/** Virtual path to the tool's temporary directory. */
@@ -86,24 +109,56 @@ export interface ToolContext {
 	version: VersionSpec;
 }
 
+/**
+ * Information about the current state of the plugin,
+ * before a version has been resolved.
+ */
+export interface PluginUnresolvedContext {
+	/** The version of proto (the core crate) calling plugin functions. */
+	protoVersion?: string | null;
+	/** Virtual path to the tool's temporary directory. */
+	tempDir: VirtualPath;
+	toolDir: VirtualPath;
+	/** Current version if defined. */
+	version?: VersionSpec | null;
+}
+
 /** Supported types of plugins. */
 export type PluginType = 'command-line' | 'language' | 'dependency-manager' | 'version-manager';
 
 /** Controls aspects of the tool inventory. */
-export interface ToolInventoryMetadata {
+export interface ToolInventoryOptions {
 	/**
 	 * Override the tool inventory directory (where all versions are installed).
 	 * This is an advanced feature and should only be used when absolutely necessary.
 	 */
 	overrideDir?: VirtualPath | null;
+	/**
+	 * When the inventory is backend managed, scope the inventory directory name
+	 * with the backend as a prefix.
+	 */
+	scopedBackendDir?: boolean;
 	/** Suffix to append to all versions when labeling directories. */
 	versionSuffix?: string | null;
 }
 
+/** Options related to lockfile integration. */
+export interface ToolLockOptions {
+	/**
+	 * Ignore operating system and architecture values
+	 * when matching against records in the lockfile.
+	 */
+	ignoreOsArch?: boolean;
+	/** Do not record the install in the lockfile. */
+	noRecord?: boolean;
+}
+
+export type Id = string;
+
 /** Input passed to the `register_tool` function. */
 export interface RegisterToolInput {
 	/** ID of the tool, as it was configured. */
-	id: string;
+	id: Id;
 }
 
 /** Supported strategies for installing a tool. */
@@ -113,8 +168,6 @@ export type Switch = boolean | string;
 
 /** Output returned by the `register_tool` function. */
 export interface RegisterToolOutput {
-	/** Schema shape of the tool's configuration. */
-	configSchema?: unknown | null;
 	/**
 	 * Default strategy to use when installing a tool.
 	 *
@@ -129,7 +182,11 @@ export interface RegisterToolOutput {
 	 */
 	deprecations?: string[];
 	/** Controls aspects of the tool inventory. */
-	inventory?: ToolInventoryMetadata;
+	inventory?: ToolInventoryOptions;
+	/** Controls aspects of the tool inventory. */
+	inventoryOptions?: ToolInventoryOptions;
+	/** Options for integrating with a lockfile. */
+	lockOptions?: ToolLockOptions;
 	/** Minimum version of proto required to execute this plugin. */
 	minimumProtoVersion?: string | null;
 	/** Human readable name of the tool. */
@@ -153,23 +210,18 @@ export interface RegisterToolOutput {
 	unstable?: Switch;
 }
 
-/** Information about the current state of the tool. */
-export interface ToolUnresolvedContext {
-	/** The version of proto (the core crate) calling plugin functions. */
-	protoVersion?: string | null;
-	/** Virtual path to the tool's temporary directory. */
-	tempDir: VirtualPath;
-	toolDir: VirtualPath;
-	/** Current version if defined. */
-	version?: VersionSpec | null;
+/** Output returned from the `define_tool_config` function. */
+export interface DefineToolConfigOutput {
+	/** Schema shape of the tool's configuration. */
+	schema: unknown;
 }
 
 /** Input passed to the `register_backend` function. */
 export interface RegisterBackendInput {
 	/** Current tool context. */
-	context: ToolUnresolvedContext;
+	context: PluginUnresolvedContext;
 	/** ID of the tool, as it was configured. */
-	id: string;
+	id: Id;
 }
 
 /** Source code is contained in an archive. */
@@ -197,7 +249,7 @@ export type SourceLocation = ArchiveSource | GitSource;
 /** Output returned by the `register_backend` function. */
 export interface RegisterBackendOutput {
 	/** Unique identifier for this backend. Will be used as the folder name. */
-	backendId: string;
+	backendId: Id;
 	/**
 	 * List of executables, relative from the backend directory,
 	 * that will be executed in the context of proto.
@@ -205,6 +257,12 @@ export interface RegisterBackendOutput {
 	exes?: string[];
 	/** Location in which to acquire source files for the backend. */
 	source?: SourceLocation | null;
+}
+
+/** Output returned from the `define_backend_config` function. */
+export interface DefineBackendConfigOutput {
+	/** Schema shape of the backend's configuration. */
+	schema: unknown;
 }
 
 /** Output returned by the `detect_version_files` function. */
@@ -220,7 +278,7 @@ export interface ParseVersionFileInput {
 	/** File contents to parse/extract a version from. */
 	content: string;
 	/** Current tool context. */
-	context: ToolUnresolvedContext;
+	context: PluginUnresolvedContext;
 	/** Name of file that's being parsed. */
 	file: string;
 	/** Virtual path to the file being parsed. */
@@ -239,7 +297,9 @@ export interface ParseVersionFileOutput {
 /** Input passed to the `native_install` function. */
 export interface NativeInstallInput {
 	/** Current tool context. */
-	context: ToolContext;
+	context: PluginContext;
+	/** Whether to force install or not. */
+	force: boolean;
 	/** Virtual directory to install to. */
 	installDir: VirtualPath;
 }
@@ -261,7 +321,7 @@ export interface NativeInstallOutput {
 /** Input passed to the `native_uninstall` function. */
 export interface NativeUninstallInput {
 	/** Current tool context. */
-	context: ToolContext;
+	context: PluginContext;
 	/** Virtual directory to uninstall from. */
 	uninstallDir: VirtualPath;
 }
@@ -279,7 +339,7 @@ export interface NativeUninstallOutput {
 /** Input passed to the `download_prebuilt` function. */
 export interface DownloadPrebuiltInput {
 	/** Current tool context. */
-	context: ToolContext;
+	context: PluginContext;
 	/** Virtual directory to install to. */
 	installDir: VirtualPath;
 }
@@ -317,10 +377,10 @@ export interface DownloadPrebuiltOutput {
 /** Input passed to the `unpack_archive` function. */
 export interface UnpackArchiveInput {
 	/** Current tool context. */
-	context: ToolContext;
+	context: PluginContext;
 	/** Virtual path to the downloaded file. */
 	inputFile: VirtualPath;
-	/** Virtual directory to unpack the archive into, or copy the binary to. */
+	/** Virtual directory to unpack the archive into, or copy the executable to. */
 	outputDir: VirtualPath;
 }
 
@@ -329,7 +389,7 @@ export interface VerifyChecksumInput {
 	/** Virtual path to the checksum file. */
 	checksumFile: VirtualPath;
 	/** Current tool context. */
-	context: ToolContext;
+	context: PluginContext;
 	/**
 	 * A checksum of the downloaded file. The type of hash
 	 * is derived from the checksum file's extension, otherwise
@@ -349,17 +409,17 @@ export interface VerifyChecksumOutput {
 /** Input passed to the `locate_executables` function. */
 export interface LocateExecutablesInput {
 	/** Current tool context. */
-	context: ToolContext;
+	context: PluginContext;
 	/** Virtual directory the tool was installed to. */
 	installDir: VirtualPath;
 }
 
 export type StringOrVec = string | string[];
 
-/** Configuration for generated shim and symlinked binary files. */
+/** Configuration for generated shim and symlinked executable files. */
 export interface ExecutableConfig {
 	/**
-	 * The executable path to use for symlinking binaries instead of `exe_path`.
+	 * The executable path to use for symlinking instead of `exe_path`.
 	 * This should only be used when `exe_path` is a non-standard executable.
 	 */
 	exeLinkPath?: string | null;
@@ -387,6 +447,11 @@ export interface ExecutableConfig {
 	shimBeforeArgs?: StringOrVec | null;
 	/** Custom environment variables to set when executing the shim. */
 	shimEnvVars?: Record<string, string> | null;
+	/**
+	 * Update the file permissions to executable. This only exists as these
+	 * values cannot be changed from within WASM.
+	 */
+	updatePerms?: boolean;
 }
 
 /** Output returned by the `locate_executables` function. */
@@ -409,7 +474,7 @@ export interface LocateExecutablesOutput {
 	 */
 	globalsLookupDirs?: string[];
 	/**
-	 * A string that all global binaries are prefixed with, and will be removed
+	 * A string that all global executables are prefixed with, and will be removed
 	 * when listing and filtering available globals.
 	 */
 	globalsPrefix?: string | null;
@@ -418,7 +483,7 @@ export interface LocateExecutablesOutput {
 /** Input passed to the `load_versions` function. */
 export interface LoadVersionsInput {
 	/** Current tool context. */
-	context: ToolUnresolvedContext;
+	context: PluginUnresolvedContext;
 	/** The alias or version currently being resolved. */
 	initial: UnresolvedVersionSpec;
 }
@@ -438,7 +503,7 @@ export interface LoadVersionsOutput {
 /** Input passed to the `resolve_version` function. */
 export interface ResolveVersionInput {
 	/** Current tool context. */
-	context: ToolUnresolvedContext;
+	context: PluginUnresolvedContext;
 	/** The alias or version currently being resolved. */
 	initial: UnresolvedVersionSpec;
 }
@@ -457,7 +522,7 @@ export interface ResolveVersionOutput {
 /** Input passed to the `sync_manifest` function. */
 export interface SyncManifestInput {
 	/** Current tool context. */
-	context: ToolContext;
+	context: PluginContext;
 }
 
 /** Output returned by the `sync_manifest` function. */
@@ -474,8 +539,8 @@ export interface SyncManifestOutput {
 /** Input passed to the `sync_shell_profile` function. */
 export interface SyncShellProfileInput {
 	/** Current tool context. */
-	context: ToolContext;
-	/** Arguments passed after `--` that was directly passed to the tool's binary. */
+	context: PluginContext;
+	/** Arguments passed after `--` that was directly passed to the tool's executable. */
 	passthroughArgs: string[];
 }
 
@@ -500,25 +565,29 @@ export interface SyncShellProfileOutput {
  */
 export interface InstallHook {
 	/** Current tool context. */
-	context: ToolContext;
-	/** Arguments passed after `--` that was directly passed to the tool's binary. */
+	context: PluginContext;
+	/** Whether the install was forced or not. */
+	forced: boolean;
+	/** Arguments passed after `--` that was directly passed to the tool's executable. */
 	passthroughArgs: string[];
-	/** Whether the resolved version was pinned */
+	/** Whether the resolved version was pinned. */
 	pinned: boolean;
+	/** Hide install output. */
+	quiet: boolean;
 }
 
 /**
  * Input passed to the `pre_run` hook, before a `proto run` command
- * or language binary is ran.
+ * or language executable is ran.
  */
 export interface RunHook {
 	/** Current tool context. */
-	context: ToolContext;
+	context: PluginContext;
 	/** Path to the global packages directory for the tool, if found. */
 	globalsDir: VirtualPath | null;
 	/** A prefix applied to the file names of globally installed packages. */
 	globalsPrefix: string | null;
-	/** Arguments passed after `--` that was directly passed to the tool's binary. */
+	/** Arguments passed after `--` that was directly passed to the tool's executable. */
 	passthroughArgs: string[];
 }
 
@@ -538,7 +607,7 @@ export interface RunHookResult {
 /** Input passed to the `build_instructions` function. */
 export interface BuildInstructionsInput {
 	/** Current tool context. */
-	context: ToolContext;
+	context: PluginContext;
 	/** Virtual directory to install to. */
 	installDir: VirtualPath;
 }
@@ -553,7 +622,7 @@ export type BuildInstruction = {
 		/** The Git source location for the builder. */
 		git: GitSource;
 		/** Unique identifier for this builder. */
-		id: string;
+		id: Id;
 	};
 	type: 'install-builder';
 } | {
@@ -579,14 +648,16 @@ export type BuildInstruction = {
 	instruction: {
 		/** List of arguments. */
 		args?: string[];
-		/** The binary on `PATH`. */
-		bin: string;
-		/** If the binary should reference a builder executable. */
+		/** If the executable should reference a builder executable. */
 		builder: boolean;
 		/** The working directory. */
 		cwd?: string | null;
 		/** Map of environment variables. */
 		env?: Record<string, string>;
+		/** The executable on `PATH`. */
+		bin?: string;
+		/** The executable on `PATH`. */
+		exe: string;
 	};
 	type: 'run-command';
 } | {

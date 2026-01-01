@@ -1,3 +1,4 @@
+use proto_core::flow::resolve::ProtoResolveError;
 use proto_core::{
     ProtoConfig, ProtoToolConfig, Tool, ToolSpec, UnresolvedVersionSpec, VersionSpec,
 };
@@ -51,13 +52,13 @@ impl ToolRecord {
     }
 
     pub fn inherit_from_local(&mut self, config: &ProtoConfig) {
-        if let Some(tool_config) = config.tools.get(&self.id).map(|c| c.to_owned()) {
+        if let Some(tool_config) = config.get_tool_config(&self.context).cloned() {
             self.local_aliases.extend(tool_config.aliases.clone());
             self.config = tool_config;
         }
     }
 
-    pub async fn inherit_from_remote(&mut self) -> miette::Result<()> {
+    pub async fn inherit_from_remote(&mut self) -> Result<(), ProtoResolveError> {
         let version_resolver = self
             .tool
             .load_version_resolver(&UnresolvedVersionSpec::default())

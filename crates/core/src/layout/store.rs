@@ -1,16 +1,17 @@
 use super::inventory::Inventory;
 use super::layout_error::ProtoLayoutError;
+use crate::id::Id;
 use crate::tool_manifest::ToolManifest;
 use once_cell::sync::OnceCell;
-use proto_pdk_api::ToolInventoryMetadata;
+use proto_pdk_api::ToolInventoryOptions;
 use proto_shim::{create_shim, locate_proto_exe};
 use serde::Serialize;
-use starbase_utils::fs;
+use starbase_styles::color;
+use starbase_utils::{envx, fs, path};
 use std::fmt;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use tracing::instrument;
-use warpgate::Id;
+use tracing::{debug, instrument};
 
 #[derive(Clone, Default, Serialize)]
 pub struct Store {
@@ -31,6 +32,19 @@ pub struct Store {
 impl Store {
     #[instrument(name = "create_store")]
     pub fn new(dir: &Path) -> Self {
+        let temp_dir = match envx::path_var("PROTO_TEMP_DIR") {
+            Some(custom) => {
+                debug!(
+                    temp_dir = ?custom,
+                    "Using custom temp directory from {}",
+                    color::symbol("PROTO_TEMP_DIR")
+                );
+
+                custom
+            }
+            None => dir.join("temp"),
+        };
+
         Self {
             dir: dir.to_path_buf(),
             backends_dir: dir.join("backends"),
@@ -40,7 +54,7 @@ impl Store {
             inventory_dir: dir.join("tools"),
             plugins_dir: dir.join("plugins"),
             shims_dir: dir.join("shims"),
-            temp_dir: dir.join("temp"),
+            temp_dir,
             shim_binary: Arc::new(OnceCell::new()),
         }
     }
@@ -49,20 +63,20 @@ impl Store {
     pub fn create_inventory(
         &self,
         id: &Id,
-        config: &ToolInventoryMetadata,
-    ) -> miette::Result<Inventory> {
-        let dir = self.inventory_dir.join(id.as_str());
+        config: &ToolInventoryOptions,
+    ) -> Result<Inventory, ProtoLayoutError> {
+        let dir = self.inventory_dir.join(path::encode_component(id));
 
         Ok(Inventory {
             manifest: ToolManifest::load_from(&dir)?,
             dir,
             dir_original: None,
-            temp_dir: self.temp_dir.join(id.as_str()),
+            temp_dir: self.temp_dir.join(path::encode_component(id)),
             config: config.to_owned(),
         })
     }
 
-    pub fn load_uuid(&self) -> miette::Result<String> {
+    pub fn load_uuid(&self) -> Result<String, ProtoLayoutError> {
         let id_path = self.dir.join("id");
 
         if id_path.exists() {
@@ -77,7 +91,7 @@ impl Store {
     }
 
     #[instrument(skip(self))]
-    pub fn load_preferred_profile(&self) -> miette::Result<Option<PathBuf>> {
+    pub fn load_preferred_profile(&self) -> Result<Option<PathBuf>, ProtoLayoutError> {
         let profile_path = self.dir.join("profile");
 
         if profile_path.exists() {
@@ -88,7 +102,7 @@ impl Store {
     }
 
     #[instrument(skip(self))]
-    pub fn load_shim_binary(&self) -> miette::Result<&Vec<u8>> {
+    pub fn load_shim_binary(&self) -> Result<&Vec<u8>, ProtoLayoutError> {
         self.shim_binary.get_or_try_init(|| {
             Ok(fs::read_file_bytes(
                 locate_proto_exe("proto-shim").ok_or_else(|| {
@@ -101,7 +115,7 @@ impl Store {
     }
 
     #[instrument(skip(self))]
-    pub fn save_preferred_profile(&self, path: &Path) -> miette::Result<()> {
+    pub fn save_preferred_profile(&self, path: &Path) -> Result<(), ProtoLayoutError> {
         fs::write_file(
             self.dir.join("profile"),
             path.as_os_str().as_encoded_bytes(),
@@ -111,7 +125,7 @@ impl Store {
     }
 
     #[instrument(skip(self))]
-    pub fn link_bin(&self, bin_path: &Path, src_path: &Path) -> miette::Result<()> {
+    pub fn link_bin(&self, bin_path: &Path, src_path: &Path) -> Result<(), ProtoLayoutError> {
         // Windows requires admin privileges to create soft/hard links,
         // so just copy the binary... annoying...
         #[cfg(windows)]
@@ -121,16 +135,21 @@ impl Store {
 
         #[cfg(unix)]
         {
-            use miette::IntoDiagnostic;
+            use starbase_utils::fs::FsError;
 
-            std::os::unix::fs::symlink(src_path, bin_path).into_diagnostic()?;
+            std::os::unix::fs::symlink(src_path, bin_path).map_err(|error| {
+                ProtoLayoutError::Fs(Box::new(FsError::Create {
+                    path: src_path.to_path_buf(),
+                    error: Box::new(error),
+                }))
+            })?;
         }
 
         Ok(())
     }
 
     #[instrument(skip(self))]
-    pub fn unlink_bin(&self, bin_path: &Path) -> miette::Result<()> {
+    pub fn unlink_bin(&self, bin_path: &Path) -> Result<(), ProtoLayoutError> {
         // Windows copies files
         #[cfg(windows)]
         fs::remove_file(bin_path)?;
@@ -143,7 +162,7 @@ impl Store {
     }
 
     #[instrument(skip(self))]
-    pub fn create_shim(&self, shim_path: &Path) -> miette::Result<()> {
+    pub fn create_shim(&self, shim_path: &Path) -> Result<(), ProtoLayoutError> {
         create_shim(self.load_shim_binary()?, shim_path).map_err(|error| {
             ProtoLayoutError::FailedCreateShim {
                 path: shim_path.to_owned(),
@@ -155,7 +174,7 @@ impl Store {
     }
 
     #[instrument(skip(self))]
-    pub fn remove_shim(&self, shim_path: &Path) -> miette::Result<()> {
+    pub fn remove_shim(&self, shim_path: &Path) -> Result<(), ProtoLayoutError> {
         fs::remove_file(shim_path)?;
 
         Ok(())

@@ -70,7 +70,14 @@ api_struct!(
         #[serde(skip_serializing_if = "Vec::is_empty")]
         pub args: Vec<String>,
 
-        /// Environment variables to pass to the command.
+        /// Environment variables to pass to the command. Variables
+        /// can customize behavior by appending one of the following
+        /// characters to the name:
+        ///
+        ///  `?` - Will only set variable if it doesn't exist
+        ///        in the current environment.
+        ///  `!` - Will remove the variable from being inherited
+        ///        by the child process.
         #[serde(skip_serializing_if = "FxHashMap::is_empty")]
         pub env: FxHashMap<String, String>,
 
@@ -79,14 +86,19 @@ api_struct!(
         #[doc(hidden)]
         pub set_executable: bool,
 
+        /// Set the shell to execute the command with, for example "bash".
+        /// If not defined, will be detected from the parent process.
+        #[setters(into, strip_option)]
+        pub shell: Option<String>,
+
         /// Stream the output instead of capturing it.
         #[setters(bool)]
         pub stream: bool,
 
         /// Override the current working directory.
-        #[setters(rename = "cwd", no_option)]
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub working_dir: Option<VirtualPath>,
+        #[setters(strip_option)]
+        #[serde(alias = "working_dir", skip_serializing_if = "Option::is_none")]
+        pub cwd: Option<VirtualPath>,
     }
 );
 

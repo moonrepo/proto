@@ -1,4 +1,4 @@
-use crate::client::HttpClient;
+use crate::clients::HttpClient;
 use crate::loader_error::WarpgateLoaderError;
 use sha2::{Digest, Sha256};
 use starbase_archive::{Archiver, is_supported_archive_extension};
@@ -7,12 +7,12 @@ use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use tracing::instrument;
-use warpgate_api::VirtualPath;
+use warpgate_api::{PluginLocator, UrlLocator, VirtualPath};
 
-/// Create a SHA256 hash key based on the provided URL and seed.
-pub fn create_cache_key(url: &str, seed: Option<&str>) -> String {
+/// Create a SHA256 hash key based on the provided value and seed.
+pub fn create_cache_key(value: &str, seed: Option<&str>) -> String {
     let mut sha = Sha256::new();
-    sha.update(url);
+    sha.update(value);
 
     if let Some(seed) = seed {
         sha.update(seed);
@@ -36,7 +36,7 @@ pub async fn download_from_url_to_file(
     source_url: &str,
     dest_file: &Path,
     client: &HttpClient,
-) -> miette::Result<()> {
+) -> Result<(), WarpgateLoaderError> {
     if let Err(error) = net::download_from_url_with_options(
         source_url,
         dest_file,
@@ -48,8 +48,11 @@ pub async fn download_from_url_to_file(
     .await
     {
         return Err(match error {
-            NetError::UrlNotFound { url } => WarpgateLoaderError::NotFound { url }.into(),
-            _ => error.into(),
+            NetError::UrlNotFound { url } => WarpgateLoaderError::NotFound { url },
+            e => WarpgateLoaderError::FailedDownload {
+                url: source_url.into(),
+                error: Box::new(e),
+            },
         });
     };
 
@@ -59,7 +62,10 @@ pub async fn download_from_url_to_file(
 /// If the temporary file is an archive, unpack it into the destination,
 /// otherwise more the file into the destination.
 #[instrument]
-pub fn move_or_unpack_download(temp_file: &Path, dest_file: &Path) -> miette::Result<()> {
+pub fn move_or_unpack_download(
+    temp_file: &Path,
+    dest_file: &Path,
+) -> Result<(), WarpgateLoaderError> {
     // Archive supported file extensions
     if is_supported_archive_extension(temp_file) {
         let out_dir = temp_file.parent().unwrap().join("out");
@@ -71,44 +77,50 @@ pub fn move_or_unpack_download(temp_file: &Path, dest_file: &Path) -> miette::Re
         if wasm_files.is_empty() {
             return Err(WarpgateLoaderError::NoWasmFound {
                 path: temp_file.to_path_buf(),
-            }
-            .into());
-
-            // Find a release file first, as some archives include the target folder
-        } else if let Some(release_wasm) = wasm_files
+            });
+        }
+        // Find a release file first, as some archives include the target folder
+        else if let Some(release_wasm) = wasm_files
             .iter()
             .find(|file| file.to_string_lossy().contains("release"))
         {
             fs::rename(release_wasm, dest_file)?;
-
-            // Otherwise, move the first wasm file available
-        } else {
+        }
+        // Otherwise, move the first wasm file available
+        else {
             fs::rename(&wasm_files[0], dest_file)?;
         }
 
         fs::remove_file(temp_file)?;
         fs::remove_dir_all(out_dir)?;
+
+        return Ok(());
     }
 
     // Non-archive supported extensions
     match temp_file.extension().and_then(|ext| ext.to_str()) {
         Some("wasm" | "toml" | "json" | "jsonc" | "yaml" | "yml") => {
-            fs::rename(temp_file, dest_file)?;
+            // Plugins can be downloaded in parallel, which means
+            // that his temp file can also be moved by another process.
+            // Because of this, proto constantly runs into "Failed to rename"
+            // errors when hitting this block, so let's avoid the failure
+            // if the condition is met and assume all is good!
+            if temp_file.exists() && !dest_file.exists() {
+                fs::rename(temp_file, dest_file)?;
+            }
         }
 
         Some(ext) => {
             return Err(WarpgateLoaderError::UnsupportedDownloadExtension {
                 ext: ext.to_owned(),
                 path: temp_file.to_path_buf(),
-            }
-            .into());
+            });
         }
 
         None => {
             return Err(WarpgateLoaderError::UnknownDownloadType {
                 path: temp_file.to_path_buf(),
-            }
-            .into());
+            });
         }
     };
 
@@ -192,4 +204,35 @@ fn prepare_to_path(path: &Path) -> PathBuf {
 #[cfg(windows)]
 fn prepare_from_path(path: &Path) -> PathBuf {
     PathBuf::from(path.to_string_lossy().replace('/', "\\"))
+}
+
+#[doc(hidden)]
+#[cfg(any(debug_assertions, test))]
+pub fn find_debug_locator(name: &str) -> Option<PluginLocator> {
+    use crate::test_utils::find_wasm_file_with_name;
+    use warpgate_api::FileLocator;
+
+    find_wasm_file_with_name(name).map(|wasm_path| {
+        PluginLocator::File(Box::new(FileLocator {
+            file: format!("file://{}", wasm_path.display()),
+            path: Some(wasm_path),
+        }))
+    })
+}
+
+#[doc(hidden)]
+#[cfg(not(any(debug_assertions, test)))]
+pub fn find_debug_locator(_name: &str) -> Option<PluginLocator> {
+    None
+}
+
+#[doc(hidden)]
+pub fn find_debug_locator_with_url_fallback(name: &str, version: &str) -> PluginLocator {
+    find_debug_locator(name).unwrap_or_else(|| {
+        PluginLocator::Url(Box::new(UrlLocator {
+            url: format!(
+                "https://github.com/moonrepo/plugins/releases/download/{name}-v{version}/{name}.wasm"
+            ),
+        }))
+    })
 }

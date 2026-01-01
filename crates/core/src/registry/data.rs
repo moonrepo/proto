@@ -1,7 +1,8 @@
+use crate::id::Id;
 use schematic::Schematic;
 use serde::{Deserialize, Serialize};
 use url::Url;
-use warpgate::{Id, PluginLocator};
+use warpgate::PluginLocator;
 
 /// Format of the plugin.
 #[derive(Debug, Deserialize, Serialize, Schematic)]

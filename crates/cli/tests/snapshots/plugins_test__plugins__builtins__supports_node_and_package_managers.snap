@@ -1,0 +1,26 @@
+---
+source: crates/cli/tests/plugins_test.rs
+expression: "fs::read_to_string(sandbox.path().join(\".proto/shims/registry.json\")).unwrap()"
+---
+{
+  "node": {},
+  "node-gyp": {
+    "alt_bin": true,
+    "parent": "npm"
+  },
+  "npm": {},
+  "npx": {
+    "alt_bin": true,
+    "parent": "npm"
+  },
+  "pnpm": {},
+  "pnpx": {
+    "alt_bin": true,
+    "parent": "pnpm"
+  },
+  "yarn": {},
+  "yarnpkg": {
+    "alt_bin": true,
+    "parent": "yarn"
+  }
+}

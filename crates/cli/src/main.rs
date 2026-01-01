@@ -3,6 +3,7 @@ mod commands;
 mod components;
 mod error;
 mod helpers;
+mod mcp;
 mod session;
 mod shell;
 mod systems;
@@ -17,14 +18,15 @@ use starbase::{
     App, MainResult,
     tracing::{LogLevel, TracingOptions},
 };
-use starbase_utils::{env::bool_var, string_vec};
-use std::{env, process::ExitCode};
+use starbase_utils::{envx, string_vec};
+use std::env;
+use std::process::ExitCode;
 use tracing::debug;
 
 fn get_tracing_modules() -> Vec<String> {
-    let mut modules = string_vec!["proto", "schematic", "starbase", "warpgate",];
+    let mut modules = string_vec!["proto", "schematic", "starbase", "warpgate"];
 
-    if bool_var("PROTO_DEBUG_WASM") || bool_var("PROTO_WASM_LOG") {
+    if envx::bool_var("PROTO_DEBUG_WASM") || envx::bool_var("PROTO_WASM_LOG") {
         modules.push("extism".into());
     } else {
         modules.push("extism::pdk".into());
@@ -64,10 +66,10 @@ async fn main() -> MainResult {
     let mut args = env::args_os().collect::<Vec<_>>();
 
     debug!(
-        bin = ?args.remove(0),
+        exe = ?args.remove(0),
         args = ?args,
         shim = env::var("PROTO_SHIM_NAME").ok(),
-        shim_bin = env::var("PROTO_SHIM_PATH").ok(),
+        shim_exe = env::var("PROTO_SHIM_PATH").ok(),
         pid = std::process::id(),
         "Running proto v{}",
         session.cli_version
@@ -82,11 +84,13 @@ async fn main() -> MainResult {
                 Commands::Clean(args) => commands::clean(session, args).await,
                 Commands::Completions(args) => commands::completions(session, args).await,
                 Commands::Debug { command } => match command {
-                    DebugCommands::Config => commands::debug::config(session).await,
-                    DebugCommands::Env => commands::debug::env(session).await,
+                    DebugCommands::Config(args) => commands::debug::config(session, args).await,
+                    DebugCommands::Env(args) => commands::debug::env(session, args).await,
                 },
                 Commands::Diagnose(args) => commands::diagnose(session, args).await,
+                Commands::Exec(args) => commands::exec(session, args).await,
                 Commands::Install(args) => commands::install(session, args).await,
+                Commands::Mcp(args) => commands::mcp(session, args).await,
                 Commands::Migrate(args) => commands::migrate(session, args).await,
                 Commands::Outdated(args) => commands::outdated(session, args).await,
                 Commands::Pin(args) => commands::pin(session, args).await,
@@ -100,6 +104,7 @@ async fn main() -> MainResult {
                 Commands::Regen(args) => commands::regen(session, args).await,
                 Commands::Run(args) => commands::run(session, args).await,
                 Commands::Setup(args) => commands::setup(session, args).await,
+                Commands::Shell(args) => commands::shell(session, args).await,
                 Commands::Status(args) => commands::status(session, args).await,
                 Commands::Unalias(args) => commands::unalias(session, args).await,
                 Commands::Uninstall(args) => commands::uninstall(session, args).await,
