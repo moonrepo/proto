@@ -442,6 +442,19 @@
       ]
     },
     {
+      "id": "geoipupdate",
+      "locator": "https://raw.githubusercontent.com/maxmind/geoipupdate/main/proto.yaml",
+      "format": "yaml",
+      "name": "GeoIPUpdate",
+      "description": "Updater for GeoIP2 and GeoLite databases."
+      "author": "maxmind",
+      "homepageUrl": "https://dev.maxmind.com/geoip",
+      "repositoryUrl": "https://github.com/maxmind/geoipupdate",
+      "bins": [
+        "geoipupdate"
+      ],
+    },
+    {
       "id": "gh",
       "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/gh/plugin.toml",
       "format": "toml",
