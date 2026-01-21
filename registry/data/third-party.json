@@ -880,6 +880,19 @@
       ]
     },
     {
+      "id": "neovim",
+      "locator": "https://raw.githubusercontent.com/yuhua99/proto-toml-plugins/refs/heads/main/neovim/neovim.toml",
+      "format": "toml",
+      "name": "Neovim",
+      "description": "Hyperextensible Vim-based text editor.",
+      "author": "yuhua99",
+      "homepageUrl": "https://neovim.io/",
+      "repositoryUrl": "https://github.com/yuhua99/proto-toml-plugins",
+      "bins": [
+        "nvim"
+      ]
+    },
+    {
       "id": "ninja",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/ninja/plugin.toml",
       "format": "toml",
