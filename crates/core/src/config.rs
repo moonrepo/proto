@@ -401,18 +401,12 @@ impl ProtoConfig {
                     let list = file_list.get_or_insert(vec![]);
                     let env_file_path = make_absolute(env_file, path);
 
-                    if !env_file_path.exists() {
-                        return Err(ProtoConfigError::MissingEnvFile {
+                    if env_file_path.exists() {
+                        list.push(EnvFile {
                             path: env_file_path,
-                            config: env_file.to_owned(),
-                            config_path: path.to_path_buf(),
+                            weight: (path.to_str().map_or(0, |p| p.len()) * 10) + extra_weight,
                         });
                     }
-
-                    list.push(EnvFile {
-                        path: env_file_path,
-                        weight: (path.to_str().map_or(0, |p| p.len()) * 10) + extra_weight,
-                    });
                 }
 
                 map.shift_remove(ENV_FILE_KEY);
