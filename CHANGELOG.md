@@ -23,6 +23,17 @@
 - Updated `env.file`s to not error when the file does not exist.
 - Updated plugin commands to execute in the current process scope if no shell could be detected.
 
+#### 🧩 Plugins
+
+- Updated `bun_tool` to v0.16.4.
+  - Added `package.json` `devEngines.runtime` support for version detection.
+- Updated `bun_tool` to v0.15.7.
+  - Fixed an issue where checksums did not work in v2.0.0.
+- Updated `node_tool` to v0.17.5.
+  - Added `package.json` `devEngines.runtime` support for version detection.
+- Updated `node_depman_tool` to v0.17.1.
+  - Added `package.json` `devEngines.packageManager` support for version detection.
+
 #### ⚙️ Internal
 
 - Updated dependencies.
