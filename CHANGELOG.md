@@ -21,6 +21,7 @@
 
 - Updated `proto uninstall <tool>` (without a version) to call uninstall hooks for each installed version before tearing down.
 - Updated `env.file`s to not error when the file does not exist.
+- Updated plugin commands to execute in the current process scope if no shell could be detected.
 
 #### ⚙️ Internal
 
