@@ -21,6 +21,10 @@
 
 Updated `env.file`s to not error when the file does not exist.
 
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.54.1
 
 #### 🚀 Updates
