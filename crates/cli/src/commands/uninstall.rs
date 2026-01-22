@@ -71,6 +71,14 @@ async fn track_uninstall(tool: &Tool, all: bool) -> Result<(), ProtoCliError> {
 }
 
 async fn try_uninstall_all(session: &ProtoSession, tool: &mut ToolRecord) -> miette::Result<()> {
+    // Loop through each version and uninstall
+    for version in tool.installed_versions.clone() {
+        tool.set_version(version.to_owned());
+
+        // Don't use `teardown` as it does far too much
+        tool.uninstall().await?;
+    }
+
     // Delete bins
     for bin in tool.resolve_bin_locations(true).await? {
         session.env.store.unlink_bin(&bin.path)?;
@@ -83,7 +91,7 @@ async fn try_uninstall_all(session: &ProtoSession, tool: &mut ToolRecord) -> mie
 
     // Delete inventory
     fs::remove_dir_all(tool.get_inventory_dir())?;
-    fs::remove_dir_all(tool.get_temp_dir())?;
+    tool.cleanup().await?;
 
     // Remove from lockfile
     tool.remove_from_lockfile()?;
@@ -135,6 +143,8 @@ async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult 
     if !skip_prompts && !confirmed {
         return Ok(None);
     }
+
+    debug!("Uninstalling all {} versions", tool.get_name());
 
     if args.quiet {
         try_uninstall_all(&session, &mut tool).await?;

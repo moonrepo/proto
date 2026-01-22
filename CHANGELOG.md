@@ -19,7 +19,8 @@
 
 #### 🚀 Updates
 
-Updated `env.file`s to not error when the file does not exist.
+- Updated `proto uninstall <tool>` (without a version) to call uninstall hooks for each installed version before tearing down.
+- Updated `env.file`s to not error when the file does not exist.
 
 #### ⚙️ Internal
 
