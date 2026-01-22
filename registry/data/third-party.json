@@ -123,6 +123,19 @@
       ]
     },
     {
+      "id": "bottom",
+      "locator": "https://raw.githubusercontent.com/yuhua99/proto-toml-plugins/refs/heads/main/bottom/bottom.toml",
+      "format": "toml",
+      "name": "bottom",
+      "description": "A customizable cross-platform graphical process/system monitor for the terminal.",
+      "author": "yuhua99",
+      "homepageUrl": "https://bottom.pages.dev/",
+      "repositoryUrl": "https://github.com/yuhua99/proto-toml-plugins",
+      "bins": [
+        "btm"
+      ]
+    },
+    {
       "id": "buf",
       "locator": "https://raw.githubusercontent.com/stk0vrfl0w/proto-toml-plugins/main/plugins/buf.toml",
       "format": "toml",
@@ -1300,6 +1313,19 @@
       "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
       "bins": [
         "trufflehog"
+      ]
+    },
+    {
+      "id": "ty",
+      "locator": "https://raw.githubusercontent.com/yuhua99/proto-toml-plugins/refs/heads/main/ty/ty.toml",
+      "format": "toml",
+      "name": "ty",
+      "description": "An extremely fast Python type checker and language server, written in Rust.",
+      "author": "yuhua99",
+      "homepageUrl": "https://docs.astral.sh/ty/",
+      "repositoryUrl": "https://github.com/yuhua99/proto-toml-plugins",
+      "bins": [
+        "ty"
       ]
     },
     {
