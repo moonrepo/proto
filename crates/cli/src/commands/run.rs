@@ -319,6 +319,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
                     spec: Some(ToolSpec {
                         req: resolved_version.to_unresolved_spec(),
                         version: Some(resolved_version.clone()),
+                        version_locked: None,
                         resolve_from_manifest: false,
                         resolve_from_lockfile: false,
                         update_lockfile: false,
