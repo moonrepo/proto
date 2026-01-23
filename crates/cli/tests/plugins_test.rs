@@ -132,7 +132,7 @@ mod plugins {
                 ToolContext::parse("moon").unwrap(),
                 env.to_owned(),
                 PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://raw.githubusercontent.com/moonrepo/moon/master/proto-plugin.toml"
+                    url: "https://raw.githubusercontent.com/moonrepo/proto/refs/heads/master/crates/cli/tests/__fixtures__/moon-schema.toml"
                         .into(),
                 })),
             )

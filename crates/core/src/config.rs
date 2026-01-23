@@ -156,14 +156,14 @@ impl ProtoConfig {
         if !tools.contains_key("bun") && is_allowed("bun") {
             tools.insert(
                 Id::raw("bun"),
-                find_debug_locator_with_url_fallback("bun_tool", "0.16.3"),
+                find_debug_locator_with_url_fallback("bun_tool", "0.16.5"),
             );
         }
 
         if !tools.contains_key("deno") && is_allowed("deno") {
             tools.insert(
                 Id::raw("deno"),
-                find_debug_locator_with_url_fallback("deno_tool", "0.15.6"),
+                find_debug_locator_with_url_fallback("deno_tool", "0.15.7"),
             );
         }
 
@@ -184,7 +184,7 @@ impl ProtoConfig {
         if !tools.contains_key("node") && is_allowed("node") {
             tools.insert(
                 Id::raw("node"),
-                find_debug_locator_with_url_fallback("node_tool", "0.17.4"),
+                find_debug_locator_with_url_fallback("node_tool", "0.17.6"),
             );
         }
 
@@ -192,7 +192,7 @@ impl ProtoConfig {
             if !tools.contains_key(depman) && is_allowed(depman) {
                 tools.insert(
                     Id::raw(depman),
-                    find_debug_locator_with_url_fallback("node_depman_tool", "0.17.0"),
+                    find_debug_locator_with_url_fallback("node_depman_tool", "0.17.2"),
                 );
             }
         }
@@ -401,18 +401,12 @@ impl ProtoConfig {
                     let list = file_list.get_or_insert(vec![]);
                     let env_file_path = make_absolute(env_file, path);
 
-                    if !env_file_path.exists() {
-                        return Err(ProtoConfigError::MissingEnvFile {
+                    if env_file_path.exists() {
+                        list.push(EnvFile {
                             path: env_file_path,
-                            config: env_file.to_owned(),
-                            config_path: path.to_path_buf(),
+                            weight: (path.to_str().map_or(0, |p| p.len()) * 10) + extra_weight,
                         });
                     }
-
-                    list.push(EnvFile {
-                        path: env_file_path,
-                        weight: (path.to_str().map_or(0, |p| p.len()) * 10) + extra_weight,
-                    });
                 }
 
                 map.shift_remove(ENV_FILE_KEY);

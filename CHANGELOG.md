@@ -15,6 +15,29 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Updated `proto uninstall <tool>` (without a version) to call uninstall hooks for each installed version before tearing down.
+- Updated `env.file`s to not error when the file does not exist.
+- Updated plugin commands to execute in the current process scope if no shell could be detected.
+
+#### 🧩 Plugins
+
+- Updated `bun_tool` to v0.16.5.
+  - Added `package.json` `devEngines.runtime` support for version detection.
+- Updated `bun_tool` to v0.15.7.
+  - Fixed an issue where checksums did not work in v2.0.0.
+- Updated `node_tool` to v0.17.6.
+  - Added `package.json` `devEngines.runtime` support for version detection.
+- Updated `node_depman_tool` to v0.17.2.
+  - Added `package.json` `devEngines.packageManager` support for version detection.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.54.1
 
 #### 🚀 Updates
