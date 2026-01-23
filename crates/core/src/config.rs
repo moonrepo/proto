@@ -156,7 +156,7 @@ impl ProtoConfig {
         if !tools.contains_key("bun") && is_allowed("bun") {
             tools.insert(
                 Id::raw("bun"),
-                find_debug_locator_with_url_fallback("bun_tool", "0.16.4"),
+                find_debug_locator_with_url_fallback("bun_tool", "0.16.5"),
             );
         }
 
@@ -184,7 +184,7 @@ impl ProtoConfig {
         if !tools.contains_key("node") && is_allowed("node") {
             tools.insert(
                 Id::raw("node"),
-                find_debug_locator_with_url_fallback("node_tool", "0.17.5"),
+                find_debug_locator_with_url_fallback("node_tool", "0.17.6"),
             );
         }
 
@@ -192,7 +192,7 @@ impl ProtoConfig {
             if !tools.contains_key(depman) && is_allowed(depman) {
                 tools.insert(
                     Id::raw(depman),
-                    find_debug_locator_with_url_fallback("node_depman_tool", "0.17.1"),
+                    find_debug_locator_with_url_fallback("node_depman_tool", "0.17.2"),
                 );
             }
         }
