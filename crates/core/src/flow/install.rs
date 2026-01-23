@@ -122,6 +122,7 @@ impl Tool {
     #[instrument(skip(self, options))]
     async fn build_from_source(
         &self,
+        spec: &mut ToolSpec,
         install_dir: &Path,
         temp_dir: &Path,
         options: InstallOptions,
@@ -192,7 +193,7 @@ impl Tool {
             skip_ui: options.skip_ui,
             system,
             temp_dir,
-            version: self.get_resolved_version(),
+            version: spec.get_resolved_version(),
         });
 
         // The build process may require using itself to build itself,
@@ -232,6 +233,7 @@ impl Tool {
     #[instrument(skip(self, options))]
     async fn install_from_prebuilt(
         &self,
+        spec: &mut ToolSpec,
         install_dir: &Path,
         temp_dir: &Path,
         options: InstallOptions,
@@ -521,11 +523,12 @@ impl Tool {
 
         // Build the tool from source
         let result = if matches!(options.strategy, InstallStrategy::BuildFromSource) {
-            self.build_from_source(install_dir, temp_dir, options).await
+            self.build_from_source(spec, install_dir, temp_dir, options)
+                .await
         }
         // Install from a prebuilt archive
         else {
-            self.install_from_prebuilt(install_dir, temp_dir, options)
+            self.install_from_prebuilt(spec, install_dir, temp_dir, options)
                 .await
         };
 

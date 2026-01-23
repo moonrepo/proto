@@ -195,7 +195,7 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
                     name: "Detected version",
                     value: element! {
                         StyledText(
-                            content: tool.get_resolved_version().to_string(),
+                            content: tool.spec.get_resolved_version().to_string(),
                             style: Style::Hash
                         )
                     }.into_any()

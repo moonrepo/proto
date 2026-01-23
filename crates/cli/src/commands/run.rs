@@ -295,7 +295,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
         }
     } else {
         let config = tool.proto.load_config()?;
-        let resolved_version = tool.get_resolved_version();
+        let resolved_version = spec.get_resolved_version();
 
         // Auto-install the missing tool
         if config.settings.auto_install {

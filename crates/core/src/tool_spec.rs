@@ -52,6 +52,10 @@ impl ToolSpec {
         self.version.clone().unwrap_or_default()
     }
 
+    pub fn is_resolved(&self) -> bool {
+        self.version.is_some()
+    }
+
     pub fn resolve(&mut self, res: VersionSpec) {
         self.version = Some(res);
     }

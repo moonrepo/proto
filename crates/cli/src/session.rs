@@ -111,6 +111,7 @@ impl ProtoSession {
                 .unwrap_or_else(|| ToolSpec::parse("*").unwrap());
 
             record.tool.resolve_version(&mut spec, false).await?;
+            record.spec = spec;
         }
 
         Ok(record)

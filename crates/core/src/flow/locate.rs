@@ -121,7 +121,8 @@ impl Tool {
         bin_manager: BinManager,
         include_all_versions: bool,
     ) -> Result<Vec<ExecutableLocation>, ProtoLocateError> {
-        let original_version = self.get_resolved_version();
+        // TODO
+        let original_version = VersionSpec::Canary; // self.get_resolved_version();
         let mut locations = vec![];
 
         let versions = if include_all_versions {

@@ -50,7 +50,7 @@ fn unpin_version(session: &ProtoSession, args: &UninstallArgs) -> Result<(), Pro
     Ok(())
 }
 
-async fn track_uninstall(tool: &Tool, all: bool) -> Result<(), ProtoCliError> {
+async fn track_uninstall(tool: &Tool, spec: Option<&ToolSpec>) -> Result<(), ProtoCliError> {
     track_usage(
         &tool.proto,
         Metric::UninstallTool {
@@ -60,10 +60,9 @@ async fn track_uninstall(tool: &Tool, all: bool) -> Result<(), ProtoCliError> {
                 .as_ref()
                 .map(|loc| loc.to_string())
                 .unwrap_or_default(),
-            version: if all {
-                "*".into()
-            } else {
-                tool.get_resolved_version().to_string()
+            version: match spec {
+                Some(spec) => spec.get_resolved_version().to_string(),
+                None => "*".into(),
             },
         },
     )
@@ -165,7 +164,7 @@ async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult 
     }
 
     unpin_version(&session, &args)?;
-    track_uninstall(&tool, true).await?;
+    track_uninstall(&tool, None).await?;
 
     if !args.quiet {
         session.console.render(element! {
@@ -199,7 +198,7 @@ async fn uninstall_one(
                         content: format!(
                             "{} <version>{}</version> has not been installed locally",
                             tool.get_name(),
-                            tool.get_resolved_version(),
+                            spec.get_resolved_version(),
                         ),
                     )
                 }
@@ -220,7 +219,7 @@ async fn uninstall_one(
                     label: format!(
                         "Uninstall {} version <version>{}</version> at <path>{}</path>?",
                         tool.get_name(),
-                        tool.get_resolved_version(),
+                        spec.get_resolved_version(),
                         tool.get_product_dir().display()
                     ),
                     on_confirm: &mut confirmed,
@@ -243,7 +242,7 @@ async fn uninstall_one(
         progress.set_message(format!(
             "Uninstalling {} <version>{}</version>",
             tool.get_name(),
-            tool.get_resolved_version()
+            spec.get_resolved_version()
         ));
 
         let result = tool.teardown(&mut spec).await;
@@ -258,7 +257,7 @@ async fn uninstall_one(
     }
 
     unpin_version(&session, &args)?;
-    track_uninstall(&tool, false).await?;
+    track_uninstall(&tool, Some(&spec)).await?;
 
     if !args.quiet {
         session.console.render(element! {
@@ -267,7 +266,7 @@ async fn uninstall_one(
                     content: format!(
                         "{} <version>{}</version> has been uninstalled!",
                         tool.get_name(),
-                        tool.get_resolved_version(),
+                        spec.get_resolved_version(),
                     ),
                 )
             }

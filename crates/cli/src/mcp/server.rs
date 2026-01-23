@@ -159,7 +159,7 @@ impl ProtoMcp {
     ) -> Result<CallToolResult, McpError> {
         let req = params.0;
         let context = self.parse_context(&req.tool)?;
-        let spec = self.parse_spec(req.spec.as_deref().unwrap_or("latest"))?;
+        let mut spec = self.parse_spec(req.spec.as_deref().unwrap_or("latest"))?;
 
         let tool = handle_tool_error!(self.session.load_tool(&context).await);
         let mut workflow = InstallWorkflow::new(tool, self.session.console.clone());
@@ -167,7 +167,7 @@ impl ProtoMcp {
         let outcome = handle_tool_error!(
             workflow
                 .install(
-                    spec,
+                    &mut spec,
                     InstallWorkflowParams {
                         force: req.force,
                         log_writer: None,
@@ -192,7 +192,7 @@ impl ProtoMcp {
                     outcome,
                     InstallOutcome::AlreadyInstalled(_) | InstallOutcome::Installed(_)
                 ),
-                spec: workflow.tool.get_resolved_version().to_string(),
+                spec: spec.get_resolved_version().to_string(),
             })
             .unwrap(),
         ))
@@ -216,7 +216,7 @@ impl ProtoMcp {
         Ok(CallToolResult::structured(
             serde_json::to_value(UninstallToolResponse {
                 uninstalled,
-                spec: tool.get_resolved_version().to_string(),
+                spec: spec.get_resolved_version().to_string(),
             })
             .unwrap(),
         ))

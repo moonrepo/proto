@@ -9,6 +9,7 @@ use std::path::PathBuf;
 #[derive(Debug)]
 pub struct ToolRecord {
     pub tool: Tool,
+    pub spec: ToolSpec,
     pub config: ProtoToolConfig,
     pub detected_source: Option<PathBuf>,
     pub detected_version: Option<ToolSpec>,
@@ -31,6 +32,7 @@ impl ToolRecord {
 
         Self {
             tool,
+            spec: ToolSpec::parse("*").unwrap(),
             config: ProtoToolConfig::default(),
             detected_source: None,
             detected_version: None,

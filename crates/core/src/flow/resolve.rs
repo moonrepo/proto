@@ -304,8 +304,8 @@ impl Tool {
         spec: &mut ToolSpec,
         short_circuit: bool,
     ) -> Result<VersionSpec, ProtoResolveError> {
-        if self.version.is_some() {
-            return Ok(self.get_resolved_version());
+        if spec.version.is_some() {
+            return Ok(spec.get_resolved_version());
         }
 
         debug!(

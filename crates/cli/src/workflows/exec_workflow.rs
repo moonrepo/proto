@@ -342,7 +342,7 @@ async fn prepare_tool(
     if params.version_env_vars {
         item.set_env(
             format!("{}_VERSION", tool.get_env_var_prefix()),
-            tool.get_resolved_version().to_string(),
+            spec.get_resolved_version().to_string(),
         );
     }
 
