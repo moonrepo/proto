@@ -38,12 +38,12 @@ pub struct BinArgs {
 pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
     let mut tool = session.load_tool(&args.context).await?;
 
-    let spec = match args.spec.clone() {
+    let mut spec = match args.spec.clone() {
         Some(spec) => spec,
         None => tool.detect_version().await?,
     };
 
-    tool.resolve_version(&spec, true).await?;
+    tool.resolve_version(&mut spec, true).await?;
 
     if args.bin {
         tool.symlink_bins(true).await?;

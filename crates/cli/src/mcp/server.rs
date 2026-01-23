@@ -205,13 +205,13 @@ impl ProtoMcp {
     ) -> Result<CallToolResult, McpError> {
         let req = params.0;
         let context = self.parse_context(&req.tool)?;
-        let spec = self.parse_spec(&req.spec)?;
+        let mut spec = self.parse_spec(&req.spec)?;
 
         let mut tool = handle_tool_error!(self.session.load_tool(&context).await);
 
-        handle_tool_error!(tool.resolve_version(&spec, false).await);
+        handle_tool_error!(tool.resolve_version(&mut spec, false).await);
 
-        let uninstalled = handle_tool_error!(tool.uninstall().await);
+        let uninstalled = handle_tool_error!(tool.uninstall(&mut spec).await);
 
         Ok(CallToolResult::structured(
             serde_json::to_value(UninstallToolResponse {

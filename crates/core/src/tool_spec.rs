@@ -36,6 +36,14 @@ impl ToolSpec {
         }
     }
 
+    pub fn new_resolved(version: VersionSpec) -> Self {
+        Self {
+            req: version.to_unresolved_spec(),
+            version: Some(version),
+            ..Default::default()
+        }
+    }
+
     pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, ProtoResolveError> {
         Self::from_str(value.as_ref())
     }

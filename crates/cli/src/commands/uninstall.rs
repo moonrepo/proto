@@ -73,10 +73,10 @@ async fn track_uninstall(tool: &Tool, all: bool) -> Result<(), ProtoCliError> {
 async fn try_uninstall_all(session: &ProtoSession, tool: &mut ToolRecord) -> miette::Result<()> {
     // Loop through each version and uninstall
     for version in tool.installed_versions.clone() {
-        tool.set_version(version.to_owned());
+        tool.set_version(version.clone());
 
         // Don't use `teardown` as it does far too much
-        tool.uninstall().await?;
+        tool.uninstall(&mut ToolSpec::new_resolved(version)).await?;
     }
 
     // Delete bins
@@ -184,10 +184,14 @@ async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult 
 }
 
 #[instrument(skip(session))]
-async fn uninstall_one(session: ProtoSession, args: UninstallArgs, spec: ToolSpec) -> AppResult {
+async fn uninstall_one(
+    session: ProtoSession,
+    args: UninstallArgs,
+    mut spec: ToolSpec,
+) -> AppResult {
     let mut tool = session.load_tool(&args.context).await?;
 
-    if !tool.is_setup(&spec).await? {
+    if !tool.is_setup(&mut spec).await? {
         if !args.quiet {
             session.console.render(element! {
                 Notice(variant: Variant::Caution) {
@@ -232,7 +236,7 @@ async fn uninstall_one(session: ProtoSession, args: UninstallArgs, spec: ToolSpe
     debug!("Uninstalling {} with version {}", tool.get_name(), spec);
 
     if args.quiet {
-        tool.teardown(&spec).await?;
+        tool.teardown(&mut spec).await?;
     } else {
         let progress = session.render_progress_loader().await;
 
@@ -242,7 +246,7 @@ async fn uninstall_one(session: ProtoSession, args: UninstallArgs, spec: ToolSpe
             tool.get_resolved_version()
         ));
 
-        let result = tool.teardown(&spec).await;
+        let result = tool.teardown(&mut spec).await;
 
         if result.is_ok() {
             progress.set_message(format!("Uninstalled {}", tool.get_name()));

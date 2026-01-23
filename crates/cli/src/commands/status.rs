@@ -36,7 +36,7 @@ pub async fn status(session: ProtoSession, _args: StatusArgs) -> AppResult {
         .await?;
 
     for mut tool in tools {
-        let Some(spec) = tool.detected_version.clone() else {
+        let Some(mut spec) = tool.detected_version.clone() else {
             continue;
         };
 
@@ -46,10 +46,10 @@ pub async fn status(session: ProtoSession, _args: StatusArgs) -> AppResult {
 
         // Resolve a version based on the configured spec, and ignore errors
         // as they indicate a version could not be resolved!
-        if let Ok(version) = tool.resolve_version(&spec, false).await
+        if let Ok(version) = tool.resolve_version(&mut spec, false).await
             && !version.is_latest()
         {
-            if tool.is_installed() {
+            if tool.is_installed(&spec) {
                 item.is_installed = true;
                 item.product_dir = Some(tool.get_product_dir().to_path_buf());
             }

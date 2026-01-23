@@ -28,7 +28,7 @@ where
     let mut tool = factory(&proto).await.unwrap();
 
     tool.setup(
-        &ToolSpec::new(UnresolvedVersionSpec::parse("1.0.0").unwrap()),
+        &mut ToolSpec::new(UnresolvedVersionSpec::parse("1.0.0").unwrap()),
         InstallOptions::default(),
     )
     .await

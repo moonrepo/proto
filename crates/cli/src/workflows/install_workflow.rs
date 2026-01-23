@@ -84,7 +84,7 @@ impl InstallWorkflow {
 
     pub async fn install(
         &mut self,
-        spec: ToolSpec,
+        mut spec: ToolSpec,
         params: InstallWorkflowParams,
     ) -> Result<InstallOutcome, ProtoCliError> {
         let started = Instant::now();
@@ -103,7 +103,7 @@ impl InstallWorkflow {
         });
 
         // Check if already installed, or if forced, overwrite previous install
-        if !params.force && self.tool.is_setup(&spec).await? {
+        if !params.force && self.tool.is_setup(&mut spec).await? {
             self.pin_version(&spec, &params.pin_to).await?;
             self.finish_progress(started);
 
@@ -114,7 +114,7 @@ impl InstallWorkflow {
         self.pre_install(&params).await?;
 
         // Run install
-        let record = self.do_install(&spec, &params).await?;
+        let record = self.do_install(&mut spec, &params).await?;
 
         if record.is_none() {
             return Ok(InstallOutcome::FailedToInstall(self.tool.get_id().clone()));
@@ -243,7 +243,7 @@ impl InstallWorkflow {
 
     async fn do_install(
         &mut self,
-        spec: &ToolSpec,
+        spec: &mut ToolSpec,
         params: &InstallWorkflowParams,
     ) -> Result<Option<LockRecord>, ProtoCliError> {
         params.log_writer.as_ref().inspect(|log| {

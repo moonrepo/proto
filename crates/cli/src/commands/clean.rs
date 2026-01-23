@@ -204,7 +204,7 @@ pub async fn clean_tool(
             // Reset any previously resolved version to ensure we teardown
             // the correct version when called multiple times in a loop
             tool.version = None;
-            tool.teardown(&ToolSpec::new(version.to_unresolved_spec()))
+            tool.teardown(&mut ToolSpec::new(version.to_unresolved_spec()))
                 .await?;
         }
     } else {

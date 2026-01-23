@@ -301,7 +301,7 @@ impl Tool {
     #[instrument(skip(self))]
     pub async fn resolve_version(
         &mut self,
-        spec: &ToolSpec,
+        spec: &mut ToolSpec,
         short_circuit: bool,
     ) -> Result<VersionSpec, ProtoResolveError> {
         if self.version.is_some() {
@@ -381,7 +381,7 @@ impl Tool {
     #[instrument(skip(self))]
     pub async fn resolve_version_if_different(
         &mut self,
-        spec: &ToolSpec,
+        spec: &mut ToolSpec,
         short_circuit: bool,
     ) -> Result<VersionSpec, ProtoResolveError> {
         if self

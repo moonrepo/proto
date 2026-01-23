@@ -105,12 +105,12 @@ impl ProtoSession {
         if options.detect_version {
             record.detect_version_and_source().await;
 
-            let spec = record
+            let mut spec = record
                 .detected_version
                 .clone()
                 .unwrap_or_else(|| ToolSpec::parse("*").unwrap());
 
-            record.tool.resolve_version(&spec, false).await?;
+            record.tool.resolve_version(&mut spec, false).await?;
         }
 
         Ok(record)

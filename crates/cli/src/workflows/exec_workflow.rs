@@ -321,7 +321,7 @@ async fn prepare_tool(
     };
 
     // Extract the spec, otherwise return early
-    let spec = match provided_spec {
+    let mut spec = match provided_spec {
         Some(inner) => inner,
         None => {
             if params.fallback_any_spec {
@@ -335,7 +335,7 @@ async fn prepare_tool(
     item.active = true;
 
     // Resolve the version and locate executables
-    if !tool.is_setup(&spec).await? {
+    if !tool.is_setup(&mut spec).await? {
         return Ok(item);
     }
 

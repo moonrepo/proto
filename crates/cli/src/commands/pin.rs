@@ -48,7 +48,7 @@ pub async fn pin(session: ProtoSession, args: PinArgs) -> AppResult {
 
     if args.resolve {
         spec.req = tool
-            .resolve_version(&spec, false)
+            .resolve_version(&mut spec, false)
             .await?
             .to_unresolved_spec();
     }

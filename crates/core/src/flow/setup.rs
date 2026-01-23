@@ -15,7 +15,7 @@ use tracing::{debug, instrument};
 impl Tool {
     /// Return true if the tool has been setup (installed and executables are located).
     #[instrument(skip(self))]
-    pub async fn is_setup(&mut self, spec: &ToolSpec) -> Result<bool, ProtoSetupError> {
+    pub async fn is_setup(&mut self, spec: &mut ToolSpec) -> Result<bool, ProtoSetupError> {
         self.resolve_version(spec, true).await?;
 
         let install_dir = self.get_product_dir();
@@ -26,7 +26,7 @@ impl Tool {
             "Checking if tool is installed",
         );
 
-        if self.is_installed() {
+        if self.is_installed(spec) {
             debug!(
                 tool = self.context.as_str(),
                 install_dir = ?install_dir,
@@ -54,12 +54,12 @@ impl Tool {
     #[instrument(skip(self, options))]
     pub async fn setup(
         &mut self,
-        spec: &ToolSpec,
+        spec: &mut ToolSpec,
         options: InstallOptions,
     ) -> Result<Option<LockRecord>, ProtoSetupError> {
         let version = self.resolve_version(spec, false).await?;
 
-        let record = match self.install(options).await? {
+        let record = match self.install(spec, options).await? {
             // Update lock record with resolved spec information
             Some(mut record) => {
                 record.version = Some(version.clone());
@@ -121,12 +121,12 @@ impl Tool {
     /// Teardown the tool by uninstalling the current version, removing the version
     /// from the manifest, and cleaning up temporary files. Return true if the teardown occurred.
     #[instrument(skip_all)]
-    pub async fn teardown(&mut self, spec: &ToolSpec) -> Result<bool, ProtoSetupError> {
+    pub async fn teardown(&mut self, spec: &mut ToolSpec) -> Result<bool, ProtoSetupError> {
         self.cleanup().await?;
 
         let version = self.resolve_version(spec, false).await?;
 
-        if !self.uninstall().await? {
+        if !self.uninstall(spec).await? {
             return Ok(false);
         }
 

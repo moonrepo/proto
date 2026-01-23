@@ -6,6 +6,7 @@ use crate::env::ProtoConsole;
 use crate::helpers::{extract_filename_from_url, is_archive_file, is_executable, is_offline};
 use crate::lockfile::*;
 use crate::tool::Tool;
+use crate::tool_spec::ToolSpec;
 use crate::utils::log::LogWriter;
 use crate::utils::{archive, process};
 use proto_pdk_api::*;
@@ -51,7 +52,7 @@ pub struct InstallOptions {
 impl Tool {
     /// Return true if the tool has been installed. This is less accurate than `is_setup`,
     /// as it only checks for the existence of the inventory directory.
-    pub fn is_installed(&self) -> bool {
+    pub fn is_installed(&self, spec: &ToolSpec) -> bool {
         let dir = self.get_product_dir();
 
         self.version.as_ref().is_some_and(|v| {
@@ -453,9 +454,10 @@ impl Tool {
     #[instrument(skip(self, options))]
     pub async fn install(
         &mut self,
+        spec: &mut ToolSpec,
         options: InstallOptions,
     ) -> Result<Option<LockRecord>, ProtoInstallError> {
-        if self.is_installed() && !options.force {
+        if self.is_installed(spec) && !options.force {
             debug!(
                 tool = self.context.as_str(),
                 "Tool already installed, continuing"
@@ -561,7 +563,7 @@ impl Tool {
 
     /// Uninstall the tool by deleting the current install directory.
     #[instrument(skip_all)]
-    pub async fn uninstall(&self) -> Result<bool, ProtoInstallError> {
+    pub async fn uninstall(&self, spec: &mut ToolSpec) -> Result<bool, ProtoInstallError> {
         let install_dir = self.get_product_dir();
 
         if !install_dir.exists() {

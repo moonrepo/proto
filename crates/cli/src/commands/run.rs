@@ -269,7 +269,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
     }
 
     // Detect a version to run with
-    let spec = if use_global_proto {
+    let mut spec = if use_global_proto {
         args.spec
             .clone()
             .unwrap_or_else(|| ToolSpec::parse("*").unwrap())
@@ -289,7 +289,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
     };
 
     // Check if installed or need to install
-    if tool.is_setup(&spec).await? {
+    if tool.is_setup(&mut spec).await? {
         if tool.get_id() == PROTO_PLUGIN_KEY {
             use_global_proto = false;
         }
