@@ -13,16 +13,16 @@ macro_rules! create_plugin {
 
 #[macro_export]
 macro_rules! check_install_success {
-    ($plugin:ident) => {
-        $plugin.tool.locate_exe_file().await.unwrap();
+    ($plugin:ident, $spec:ident) => {
+        $plugin.tool.locate_exe_file(&$spec).await.unwrap();
 
-        assert!($plugin.tool.get_product_dir().exists());
+        assert!($plugin.tool.get_product_dir(&$spec).exists());
 
-        for bin in $plugin.tool.resolve_bin_locations(true).await.unwrap() {
+        for bin in $plugin.tool.resolve_bin_locations(None).await.unwrap() {
             assert!(bin.path.exists());
         }
 
-        for shim in $plugin.tool.resolve_shim_locations().await.unwrap() {
+        for shim in $plugin.tool.resolve_shim_locations(&$spec).await.unwrap() {
             assert!(shim.path.exists());
         }
     };
@@ -31,11 +31,12 @@ macro_rules! check_install_success {
 #[macro_export]
 macro_rules! do_build_from_source {
     ($sandbox:ident, $plugin:ident, $spec:literal) => {
-        let spec = ToolSpec::parse($spec).unwrap();
+        let mut spec = ToolSpec::parse($spec).unwrap();
+
         let result = $plugin
             .tool
             .setup(
-                &spec,
+                &mut spec,
                 flow::install::InstallOptions {
                     console: Some(ProtoConsole::new_testing()),
                     log_writer: Some(Default::default()),
@@ -62,7 +63,7 @@ macro_rules! do_build_from_source {
 
         result.unwrap();
 
-        check_install_success!($plugin);
+        check_install_success!($plugin, spec);
     };
 }
 
@@ -88,13 +89,14 @@ macro_rules! generate_build_install_tests {
 #[macro_export]
 macro_rules! do_install_prebuilt {
     ($sandbox:ident, $plugin:ident, $spec:literal) => {
-        let spec = ToolSpec::parse($spec).unwrap();
+        let mut spec = ToolSpec::parse($spec).unwrap();
+
         let result = $plugin
             .tool
-            .setup(&spec, flow::install::InstallOptions::default())
+            .setup(&mut spec, flow::install::InstallOptions::default())
             .await;
 
-        check_install_success!($plugin);
+        check_install_success!($plugin, spec);
     };
 }
 
@@ -116,7 +118,7 @@ macro_rules! generate_download_install_tests {
             let mut tool = plugin.tool;
             let mut spec = ToolSpec::parse($spec).unwrap();
 
-            flow::resolve::ResolverFlow::new(&plugin.tool)
+            flow::resolve::Resolver::new(&tool)
                 .resolve_version(&mut spec, false)
                 .await
                 .unwrap();
@@ -138,16 +140,18 @@ macro_rules! generate_download_install_tests {
             let sandbox = create_empty_proto_sandbox();
             let mut plugin = create_plugin!(sandbox, $id, $schema, $factory);
             let mut tool = plugin.tool;
-            let spec = VersionSpec::parse($spec).unwrap();
+            let mut spec = ToolSpec::new_resolved(VersionSpec::parse($spec).unwrap());
 
             // Fake the installation so we avoid downloading
-            tool.set_version(spec.clone());
-            tool.inventory.manifest.installed_versions.insert(spec);
+            tool.inventory
+                .manifest
+                .installed_versions
+                .insert(spec.get_resolved_version());
 
-            std::fs::create_dir_all(tool.get_product_dir()).unwrap();
+            std::fs::create_dir_all(tool.get_product_dir(&spec)).unwrap();
 
             assert!(
-                tool.install(flow::install::InstallOptions::default())
+                tool.install(&mut spec, flow::install::InstallOptions::default())
                     .await
                     .unwrap()
                     .is_none()
@@ -188,16 +192,17 @@ macro_rules! generate_resolve_versions_tests {
         async fn resolves_latest_alias() {
             let sandbox = create_empty_proto_sandbox();
             let mut plugin = create_plugin!(sandbox, $id, $schema, $factory);
+            let mut spec = ToolSpec::parse("latest").unwrap();
 
-            flow::resolve::ResolverFlow::new(&plugin.tool)
+            flow::resolve::Resolver::new(&plugin.tool)
                 .resolve_version(
-                    &mut ToolSpec::parse("latest").unwrap(),
+                    &mut spec,
                     false,
                 )
                 .await
                 .unwrap();
 
-            assert_ne!(plugin.tool.get_resolved_version(), "latest");
+            assert_ne!(spec.get_resolved_version(), "latest");
         }
 
         #[tokio::test(flavor = "multi_thread")]
@@ -206,19 +211,20 @@ macro_rules! generate_resolve_versions_tests {
             let mut plugin = create_plugin!(sandbox, $id, $schema, $factory);
 
             $(
-                flow::resolve::ResolverFlow::new(&plugin.tool)
+                let mut spec = ToolSpec::parse($k).unwrap();
+
+                flow::resolve::Resolver::new(&plugin.tool)
                     .resolve_version(
-                        &mut ToolSpec::parse($k).unwrap(),
+                        &mut spec,
                         false,
                     )
                     .await
                     .unwrap();
 
                 assert_eq!(
-                    plugin.tool.get_resolved_version(),
+                    spec.get_resolved_version(),
                     $v
                 );
-                plugin.tool.version = None;
             )*
         }
 
@@ -228,7 +234,7 @@ macro_rules! generate_resolve_versions_tests {
             let sandbox = create_empty_proto_sandbox();
             let mut plugin = create_plugin!(sandbox, $id, $schema, $factory);
 
-            flow::resolve::ResolverFlow::new(&plugin.tool)
+            flow::resolve::Resolver::new(&plugin.tool)
                 .resolve_version(
                     &mut ToolSpec::parse("unknown").unwrap(),
                     false,
@@ -243,7 +249,7 @@ macro_rules! generate_resolve_versions_tests {
             let sandbox = create_empty_proto_sandbox();
             let mut plugin = create_plugin!(sandbox, $id, $schema, $factory);
 
-            flow::resolve::ResolverFlow::new(&plugin.tool)
+            flow::resolve::Resolver::new(&plugin.tool)
                 .resolve_version(
                     &mut ToolSpec::parse("99.99.99").unwrap(),
                     false,
@@ -271,7 +277,7 @@ macro_rules! generate_shims_test {
             let sandbox = create_empty_proto_sandbox();
             let mut plugin = create_plugin!(sandbox, $id, $schema, $factory);
 
-            plugin.tool.generate_shims(false).await.unwrap();
+            plugin.tool.generate_shims(&ToolSpec::default(), false).await.unwrap();
 
             $(
                 assert!(

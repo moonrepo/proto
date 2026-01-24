@@ -408,7 +408,7 @@ impl InstallWorkflow {
             pin = true;
         }
 
-        if pin && spec.is_resolved() {
+        if pin {
             internal_pin(&self.tool.tool, spec, pin_to).await?;
         }
 
