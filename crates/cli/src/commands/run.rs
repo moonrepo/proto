@@ -102,7 +102,7 @@ async fn get_tool_executable(
     spec: &ToolSpec,
     alt: Option<&str>,
 ) -> miette::Result<ExecutableConfig> {
-    let tool_dir = tool.get_product_dir();
+    let tool_dir = tool.get_product_dir(spec);
 
     // Run an alternate executable (via shim)
     if let Some(alt_name) = alt {

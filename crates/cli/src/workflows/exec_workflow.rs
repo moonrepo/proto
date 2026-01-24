@@ -420,8 +420,10 @@ async fn prepare_tool(
     }
 
     // Mark it as used so that auto-clean doesn't remove it!
-    if std::env::var("PROTO_SKIP_USED_AT").is_err() {
-        let _ = tool.product.track_used_at();
+    if std::env::var("PROTO_SKIP_USED_AT").is_err()
+        && let Some(version) = &spec.version
+    {
+        let _ = tool.inventory.create_product(version).track_used_at();
     }
 
     Ok(item)

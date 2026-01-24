@@ -19,7 +19,7 @@ impl Tool {
     pub async fn is_setup(&mut self, spec: &mut ToolSpec) -> Result<bool, ProtoSetupError> {
         ResolverFlow::new(self).resolve_version(spec, true).await?;
 
-        let install_dir = self.get_product_dir();
+        let install_dir = self.get_product_dir(spec);
 
         debug!(
             tool = self.context.as_str(),

@@ -227,7 +227,7 @@ pub async fn install_one(
                             "{} <version>{}</version> has been installed to <path>{}</path>!",
                             tool.get_name(),
                             spec.get_resolved_version(),
-                            tool.get_product_dir().display(),
+                            tool.get_product_dir(&spec).display(),
                         ),
                     )
                 }
@@ -241,7 +241,7 @@ pub async fn install_one(
                             "{} <version>{}</version> has already been installed at <path>{}</path>!",
                             tool.get_name(),
                             spec.get_resolved_version(),
-                            tool.get_product_dir().display(),
+                            tool.get_product_dir(&spec).display(),
                         ),
                     )
                 }

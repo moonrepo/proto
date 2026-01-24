@@ -70,11 +70,9 @@ async fn track_uninstall(tool: &Tool, spec: Option<&ToolSpec>) -> Result<(), Pro
 }
 
 async fn try_uninstall_all(session: &ProtoSession, tool: &mut ToolRecord) -> miette::Result<()> {
-    // Loop through each version and uninstall
+    // Loop through each version and uninstall and
+    // don't use `teardown` as it does far too much
     for version in tool.installed_versions.clone() {
-        tool.set_version(version.clone());
-
-        // Don't use `teardown` as it does far too much
         tool.uninstall(&mut ToolSpec::new_resolved(version)).await?;
     }
 
@@ -220,7 +218,7 @@ async fn uninstall_one(
                         "Uninstall {} version <version>{}</version> at <path>{}</path>?",
                         tool.get_name(),
                         spec.get_resolved_version(),
-                        tool.get_product_dir().display()
+                        tool.get_product_dir(&spec).display()
                     ),
                     on_confirm: &mut confirmed,
                 )

@@ -53,7 +53,7 @@ impl Tool {
     /// Return true if the tool has been installed. This is less accurate than `is_setup`,
     /// as it only checks for the existence of the inventory directory.
     pub fn is_installed(&self, spec: &ToolSpec) -> bool {
-        let dir = self.get_product_dir();
+        let dir = self.get_product_dir(spec);
 
         spec.version.as_ref().is_some_and(|v| {
             !v.is_latest() && self.inventory.manifest.installed_versions.contains(v)
@@ -476,7 +476,7 @@ impl Tool {
         }
 
         let temp_dir = self.get_temp_dir();
-        let install_dir = self.get_product_dir();
+        let install_dir = self.get_product_dir(spec);
 
         // Lock the temporary directory instead of the install directory,
         // because the latter needs to be clean for "build from source",
@@ -492,7 +492,7 @@ impl Tool {
                 func(InstallPhase::Native);
             });
 
-            fs::create_dir_all(install_dir)?;
+            fs::create_dir_all(&install_dir)?;
 
             let output: NativeInstallOutput = self
                 .plugin
@@ -500,7 +500,7 @@ impl Tool {
                     PluginFunction::NativeInstall,
                     NativeInstallInput {
                         context: self.create_plugin_context(spec),
-                        install_dir: self.to_virtual_path(install_dir),
+                        install_dir: self.to_virtual_path(&install_dir),
                         force: options.force,
                     },
                 )
@@ -526,12 +526,12 @@ impl Tool {
 
         // Build the tool from source
         let result = if matches!(options.strategy, InstallStrategy::BuildFromSource) {
-            self.build_from_source(spec, install_dir, temp_dir, options)
+            self.build_from_source(spec, &install_dir, temp_dir, options)
                 .await
         }
         // Install from a prebuilt archive
         else {
-            self.install_from_prebuilt(spec, install_dir, temp_dir, options)
+            self.install_from_prebuilt(spec, &install_dir, temp_dir, options)
                 .await
         };
 
@@ -570,7 +570,7 @@ impl Tool {
     /// Uninstall the tool by deleting the current install directory.
     #[instrument(skip_all)]
     pub async fn uninstall(&self, spec: &mut ToolSpec) -> Result<bool, ProtoInstallError> {
-        let install_dir = self.get_product_dir();
+        let install_dir = self.get_product_dir(spec);
 
         if !install_dir.exists() {
             debug!(
@@ -590,7 +590,7 @@ impl Tool {
                     PluginFunction::NativeUninstall,
                     NativeUninstallInput {
                         context: self.create_plugin_context(spec),
-                        uninstall_dir: self.to_virtual_path(install_dir),
+                        uninstall_dir: self.to_virtual_path(&install_dir),
                     },
                 )
                 .await?;

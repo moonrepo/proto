@@ -53,7 +53,7 @@ pub async fn status(session: ProtoSession, _args: StatusArgs) -> AppResult {
         {
             if tool.is_installed(&spec) {
                 item.is_installed = true;
-                item.product_dir = Some(tool.get_product_dir().to_path_buf());
+                item.product_dir = Some(tool.get_product_dir(&spec));
             }
 
             item.resolved_version = Some(version);

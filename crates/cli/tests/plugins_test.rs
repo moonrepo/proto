@@ -32,7 +32,7 @@ where
         .await
         .unwrap();
 
-    assert!(tool.get_product_dir().exists());
+    assert!(tool.get_product_dir(&spec).exists());
 
     let base_dir = proto.store.inventory_dir.join("moon/1.0.0");
 

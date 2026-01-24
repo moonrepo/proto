@@ -142,6 +142,14 @@ impl AsRef<UnresolvedVersionSpec> for ToolSpec {
     }
 }
 
+impl AsRef<VersionSpec> for ToolSpec {
+    fn as_ref(&self) -> &VersionSpec {
+        self.version
+            .as_ref()
+            .expect("Specification has not been resolved to a valid version!")
+    }
+}
+
 impl Hash for ToolSpec {
     fn hash<H: Hasher>(&self, state: &mut H) {
         state.write(self.req.to_string().as_bytes());

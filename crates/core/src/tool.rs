@@ -2,7 +2,7 @@ use crate::config::PluginType;
 use crate::env::ProtoEnvironment;
 use crate::helpers::get_proto_version;
 use crate::id::Id;
-use crate::layout::{Inventory, Product};
+use crate::layout::Inventory;
 use crate::lockfile::LockRecord;
 use crate::tool_context::ToolContext;
 use crate::tool_error::ProtoToolError;
@@ -36,7 +36,6 @@ pub struct Tool {
 
     // Store
     pub inventory: Inventory,
-    pub product: Product,
 
     // Cache
     pub(crate) backend_registered: bool,
@@ -74,7 +73,6 @@ impl Tool {
             locator: None,
             metadata: ToolMetadata::default(),
             plugin,
-            product: Product::default(),
             proto,
             ty: PluginType::Tool,
         };
@@ -225,19 +223,16 @@ impl Tool {
     }
 
     /// Return an absolute path to the tool's install directory for the currently resolved version.
-    pub fn get_product_dir(&self) -> &Path {
-        &self.product.dir
+    pub fn get_product_dir(&self, spec: &ToolSpec) -> PathBuf {
+        match &spec.version {
+            Some(version) => self.inventory.get_product_dir(version),
+            None => self.inventory.get_product_dir(&VersionSpec::default()),
+        }
     }
 
     /// Return true if this tool instance is a backend plugin.
     pub async fn is_backend_plugin(&self) -> bool {
         self.ty == PluginType::Backend
-    }
-
-    /// Explicitly set the version to use.
-    pub fn set_version(&mut self, version: VersionSpec) {
-        self.clear_instance_cache();
-        self.product = self.inventory.create_product(&version);
     }
 
     /// Convert a virtual path to a real path.
@@ -259,7 +254,7 @@ impl Tool {
         PluginContext {
             proto_version: Some(get_proto_version().to_owned()),
             temp_dir: self.to_virtual_path(self.get_temp_dir()),
-            tool_dir: self.to_virtual_path(self.get_product_dir()),
+            tool_dir: self.to_virtual_path(self.get_product_dir(spec)),
             version: spec.get_resolved_version(),
         }
     }
@@ -352,7 +347,6 @@ impl Tool {
             inventory.dir = self.from_virtual_path(override_dir);
         }
 
-        self.product = inventory.create_product(&VersionSpec::default());
         self.inventory = inventory;
         self.metadata = metadata;
 
@@ -467,7 +461,6 @@ impl fmt::Debug for Tool {
             .field("locator", &self.locator)
             .field("proto", &self.proto)
             .field("inventory", &self.inventory)
-            .field("product", &self.product)
             .finish()
     }
 }

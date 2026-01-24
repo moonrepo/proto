@@ -38,7 +38,7 @@ impl Tool {
                 PluginFunction::LocateExecutables,
                 LocateExecutablesInput {
                     context: self.create_plugin_context(spec),
-                    install_dir: self.to_virtual_path(self.get_product_dir()),
+                    install_dir: self.to_virtual_path(self.get_product_dir(spec)),
                 },
             )
             .await?)
@@ -58,7 +58,7 @@ impl Tool {
             };
 
             let path = self
-                .get_product_dir()
+                .get_product_dir(spec)
                 .join(path::normalize_separators(exe_path));
 
             if config.update_perms && path.exists() {
@@ -94,7 +94,7 @@ impl Tool {
             if let Some(exe_path) = &config.exe_path {
                 locations.push(ExecutableLocation {
                     path: self
-                        .get_product_dir()
+                        .get_product_dir(spec)
                         .join(path::normalize_separators(exe_path)),
                     name,
                     config,
@@ -146,7 +146,7 @@ impl Tool {
                     PluginFunction::LocateExecutables,
                     LocateExecutablesInput {
                         context: self.create_plugin_context(&spec),
-                        install_dir: self.to_virtual_path(self.get_product_dir()),
+                        install_dir: self.to_virtual_path(self.get_product_dir(&spec)),
                     },
                 )
                 .await?;
@@ -240,7 +240,7 @@ impl Tool {
         let exe_file = if let Some(location) = self.resolve_primary_exe_location(spec).await? {
             location.path
         } else {
-            self.get_product_dir()
+            self.get_product_dir(spec)
                 .join(path::exe_name(path::encode_component(self.get_file_name())))
         };
 
@@ -289,16 +289,17 @@ impl Tool {
             .await
         {
             let output = self.call_locate_executables(spec).await?;
+            let install_dir = self.get_product_dir(spec);
 
             #[allow(deprecated)]
             if let Some(dir) = output.exes_dir {
-                dirs.push(self.get_product_dir().join(path::normalize_separators(dir)));
+                dirs.push(install_dir.join(path::normalize_separators(dir)));
             } else {
                 for dir in output.exes_dirs {
                     if dir.to_str().is_some_and(|dir| dir == ".") {
-                        dirs.push(self.get_product_dir().to_path_buf());
+                        dirs.push(install_dir.clone());
                     } else {
-                        dirs.push(self.get_product_dir().join(path::normalize_separators(dir)));
+                        dirs.push(install_dir.join(path::normalize_separators(dir)));
                     }
                 }
             }
@@ -412,7 +413,7 @@ impl Tool {
         }
 
         // Find all possible global directories that packages can be installed to
-        let install_dir = self.get_product_dir();
+        let install_dir = self.get_product_dir(spec);
         let mut resolved_dirs = vec![];
 
         'outer: for dir_lookup in output.globals_lookup_dirs {
