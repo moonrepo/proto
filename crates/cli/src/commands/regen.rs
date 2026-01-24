@@ -1,7 +1,7 @@
 use crate::session::ProtoSession;
 use clap::Args;
 use iocraft::prelude::element;
-use proto_core::flow::resolve::ResolverFlow;
+use proto_core::flow::resolve::Resolver;
 use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_utils::fs;
@@ -62,7 +62,7 @@ pub async fn regen(session: ProtoSession, args: RegenArgs) -> AppResult {
 
             let mut spec = version.to_owned();
 
-            ResolverFlow::new(&tool)
+            Resolver::new(&tool)
                 .resolve_version(&mut spec, true)
                 .await?;
 

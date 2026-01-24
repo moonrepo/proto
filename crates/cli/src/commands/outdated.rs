@@ -3,7 +3,7 @@ use crate::session::{LoadToolOptions, ProtoSession};
 use clap::Args;
 use iocraft::prelude::{Size, element};
 use miette::IntoDiagnostic;
-use proto_core::flow::resolve::{ProtoResolveError, ResolverFlow};
+use proto_core::flow::resolve::{ProtoResolveError, Resolver};
 use proto_core::{
     PROTO_CONFIG_NAME, ProtoConfig, ToolContext, ToolSpec, UnresolvedVersionSpec, VersionSpec, cfg,
 };
@@ -80,7 +80,7 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
 
             let initial_version = UnresolvedVersionSpec::default(); // latest
             let config_version = tool.detected_version.as_ref().unwrap();
-            let mut version_resolver = ResolverFlow::new(&tool);
+            let mut version_resolver = Resolver::new(&tool);
 
             version_resolver.load_versions(&initial_version).await?;
 

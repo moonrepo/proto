@@ -7,7 +7,7 @@ use crate::telemetry::*;
 use crate::utils::tool_record::ToolRecord;
 use iocraft::element;
 use proto_core::flow::install::{InstallOptions, InstallPhase};
-use proto_core::flow::resolve::ResolverFlow;
+use proto_core::flow::resolve::Resolver;
 use proto_core::utils::log::LogWriter;
 use proto_core::{Id, LockRecord, PinLocation, ToolSpec};
 use proto_pdk_api::{
@@ -255,7 +255,7 @@ impl InstallWorkflow {
             log.add_header("Installing tool");
         });
 
-        ResolverFlow::new(&self.tool)
+        Resolver::new(&self.tool)
             .resolve_version(spec, false)
             .await?;
 

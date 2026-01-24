@@ -152,7 +152,7 @@ impl AsRef<VersionSpec> for ToolSpec {
 
 impl Hash for ToolSpec {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        state.write(self.req.to_string().as_bytes());
+        self.req.hash(state);
     }
 }
 

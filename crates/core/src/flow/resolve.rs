@@ -8,13 +8,13 @@ use std::env;
 use tracing::{debug, instrument};
 
 /// Loads, resolves, and validates versions.
-pub struct ResolverFlow<'tool> {
+pub struct Resolver<'tool> {
     tool: &'tool Tool,
 
     pub data: VersionResolver<'tool>,
 }
 
-impl<'tool> ResolverFlow<'tool> {
+impl<'tool> Resolver<'tool> {
     pub fn new(tool: &'tool Tool) -> Self {
         Self {
             tool,
@@ -98,7 +98,7 @@ impl<'tool> ResolverFlow<'tool> {
         spec: &mut ToolSpec,
         short_circuit: bool,
     ) -> Result<VersionSpec, ProtoResolveError> {
-        if spec.version.is_some() {
+        if spec.is_resolved() {
             return Ok(spec.get_resolved_version());
         }
 

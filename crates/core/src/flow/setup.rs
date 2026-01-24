@@ -2,7 +2,7 @@ pub use super::setup_error::ProtoSetupError;
 use crate::cfg;
 use crate::config::{PinLocation, ProtoConfig};
 use crate::flow::install::{InstallOptions, ProtoInstallError};
-use crate::flow::resolve::ResolverFlow;
+use crate::flow::resolve::Resolver;
 use crate::layout::BinManager;
 use crate::lockfile::LockRecord;
 use crate::tool::Tool;
@@ -17,7 +17,7 @@ impl Tool {
     /// Return true if the tool has been setup (installed and executables are located).
     #[instrument(skip(self))]
     pub async fn is_setup(&mut self, spec: &mut ToolSpec) -> Result<bool, ProtoSetupError> {
-        ResolverFlow::new(self).resolve_version(spec, true).await?;
+        Resolver::new(self).resolve_version(spec, true).await?;
 
         let install_dir = self.get_product_dir(spec);
 
@@ -58,7 +58,7 @@ impl Tool {
         spec: &mut ToolSpec,
         options: InstallOptions,
     ) -> Result<Option<LockRecord>, ProtoSetupError> {
-        let version = ResolverFlow::new(self).resolve_version(spec, false).await?;
+        let version = Resolver::new(self).resolve_version(spec, false).await?;
 
         let record = match self.install(spec, options).await? {
             // Update lock record with resolved spec information
@@ -125,7 +125,7 @@ impl Tool {
     pub async fn teardown(&mut self, spec: &mut ToolSpec) -> Result<bool, ProtoSetupError> {
         self.cleanup().await?;
 
-        let version = ResolverFlow::new(self).resolve_version(spec, false).await?;
+        let version = Resolver::new(self).resolve_version(spec, false).await?;
 
         if !self.uninstall(spec).await? {
             return Ok(false);

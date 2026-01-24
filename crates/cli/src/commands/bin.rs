@@ -1,6 +1,6 @@
 use crate::session::ProtoSession;
 use clap::{Args, ValueEnum};
-use proto_core::flow::resolve::ResolverFlow;
+use proto_core::flow::resolve::Resolver;
 use proto_core::{ToolContext, ToolSpec};
 use starbase::AppResult;
 
@@ -44,7 +44,7 @@ pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
         None => tool.detect_version().await?,
     };
 
-    ResolverFlow::new(&tool)
+    Resolver::new(&tool)
         .resolve_version(&mut spec, true)
         .await?;
 

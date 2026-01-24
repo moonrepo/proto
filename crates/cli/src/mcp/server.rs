@@ -2,7 +2,7 @@ use super::resources::*;
 use super::tools::*;
 use crate::session::ProtoSession;
 use crate::workflows::*;
-use proto_core::flow::resolve::ResolverFlow;
+use proto_core::flow::resolve::Resolver;
 use proto_core::{
     PinLocation, ProtoConfigEnvOptions, ToolContext, ToolSpec, UnresolvedVersionSpec,
     get_proto_version,
@@ -210,11 +210,7 @@ impl ProtoMcp {
 
         let tool = handle_tool_error!(self.session.load_tool(&context).await);
 
-        handle_tool_error!(
-            ResolverFlow::new(&tool)
-                .resolve_version(&mut spec, false)
-                .await
-        );
+        handle_tool_error!(Resolver::new(&tool).resolve_version(&mut spec, false).await);
 
         let uninstalled = handle_tool_error!(tool.uninstall(&mut spec).await);
 
@@ -236,7 +232,7 @@ impl ProtoMcp {
         let context = self.parse_context(&req.tool)?;
 
         let tool = handle_tool_error!(self.session.load_tool(&context).await);
-        let mut resolver = ResolverFlow::new(&tool);
+        let mut resolver = Resolver::new(&tool);
 
         handle_tool_error!(
             resolver
