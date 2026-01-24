@@ -34,7 +34,7 @@ impl Tool {
             );
 
             if self.exe_file.is_none() {
-                self.generate_shims(false).await?;
+                self.generate_shims(spec, false).await?;
                 self.symlink_bins(false).await?;
 
                 // This conflicts with `proto run`...
@@ -106,10 +106,10 @@ impl Tool {
         })?;
 
         // Allow plugins to override manifest
-        self.sync_manifest().await?;
+        self.sync_manifest(spec).await?;
 
         // Create all the things
-        self.generate_shims(false).await?;
+        self.generate_shims(spec, false).await?;
         self.symlink_bins(true).await?;
 
         // Remove temp files
@@ -147,20 +147,20 @@ impl Tool {
         // If no more versions in general, delete all
         if is_last_installed_version {
             for bin in self
-                .resolve_bin_locations_with_manager(bin_manager, true)
+                .resolve_bin_locations_with_manager(bin_manager, None)
                 .await?
             {
                 self.proto.store.unlink_bin(&bin.path)?;
             }
 
-            for shim in self.resolve_shim_locations().await? {
+            for shim in self.resolve_shim_locations(spec).await? {
                 self.proto.store.remove_shim(&shim.path)?;
             }
         }
         // Otherwise, delete bins for this specific version
         else if bin_manager.remove_version(&version) {
             for bin in self
-                .resolve_bin_locations_with_manager(bin_manager, false)
+                .resolve_bin_locations_with_manager(bin_manager, Some(&version))
                 .await?
             {
                 self.proto.store.unlink_bin(&bin.path)?;
@@ -208,7 +208,7 @@ impl Tool {
 
     /// Sync the local tool manifest with changes from the plugin.
     #[instrument(skip_all)]
-    pub async fn sync_manifest(&mut self) -> Result<(), ProtoSetupError> {
+    pub async fn sync_manifest(&mut self, spec: &ToolSpec) -> Result<(), ProtoSetupError> {
         if !self.plugin.has_func(PluginFunction::SyncManifest).await {
             return Ok(());
         }
@@ -223,7 +223,7 @@ impl Tool {
             .call_func_with(
                 PluginFunction::SyncManifest,
                 SyncManifestInput {
-                    context: self.create_plugin_context(),
+                    context: self.create_plugin_context(spec),
                 },
             )
             .await?;

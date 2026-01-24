@@ -79,12 +79,12 @@ async fn try_uninstall_all(session: &ProtoSession, tool: &mut ToolRecord) -> mie
     }
 
     // Delete bins
-    for bin in tool.resolve_bin_locations(true).await? {
+    for bin in tool.resolve_bin_locations(None).await? {
         session.env.store.unlink_bin(&bin.path)?;
     }
 
     // Delete shims
-    for shim in tool.resolve_shim_locations().await? {
+    for shim in tool.resolve_shim_locations(&ToolSpec::default()).await? {
         session.env.store.remove_shim(&shim.path)?;
     }
 

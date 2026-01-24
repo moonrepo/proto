@@ -97,12 +97,16 @@ fn is_trying_to_self_upgrade(tool: &Tool, args: &[String]) -> bool {
     false
 }
 
-async fn get_tool_executable(tool: &Tool, alt: Option<&str>) -> miette::Result<ExecutableConfig> {
+async fn get_tool_executable(
+    tool: &Tool,
+    spec: &ToolSpec,
+    alt: Option<&str>,
+) -> miette::Result<ExecutableConfig> {
     let tool_dir = tool.get_product_dir();
 
     // Run an alternate executable (via shim)
     if let Some(alt_name) = alt {
-        for location in tool.resolve_shim_locations().await? {
+        for location in tool.resolve_shim_locations(spec).await? {
             if location.name == alt_name {
                 let Some(exe_path) = &location.config.exe_path else {
                     continue;
@@ -133,7 +137,7 @@ async fn get_tool_executable(tool: &Tool, alt: Option<&str>) -> miette::Result<E
     }
 
     // Otherwise use the primary
-    let mut config = match tool.resolve_primary_exe_location().await? {
+    let mut config = match tool.resolve_primary_exe_location(spec).await? {
         Some(inner) => inner.config,
         None => {
             return Err(ProtoLocateError::NoPrimaryExecutable {
@@ -377,7 +381,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
             ..Default::default()
         }
     } else {
-        get_tool_executable(&tool, args.exe.as_deref()).await?
+        get_tool_executable(&tool, &spec, args.exe.as_deref()).await?
     };
 
     let mut command = create_command(&tool, &exe_config, &args.passthrough)?;

@@ -111,7 +111,7 @@ impl InstallWorkflow {
         }
 
         // Run pre-install hooks
-        self.pre_install(&params).await?;
+        self.pre_install(spec, &params).await?;
 
         // Run install
         let record = self.do_install(spec, &params).await?;
@@ -124,7 +124,7 @@ impl InstallWorkflow {
         self.finish_progress(spec, started);
 
         // Run post-install hooks
-        self.post_install(&params).await?;
+        self.post_install(spec, &params).await?;
 
         // Track usage metrics
         track_usage(
@@ -214,7 +214,11 @@ impl InstallWorkflow {
         }
     }
 
-    async fn pre_install(&self, params: &InstallWorkflowParams) -> Result<(), ProtoCliError> {
+    async fn pre_install(
+        &self,
+        spec: &ToolSpec,
+        params: &InstallWorkflowParams,
+    ) -> Result<(), ProtoCliError> {
         let tool = &self.tool;
 
         params.log_writer.as_ref().inspect(|log| {
@@ -228,7 +232,7 @@ impl InstallWorkflow {
                 .call_func_without_output(
                     HookFunction::PreInstall,
                     InstallHook {
-                        context: tool.create_plugin_context(),
+                        context: tool.create_plugin_context(spec),
                         forced: params.force,
                         passthrough_args: params.passthrough_args.clone(),
                         pinned: params.pin_to.is_some(),
@@ -342,7 +346,11 @@ impl InstallWorkflow {
         Ok(record)
     }
 
-    async fn post_install(&self, params: &InstallWorkflowParams) -> Result<(), ProtoCliError> {
+    async fn post_install(
+        &self,
+        spec: &ToolSpec,
+        params: &InstallWorkflowParams,
+    ) -> Result<(), ProtoCliError> {
         let tool = &self.tool;
 
         params.log_writer.as_ref().inspect(|log| {
@@ -354,7 +362,7 @@ impl InstallWorkflow {
                 .call_func_without_output(
                     HookFunction::PostInstall,
                     InstallHook {
-                        context: tool.create_plugin_context(),
+                        context: tool.create_plugin_context(spec),
                         forced: params.force,
                         passthrough_args: params.passthrough_args.clone(),
                         pinned: params.pin_to.is_some(),
@@ -364,7 +372,7 @@ impl InstallWorkflow {
                 .await?;
         }
 
-        self.update_shell(params).await?;
+        self.update_shell(spec, params).await?;
 
         Ok(())
     }
@@ -404,7 +412,11 @@ impl InstallWorkflow {
         Ok(pin)
     }
 
-    async fn update_shell(&self, params: &InstallWorkflowParams) -> Result<(), ProtoCliError> {
+    async fn update_shell(
+        &self,
+        spec: &ToolSpec,
+        params: &InstallWorkflowParams,
+    ) -> Result<(), ProtoCliError> {
         let tool = &self.tool;
 
         if !tool.plugin.has_func(PluginFunction::SyncShellProfile).await {
@@ -416,7 +428,7 @@ impl InstallWorkflow {
             .call_func_with(
                 PluginFunction::SyncShellProfile,
                 SyncShellProfileInput {
-                    context: tool.create_plugin_context(),
+                    context: tool.create_plugin_context(spec),
                     passthrough_args: params.passthrough_args.clone(),
                 },
             )

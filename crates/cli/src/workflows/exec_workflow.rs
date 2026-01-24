@@ -358,7 +358,7 @@ async fn prepare_tool(
             .call_func_with(
                 PluginFunction::ActivateEnvironment,
                 ActivateEnvironmentInput {
-                    context: tool.create_plugin_context(),
+                    context: tool.create_plugin_context(&spec),
                 },
             )
             .await?;
@@ -373,15 +373,15 @@ async fn prepare_tool(
     }
 
     if params.pre_run_hook && tool.plugin.has_func(HookFunction::PreRun).await {
-        let globals_dir = tool.locate_globals_dir().await?;
-        let globals_prefix = tool.locate_globals_prefix().await?;
+        let globals_dir = tool.locate_globals_dir(&spec).await?;
+        let globals_prefix = tool.locate_globals_prefix(&spec).await?;
 
         let output: RunHookResult = tool
             .plugin
             .call_func_with(
                 HookFunction::PreRun,
                 RunHook {
-                    context: tool.create_plugin_context(),
+                    context: tool.create_plugin_context(&spec),
                     globals_dir: globals_dir.map(|dir| tool.to_virtual_path(&dir)),
                     globals_prefix,
                     passthrough_args: params.passthrough_args,
@@ -407,15 +407,15 @@ async fn prepare_tool(
     }
 
     // Extract executable directories
-    if let Some(dir) = tool.locate_exe_file().await?.parent() {
+    if let Some(dir) = tool.locate_exe_file(&spec).await?.parent() {
         item.add_path(dir.to_path_buf());
     }
 
-    for exes_dir in tool.locate_exes_dirs().await? {
+    for exes_dir in tool.locate_exes_dirs(&spec).await? {
         item.add_path(exes_dir);
     }
 
-    for globals_dir in tool.locate_globals_dirs().await? {
+    for globals_dir in tool.locate_globals_dirs(&spec).await? {
         item.add_path(globals_dir);
     }
 

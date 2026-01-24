@@ -66,6 +66,7 @@ impl Tool {
     #[instrument(skip(self))]
     pub async fn verify_checksum(
         &self,
+        spec: &ToolSpec,
         checksum_file: &Path,
         download_file: &Path,
         checksum_public_key: Option<&str>,
@@ -90,7 +91,7 @@ impl Tool {
                         checksum_file: self.to_virtual_path(checksum_file),
                         download_file: self.to_virtual_path(download_file),
                         download_checksum: Some(checksum.clone()),
-                        context: self.create_plugin_context(),
+                        context: self.create_plugin_context(spec),
                     },
                 )
                 .await?;
@@ -147,7 +148,7 @@ impl Tool {
             .cache_func_with(
                 PluginFunction::BuildInstructions,
                 BuildInstructionsInput {
-                    context: self.create_plugin_context(),
+                    context: self.create_plugin_context(spec),
                     install_dir: self.to_virtual_path(install_dir),
                 },
             )
@@ -257,7 +258,7 @@ impl Tool {
             .cache_func_with(
                 PluginFunction::DownloadPrebuilt,
                 DownloadPrebuiltInput {
-                    context: self.create_plugin_context(),
+                    context: self.create_plugin_context(spec),
                     install_dir: self.to_virtual_path(install_dir),
                 },
             )
@@ -323,6 +324,7 @@ impl Tool {
 
             record.checksum = Some(
                 self.verify_checksum(
+                    spec,
                     &checksum_file,
                     &download_file,
                     output.checksum_public_key.as_deref(),
@@ -345,6 +347,7 @@ impl Tool {
 
             record.checksum = Some(
                 self.verify_checksum(
+                    spec,
                     &checksum_file,
                     &download_file,
                     output
@@ -381,7 +384,7 @@ impl Tool {
                     UnpackArchiveInput {
                         input_file: self.to_virtual_path(&download_file),
                         output_dir: self.to_virtual_path(install_dir),
-                        context: self.create_plugin_context(),
+                        context: self.create_plugin_context(spec),
                     },
                 )
                 .await?;
@@ -496,7 +499,7 @@ impl Tool {
                 .call_func_with(
                     PluginFunction::NativeInstall,
                     NativeInstallInput {
-                        context: self.create_plugin_context(),
+                        context: self.create_plugin_context(spec),
                         install_dir: self.to_virtual_path(install_dir),
                         force: options.force,
                     },
@@ -586,7 +589,7 @@ impl Tool {
                 .call_func_with(
                     PluginFunction::NativeUninstall,
                     NativeUninstallInput {
-                        context: self.create_plugin_context(),
+                        context: self.create_plugin_context(spec),
                         uninstall_dir: self.to_virtual_path(install_dir),
                     },
                 )

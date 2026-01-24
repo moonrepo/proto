@@ -6,6 +6,7 @@ use crate::layout::{Inventory, Product};
 use crate::lockfile::LockRecord;
 use crate::tool_context::ToolContext;
 use crate::tool_error::ProtoToolError;
+use crate::tool_spec::ToolSpec;
 use crate::utils::{archive, git};
 use proto_pdk_api::{
     PluginContext, PluginFunction, PluginUnresolvedContext, RegisterBackendInput,
@@ -265,12 +266,12 @@ impl Tool {
 
 impl Tool {
     /// Return contextual information to pass to WASM plugin functions.
-    pub fn create_plugin_context(&self) -> PluginContext {
+    pub fn create_plugin_context(&self, spec: &ToolSpec) -> PluginContext {
         PluginContext {
             proto_version: Some(get_proto_version().to_owned()),
             temp_dir: self.to_virtual_path(self.get_temp_dir()),
             tool_dir: self.to_virtual_path(self.get_product_dir()),
-            version: self.get_resolved_version(),
+            version: spec.get_resolved_version(),
         }
     }
 
@@ -284,10 +285,6 @@ impl Tool {
             // version: self.version.clone(),
             // TODO: temporary until 3rd-party plugins update their PDKs
             tool_dir: self.to_virtual_path(&self.proto.store.inventory_dir),
-            version: self
-                .version
-                .clone()
-                .or_else(|| Some(VersionSpec::Alias("latest".into()))),
         }
     }
 

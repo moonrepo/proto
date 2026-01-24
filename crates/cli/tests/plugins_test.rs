@@ -26,13 +26,11 @@ where
     fs::create_dir_all(&proto.home_dir).unwrap();
 
     let mut tool = factory(&proto).await.unwrap();
+    let mut spec = ToolSpec::new(UnresolvedVersionSpec::parse("1.0.0").unwrap());
 
-    tool.setup(
-        &mut ToolSpec::new(UnresolvedVersionSpec::parse("1.0.0").unwrap()),
-        InstallOptions::default(),
-    )
-    .await
-    .unwrap();
+    tool.setup(&mut spec, InstallOptions::default())
+        .await
+        .unwrap();
 
     assert!(tool.get_product_dir().exists());
 
@@ -40,13 +38,13 @@ where
 
     if cfg!(windows) {
         assert_eq!(
-            &tool.locate_exe_file().await.unwrap(),
+            &tool.locate_exe_file(&spec).await.unwrap(),
             &base_dir.join("moon.exe")
         );
         assert!(proto.store.shims_dir.join("moon.exe").exists());
     } else {
         assert_eq!(
-            &tool.locate_exe_file().await.unwrap(),
+            &tool.locate_exe_file(&spec).await.unwrap(),
             &base_dir.join("moon")
         );
         assert!(proto.store.shims_dir.join("moon").exists());

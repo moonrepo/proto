@@ -48,7 +48,7 @@ pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
     if args.bin {
         tool.symlink_bins(true).await?;
 
-        for bin in tool.resolve_bin_locations(false).await? {
+        for bin in tool.resolve_bin_locations(None).await? {
             if bin.config.primary {
                 session
                     .console
@@ -61,9 +61,9 @@ pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
     }
 
     if args.shim {
-        tool.generate_shims(true).await?;
+        tool.generate_shims(&spec, true).await?;
 
-        for shim in tool.resolve_shim_locations().await? {
+        for shim in tool.resolve_shim_locations(&spec).await? {
             if shim.config.primary {
                 session
                     .console
@@ -76,9 +76,9 @@ pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
     }
 
     let paths = match args.dir {
-        None => vec![tool.locate_exe_file().await?],
-        Some(BinDirType::Exes) => tool.locate_exes_dirs().await?,
-        Some(BinDirType::Globals) => tool.locate_globals_dirs().await?,
+        None => vec![tool.locate_exe_file(&spec).await?],
+        Some(BinDirType::Exes) => tool.locate_exes_dirs(&spec).await?,
+        Some(BinDirType::Globals) => tool.locate_globals_dirs(&spec).await?,
     };
 
     if args.all {
