@@ -1,6 +1,7 @@
 use crate::session::ProtoSession;
 use clap::Args;
 use iocraft::prelude::element;
+use proto_core::flow::resolve::ResolverFlow;
 use proto_core::{PinLocation, ProtoConfig, ProtoConfigError, Tool, ToolContext, ToolSpec, cfg};
 use starbase::AppResult;
 use starbase_console::ui::*;
@@ -44,13 +45,12 @@ pub async fn internal_pin(
 #[tracing::instrument(skip_all)]
 pub async fn pin(session: ProtoSession, args: PinArgs) -> AppResult {
     let mut spec = args.spec.clone();
-    let mut tool = session.load_tool(&args.context).await?;
+    let tool = session.load_tool(&args.context).await?;
 
     if args.resolve {
-        spec.req = tool
+        ResolverFlow::new(&tool)
             .resolve_version(&mut spec, false)
-            .await?
-            .to_unresolved_spec();
+            .await?;
     }
 
     let config_path = internal_pin(&tool, &spec, args.to).await?;

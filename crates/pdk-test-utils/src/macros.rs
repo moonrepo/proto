@@ -114,12 +114,14 @@ macro_rules! generate_download_install_tests {
             let sandbox = create_empty_proto_sandbox();
             let mut plugin = create_plugin!(sandbox, $id, $schema, $factory);
             let mut tool = plugin.tool;
+            let mut spec = ToolSpec::parse($spec).unwrap();
 
-            tool.resolve_version(&ToolSpec::parse($spec).unwrap(), false)
+            flow::resolve::ResolverFlow::new(&plugin.tool)
+                .resolve_version(&mut spec, false)
                 .await
                 .unwrap();
 
-            tool.install(flow::install::InstallOptions::default())
+            tool.install(&mut spec, flow::install::InstallOptions::default())
                 .await
                 .unwrap();
 
@@ -187,10 +189,13 @@ macro_rules! generate_resolve_versions_tests {
             let sandbox = create_empty_proto_sandbox();
             let mut plugin = create_plugin!(sandbox, $id, $schema, $factory);
 
-            plugin.tool.resolve_version(
-                &ToolSpec::parse("latest").unwrap(),
-                false,
-            ).await.unwrap();
+            flow::resolve::ResolverFlow::new(&plugin.tool)
+                .resolve_version(
+                    &mut ToolSpec::parse("latest").unwrap(),
+                    false,
+                )
+                .await
+                .unwrap();
 
             assert_ne!(plugin.tool.get_resolved_version(), "latest");
         }
@@ -201,10 +206,13 @@ macro_rules! generate_resolve_versions_tests {
             let mut plugin = create_plugin!(sandbox, $id, $schema, $factory);
 
             $(
-                plugin.tool.resolve_version(
-                    &ToolSpec::parse($k).unwrap(),
-                    false,
-                ).await.unwrap();
+                flow::resolve::ResolverFlow::new(&plugin.tool)
+                    .resolve_version(
+                        &mut ToolSpec::parse($k).unwrap(),
+                        false,
+                    )
+                    .await
+                    .unwrap();
 
                 assert_eq!(
                     plugin.tool.get_resolved_version(),
@@ -220,10 +228,13 @@ macro_rules! generate_resolve_versions_tests {
             let sandbox = create_empty_proto_sandbox();
             let mut plugin = create_plugin!(sandbox, $id, $schema, $factory);
 
-            plugin.tool.resolve_version(
-                &ToolSpec::parse("unknown").unwrap(),
-                false,
-            ).await.unwrap();
+            flow::resolve::ResolverFlow::new(&plugin.tool)
+                .resolve_version(
+                    &mut ToolSpec::parse("unknown").unwrap(),
+                    false,
+                )
+                .await
+                .unwrap();
         }
 
         #[tokio::test(flavor = "multi_thread")]
@@ -232,10 +243,13 @@ macro_rules! generate_resolve_versions_tests {
             let sandbox = create_empty_proto_sandbox();
             let mut plugin = create_plugin!(sandbox, $id, $schema, $factory);
 
-            plugin.tool.resolve_version(
-                &ToolSpec::parse("99.99.99").unwrap(),
-                false,
-            ).await.unwrap();
+            flow::resolve::ResolverFlow::new(&plugin.tool)
+                .resolve_version(
+                    &mut ToolSpec::parse("99.99.99").unwrap(),
+                    false,
+                )
+                .await
+                .unwrap();
         }
     };
 }

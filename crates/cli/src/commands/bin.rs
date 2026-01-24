@@ -1,5 +1,6 @@
 use crate::session::ProtoSession;
 use clap::{Args, ValueEnum};
+use proto_core::flow::resolve::ResolverFlow;
 use proto_core::{ToolContext, ToolSpec};
 use starbase::AppResult;
 
@@ -43,7 +44,9 @@ pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
         None => tool.detect_version().await?,
     };
 
-    tool.resolve_version(&mut spec, true).await?;
+    ResolverFlow::new(&tool)
+        .resolve_version(&mut spec, true)
+        .await?;
 
     if args.bin {
         tool.symlink_bins(true).await?;

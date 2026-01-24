@@ -1,4 +1,4 @@
-use proto_core::flow::resolve::ProtoResolveError;
+use proto_core::flow::resolve::{ProtoResolveError, ResolverFlow};
 use proto_core::{
     ProtoConfig, ProtoToolConfig, Tool, ToolSpec, UnresolvedVersionSpec, VersionSpec,
 };
@@ -61,18 +61,20 @@ impl ToolRecord {
     }
 
     pub async fn inherit_from_remote(&mut self) -> Result<(), ProtoResolveError> {
-        let version_resolver = self
-            .tool
-            .load_version_resolver(&UnresolvedVersionSpec::default())
+        let mut resolver = ResolverFlow::new(&self.tool);
+
+        resolver
+            .load_versions(&UnresolvedVersionSpec::default())
             .await?;
 
         self.remote_aliases.extend(
-            version_resolver
+            resolver
+                .data
                 .aliases
                 .into_iter()
                 .map(|(k, v)| (k, ToolSpec::new(v))),
         );
-        self.remote_versions.extend(version_resolver.versions);
+        self.remote_versions.extend(resolver.data.versions);
         self.remote_versions.sort();
 
         Ok(())

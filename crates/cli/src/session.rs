@@ -5,6 +5,7 @@ use crate::systems::*;
 use crate::utils::progress_instance::ProgressInstance;
 use crate::utils::tool_record::ToolRecord;
 use async_trait::async_trait;
+use proto_core::flow::resolve::ResolverFlow;
 use proto_core::{
     ConfigMode, ProtoConfig, ProtoEnvironment, SCHEMA_PLUGIN_KEY, ToolContext, ToolSpec,
     load_schema_plugin_with_proto, load_tool, registry::ProtoRegistry,
@@ -110,7 +111,10 @@ impl ProtoSession {
                 .clone()
                 .unwrap_or_else(|| ToolSpec::parse("*").unwrap());
 
-            record.tool.resolve_version(&mut spec, false).await?;
+            ResolverFlow::new(&record.tool)
+                .resolve_version(&mut spec, false)
+                .await?;
+
             record.spec = spec;
         }
 

@@ -1,6 +1,7 @@
 use crate::session::ProtoSession;
 use clap::Args;
 use iocraft::prelude::element;
+use proto_core::flow::resolve::ResolverFlow;
 use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_utils::fs;
@@ -59,8 +60,13 @@ pub async fn regen(session: ProtoSession, args: RegenArgs) -> AppResult {
         if let Some(version) = config.versions.get(&tool.context) {
             debug!("Regenerating {} shim", tool.get_name());
 
-            tool.resolve_version(&mut version.to_owned(), true).await?;
-            tool.generate_shims(version, true).await?;
+            let mut spec = version.to_owned();
+
+            ResolverFlow::new(&tool)
+                .resolve_version(&mut spec, true)
+                .await?;
+
+            tool.generate_shims(&spec, true).await?;
         }
 
         // Bins - Create for each installed version

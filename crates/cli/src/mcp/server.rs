@@ -2,6 +2,7 @@ use super::resources::*;
 use super::tools::*;
 use crate::session::ProtoSession;
 use crate::workflows::*;
+use proto_core::flow::resolve::ResolverFlow;
 use proto_core::{
     PinLocation, ProtoConfigEnvOptions, ToolContext, ToolSpec, UnresolvedVersionSpec,
     get_proto_version,
@@ -207,9 +208,13 @@ impl ProtoMcp {
         let context = self.parse_context(&req.tool)?;
         let mut spec = self.parse_spec(&req.spec)?;
 
-        let mut tool = handle_tool_error!(self.session.load_tool(&context).await);
+        let tool = handle_tool_error!(self.session.load_tool(&context).await);
 
-        handle_tool_error!(tool.resolve_version(&mut spec, false).await);
+        handle_tool_error!(
+            ResolverFlow::new(&tool)
+                .resolve_version(&mut spec, false)
+                .await
+        );
 
         let uninstalled = handle_tool_error!(tool.uninstall(&mut spec).await);
 
@@ -231,13 +236,16 @@ impl ProtoMcp {
         let context = self.parse_context(&req.tool)?;
 
         let tool = handle_tool_error!(self.session.load_tool(&context).await);
+        let mut resolver = ResolverFlow::new(&tool);
 
-        let resolver = handle_tool_error!(
-            tool.load_version_resolver(&UnresolvedVersionSpec::parse("latest").unwrap())
+        handle_tool_error!(
+            resolver
+                .load_versions(&UnresolvedVersionSpec::default())
                 .await
         );
 
         let versions = resolver
+            .data
             .versions
             .into_iter()
             .map(|v| v.to_string())
@@ -246,6 +254,7 @@ impl ProtoMcp {
         Ok(CallToolResult::structured(
             serde_json::to_value(ListToolVersionsResponse {
                 aliases: resolver
+                    .data
                     .aliases
                     .into_iter()
                     .map(|(k, v)| (k, v.to_string()))
