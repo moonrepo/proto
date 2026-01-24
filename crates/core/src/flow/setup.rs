@@ -68,7 +68,7 @@ impl Tool {
             }
             // Return an existing lock record if already installed
             None => {
-                return Ok(self.get_resolved_locked_record().cloned());
+                return Ok(self.get_resolved_locked_record(spec).cloned());
             }
         };
 

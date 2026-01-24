@@ -332,7 +332,7 @@ impl Tool {
                 version
             );
 
-            self.version_locked = Some(record);
+            spec.version_locked = Some(record);
             candidate = version.to_unresolved_spec();
         }
 
@@ -375,26 +375,6 @@ impl Tool {
         self.set_version(version.clone());
 
         Ok(version)
-    }
-
-    /// Only resolve the provided spec if it is different than a previously resolved version.
-    #[instrument(skip(self))]
-    pub async fn resolve_version_if_different(
-        &mut self,
-        spec: &mut ToolSpec,
-        short_circuit: bool,
-    ) -> Result<VersionSpec, ProtoResolveError> {
-        if self
-            .version
-            .as_ref()
-            .is_some_and(|current| spec.req == *current)
-        {
-            return Ok(self.version.clone().unwrap());
-        }
-
-        self.version = None;
-        self.version_locked = None;
-        self.resolve_version(spec, short_circuit).await
     }
 
     #[instrument(skip(self, resolver))]

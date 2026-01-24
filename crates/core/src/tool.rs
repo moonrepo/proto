@@ -33,7 +33,6 @@ pub struct Tool {
     pub plugin: Arc<PluginContainer>,
     pub proto: Arc<ProtoEnvironment>,
     pub ty: PluginType,
-    pub version: Option<VersionSpec>,
 
     // Store
     pub inventory: Inventory,
@@ -48,7 +47,6 @@ pub struct Tool {
     pub(crate) globals_dir: Option<PathBuf>,
     pub(crate) globals_dirs: Vec<PathBuf>,
     pub(crate) globals_prefix: Option<String>,
-    pub(crate) version_locked: Option<LockRecord>,
 }
 
 impl Tool {
@@ -79,8 +77,6 @@ impl Tool {
             product: Product::default(),
             proto,
             ty: PluginType::Tool,
-            version: None,
-            version_locked: None,
         };
 
         tool.register_tool().await?;
@@ -169,7 +165,6 @@ impl Tool {
         self.globals_dir = None;
         self.globals_dirs.clear();
         self.globals_prefix = None;
-        self.version = None;
 
         // Don't clear this field because it will cause issues based on order of
         // operations. It will be set when a version is resolved.
@@ -224,11 +219,6 @@ impl Tool {
         &self.metadata.name
     }
 
-    /// Return the resolved version or "latest".
-    pub fn get_resolved_version(&self) -> VersionSpec {
-        self.version.clone().unwrap_or_default()
-    }
-
     /// Return an absolute path to a temp directory solely for this tool.
     pub fn get_temp_dir(&self) -> &Path {
         &self.inventory.temp_dir
@@ -248,7 +238,6 @@ impl Tool {
     pub fn set_version(&mut self, version: VersionSpec) {
         self.clear_instance_cache();
         self.product = self.inventory.create_product(&version);
-        self.version = Some(version);
     }
 
     /// Convert a virtual path to a real path.
@@ -282,7 +271,6 @@ impl Tool {
         PluginUnresolvedContext {
             proto_version: Some(get_proto_version().to_owned()),
             temp_dir: self.to_virtual_path(&self.inventory.temp_dir),
-            // version: self.version.clone(),
             // TODO: temporary until 3rd-party plugins update their PDKs
             tool_dir: self.to_virtual_path(&self.proto.store.inventory_dir),
         }
@@ -364,7 +352,7 @@ impl Tool {
             inventory.dir = self.from_virtual_path(override_dir);
         }
 
-        self.product = inventory.create_product(&self.get_resolved_version());
+        self.product = inventory.create_product(&VersionSpec::default());
         self.inventory = inventory;
         self.metadata = metadata;
 
@@ -478,7 +466,6 @@ impl fmt::Debug for Tool {
             .field("metadata", &self.metadata)
             .field("locator", &self.locator)
             .field("proto", &self.proto)
-            .field("version", &self.version)
             .field("inventory", &self.inventory)
             .field("product", &self.product)
             .finish()

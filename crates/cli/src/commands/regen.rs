@@ -60,7 +60,7 @@ pub async fn regen(session: ProtoSession, args: RegenArgs) -> AppResult {
             debug!("Regenerating {} shim", tool.get_name());
 
             tool.resolve_version(&mut version.to_owned(), true).await?;
-            tool.generate_shims(&version, true).await?;
+            tool.generate_shims(version, true).await?;
         }
 
         // Bins - Create for each installed version

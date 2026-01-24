@@ -125,14 +125,14 @@ impl Tool {
         Ok(())
     }
 
-    pub fn get_resolved_locked_record(&self) -> Option<&LockRecord> {
+    pub fn get_resolved_locked_record<'a>(&'a self, spec: &'a ToolSpec) -> Option<&'a LockRecord> {
         // From lockfile (after being resolved)
-        if let Some(record) = &self.version_locked {
+        if let Some(record) = &spec.version_locked {
             return Some(record);
         }
 
         // From manifest
-        if let Some(version) = &self.version {
+        if let Some(version) = &spec.version {
             return self.inventory.get_locked_record(version);
         }
 
@@ -169,10 +169,14 @@ impl Tool {
 
     /// Verify the installation is legitimate by comparing it to the internal lockfile record.
     #[instrument(skip(self))]
-    pub fn verify_locked_record(&self, install_record: &LockRecord) -> Result<(), ProtoLockError> {
+    pub fn verify_locked_record(
+        &self,
+        spec: &ToolSpec,
+        install_record: &LockRecord,
+    ) -> Result<(), ProtoLockError> {
         // Extract the lock record from the lockfile first,
         // otherwise try the internal manifest
-        let Some(locked_record) = self.get_resolved_locked_record() else {
+        let Some(locked_record) = self.get_resolved_locked_record(spec) else {
             return Ok(());
         };
 

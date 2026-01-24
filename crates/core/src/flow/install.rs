@@ -55,7 +55,7 @@ impl Tool {
     pub fn is_installed(&self, spec: &ToolSpec) -> bool {
         let dir = self.get_product_dir();
 
-        self.version.as_ref().is_some_and(|v| {
+        spec.version.as_ref().is_some_and(|v| {
             !v.is_latest() && self.inventory.manifest.installed_versions.contains(v)
         }) && dir.exists()
             && !fs::is_dir_locked(dir)
@@ -511,7 +511,7 @@ impl Tool {
                 record.checksum = output.checksum;
 
                 // Verify against lockfile
-                self.verify_locked_record(&record)?;
+                self.verify_locked_record(spec, &record)?;
 
                 return Ok(Some(record));
             }
@@ -538,7 +538,7 @@ impl Tool {
         match result {
             Ok(record) => {
                 // Verify against lockfile
-                self.verify_locked_record(&record)?;
+                self.verify_locked_record(spec, &record)?;
 
                 debug!(
                     tool = self.context.as_str(),
