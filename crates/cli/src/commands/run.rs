@@ -4,7 +4,7 @@ use crate::session::ProtoSession;
 use crate::workflows::{ExecWorkflow, ExecWorkflowParams};
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::flow::detect::ProtoDetectError;
+use proto_core::flow::detect::{Detector, ProtoDetectError};
 use proto_core::flow::locate::ProtoLocateError;
 use proto_core::{
     Id, PROTO_PLUGIN_KEY, ProtoEnvironment, ProtoLoaderError, Tool, ToolContext, ToolSpec,
@@ -273,15 +273,20 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
     }
 
     // Detect a version to run with
-    let mut spec = if use_global_proto {
-        args.spec
-            .clone()
-            .unwrap_or_else(|| ToolSpec::parse("*").unwrap())
+    let (mut spec, detected_source) = if use_global_proto {
+        (
+            args.spec
+                .clone()
+                .unwrap_or_else(|| ToolSpec::parse("*").unwrap()),
+            None,
+        )
     } else if let Some(spec) = args.spec.clone() {
-        spec
+        (spec, None)
     } else {
-        match tool.detect_version().await {
-            Ok(spec) => spec,
+        let mut detector = Detector::new(&tool);
+
+        match detector.detect_version().await {
+            Ok(spec) => (spec, detector.source),
             Err(error) => {
                 return if matches!(error, ProtoDetectError::FailedVersionDetect { .. }) {
                     run_global_tool(session, args, error.into()).map(|_| None)
@@ -354,12 +359,12 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
         else {
             let command = format!("proto install {} {}", tool.context, resolved_version);
 
-            if let Ok(source) = env::var(format!("{}_DETECTED_FROM", tool.get_env_var_prefix())) {
+            if let Some(source) = detected_source {
                 return Err(ProtoCliError::RunMissingToolWithSource {
                     tool: tool.get_name().to_owned(),
                     version: spec.req.to_string(),
                     command,
-                    path: source.into(),
+                    path: source,
                 }
                 .into());
             }

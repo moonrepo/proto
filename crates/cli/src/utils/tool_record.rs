@@ -1,3 +1,4 @@
+use proto_core::flow::detect::Detector;
 use proto_core::flow::resolve::{ProtoResolveError, Resolver};
 use proto_core::{
     ProtoConfig, ProtoToolConfig, Tool, ToolSpec, UnresolvedVersionSpec, VersionSpec,
@@ -44,12 +45,11 @@ impl ToolRecord {
     }
 
     pub async fn detect_version_and_source(&mut self) {
-        if let Ok(config_version) = self.tool.detect_version().await {
+        let mut detector = Detector::new(&self.tool);
+
+        if let Ok(config_version) = detector.detect_version().await {
             self.detected_version = Some(config_version);
-            self.detected_source =
-                std::env::var(format!("{}_DETECTED_FROM", self.tool.get_env_var_prefix()))
-                    .ok()
-                    .map(PathBuf::from);
+            self.detected_source = detector.source;
         }
     }
 

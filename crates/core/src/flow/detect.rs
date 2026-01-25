@@ -13,15 +13,13 @@ use tracing::{debug, instrument, trace};
 pub struct Detector<'tool> {
     tool: &'tool Tool,
 
-    pub detected_source: Option<PathBuf>,
+    /// Source file in which the version was detected in.
+    pub source: Option<PathBuf>,
 }
 
 impl<'tool> Detector<'tool> {
     pub fn new(tool: &'tool Tool) -> Self {
-        Self {
-            tool,
-            detected_source: None,
-        }
+        Self { tool, source: None }
     }
 
     /// Detect a version using all available strategies.
@@ -244,7 +242,7 @@ impl<'tool> Detector<'tool> {
                 "Detected version from {} file", PROTO_CONFIG_NAME
             );
 
-            self.detected_source = Some(file.path.clone());
+            self.source = Some(file.path.clone());
 
             return Ok(Some(version.req.to_owned()));
         }
@@ -267,7 +265,7 @@ impl<'tool> Detector<'tool> {
                 "Detected version from tool's ecosystem"
             );
 
-            self.detected_source = Some(file);
+            self.source = Some(file);
 
             return Ok(Some(version));
         }
