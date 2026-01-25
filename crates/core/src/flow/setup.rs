@@ -2,6 +2,7 @@ pub use super::setup_error::ProtoSetupError;
 use crate::cfg;
 use crate::config::{PinLocation, ProtoConfig};
 use crate::flow::install::{InstallOptions, ProtoInstallError};
+use crate::flow::locate::Locator;
 use crate::flow::resolve::Resolver;
 use crate::layout::BinManager;
 use crate::lockfile::LockRecord;
@@ -36,7 +37,7 @@ impl Tool {
 
             if self.exe_file.is_none() {
                 self.generate_shims(spec, false).await?;
-                self.symlink_bins(false).await?;
+                self.symlink_bins(spec, false).await?;
 
                 // This conflicts with `proto run`...
                 // self.locate_exe_file().await?;
@@ -111,7 +112,7 @@ impl Tool {
 
         // Create all the things
         self.generate_shims(spec, false).await?;
-        self.symlink_bins(true).await?;
+        self.symlink_bins(spec, true).await?;
 
         // Remove temp files
         self.cleanup().await?;
@@ -145,23 +146,22 @@ impl Tool {
                 .installed_versions
                 .contains(&version);
 
+        let locator = Locator::new(self, spec);
+
         // If no more versions in general, delete all
         if is_last_installed_version {
-            for bin in self
-                .resolve_bin_locations_with_manager(bin_manager, None)
-                .await?
-            {
+            for bin in locator.locate_bins_with_manager(bin_manager, None).await? {
                 self.proto.store.unlink_bin(&bin.path)?;
             }
 
-            for shim in self.resolve_shim_locations(spec).await? {
+            for shim in locator.locate_shims().await? {
                 self.proto.store.remove_shim(&shim.path)?;
             }
         }
         // Otherwise, delete bins for this specific version
         else if bin_manager.remove_version(&version) {
-            for bin in self
-                .resolve_bin_locations_with_manager(bin_manager, Some(&version))
+            for bin in locator
+                .locate_bins_with_manager(bin_manager, Some(&version))
                 .await?
             {
                 self.proto.store.unlink_bin(&bin.path)?;

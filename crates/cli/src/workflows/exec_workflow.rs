@@ -1,6 +1,7 @@
 use crate::utils::tool_record::ToolRecord;
 use indexmap::{IndexMap, IndexSet};
 use miette::IntoDiagnostic;
+use proto_core::flow::locate::Locator;
 use proto_core::flow::setup::ProtoSetupError;
 use proto_core::{ProtoConfig, ProtoConfigEnvOptions, ToolContext, ToolSpec};
 use proto_pdk_api::{
@@ -372,9 +373,11 @@ async fn prepare_tool(
         }
     }
 
+    let mut locator = Locator::new(&tool, &spec);
+
     if params.pre_run_hook && tool.plugin.has_func(HookFunction::PreRun).await {
-        let globals_dir = tool.locate_globals_dir(&spec).await?;
-        let globals_prefix = tool.locate_globals_prefix(&spec).await?;
+        let globals_dir = locator.locate_globals_dir().await?;
+        let globals_prefix = locator.locate_globals_prefix().await?;
 
         let output: RunHookResult = tool
             .plugin
@@ -407,15 +410,15 @@ async fn prepare_tool(
     }
 
     // Extract executable directories
-    if let Some(dir) = tool.locate_exe_file(&spec).await?.parent() {
+    if let Some(dir) = locator.locate_exe_file().await?.parent() {
         item.add_path(dir.to_path_buf());
     }
 
-    for exes_dir in tool.locate_exes_dirs(&spec).await? {
+    for exes_dir in locator.locate_exes_dirs().await? {
         item.add_path(exes_dir);
     }
 
-    for globals_dir in tool.locate_globals_dirs(&spec).await? {
+    for globals_dir in locator.locate_globals_dirs().await? {
         item.add_path(globals_dir);
     }
 

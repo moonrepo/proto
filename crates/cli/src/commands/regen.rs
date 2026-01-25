@@ -1,6 +1,7 @@
 use crate::session::ProtoSession;
 use clap::Args;
 use iocraft::prelude::element;
+use proto_core::ToolSpec;
 use proto_core::flow::resolve::Resolver;
 use starbase::AppResult;
 use starbase_console::ui::*;
@@ -73,7 +74,8 @@ pub async fn regen(session: ProtoSession, args: RegenArgs) -> AppResult {
         if args.bin {
             debug!("Relinking {} bin", tool.get_name());
 
-            tool.symlink_bins(true).await?;
+            // TODO
+            tool.symlink_bins(&ToolSpec::default(), true).await?;
         }
     }
 

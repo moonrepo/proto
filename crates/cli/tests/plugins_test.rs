@@ -1,5 +1,6 @@
 mod utils;
 
+use proto_core::flow::locate::Locator;
 use proto_core::{
     PluginLocator, ProtoEnvironment, ProtoLoaderError, Tool, ToolContext, ToolSpec,
     UnresolvedVersionSpec, flow::install::InstallOptions, load_tool_from_locator,
@@ -36,16 +37,18 @@ where
 
     let base_dir = proto.store.inventory_dir.join("moon/1.0.0");
 
+    let mut locator = Locator::new(&tool, &spec);
+
     if cfg!(windows) {
         assert_eq!(
-            &tool.locate_exe_file(&spec).await.unwrap(),
-            &base_dir.join("moon.exe")
+            locator.locate_exe_file().await.unwrap(),
+            base_dir.join("moon.exe")
         );
         assert!(proto.store.shims_dir.join("moon.exe").exists());
     } else {
         assert_eq!(
-            &tool.locate_exe_file(&spec).await.unwrap(),
-            &base_dir.join("moon")
+            locator.locate_exe_file().await.unwrap(),
+            base_dir.join("moon")
         );
         assert!(proto.store.shims_dir.join("moon").exists());
     }

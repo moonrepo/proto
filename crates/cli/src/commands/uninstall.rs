@@ -4,6 +4,7 @@ use crate::telemetry::{Metric, track_usage};
 use crate::utils::tool_record::ToolRecord;
 use clap::Args;
 use iocraft::element;
+use proto_core::flow::locate::Locator;
 use proto_core::{ProtoConfig, ProtoConfigError, Tool, ToolContext, ToolSpec};
 use starbase::AppResult;
 use starbase_console::ui::*;
@@ -76,13 +77,16 @@ async fn try_uninstall_all(session: &ProtoSession, tool: &mut ToolRecord) -> mie
         tool.uninstall(&mut ToolSpec::new_resolved(version)).await?;
     }
 
+    let spec = ToolSpec::default();
+    let locator = Locator::new(tool, &spec);
+
     // Delete bins
-    for bin in tool.resolve_bin_locations(None).await? {
+    for bin in locator.locate_bins(None).await? {
         session.env.store.unlink_bin(&bin.path)?;
     }
 
     // Delete shims
-    for shim in tool.resolve_shim_locations(&ToolSpec::default()).await? {
+    for shim in locator.locate_shims().await? {
         session.env.store.remove_shim(&shim.path)?;
     }
 

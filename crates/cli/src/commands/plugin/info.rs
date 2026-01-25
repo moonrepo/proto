@@ -2,6 +2,7 @@ use crate::components::*;
 use crate::session::{LoadToolOptions, ProtoSession};
 use clap::Args;
 use iocraft::prelude::element;
+use proto_core::flow::locate::Locator as LocatorFlow;
 use proto_core::{
     ConfigMode, Id, PluginLocator, ProtoToolConfig, ToolContext, ToolManifest, ToolMetadata,
     flow::locate::ExecutableLocation,
@@ -41,7 +42,7 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
     let global_config = session.load_config_with_mode(ConfigMode::Global)?;
     let context = ToolContext::new(args.id.clone());
 
-    let mut tool = session
+    let tool = session
         .load_tool_with_options(
             &context,
             LoadToolOptions {
@@ -54,17 +55,18 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
         .await?;
     let spec = tool.spec.clone();
 
-    let bins = tool.resolve_bin_locations(None).await?;
-    let shims = tool.resolve_shim_locations(&spec).await?;
+    let mut locator = LocatorFlow::new(&tool, &spec);
+    let bins = locator.locate_bins(None).await?;
+    let shims = locator.locate_shims().await?;
 
     if session.should_print_json() {
         let result = InfoPluginResult {
             bins,
             config: tool.config.clone(),
-            exe_file: tool.locate_exe_file(&spec).await.ok(),
-            exes_dirs: tool.locate_exes_dirs(&spec).await?,
-            globals_dirs: tool.locate_globals_dirs(&spec).await?,
-            globals_prefix: tool.locate_globals_prefix(&spec).await?,
+            exe_file: locator.locate_exe_file().await.ok(),
+            exes_dirs: locator.locate_exes_dirs().await?,
+            globals_dirs: locator.locate_globals_dirs().await?,
+            globals_prefix: locator.locate_globals_prefix().await?,
             inventory_dir: tool.get_inventory_dir().to_path_buf(),
             shims,
             id: tool.get_id().clone(),
@@ -132,9 +134,9 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
                         )
                     }
                 }))
-                #(tool.locator.as_ref().map(|locator| {
+                #(tool.locator.as_ref().map(|loc| {
                     element! {
-                        Locator(value: locator)
+                        Locator(value: loc)
                     }
                 }))
                 #(if tool.metadata.requires.is_empty() {
@@ -184,10 +186,10 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
 
     // INVENTORY
 
-    let exe_file = tool.locate_exe_file(&spec).await.ok();
-    let exes_dirs = tool.locate_exes_dirs(&spec).await?;
-    let globals_dir = tool.locate_globals_dir(&spec).await?;
-    let globals_prefix = tool.locate_globals_prefix(&spec).await?;
+    let exe_file = locator.locate_exe_file().await.ok();
+    let exes_dirs = locator.locate_exes_dirs().await?;
+    let globals_dir = locator.locate_globals_dir().await?;
+    let globals_prefix = locator.locate_globals_prefix().await?;
 
     session.console.render(element! {
         Container {

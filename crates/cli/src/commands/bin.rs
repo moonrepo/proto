@@ -1,5 +1,6 @@
 use crate::session::{LoadToolOptions, ProtoSession};
 use clap::{Args, ValueEnum};
+use proto_core::flow::locate::Locator;
 use proto_core::flow::resolve::Resolver;
 use proto_core::{ToolContext, ToolSpec};
 use starbase::AppResult;
@@ -58,9 +59,9 @@ pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
         .await?;
 
     if args.bin {
-        tool.symlink_bins(true).await?;
+        tool.symlink_bins(&spec, true).await?;
 
-        for bin in tool.resolve_bin_locations(None).await? {
+        for bin in Locator::new(&tool, &spec).locate_bins(None).await? {
             if bin.config.primary {
                 session
                     .console
@@ -75,7 +76,7 @@ pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
     if args.shim {
         tool.generate_shims(&spec, true).await?;
 
-        for shim in tool.resolve_shim_locations(&spec).await? {
+        for shim in Locator::new(&tool, &spec).locate_shims().await? {
             if shim.config.primary {
                 session
                     .console
@@ -87,10 +88,12 @@ pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
         }
     }
 
+    let mut locator = Locator::new(&tool, &spec);
+
     let paths = match args.dir {
-        None => vec![tool.locate_exe_file(&spec).await?],
-        Some(BinDirType::Exes) => tool.locate_exes_dirs(&spec).await?,
-        Some(BinDirType::Globals) => tool.locate_globals_dirs(&spec).await?,
+        None => vec![locator.locate_exe_file().await?],
+        Some(BinDirType::Exes) => locator.locate_exes_dirs().await?,
+        Some(BinDirType::Globals) => locator.locate_globals_dirs().await?,
     };
 
     if args.all {

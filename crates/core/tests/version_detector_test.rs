@@ -1,10 +1,6 @@
 use proto_core::{
     ProtoConfig, ProtoEnvironment, ProtoFileManager, Tool, ToolContext, UnresolvedVersionSpec,
-    flow::detect::{
-        detect_version_first_available, detect_version_only_prototools,
-        detect_version_prefer_prototools,
-    },
-    load_tool_from_locator,
+    flow::detect::Detector, load_tool_from_locator,
 };
 use starbase_sandbox::create_empty_sandbox;
 use std::path::Path;
@@ -34,10 +30,12 @@ mod version_detector {
         sandbox.create_file("a/b/c/.prototools", "node = \"16\"");
 
         let tool = create_node(sandbox.path()).await;
+        let mut detector = Detector::new(&tool);
         let manager = ProtoFileManager::load(sandbox.path().join("a/b/c"), None, None).unwrap();
 
         assert_eq!(
-            detect_version_first_available(&tool, &manager.get_config_files())
+            detector
+                .detect_version_first_available(&manager.get_config_files())
                 .await
                 .unwrap(),
             Some(UnresolvedVersionSpec::parse("~16").unwrap())
@@ -46,7 +44,8 @@ mod version_detector {
         let manager = ProtoFileManager::load(sandbox.path().join("a/b"), None, None).unwrap();
 
         assert_eq!(
-            detect_version_first_available(&tool, &manager.get_config_files())
+            detector
+                .detect_version_first_available(&manager.get_config_files())
                 .await
                 .unwrap(),
             Some(UnresolvedVersionSpec::parse("~18").unwrap())
@@ -55,7 +54,8 @@ mod version_detector {
         let manager = ProtoFileManager::load(sandbox.path().join("a"), None, None).unwrap();
 
         assert_eq!(
-            detect_version_first_available(&tool, &manager.get_config_files())
+            detector
+                .detect_version_first_available(&manager.get_config_files())
                 .await
                 .unwrap(),
             Some(UnresolvedVersionSpec::parse("~20").unwrap())
@@ -72,7 +72,8 @@ mod version_detector {
         let manager = ProtoFileManager::load(sandbox.path().join("a/b"), None, None).unwrap();
 
         assert_eq!(
-            detect_version_first_available(&tool, &manager.get_config_files())
+            Detector::new(&tool)
+                .detect_version_first_available(&manager.get_config_files())
                 .await
                 .unwrap(),
             Some(UnresolvedVersionSpec::parse("~20").unwrap())
@@ -89,7 +90,8 @@ mod version_detector {
         let manager = ProtoFileManager::load(sandbox.path().join("a/b"), None, None).unwrap();
 
         assert_eq!(
-            detect_version_first_available(&tool, &manager.get_config_files())
+            Detector::new(&tool)
+                .detect_version_first_available(&manager.get_config_files())
                 .await
                 .unwrap(),
             Some(UnresolvedVersionSpec::parse("~18").unwrap())
@@ -108,7 +110,8 @@ mod version_detector {
         let manager = ProtoFileManager::load(sandbox.path().join("a/b/c"), None, None).unwrap();
 
         assert_eq!(
-            detect_version_prefer_prototools(&tool, &manager.get_config_files())
+            Detector::new(&tool)
+                .detect_version_prefer_prototools(&manager.get_config_files())
                 .await
                 .unwrap(),
             Some(UnresolvedVersionSpec::parse("~18").unwrap())
@@ -126,7 +129,8 @@ mod version_detector {
         let manager = ProtoFileManager::load(sandbox.path().join("a/b"), None, None).unwrap();
 
         assert_eq!(
-            detect_version_only_prototools(&tool, &manager.get_config_files())
+            Detector::new(&tool)
+                .detect_version_only_prototools(&manager.get_config_files())
                 .await
                 .unwrap(),
             Some(UnresolvedVersionSpec::parse("~18").unwrap())
@@ -135,7 +139,8 @@ mod version_detector {
         let manager = ProtoFileManager::load(sandbox.path().join("a"), None, None).unwrap();
 
         assert_eq!(
-            detect_version_only_prototools(&tool, &manager.get_config_files())
+            Detector::new(&tool)
+                .detect_version_only_prototools(&manager.get_config_files())
                 .await
                 .unwrap(),
             None

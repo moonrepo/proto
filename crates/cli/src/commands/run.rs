@@ -5,7 +5,7 @@ use crate::workflows::{ExecWorkflow, ExecWorkflowParams};
 use clap::Args;
 use miette::IntoDiagnostic;
 use proto_core::flow::detect::{Detector, ProtoDetectError};
-use proto_core::flow::locate::ProtoLocateError;
+use proto_core::flow::locate::{Locator, ProtoLocateError};
 use proto_core::{
     Id, PROTO_PLUGIN_KEY, ProtoEnvironment, ProtoLoaderError, Tool, ToolContext, ToolSpec,
 };
@@ -102,17 +102,17 @@ async fn get_tool_executable(
     spec: &ToolSpec,
     alt: Option<&str>,
 ) -> miette::Result<ExecutableConfig> {
-    let tool_dir = tool.get_product_dir(spec);
+    let locator = Locator::new(tool, spec);
 
     // Run an alternate executable (via shim)
     if let Some(alt_name) = alt {
-        for location in tool.resolve_shim_locations(spec).await? {
+        for location in locator.locate_shims().await? {
             if location.name == alt_name {
                 let Some(exe_path) = &location.config.exe_path else {
                     continue;
                 };
 
-                let alt_exe_path = tool_dir.join(exe_path);
+                let alt_exe_path = locator.product_dir.join(exe_path);
 
                 if alt_exe_path.exists() {
                     debug!(
@@ -131,13 +131,13 @@ async fn get_tool_executable(
 
         return Err(ProtoCliError::RunMissingAltBin {
             bin: alt_name.to_owned(),
-            path: tool_dir.to_path_buf(),
+            path: locator.product_dir.clone(),
         }
         .into());
     }
 
     // Otherwise use the primary
-    let mut config = match tool.resolve_primary_exe_location(spec).await? {
+    let mut config = match locator.locate_primary_exe().await? {
         Some(inner) => inner.config,
         None => {
             return Err(ProtoLocateError::NoPrimaryExecutable {
@@ -149,7 +149,7 @@ async fn get_tool_executable(
 
     // We don't use `locate_exe_file` here because we need to handle
     // tools whose primary file is not executable, like JavaScript!
-    config.exe_path = Some(tool_dir.join(config.exe_path.as_ref().unwrap()));
+    config.exe_path = Some(locator.product_dir.join(config.exe_path.as_ref().unwrap()));
 
     Ok(config)
 }

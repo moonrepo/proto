@@ -1,4 +1,5 @@
 pub use super::link_error::ProtoLinkError;
+use crate::flow::locate::Locator;
 use crate::layout::{Shim, ShimRegistry, ShimsMap};
 use crate::tool::Tool;
 use crate::tool_spec::ToolSpec;
@@ -17,7 +18,7 @@ impl Tool {
         spec: &ToolSpec,
         force: bool,
     ) -> Result<(), ProtoLinkError> {
-        let shims = self.resolve_shim_locations(spec).await?;
+        let shims = Locator::new(self, spec).locate_shims().await?;
 
         if shims.is_empty() {
             return Ok(());
@@ -119,10 +120,14 @@ impl Tool {
 
     /// Symlink all primary and secondary binaries for the current tool.
     #[instrument(skip(self))]
-    pub async fn symlink_bins(&mut self, force: bool) -> Result<(), ProtoLinkError> {
+    pub async fn symlink_bins(
+        &mut self,
+        spec: &ToolSpec,
+        force: bool,
+    ) -> Result<(), ProtoLinkError> {
         let invalid_version = VersionSpec::parse("999.999.999").unwrap();
-        let bins = self
-            .resolve_bin_locations(if force { None } else { Some(&invalid_version) })
+        let bins = Locator::new(self, spec)
+            .locate_bins(if force { None } else { Some(&invalid_version) })
             .await?;
 
         if bins.is_empty() {
