@@ -1,4 +1,4 @@
-use proto_core::Tool;
+use proto_core::{Tool, ToolSpec};
 use proto_pdk_api::*;
 
 #[derive(Debug)]
@@ -197,9 +197,9 @@ impl WasmTestWrapper {
 
     fn prepare_context(&self, context: PluginContext) -> PluginContext {
         let tool_dir = if context.tool_dir.any_path().components().count() == 0 {
-            self.tool.get_product_dir()
+            self.tool.get_product_dir(&ToolSpec::default())
         } else {
-            context.tool_dir.any_path()
+            context.tool_dir.any_path().to_path_buf()
         };
 
         let temp_dir = if context.temp_dir.any_path().components().count() == 0 {

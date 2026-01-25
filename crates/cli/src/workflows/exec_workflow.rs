@@ -321,7 +321,7 @@ async fn prepare_tool(
     };
 
     // Extract the spec, otherwise return early
-    let spec = match provided_spec {
+    let mut spec = match provided_spec {
         Some(inner) => inner,
         None => {
             if params.fallback_any_spec {
@@ -335,14 +335,14 @@ async fn prepare_tool(
     item.active = true;
 
     // Resolve the version and locate executables
-    if !tool.is_setup(&spec).await? {
+    if !tool.is_setup(&mut spec).await? {
         return Ok(item);
     }
 
     if params.version_env_vars {
         item.set_env(
             format!("{}_VERSION", tool.get_env_var_prefix()),
-            tool.get_resolved_version().to_string(),
+            spec.get_resolved_version().to_string(),
         );
     }
 
@@ -358,7 +358,7 @@ async fn prepare_tool(
             .call_func_with(
                 PluginFunction::ActivateEnvironment,
                 ActivateEnvironmentInput {
-                    context: tool.create_plugin_context(),
+                    context: tool.create_plugin_context(&spec),
                 },
             )
             .await?;
@@ -373,15 +373,15 @@ async fn prepare_tool(
     }
 
     if params.pre_run_hook && tool.plugin.has_func(HookFunction::PreRun).await {
-        let globals_dir = tool.locate_globals_dir().await?;
-        let globals_prefix = tool.locate_globals_prefix().await?;
+        let globals_dir = tool.locate_globals_dir(&spec).await?;
+        let globals_prefix = tool.locate_globals_prefix(&spec).await?;
 
         let output: RunHookResult = tool
             .plugin
             .call_func_with(
                 HookFunction::PreRun,
                 RunHook {
-                    context: tool.create_plugin_context(),
+                    context: tool.create_plugin_context(&spec),
                     globals_dir: globals_dir.map(|dir| tool.to_virtual_path(&dir)),
                     globals_prefix,
                     passthrough_args: params.passthrough_args,
@@ -407,21 +407,23 @@ async fn prepare_tool(
     }
 
     // Extract executable directories
-    if let Some(dir) = tool.locate_exe_file().await?.parent() {
+    if let Some(dir) = tool.locate_exe_file(&spec).await?.parent() {
         item.add_path(dir.to_path_buf());
     }
 
-    for exes_dir in tool.locate_exes_dirs().await? {
+    for exes_dir in tool.locate_exes_dirs(&spec).await? {
         item.add_path(exes_dir);
     }
 
-    for globals_dir in tool.locate_globals_dirs().await? {
+    for globals_dir in tool.locate_globals_dirs(&spec).await? {
         item.add_path(globals_dir);
     }
 
     // Mark it as used so that auto-clean doesn't remove it!
-    if std::env::var("PROTO_SKIP_USED_AT").is_err() {
-        let _ = tool.product.track_used_at();
+    if std::env::var("PROTO_SKIP_USED_AT").is_err()
+        && let Some(version) = &spec.version
+    {
+        let _ = tool.inventory.create_product(version).track_used_at();
     }
 
     Ok(item)

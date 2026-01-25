@@ -97,12 +97,16 @@ fn is_trying_to_self_upgrade(tool: &Tool, args: &[String]) -> bool {
     false
 }
 
-async fn get_tool_executable(tool: &Tool, alt: Option<&str>) -> miette::Result<ExecutableConfig> {
-    let tool_dir = tool.get_product_dir();
+async fn get_tool_executable(
+    tool: &Tool,
+    spec: &ToolSpec,
+    alt: Option<&str>,
+) -> miette::Result<ExecutableConfig> {
+    let tool_dir = tool.get_product_dir(spec);
 
     // Run an alternate executable (via shim)
     if let Some(alt_name) = alt {
-        for location in tool.resolve_shim_locations().await? {
+        for location in tool.resolve_shim_locations(spec).await? {
             if location.name == alt_name {
                 let Some(exe_path) = &location.config.exe_path else {
                     continue;
@@ -133,7 +137,7 @@ async fn get_tool_executable(tool: &Tool, alt: Option<&str>) -> miette::Result<E
     }
 
     // Otherwise use the primary
-    let mut config = match tool.resolve_primary_exe_location().await? {
+    let mut config = match tool.resolve_primary_exe_location(spec).await? {
         Some(inner) => inner.config,
         None => {
             return Err(ProtoLocateError::NoPrimaryExecutable {
@@ -269,7 +273,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
     }
 
     // Detect a version to run with
-    let spec = if use_global_proto {
+    let mut spec = if use_global_proto {
         args.spec
             .clone()
             .unwrap_or_else(|| ToolSpec::parse("*").unwrap())
@@ -289,13 +293,13 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
     };
 
     // Check if installed or need to install
-    if tool.is_setup(&spec).await? {
+    if tool.is_setup(&mut spec).await? {
         if tool.get_id() == PROTO_PLUGIN_KEY {
             use_global_proto = false;
         }
     } else {
         let config = tool.proto.load_config()?;
-        let resolved_version = tool.get_resolved_version();
+        let resolved_version = spec.get_resolved_version();
 
         // Auto-install the missing tool
         if config.settings.auto_install {
@@ -319,6 +323,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
                     spec: Some(ToolSpec {
                         req: resolved_version.to_unresolved_spec(),
                         version: Some(resolved_version.clone()),
+                        version_locked: None,
                         resolve_from_manifest: false,
                         resolve_from_lockfile: false,
                         update_lockfile: false,
@@ -376,7 +381,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
             ..Default::default()
         }
     } else {
-        get_tool_executable(&tool, args.exe.as_deref()).await?
+        get_tool_executable(&tool, &spec, args.exe.as_deref()).await?
     };
 
     let mut command = create_command(&tool, &exe_config, &args.passthrough)?;

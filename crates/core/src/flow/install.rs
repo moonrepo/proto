@@ -6,6 +6,7 @@ use crate::env::ProtoConsole;
 use crate::helpers::{extract_filename_from_url, is_archive_file, is_executable, is_offline};
 use crate::lockfile::*;
 use crate::tool::Tool;
+use crate::tool_spec::ToolSpec;
 use crate::utils::log::LogWriter;
 use crate::utils::{archive, process};
 use proto_pdk_api::*;
@@ -51,10 +52,10 @@ pub struct InstallOptions {
 impl Tool {
     /// Return true if the tool has been installed. This is less accurate than `is_setup`,
     /// as it only checks for the existence of the inventory directory.
-    pub fn is_installed(&self) -> bool {
-        let dir = self.get_product_dir();
+    pub fn is_installed(&self, spec: &ToolSpec) -> bool {
+        let dir = self.get_product_dir(spec);
 
-        self.version.as_ref().is_some_and(|v| {
+        spec.version.as_ref().is_some_and(|v| {
             !v.is_latest() && self.inventory.manifest.installed_versions.contains(v)
         }) && dir.exists()
             && !fs::is_dir_locked(dir)
@@ -65,6 +66,7 @@ impl Tool {
     #[instrument(skip(self))]
     pub async fn verify_checksum(
         &self,
+        spec: &ToolSpec,
         checksum_file: &Path,
         download_file: &Path,
         checksum_public_key: Option<&str>,
@@ -89,7 +91,7 @@ impl Tool {
                         checksum_file: self.to_virtual_path(checksum_file),
                         download_file: self.to_virtual_path(download_file),
                         download_checksum: Some(checksum.clone()),
-                        context: self.create_plugin_context(),
+                        context: self.create_plugin_context(spec),
                     },
                 )
                 .await?;
@@ -121,6 +123,7 @@ impl Tool {
     #[instrument(skip(self, options))]
     async fn build_from_source(
         &self,
+        spec: &mut ToolSpec,
         install_dir: &Path,
         temp_dir: &Path,
         options: InstallOptions,
@@ -145,7 +148,7 @@ impl Tool {
             .cache_func_with(
                 PluginFunction::BuildInstructions,
                 BuildInstructionsInput {
-                    context: self.create_plugin_context(),
+                    context: self.create_plugin_context(spec),
                     install_dir: self.to_virtual_path(install_dir),
                 },
             )
@@ -191,7 +194,7 @@ impl Tool {
             skip_ui: options.skip_ui,
             system,
             temp_dir,
-            version: self.get_resolved_version(),
+            version: spec.get_resolved_version(),
         });
 
         // The build process may require using itself to build itself,
@@ -231,6 +234,7 @@ impl Tool {
     #[instrument(skip(self, options))]
     async fn install_from_prebuilt(
         &self,
+        spec: &mut ToolSpec,
         install_dir: &Path,
         temp_dir: &Path,
         options: InstallOptions,
@@ -254,7 +258,7 @@ impl Tool {
             .cache_func_with(
                 PluginFunction::DownloadPrebuilt,
                 DownloadPrebuiltInput {
-                    context: self.create_plugin_context(),
+                    context: self.create_plugin_context(spec),
                     install_dir: self.to_virtual_path(install_dir),
                 },
             )
@@ -320,6 +324,7 @@ impl Tool {
 
             record.checksum = Some(
                 self.verify_checksum(
+                    spec,
                     &checksum_file,
                     &download_file,
                     output.checksum_public_key.as_deref(),
@@ -342,6 +347,7 @@ impl Tool {
 
             record.checksum = Some(
                 self.verify_checksum(
+                    spec,
                     &checksum_file,
                     &download_file,
                     output
@@ -378,7 +384,7 @@ impl Tool {
                     UnpackArchiveInput {
                         input_file: self.to_virtual_path(&download_file),
                         output_dir: self.to_virtual_path(install_dir),
-                        context: self.create_plugin_context(),
+                        context: self.create_plugin_context(spec),
                     },
                 )
                 .await?;
@@ -453,9 +459,10 @@ impl Tool {
     #[instrument(skip(self, options))]
     pub async fn install(
         &mut self,
+        spec: &mut ToolSpec,
         options: InstallOptions,
     ) -> Result<Option<LockRecord>, ProtoInstallError> {
-        if self.is_installed() && !options.force {
+        if self.is_installed(spec) && !options.force {
             debug!(
                 tool = self.context.as_str(),
                 "Tool already installed, continuing"
@@ -469,7 +476,7 @@ impl Tool {
         }
 
         let temp_dir = self.get_temp_dir();
-        let install_dir = self.get_product_dir();
+        let install_dir = self.get_product_dir(spec);
 
         // Lock the temporary directory instead of the install directory,
         // because the latter needs to be clean for "build from source",
@@ -485,15 +492,15 @@ impl Tool {
                 func(InstallPhase::Native);
             });
 
-            fs::create_dir_all(install_dir)?;
+            fs::create_dir_all(&install_dir)?;
 
             let output: NativeInstallOutput = self
                 .plugin
                 .call_func_with(
                     PluginFunction::NativeInstall,
                     NativeInstallInput {
-                        context: self.create_plugin_context(),
-                        install_dir: self.to_virtual_path(install_dir),
+                        context: self.create_plugin_context(spec),
+                        install_dir: self.to_virtual_path(&install_dir),
                         force: options.force,
                     },
                 )
@@ -504,7 +511,7 @@ impl Tool {
                 record.checksum = output.checksum;
 
                 // Verify against lockfile
-                self.verify_locked_record(&record)?;
+                self.verify_locked_record(spec, &record)?;
 
                 return Ok(Some(record));
             }
@@ -519,18 +526,19 @@ impl Tool {
 
         // Build the tool from source
         let result = if matches!(options.strategy, InstallStrategy::BuildFromSource) {
-            self.build_from_source(install_dir, temp_dir, options).await
+            self.build_from_source(spec, &install_dir, temp_dir, options)
+                .await
         }
         // Install from a prebuilt archive
         else {
-            self.install_from_prebuilt(install_dir, temp_dir, options)
+            self.install_from_prebuilt(spec, &install_dir, temp_dir, options)
                 .await
         };
 
         match result {
             Ok(record) => {
                 // Verify against lockfile
-                self.verify_locked_record(&record)?;
+                self.verify_locked_record(spec, &record)?;
 
                 debug!(
                     tool = self.context.as_str(),
@@ -561,8 +569,8 @@ impl Tool {
 
     /// Uninstall the tool by deleting the current install directory.
     #[instrument(skip_all)]
-    pub async fn uninstall(&self) -> Result<bool, ProtoInstallError> {
-        let install_dir = self.get_product_dir();
+    pub async fn uninstall(&self, spec: &mut ToolSpec) -> Result<bool, ProtoInstallError> {
+        let install_dir = self.get_product_dir(spec);
 
         if !install_dir.exists() {
             debug!(
@@ -581,8 +589,8 @@ impl Tool {
                 .call_func_with(
                     PluginFunction::NativeUninstall,
                     NativeUninstallInput {
-                        context: self.create_plugin_context(),
-                        uninstall_dir: self.to_virtual_path(install_dir),
+                        context: self.create_plugin_context(spec),
+                        uninstall_dir: self.to_virtual_path(&install_dir),
                     },
                 )
                 .await?;

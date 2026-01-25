@@ -2,10 +2,11 @@ use crate::config::PluginType;
 use crate::env::ProtoEnvironment;
 use crate::helpers::get_proto_version;
 use crate::id::Id;
-use crate::layout::{Inventory, Product};
+use crate::layout::Inventory;
 use crate::lockfile::LockRecord;
 use crate::tool_context::ToolContext;
 use crate::tool_error::ProtoToolError;
+use crate::tool_spec::ToolSpec;
 use crate::utils::{archive, git};
 use proto_pdk_api::{
     PluginContext, PluginFunction, PluginUnresolvedContext, RegisterBackendInput,
@@ -32,11 +33,9 @@ pub struct Tool {
     pub plugin: Arc<PluginContainer>,
     pub proto: Arc<ProtoEnvironment>,
     pub ty: PluginType,
-    pub version: Option<VersionSpec>,
 
     // Store
     pub inventory: Inventory,
-    pub product: Product,
 
     // Cache
     pub(crate) backend_registered: bool,
@@ -47,7 +46,6 @@ pub struct Tool {
     pub(crate) globals_dir: Option<PathBuf>,
     pub(crate) globals_dirs: Vec<PathBuf>,
     pub(crate) globals_prefix: Option<String>,
-    pub(crate) version_locked: Option<LockRecord>,
 }
 
 impl Tool {
@@ -75,11 +73,8 @@ impl Tool {
             locator: None,
             metadata: ToolMetadata::default(),
             plugin,
-            product: Product::default(),
             proto,
             ty: PluginType::Tool,
-            version: None,
-            version_locked: None,
         };
 
         tool.register_tool().await?;
@@ -168,7 +163,6 @@ impl Tool {
         self.globals_dir = None;
         self.globals_dirs.clear();
         self.globals_prefix = None;
-        self.version = None;
 
         // Don't clear this field because it will cause issues based on order of
         // operations. It will be set when a version is resolved.
@@ -223,31 +217,22 @@ impl Tool {
         &self.metadata.name
     }
 
-    /// Return the resolved version or "latest".
-    pub fn get_resolved_version(&self) -> VersionSpec {
-        self.version.clone().unwrap_or_default()
-    }
-
     /// Return an absolute path to a temp directory solely for this tool.
     pub fn get_temp_dir(&self) -> &Path {
         &self.inventory.temp_dir
     }
 
     /// Return an absolute path to the tool's install directory for the currently resolved version.
-    pub fn get_product_dir(&self) -> &Path {
-        &self.product.dir
+    pub fn get_product_dir(&self, spec: &ToolSpec) -> PathBuf {
+        match &spec.version {
+            Some(version) => self.inventory.get_product_dir(version),
+            None => self.inventory.get_product_dir(&VersionSpec::default()),
+        }
     }
 
     /// Return true if this tool instance is a backend plugin.
     pub async fn is_backend_plugin(&self) -> bool {
         self.ty == PluginType::Backend
-    }
-
-    /// Explicitly set the version to use.
-    pub fn set_version(&mut self, version: VersionSpec) {
-        self.clear_instance_cache();
-        self.product = self.inventory.create_product(&version);
-        self.version = Some(version);
     }
 
     /// Convert a virtual path to a real path.
@@ -265,12 +250,12 @@ impl Tool {
 
 impl Tool {
     /// Return contextual information to pass to WASM plugin functions.
-    pub fn create_plugin_context(&self) -> PluginContext {
+    pub fn create_plugin_context(&self, spec: &ToolSpec) -> PluginContext {
         PluginContext {
             proto_version: Some(get_proto_version().to_owned()),
             temp_dir: self.to_virtual_path(self.get_temp_dir()),
-            tool_dir: self.to_virtual_path(self.get_product_dir()),
-            version: self.get_resolved_version(),
+            tool_dir: self.to_virtual_path(self.get_product_dir(spec)),
+            version: spec.get_resolved_version(),
         }
     }
 
@@ -281,13 +266,8 @@ impl Tool {
         PluginUnresolvedContext {
             proto_version: Some(get_proto_version().to_owned()),
             temp_dir: self.to_virtual_path(&self.inventory.temp_dir),
-            // version: self.version.clone(),
             // TODO: temporary until 3rd-party plugins update their PDKs
             tool_dir: self.to_virtual_path(&self.proto.store.inventory_dir),
-            version: self
-                .version
-                .clone()
-                .or_else(|| Some(VersionSpec::Alias("latest".into()))),
         }
     }
 
@@ -367,7 +347,6 @@ impl Tool {
             inventory.dir = self.from_virtual_path(override_dir);
         }
 
-        self.product = inventory.create_product(&self.get_resolved_version());
         self.inventory = inventory;
         self.metadata = metadata;
 
@@ -481,9 +460,7 @@ impl fmt::Debug for Tool {
             .field("metadata", &self.metadata)
             .field("locator", &self.locator)
             .field("proto", &self.proto)
-            .field("version", &self.version)
             .field("inventory", &self.inventory)
-            .field("product", &self.product)
             .finish()
     }
 }

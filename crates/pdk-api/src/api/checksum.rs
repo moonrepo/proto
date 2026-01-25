@@ -14,7 +14,7 @@ pub enum ChecksumError {
 }
 
 /// Supported checksum algorithms.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ChecksumAlgorithm {
     Minisign,
@@ -23,7 +23,7 @@ pub enum ChecksumAlgorithm {
 }
 
 /// Represents a checksum for a specific algorithm.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(into = "String", try_from = "String")]
 pub struct Checksum {
     /// Algorithm.

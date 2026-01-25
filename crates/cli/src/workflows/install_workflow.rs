@@ -7,6 +7,7 @@ use crate::telemetry::*;
 use crate::utils::tool_record::ToolRecord;
 use iocraft::element;
 use proto_core::flow::install::{InstallOptions, InstallPhase};
+use proto_core::flow::resolve::Resolver;
 use proto_core::utils::log::LogWriter;
 use proto_core::{Id, LockRecord, PinLocation, ToolSpec};
 use proto_pdk_api::{
@@ -84,7 +85,7 @@ impl InstallWorkflow {
 
     pub async fn install(
         &mut self,
-        spec: ToolSpec,
+        spec: &mut ToolSpec,
         params: InstallWorkflowParams,
     ) -> Result<InstallOutcome, ProtoCliError> {
         let started = Instant::now();
@@ -103,28 +104,28 @@ impl InstallWorkflow {
         });
 
         // Check if already installed, or if forced, overwrite previous install
-        if !params.force && self.tool.is_setup(&spec).await? {
-            self.pin_version(&spec, &params.pin_to).await?;
-            self.finish_progress(started);
+        if !params.force && self.tool.is_setup(spec).await? {
+            self.pin_version(spec, &params.pin_to).await?;
+            self.finish_progress(spec, started);
 
             return Ok(InstallOutcome::AlreadyInstalled(self.tool.get_id().clone()));
         }
 
         // Run pre-install hooks
-        self.pre_install(&params).await?;
+        self.pre_install(spec, &params).await?;
 
         // Run install
-        let record = self.do_install(&spec, &params).await?;
+        let record = self.do_install(spec, &params).await?;
 
         if record.is_none() {
             return Ok(InstallOutcome::FailedToInstall(self.tool.get_id().clone()));
         }
 
-        let pinned = self.pin_version(&spec, &params.pin_to).await?;
-        self.finish_progress(started);
+        let pinned = self.pin_version(spec, &params.pin_to).await?;
+        self.finish_progress(spec, started);
 
         // Run post-install hooks
-        self.post_install(&params).await?;
+        self.post_install(spec, &params).await?;
 
         // Track usage metrics
         track_usage(
@@ -137,7 +138,7 @@ impl InstallWorkflow {
                     .as_ref()
                     .map(|loc| loc.to_string())
                     .unwrap_or_default(),
-                version: self.tool.get_resolved_version().to_string(),
+                version: spec.get_resolved_version().to_string(),
                 version_candidate: spec.req.to_string(),
                 pinned,
             },
@@ -149,7 +150,7 @@ impl InstallWorkflow {
 
     pub async fn install_with_logging(
         &mut self,
-        spec: ToolSpec,
+        spec: &mut ToolSpec,
         mut params: InstallWorkflowParams,
     ) -> Result<InstallOutcome, ProtoCliError> {
         let log = match params.log_writer.clone() {
@@ -214,7 +215,11 @@ impl InstallWorkflow {
         }
     }
 
-    async fn pre_install(&self, params: &InstallWorkflowParams) -> Result<(), ProtoCliError> {
+    async fn pre_install(
+        &self,
+        spec: &ToolSpec,
+        params: &InstallWorkflowParams,
+    ) -> Result<(), ProtoCliError> {
         let tool = &self.tool;
 
         params.log_writer.as_ref().inspect(|log| {
@@ -228,7 +233,7 @@ impl InstallWorkflow {
                 .call_func_without_output(
                     HookFunction::PreInstall,
                     InstallHook {
-                        context: tool.create_plugin_context(),
+                        context: tool.create_plugin_context(spec),
                         forced: params.force,
                         passthrough_args: params.passthrough_args.clone(),
                         pinned: params.pin_to.is_some(),
@@ -243,16 +248,18 @@ impl InstallWorkflow {
 
     async fn do_install(
         &mut self,
-        spec: &ToolSpec,
+        spec: &mut ToolSpec,
         params: &InstallWorkflowParams,
     ) -> Result<Option<LockRecord>, ProtoCliError> {
         params.log_writer.as_ref().inspect(|log| {
             log.add_header("Installing tool");
         });
 
-        self.tool.resolve_version(spec, false).await?;
+        Resolver::new(&self.tool)
+            .resolve_version(spec, false)
+            .await?;
 
-        let resolved_version = self.tool.get_resolved_version();
+        let resolved_version = spec.get_resolved_version();
         let default_strategy = self.tool.metadata.default_install_strategy;
 
         self.progress_reporter.set_message(
@@ -342,7 +349,11 @@ impl InstallWorkflow {
         Ok(record)
     }
 
-    async fn post_install(&self, params: &InstallWorkflowParams) -> Result<(), ProtoCliError> {
+    async fn post_install(
+        &self,
+        spec: &ToolSpec,
+        params: &InstallWorkflowParams,
+    ) -> Result<(), ProtoCliError> {
         let tool = &self.tool;
 
         params.log_writer.as_ref().inspect(|log| {
@@ -354,7 +365,7 @@ impl InstallWorkflow {
                 .call_func_without_output(
                     HookFunction::PostInstall,
                     InstallHook {
-                        context: tool.create_plugin_context(),
+                        context: tool.create_plugin_context(spec),
                         forced: params.force,
                         passthrough_args: params.passthrough_args.clone(),
                         pinned: params.pin_to.is_some(),
@@ -364,7 +375,7 @@ impl InstallWorkflow {
                 .await?;
         }
 
-        self.update_shell(params).await?;
+        self.update_shell(spec, params).await?;
 
         Ok(())
     }
@@ -398,16 +409,17 @@ impl InstallWorkflow {
         }
 
         if pin {
-            let resolved_spec =
-                ToolSpec::new(self.tool.get_resolved_version().to_unresolved_spec());
-
-            internal_pin(&self.tool.tool, &resolved_spec, pin_to).await?;
+            internal_pin(&self.tool.tool, spec, pin_to).await?;
         }
 
         Ok(pin)
     }
 
-    async fn update_shell(&self, params: &InstallWorkflowParams) -> Result<(), ProtoCliError> {
+    async fn update_shell(
+        &self,
+        spec: &ToolSpec,
+        params: &InstallWorkflowParams,
+    ) -> Result<(), ProtoCliError> {
         let tool = &self.tool;
 
         if !tool.plugin.has_func(PluginFunction::SyncShellProfile).await {
@@ -419,7 +431,7 @@ impl InstallWorkflow {
             .call_func_with(
                 PluginFunction::SyncShellProfile,
                 SyncShellProfileInput {
-                    context: tool.create_plugin_context(),
+                    context: tool.create_plugin_context(spec),
                     passthrough_args: params.passthrough_args.clone(),
                 },
             )
@@ -487,12 +499,12 @@ impl InstallWorkflow {
         Ok(())
     }
 
-    fn finish_progress(&mut self, started: Instant) {
+    fn finish_progress(&mut self, spec: &ToolSpec, started: Instant) {
         let duration = format_duration(started.elapsed(), true);
         let mut message = format!(
             "{} <version>{}</version> installed",
             self.tool.get_name(),
-            self.tool.get_resolved_version(),
+            spec.get_resolved_version(),
         );
 
         if duration != "0s" {

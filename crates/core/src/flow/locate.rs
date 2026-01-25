@@ -2,6 +2,7 @@ pub use super::locate_error::ProtoLocateError;
 use crate::helpers::ENV_VAR;
 use crate::layout::BinManager;
 use crate::tool::Tool;
+use crate::tool_spec::ToolSpec;
 use proto_pdk_api::{
     ExecutableConfig, LocateExecutablesInput, LocateExecutablesOutput, PluginFunction,
 };
@@ -29,14 +30,15 @@ pub struct ExecutableLocation {
 impl Tool {
     pub(crate) async fn call_locate_executables(
         &self,
+        spec: &ToolSpec,
     ) -> Result<LocateExecutablesOutput, ProtoLocateError> {
         Ok(self
             .plugin
             .cache_func_with(
                 PluginFunction::LocateExecutables,
                 LocateExecutablesInput {
-                    context: self.create_plugin_context(),
-                    install_dir: self.to_virtual_path(self.get_product_dir()),
+                    context: self.create_plugin_context(spec),
+                    install_dir: self.to_virtual_path(self.get_product_dir(spec)),
                 },
             )
             .await?)
@@ -45,8 +47,9 @@ impl Tool {
     /// Return location information for the primary executable within the tool directory.
     pub async fn resolve_primary_exe_location(
         &self,
+        spec: &ToolSpec,
     ) -> Result<Option<ExecutableLocation>, ProtoLocateError> {
-        let output = self.call_locate_executables().await?;
+        let output = self.call_locate_executables(spec).await?;
         let mut primary = None;
 
         for (name, config) in output.exes {
@@ -55,7 +58,7 @@ impl Tool {
             };
 
             let path = self
-                .get_product_dir()
+                .get_product_dir(spec)
                 .join(path::normalize_separators(exe_path));
 
             if config.update_perms && path.exists() {
@@ -78,8 +81,9 @@ impl Tool {
     /// Return location information for all secondary executables within the tool directory.
     pub async fn resolve_secondary_exe_locations(
         &self,
+        spec: &ToolSpec,
     ) -> Result<Vec<ExecutableLocation>, ProtoLocateError> {
-        let output = self.call_locate_executables().await?;
+        let output = self.call_locate_executables(spec).await?;
         let mut locations = vec![];
 
         for (name, config) in output.exes {
@@ -90,7 +94,7 @@ impl Tool {
             if let Some(exe_path) = &config.exe_path {
                 locations.push(ExecutableLocation {
                     path: self
-                        .get_product_dir()
+                        .get_product_dir(spec)
                         .join(path::normalize_separators(exe_path)),
                     name,
                     config,
@@ -107,11 +111,11 @@ impl Tool {
     /// to the binaries final location.
     pub async fn resolve_bin_locations(
         &mut self,
-        include_all_versions: bool,
+        focused_version: Option<&VersionSpec>,
     ) -> Result<Vec<ExecutableLocation>, ProtoLocateError> {
         self.resolve_bin_locations_with_manager(
             BinManager::from_manifest(&self.inventory.manifest),
-            include_all_versions,
+            focused_version,
         )
         .await
     }
@@ -119,15 +123,12 @@ impl Tool {
     pub async fn resolve_bin_locations_with_manager(
         &mut self,
         bin_manager: BinManager,
-        include_all_versions: bool,
+        focused_version: Option<&VersionSpec>,
     ) -> Result<Vec<ExecutableLocation>, ProtoLocateError> {
-        let original_version = self.get_resolved_version();
         let mut locations = vec![];
-
-        let versions = if include_all_versions {
-            bin_manager.get_buckets()
-        } else {
-            bin_manager.get_buckets_focused_to_version(&original_version)
+        let versions = match focused_version {
+            Some(version) => bin_manager.get_buckets_focused_to_version(version),
+            None => bin_manager.get_buckets(),
         };
 
         // Loop through each version, extract the locations,
@@ -137,15 +138,15 @@ impl Tool {
             // as the logic in how they are located may have changed
             // between versions, and we simply can't rely on the
             // latest version being completely backwards compatible
-            self.set_version(resolved_version.to_owned());
+            let spec = ToolSpec::new_resolved(resolved_version.to_owned());
 
             let output: LocateExecutablesOutput = self
                 .plugin
                 .cache_func_with(
                     PluginFunction::LocateExecutables,
                     LocateExecutablesInput {
-                        context: self.create_plugin_context(),
-                        install_dir: self.to_virtual_path(self.get_product_dir()),
+                        context: self.create_plugin_context(&spec),
+                        install_dir: self.to_virtual_path(self.get_product_dir(&spec)),
                     },
                 )
                 .await?;
@@ -184,9 +185,6 @@ impl Tool {
             }
         }
 
-        // self.backend = original_backend;
-        self.set_version(original_version);
-
         locations.sort_by(|a, d| a.name.cmp(&d.name));
 
         Ok(locations)
@@ -197,8 +195,9 @@ impl Tool {
     /// to the shims final location.
     pub async fn resolve_shim_locations(
         &self,
+        spec: &ToolSpec,
     ) -> Result<Vec<ExecutableLocation>, ProtoLocateError> {
-        let output = self.call_locate_executables().await?;
+        let output = self.call_locate_executables(spec).await?;
         let mut locations = vec![];
 
         let mut add = |name: String, config: ExecutableConfig| {
@@ -228,7 +227,7 @@ impl Tool {
 
     /// Locate the primary executable from the tool directory.
     #[instrument(skip_all)]
-    pub async fn locate_exe_file(&mut self) -> Result<PathBuf, ProtoLocateError> {
+    pub async fn locate_exe_file(&mut self, spec: &ToolSpec) -> Result<PathBuf, ProtoLocateError> {
         if self.exe_file.is_some() {
             return Ok(self.exe_file.clone().unwrap());
         }
@@ -238,10 +237,10 @@ impl Tool {
             "Locating primary executable for tool"
         );
 
-        let exe_file = if let Some(location) = self.resolve_primary_exe_location().await? {
+        let exe_file = if let Some(location) = self.resolve_primary_exe_location(spec).await? {
             location.path
         } else {
-            self.get_product_dir()
+            self.get_product_dir(spec)
                 .join(path::exe_name(path::encode_component(self.get_file_name())))
         };
 
@@ -274,7 +273,10 @@ impl Tool {
 
     /// Locate the directory that local executables are installed to.
     #[instrument(skip_all)]
-    pub async fn locate_exes_dirs(&mut self) -> Result<Vec<PathBuf>, ProtoLocateError> {
+    pub async fn locate_exes_dirs(
+        &mut self,
+        spec: &ToolSpec,
+    ) -> Result<Vec<PathBuf>, ProtoLocateError> {
         if !self.exes_dirs.is_empty() {
             return Ok(self.exes_dirs.clone());
         }
@@ -286,17 +288,18 @@ impl Tool {
             .has_func(PluginFunction::LocateExecutables)
             .await
         {
-            let output = self.call_locate_executables().await?;
+            let output = self.call_locate_executables(spec).await?;
+            let install_dir = self.get_product_dir(spec);
 
             #[allow(deprecated)]
             if let Some(dir) = output.exes_dir {
-                dirs.push(self.get_product_dir().join(path::normalize_separators(dir)));
+                dirs.push(install_dir.join(path::normalize_separators(dir)));
             } else {
                 for dir in output.exes_dirs {
                     if dir.to_str().is_some_and(|dir| dir == ".") {
-                        dirs.push(self.get_product_dir().to_path_buf());
+                        dirs.push(install_dir.clone());
                     } else {
-                        dirs.push(self.get_product_dir().join(path::normalize_separators(dir)));
+                        dirs.push(install_dir.join(path::normalize_separators(dir)));
                     }
                 }
             }
@@ -317,12 +320,15 @@ impl Tool {
     /// Return an absolute path to the globals directory that actually exists
     /// and contains files (executables).
     #[instrument(skip_all)]
-    pub async fn locate_globals_dir(&mut self) -> Result<Option<PathBuf>, ProtoLocateError> {
+    pub async fn locate_globals_dir(
+        &mut self,
+        spec: &ToolSpec,
+    ) -> Result<Option<PathBuf>, ProtoLocateError> {
         if self.globals_dir.is_some() {
             return Ok(self.globals_dir.clone());
         }
 
-        let globals_dirs = self.locate_globals_dirs().await?;
+        let globals_dirs = self.locate_globals_dirs(spec).await?;
         let mut found_dir = None;
 
         for dir in &globals_dirs {
@@ -378,7 +384,10 @@ impl Tool {
     /// Locate the directories that global packages are installed to.
     /// Will expand environment variables, and filter out invalid paths.
     #[instrument(skip_all)]
-    pub async fn locate_globals_dirs(&mut self) -> Result<Vec<PathBuf>, ProtoLocateError> {
+    pub async fn locate_globals_dirs(
+        &mut self,
+        spec: &ToolSpec,
+    ) -> Result<Vec<PathBuf>, ProtoLocateError> {
         if !self.globals_dirs.is_empty() {
             return Ok(self.globals_dirs.clone());
         }
@@ -396,7 +405,7 @@ impl Tool {
             "Locating globals directories for tool"
         );
 
-        let output = self.call_locate_executables().await?;
+        let output = self.call_locate_executables(spec).await?;
 
         // Set the prefix for simpler caching
         if self.cache_internal {
@@ -404,7 +413,7 @@ impl Tool {
         }
 
         // Find all possible global directories that packages can be installed to
-        let install_dir = self.get_product_dir();
+        let install_dir = self.get_product_dir(spec);
         let mut resolved_dirs = vec![];
 
         'outer: for dir_lookup in output.globals_lookup_dirs {
@@ -469,7 +478,10 @@ impl Tool {
 
     /// Return a string that all globals are prefixed with. Will be used for filtering and listing.
     #[instrument(skip_all)]
-    pub async fn locate_globals_prefix(&mut self) -> Result<Option<String>, ProtoLocateError> {
+    pub async fn locate_globals_prefix(
+        &mut self,
+        spec: &ToolSpec,
+    ) -> Result<Option<String>, ProtoLocateError> {
         if self.globals_prefix.is_some() {
             return Ok(self.globals_prefix.clone());
         }
@@ -482,7 +494,7 @@ impl Tool {
             return Ok(None);
         }
 
-        let output = self.call_locate_executables().await?;
+        let output = self.call_locate_executables(spec).await?;
         let prefix = output.globals_prefix;
 
         if self.cache_internal {

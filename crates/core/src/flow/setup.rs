@@ -2,6 +2,7 @@ pub use super::setup_error::ProtoSetupError;
 use crate::cfg;
 use crate::config::{PinLocation, ProtoConfig};
 use crate::flow::install::{InstallOptions, ProtoInstallError};
+use crate::flow::resolve::Resolver;
 use crate::layout::BinManager;
 use crate::lockfile::LockRecord;
 use crate::tool::Tool;
@@ -15,10 +16,10 @@ use tracing::{debug, instrument};
 impl Tool {
     /// Return true if the tool has been setup (installed and executables are located).
     #[instrument(skip(self))]
-    pub async fn is_setup(&mut self, spec: &ToolSpec) -> Result<bool, ProtoSetupError> {
-        self.resolve_version(spec, true).await?;
+    pub async fn is_setup(&mut self, spec: &mut ToolSpec) -> Result<bool, ProtoSetupError> {
+        Resolver::new(self).resolve_version(spec, true).await?;
 
-        let install_dir = self.get_product_dir();
+        let install_dir = self.get_product_dir(spec);
 
         debug!(
             tool = self.context.as_str(),
@@ -26,7 +27,7 @@ impl Tool {
             "Checking if tool is installed",
         );
 
-        if self.is_installed() {
+        if self.is_installed(spec) {
             debug!(
                 tool = self.context.as_str(),
                 install_dir = ?install_dir,
@@ -34,7 +35,7 @@ impl Tool {
             );
 
             if self.exe_file.is_none() {
-                self.generate_shims(false).await?;
+                self.generate_shims(spec, false).await?;
                 self.symlink_bins(false).await?;
 
                 // This conflicts with `proto run`...
@@ -54,12 +55,12 @@ impl Tool {
     #[instrument(skip(self, options))]
     pub async fn setup(
         &mut self,
-        spec: &ToolSpec,
+        spec: &mut ToolSpec,
         options: InstallOptions,
     ) -> Result<Option<LockRecord>, ProtoSetupError> {
-        let version = self.resolve_version(spec, false).await?;
+        let version = Resolver::new(self).resolve_version(spec, false).await?;
 
-        let record = match self.install(options).await? {
+        let record = match self.install(spec, options).await? {
             // Update lock record with resolved spec information
             Some(mut record) => {
                 record.version = Some(version.clone());
@@ -68,7 +69,7 @@ impl Tool {
             }
             // Return an existing lock record if already installed
             None => {
-                return Ok(self.get_resolved_locked_record().cloned());
+                return Ok(self.get_resolved_locked_record(spec).cloned());
             }
         };
 
@@ -106,10 +107,10 @@ impl Tool {
         })?;
 
         // Allow plugins to override manifest
-        self.sync_manifest().await?;
+        self.sync_manifest(spec).await?;
 
         // Create all the things
-        self.generate_shims(false).await?;
+        self.generate_shims(spec, false).await?;
         self.symlink_bins(true).await?;
 
         // Remove temp files
@@ -121,12 +122,12 @@ impl Tool {
     /// Teardown the tool by uninstalling the current version, removing the version
     /// from the manifest, and cleaning up temporary files. Return true if the teardown occurred.
     #[instrument(skip_all)]
-    pub async fn teardown(&mut self, spec: &ToolSpec) -> Result<bool, ProtoSetupError> {
+    pub async fn teardown(&mut self, spec: &mut ToolSpec) -> Result<bool, ProtoSetupError> {
         self.cleanup().await?;
 
-        let version = self.resolve_version(spec, false).await?;
+        let version = Resolver::new(self).resolve_version(spec, false).await?;
 
-        if !self.uninstall().await? {
+        if !self.uninstall(spec).await? {
             return Ok(false);
         }
 
@@ -147,20 +148,20 @@ impl Tool {
         // If no more versions in general, delete all
         if is_last_installed_version {
             for bin in self
-                .resolve_bin_locations_with_manager(bin_manager, true)
+                .resolve_bin_locations_with_manager(bin_manager, None)
                 .await?
             {
                 self.proto.store.unlink_bin(&bin.path)?;
             }
 
-            for shim in self.resolve_shim_locations().await? {
+            for shim in self.resolve_shim_locations(spec).await? {
                 self.proto.store.remove_shim(&shim.path)?;
             }
         }
         // Otherwise, delete bins for this specific version
         else if bin_manager.remove_version(&version) {
             for bin in self
-                .resolve_bin_locations_with_manager(bin_manager, false)
+                .resolve_bin_locations_with_manager(bin_manager, Some(&version))
                 .await?
             {
                 self.proto.store.unlink_bin(&bin.path)?;
@@ -208,7 +209,7 @@ impl Tool {
 
     /// Sync the local tool manifest with changes from the plugin.
     #[instrument(skip_all)]
-    pub async fn sync_manifest(&mut self) -> Result<(), ProtoSetupError> {
+    pub async fn sync_manifest(&mut self, spec: &ToolSpec) -> Result<(), ProtoSetupError> {
         if !self.plugin.has_func(PluginFunction::SyncManifest).await {
             return Ok(());
         }
@@ -223,7 +224,7 @@ impl Tool {
             .call_func_with(
                 PluginFunction::SyncManifest,
                 SyncManifestInput {
-                    context: self.create_plugin_context(),
+                    context: self.create_plugin_context(spec),
                 },
             )
             .await?;

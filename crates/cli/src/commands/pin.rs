@@ -1,6 +1,7 @@
 use crate::session::ProtoSession;
 use clap::Args;
 use iocraft::prelude::element;
+use proto_core::flow::resolve::Resolver;
 use proto_core::{PinLocation, ProtoConfig, ProtoConfigError, Tool, ToolContext, ToolSpec, cfg};
 use starbase::AppResult;
 use starbase_console::ui::*;
@@ -27,13 +28,18 @@ pub async fn internal_pin(
     spec: &ToolSpec,
     pin_to: PinLocation,
 ) -> Result<PathBuf, ProtoConfigError> {
+    let version = match &spec.version {
+        Some(version) => version.to_string(),
+        None => spec.req.to_string(),
+    };
+
     let config_path = ProtoConfig::update_document(tool.proto.get_config_dir(pin_to), |doc| {
-        doc[tool.context.as_str()] = cfg::value(spec.to_string());
+        doc[tool.context.as_str()] = cfg::value(&version);
     })?;
 
     debug!(
         tool = tool.context.as_str(),
-        version = spec.to_string(),
+        version = &version,
         config = ?config_path,
         "Pinned the version",
     );
@@ -44,13 +50,12 @@ pub async fn internal_pin(
 #[tracing::instrument(skip_all)]
 pub async fn pin(session: ProtoSession, args: PinArgs) -> AppResult {
     let mut spec = args.spec.clone();
-    let mut tool = session.load_tool(&args.context).await?;
+    let tool = session.load_tool(&args.context).await?;
 
     if args.resolve {
-        spec.req = tool
-            .resolve_version(&spec, false)
-            .await?
-            .to_unresolved_spec();
+        Resolver::new(&tool)
+            .resolve_version(&mut spec, false)
+            .await?;
     }
 
     let config_path = internal_pin(&tool, &spec, args.to).await?;

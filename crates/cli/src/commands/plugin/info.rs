@@ -52,18 +52,19 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
             },
         )
         .await?;
+    let spec = tool.spec.clone();
 
-    let bins = tool.resolve_bin_locations(true).await?;
-    let shims = tool.resolve_shim_locations().await?;
+    let bins = tool.resolve_bin_locations(None).await?;
+    let shims = tool.resolve_shim_locations(&spec).await?;
 
     if session.should_print_json() {
         let result = InfoPluginResult {
             bins,
             config: tool.config.clone(),
-            exe_file: tool.locate_exe_file().await.ok(),
-            exes_dirs: tool.locate_exes_dirs().await?,
-            globals_dirs: tool.locate_globals_dirs().await?,
-            globals_prefix: tool.locate_globals_prefix().await?,
+            exe_file: tool.locate_exe_file(&spec).await.ok(),
+            exes_dirs: tool.locate_exes_dirs(&spec).await?,
+            globals_dirs: tool.locate_globals_dirs(&spec).await?,
+            globals_prefix: tool.locate_globals_prefix(&spec).await?,
             inventory_dir: tool.get_inventory_dir().to_path_buf(),
             shims,
             id: tool.get_id().clone(),
@@ -183,10 +184,10 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
 
     // INVENTORY
 
-    let exe_file = tool.locate_exe_file().await.ok();
-    let exes_dirs = tool.locate_exes_dirs().await?;
-    let globals_dir = tool.locate_globals_dir().await?;
-    let globals_prefix = tool.locate_globals_prefix().await?;
+    let exe_file = tool.locate_exe_file(&spec).await.ok();
+    let exes_dirs = tool.locate_exes_dirs(&spec).await?;
+    let globals_dir = tool.locate_globals_dir(&spec).await?;
+    let globals_prefix = tool.locate_globals_prefix(&spec).await?;
 
     session.console.render(element! {
         Container {
@@ -195,7 +196,7 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
                     name: "Detected version",
                     value: element! {
                         StyledText(
-                            content: tool.get_resolved_version().to_string(),
+                            content: tool.spec.get_resolved_version().to_string(),
                             style: Style::Hash
                         )
                     }.into_any()

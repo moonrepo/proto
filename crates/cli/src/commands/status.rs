@@ -2,6 +2,7 @@ use crate::error::ProtoCliError;
 use crate::session::{LoadToolOptions, ProtoSession};
 use clap::Args;
 use iocraft::prelude::{Size, element};
+use proto_core::flow::resolve::Resolver;
 use proto_core::{ToolContext, ToolSpec, VersionSpec};
 use serde::Serialize;
 use starbase::AppResult;
@@ -35,23 +36,24 @@ pub async fn status(session: ProtoSession, _args: StatusArgs) -> AppResult {
         })
         .await?;
 
-    for mut tool in tools {
-        let Some(spec) = tool.detected_version.clone() else {
+    for tool in tools {
+        let Some(mut spec) = tool.detected_version.clone() else {
             continue;
         };
 
         debug!(version = spec.to_string(), "Checking {}", tool.get_name());
 
         let item = items.entry(tool.context.clone()).or_default();
+        let mut resolver = Resolver::new(&tool);
 
         // Resolve a version based on the configured spec, and ignore errors
         // as they indicate a version could not be resolved!
-        if let Ok(version) = tool.resolve_version(&spec, false).await
+        if let Ok(version) = resolver.resolve_version(&mut spec, false).await
             && !version.is_latest()
         {
-            if tool.is_installed() {
+            if tool.is_installed(&spec) {
                 item.is_installed = true;
-                item.product_dir = Some(tool.get_product_dir().to_path_buf());
+                item.product_dir = Some(tool.get_product_dir(&spec));
             }
 
             item.resolved_version = Some(version);

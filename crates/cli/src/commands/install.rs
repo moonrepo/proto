@@ -192,7 +192,7 @@ pub async fn install_one(
 
     let result = workflow
         .install_with_logging(
-            spec,
+            &mut spec,
             InstallWorkflowParams {
                 log_writer: None,
                 pin_to: args.get_pin_location(),
@@ -226,8 +226,8 @@ pub async fn install_one(
                         content: format!(
                             "{} <version>{}</version> has been installed to <path>{}</path>!",
                             tool.get_name(),
-                            tool.get_resolved_version(),
-                            tool.get_product_dir().display(),
+                            spec.get_resolved_version(),
+                            tool.get_product_dir(&spec).display(),
                         ),
                     )
                 }
@@ -240,8 +240,8 @@ pub async fn install_one(
                         content: format!(
                             "{} <version>{}</version> has already been installed at <path>{}</path>!",
                             tool.get_name(),
-                            tool.get_resolved_version(),
-                            tool.get_product_dir().display(),
+                            spec.get_resolved_version(),
+                            tool.get_product_dir(&spec).display(),
                         ),
                     )
                 }
@@ -369,7 +369,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
 
             match workflow
                 .install_with_logging(
-                    spec,
+                    &mut spec,
                     InstallWorkflowParams {
                         force,
                         log_writer: None,

@@ -1,6 +1,7 @@
 pub use super::link_error::ProtoLinkError;
 use crate::layout::{Shim, ShimRegistry, ShimsMap};
 use crate::tool::Tool;
+use crate::tool_spec::ToolSpec;
 use proto_pdk_api::*;
 use proto_shim::*;
 use starbase_utils::{fs, path};
@@ -11,8 +12,12 @@ impl Tool {
     /// Create shim files for the current tool if they are missing or out of date.
     /// If find only is enabled, will only check if they exist, and not create.
     #[instrument(skip(self))]
-    pub async fn generate_shims(&mut self, force: bool) -> Result<(), ProtoLinkError> {
-        let shims = self.resolve_shim_locations().await?;
+    pub async fn generate_shims(
+        &mut self,
+        spec: &ToolSpec,
+        force: bool,
+    ) -> Result<(), ProtoLinkError> {
+        let shims = self.resolve_shim_locations(spec).await?;
 
         if shims.is_empty() {
             return Ok(());
@@ -115,7 +120,10 @@ impl Tool {
     /// Symlink all primary and secondary binaries for the current tool.
     #[instrument(skip(self))]
     pub async fn symlink_bins(&mut self, force: bool) -> Result<(), ProtoLinkError> {
-        let bins = self.resolve_bin_locations(force).await?;
+        let invalid_version = VersionSpec::parse("999.999.999").unwrap();
+        let bins = self
+            .resolve_bin_locations(if force { None } else { Some(&invalid_version) })
+            .await?;
 
         if bins.is_empty() {
             return Ok(());
