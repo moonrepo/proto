@@ -2,6 +2,7 @@ pub use super::setup_error::ProtoSetupError;
 use crate::cfg;
 use crate::config::{PinLocation, ProtoConfig};
 use crate::flow::install::{InstallOptions, ProtoInstallError};
+use crate::flow::link::Linker;
 use crate::flow::locate::Locator;
 use crate::flow::resolve::Resolver;
 use crate::layout::BinManager;
@@ -36,8 +37,7 @@ impl Tool {
             );
 
             if self.exe_file.is_none() {
-                self.generate_shims(spec, false).await?;
-                self.symlink_bins(spec, false).await?;
+                Linker::new(self, spec).link(false).await?;
 
                 // This conflicts with `proto run`...
                 // self.locate_exe_file().await?;
@@ -111,8 +111,9 @@ impl Tool {
         self.sync_manifest(spec).await?;
 
         // Create all the things
-        self.generate_shims(spec, false).await?;
-        self.symlink_bins(spec, true).await?;
+        let mut linker = Linker::new(self, spec);
+        linker.link_bins(false).await?;
+        linker.link_shims(true).await?;
 
         // Remove temp files
         self.cleanup().await?;

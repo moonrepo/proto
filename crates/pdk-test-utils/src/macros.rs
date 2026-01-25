@@ -14,15 +14,17 @@ macro_rules! create_plugin {
 #[macro_export]
 macro_rules! check_install_success {
     ($plugin:ident, $spec:ident) => {
-        $plugin.tool.locate_exe_file(&$spec).await.unwrap();
+        let mut locator = flow::locate::Locator::new(&$plugin.tool, &$spec);
 
-        assert!($plugin.tool.get_product_dir(&$spec).exists());
+        locator.locate_exe_file().await.unwrap();
 
-        for bin in $plugin.tool.resolve_bin_locations(None).await.unwrap() {
+        assert!(locator.product_dir.exists());
+
+        for bin in locator.locate_bins(None).await.unwrap() {
             assert!(bin.path.exists());
         }
 
-        for shim in $plugin.tool.resolve_shim_locations(&$spec).await.unwrap() {
+        for shim in locator.locate_shims().await.unwrap() {
             assert!(shim.path.exists());
         }
     };
@@ -277,7 +279,10 @@ macro_rules! generate_shims_test {
             let sandbox = create_empty_proto_sandbox();
             let mut plugin = create_plugin!(sandbox, $id, $schema, $factory);
 
-            plugin.tool.generate_shims(&ToolSpec::default(), false).await.unwrap();
+            flow::link::Linker::new(&mut plugin.tool, &ToolSpec::default())
+                .link_shims(false)
+                .await
+                .unwrap();
 
             $(
                 assert!(

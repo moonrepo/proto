@@ -1,5 +1,6 @@
 use crate::session::{LoadToolOptions, ProtoSession};
 use clap::{Args, ValueEnum};
+use proto_core::flow::link::Linker;
 use proto_core::flow::locate::Locator;
 use proto_core::flow::resolve::Resolver;
 use proto_core::{ToolContext, ToolSpec};
@@ -59,7 +60,7 @@ pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
         .await?;
 
     if args.bin {
-        tool.symlink_bins(&spec, true).await?;
+        Linker::new(&mut tool, &spec).link_bins(true).await?;
 
         for bin in Locator::new(&tool, &spec).locate_bins(None).await? {
             if bin.config.primary {
@@ -74,7 +75,7 @@ pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
     }
 
     if args.shim {
-        tool.generate_shims(&spec, true).await?;
+        Linker::new(&mut tool, &spec).link_shims(true).await?;
 
         for shim in Locator::new(&tool, &spec).locate_shims().await? {
             if shim.config.primary {
