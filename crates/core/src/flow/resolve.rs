@@ -1,4 +1,5 @@
 pub use super::resolve_error::ProtoResolveError;
+use crate::flow::lock::Locker;
 use crate::helpers::is_offline;
 use crate::tool::Tool;
 use crate::tool_spec::ToolSpec;
@@ -112,7 +113,7 @@ impl<'tool> Resolver<'tool> {
 
         // If requested, resolve the version from a lockfile
         if spec.resolve_from_lockfile
-            && let Some(record) = self.tool.resolve_locked_record(spec)?
+            && let Some(record) = Locker::new(self.tool).resolve_locked_record(spec)?
         {
             let version = record
                 .version

@@ -26,24 +26,49 @@ use version_spec::VersionSpec;
 // [ ] status
 //      [ ] add locked label to table
 
-impl Tool {
+/// Detects versions from the environment.
+pub struct Locker<'tool> {
+    tool: &'tool Tool,
+}
+
+impl<'tool> Locker<'tool> {
+    pub fn new(tool: &'tool Tool) -> Self {
+        Self { tool }
+    }
+
+    pub fn get_resolved_locked_record<'a>(&'a self, spec: &'a ToolSpec) -> Option<&'a LockRecord> {
+        // From lockfile (after being resolved)
+        if let Some(record) = &spec.version_locked {
+            return Some(record);
+        }
+
+        // From manifest
+        if let Some(version) = &spec.version {
+            return self.tool.inventory.get_locked_record(version);
+        }
+
+        None
+    }
+
     #[instrument(skip(self))]
     pub fn insert_record_into_lockfile(&self, record: &LockRecord) -> Result<(), ProtoLockError> {
-        if self.metadata.lock_options.no_record {
+        if self.tool.metadata.lock_options.no_record {
             return Ok(());
         }
 
-        let Some(mut lock) = self.proto.load_lock_mut()? else {
+        let proto = &self.tool.proto;
+
+        let Some(mut lock) = proto.load_lock_mut()? else {
             return Ok(());
         };
 
         let record = record.for_lockfile();
-        let records = lock.tools.entry(self.get_id().to_owned()).or_default();
+        let records = lock.tools.entry(self.tool.get_id().to_owned()).or_default();
 
         // Find an existing record with the same spec
         match records
             .iter_mut()
-            .find(|existing| existing.is_match(&record, &self.metadata.lock_options))
+            .find(|existing| existing.is_match(&record, &self.tool.metadata.lock_options))
         {
             Some(existing) => {
                 // If the new record has a higher version,
@@ -57,12 +82,12 @@ impl Tool {
                 }
 
                 // Backwards compatibility for records without an os/arch
-                if self.metadata.lock_options.ignore_os_arch {
+                if self.tool.metadata.lock_options.ignore_os_arch {
                     existing.os = None;
                     existing.arch = None;
                 } else {
-                    existing.os.get_or_insert(self.proto.os);
-                    existing.arch.get_or_insert(self.proto.arch);
+                    existing.os.get_or_insert(proto.os);
+                    existing.arch.get_or_insert(proto.arch);
                 }
             }
             None => {
@@ -77,11 +102,11 @@ impl Tool {
     }
 
     pub fn remove_from_lockfile(&self) -> Result<(), ProtoLockError> {
-        let Some(mut lock) = self.proto.load_lock_mut()? else {
+        let Some(mut lock) = self.tool.proto.load_lock_mut()? else {
             return Ok(());
         };
 
-        lock.tools.remove(self.get_id());
+        lock.tools.remove(self.tool.get_id());
         lock.save()?;
 
         Ok(())
@@ -91,20 +116,22 @@ impl Tool {
         &self,
         version: &VersionSpec,
     ) -> Result<(), ProtoLockError> {
-        let Some(mut lock) = self.proto.load_lock_mut()? else {
+        let proto = &self.tool.proto;
+
+        let Some(mut lock) = proto.load_lock_mut()? else {
             return Ok(());
         };
 
-        if let Some(records) = lock.tools.get_mut(self.get_id()) {
+        if let Some(records) = lock.tools.get_mut(self.tool.get_id()) {
             let spec = version.to_unresolved_spec();
 
             records.retain(|record| {
                 let matched = record.is_match_with(
-                    self.context.backend.as_ref(),
+                    self.tool.context.backend.as_ref(),
                     Some(&spec),
-                    Some(&self.proto.os),
-                    Some(&self.proto.arch),
-                    &self.metadata.lock_options,
+                    Some(&proto.os),
+                    Some(&proto.arch),
+                    &self.tool.metadata.lock_options,
                 );
 
                 !(matched && record.version.as_ref().is_some_and(|ver| ver == version))
@@ -113,10 +140,10 @@ impl Tool {
 
         if lock
             .tools
-            .get(self.get_id())
+            .get(self.tool.get_id())
             .is_none_or(|records| records.is_empty())
         {
-            lock.tools.remove(self.get_id());
+            lock.tools.remove(self.tool.get_id());
         }
 
         lock.sort_records();
@@ -125,37 +152,25 @@ impl Tool {
         Ok(())
     }
 
-    pub fn get_resolved_locked_record<'a>(&'a self, spec: &'a ToolSpec) -> Option<&'a LockRecord> {
-        // From lockfile (after being resolved)
-        if let Some(record) = &spec.version_locked {
-            return Some(record);
-        }
-
-        // From manifest
-        if let Some(version) = &spec.version {
-            return self.inventory.get_locked_record(version);
-        }
-
-        None
-    }
-
     #[instrument(skip(self))]
     pub fn resolve_locked_record(
         &self,
         spec: &ToolSpec,
     ) -> Result<Option<LockRecord>, ProtoLockError> {
-        let Some(lock) = self.proto.load_lock()? else {
+        let proto = &self.tool.proto;
+
+        let Some(lock) = proto.load_lock()? else {
             return Ok(None);
         };
 
-        if let Some(records) = lock.tools.get(self.get_id()) {
+        if let Some(records) = lock.tools.get(self.tool.get_id()) {
             for record in records {
                 let matched = record.is_match_with(
-                    self.context.backend.as_ref(),
+                    self.tool.context.backend.as_ref(),
                     Some(&spec.req),
-                    Some(&self.proto.os),
-                    Some(&self.proto.arch),
-                    &self.metadata.lock_options,
+                    Some(&proto.os),
+                    Some(&proto.arch),
+                    &self.tool.metadata.lock_options,
                 );
 
                 if matched && record.version.is_some() {
@@ -201,7 +216,7 @@ impl Tool {
         match (&install_record.checksum, &locked_record.checksum) {
             (Some(ir), Some(lr)) => {
                 debug!(
-                    tool = self.context.as_str(),
+                    tool = self.tool.context.as_str(),
                     checksum = ir.to_string(),
                     locked_checksum = lr.to_string(),
                     "Verifying checksum against lockfile",

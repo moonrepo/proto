@@ -4,6 +4,7 @@ use crate::config::{PinLocation, ProtoConfig};
 use crate::flow::install::{InstallOptions, ProtoInstallError};
 use crate::flow::link::Linker;
 use crate::flow::locate::Locator;
+use crate::flow::lock::Locker;
 use crate::flow::resolve::Resolver;
 use crate::layout::BinManager;
 use crate::lockfile::LockRecord;
@@ -70,13 +71,13 @@ impl Tool {
             }
             // Return an existing lock record if already installed
             None => {
-                return Ok(self.get_resolved_locked_record(spec).cloned());
+                return Ok(Locker::new(self).get_resolved_locked_record(spec).cloned());
             }
         };
 
         // Add record to lockfile
         if spec.update_lockfile {
-            self.insert_record_into_lockfile(&record)?;
+            Locker::new(self).insert_record_into_lockfile(&record)?;
         }
 
         // Add version to manifest
@@ -135,7 +136,7 @@ impl Tool {
 
         // Remove record from lockfile
         if spec.update_lockfile {
-            self.remove_version_from_lockfile(&version)?;
+            Locker::new(self).remove_version_from_lockfile(&version)?;
         }
 
         // Delete bins and shims

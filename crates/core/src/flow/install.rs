@@ -3,6 +3,7 @@ pub use super::build_error::ProtoBuildError;
 pub use super::install_error::ProtoInstallError;
 use crate::checksum::*;
 use crate::env::ProtoConsole;
+use crate::flow::lock::Locker;
 use crate::helpers::{extract_filename_from_url, is_archive_file, is_executable, is_offline};
 use crate::lockfile::*;
 use crate::tool::Tool;
@@ -511,7 +512,7 @@ impl Tool {
                 record.checksum = output.checksum;
 
                 // Verify against lockfile
-                self.verify_locked_record(spec, &record)?;
+                Locker::new(self).verify_locked_record(spec, &record)?;
 
                 return Ok(Some(record));
             }
@@ -538,7 +539,7 @@ impl Tool {
         match result {
             Ok(record) => {
                 // Verify against lockfile
-                self.verify_locked_record(spec, &record)?;
+                Locker::new(self).verify_locked_record(spec, &record)?;
 
                 debug!(
                     tool = self.context.as_str(),

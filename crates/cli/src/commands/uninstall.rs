@@ -5,6 +5,7 @@ use crate::utils::tool_record::ToolRecord;
 use clap::Args;
 use iocraft::element;
 use proto_core::flow::locate::Locator;
+use proto_core::flow::lock::Locker;
 use proto_core::{ProtoConfig, ProtoConfigError, Tool, ToolContext, ToolSpec};
 use starbase::AppResult;
 use starbase_console::ui::*;
@@ -95,7 +96,7 @@ async fn try_uninstall_all(session: &ProtoSession, tool: &mut ToolRecord) -> mie
     tool.cleanup().await?;
 
     // Remove from lockfile
-    tool.remove_from_lockfile()?;
+    Locker::new(tool).remove_from_lockfile()?;
 
     Ok(())
 }
