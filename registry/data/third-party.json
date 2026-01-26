@@ -1505,6 +1505,18 @@
         "prove",
         "portableshell"
       ]
+    },
+      "id": "sqruff",
+      "locator": "https://raw.githubusercontent.com/T0rvadaL/proto-plugins/main/sqruff.toml",
+      "format": "toml",
+      "name": "sqruff",
+      "description": "Fast SQL formatter/linter.",
+      "author": "T0rvadaL",
+      "homepageUrl": "https://github.com/quarylabs/sqruff",
+      "repositoryUrl": "https://github.com/T0rvadaL/proto-plugins",
+      "bins": [
+        "sqruff"
+      ]
     }
   ]
 }
