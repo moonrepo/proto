@@ -50,6 +50,91 @@ pub struct InstallOptions {
     pub strategy: InstallStrategy,
 }
 
+/// Installs a tool into proto's store.
+pub struct Installer<'tool> {
+    tool: &'tool Tool,
+    spec: &'tool ToolSpec,
+}
+
+impl<'tool> Installer<'tool> {
+    pub fn new(tool: &'tool Tool, spec: &'tool ToolSpec) -> Self {
+        Self { tool, spec }
+    }
+
+    /// Return true if the tool has been installed. This is less accurate than `is_setup`,
+    /// as it only checks for the existence of the inventory directory.
+    pub fn is_installed(&self) -> bool {
+        let dir = self.tool.get_product_dir(self.spec);
+
+        self.spec.version.as_ref().is_some_and(|v| {
+            !v.is_latest() && self.tool.inventory.manifest.installed_versions.contains(v)
+        }) && dir.exists()
+            && !fs::is_dir_locked(dir)
+    }
+
+    /// Verify the downloaded file using the checksum strategy for the tool.
+    /// Common strategies are SHA256 and MD5.
+    #[instrument(skip(self))]
+    pub async fn verify_checksum(
+        &self,
+        checksum_file: &Path,
+        download_file: &Path,
+        checksum_public_key: Option<&str>,
+    ) -> Result<Checksum, ProtoInstallError> {
+        debug!(
+            tool = self.tool.context.as_str(),
+            download_file = ?download_file,
+            checksum_file = ?checksum_file,
+            "Verifying checksum of downloaded file",
+        );
+
+        let checksum = generate_checksum(download_file, checksum_file, checksum_public_key)?;
+        let verified;
+
+        // Allow plugin to provide their own checksum verification method
+        if self
+            .tool
+            .plugin
+            .has_func(PluginFunction::VerifyChecksum)
+            .await
+        {
+            let output: VerifyChecksumOutput = self
+                .tool
+                .plugin
+                .call_func_with(
+                    PluginFunction::VerifyChecksum,
+                    VerifyChecksumInput {
+                        checksum_file: self.tool.to_virtual_path(checksum_file),
+                        download_file: self.tool.to_virtual_path(download_file),
+                        download_checksum: Some(checksum.clone()),
+                        context: self.tool.create_plugin_context(self.spec),
+                    },
+                )
+                .await?;
+
+            verified = output.verified;
+        }
+        // Otherwise attempt to verify it ourselves
+        else {
+            verified = verify_checksum(download_file, checksum_file, &checksum)?;
+        }
+
+        if verified {
+            debug!(
+                tool = self.tool.context.as_str(),
+                "Successfully verified, checksum matches"
+            );
+
+            return Ok(checksum);
+        }
+
+        Err(ProtoInstallError::InvalidChecksum {
+            checksum: checksum_file.to_path_buf(),
+            download: download_file.to_path_buf(),
+        })
+    }
+}
+
 impl Tool {
     /// Return true if the tool has been installed. This is less accurate than `is_setup`,
     /// as it only checks for the existence of the inventory directory.

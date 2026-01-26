@@ -5,9 +5,17 @@ use crate::tool::Tool;
 use crate::tool_spec::ToolSpec;
 use proto_pdk_api::*;
 use proto_shim::*;
+use serde::Serialize;
 use starbase_utils::{fs, path};
 use std::collections::BTreeMap;
+use std::path::PathBuf;
 use tracing::{debug, instrument, warn};
+
+#[derive(Debug, Default, Serialize)]
+pub struct LinkerRecord {
+    pub bins: Vec<PathBuf>,
+    pub shims: Vec<PathBuf>,
+}
 
 /// Link binaries and shims for an installed tool.
 pub struct Linker<'tool> {
@@ -21,20 +29,21 @@ impl<'tool> Linker<'tool> {
     }
 
     /// Link both binaries and shims.
-    pub async fn link(&mut self, force: bool) -> Result<(), ProtoLinkError> {
-        self.link_bins(force).await?;
-        self.link_shims(force).await?;
-        Ok(())
+    pub async fn link(&mut self, force: bool) -> Result<LinkerRecord, ProtoLinkError> {
+        Ok(LinkerRecord {
+            bins: self.link_bins(force).await?,
+            shims: self.link_shims(force).await?,
+        })
     }
 
     /// Create shim files for the current tool if they are missing or out of date.
     /// If find only is enabled, will only check if they exist, and not create.
     #[instrument(skip(self))]
-    pub async fn link_shims(&mut self, force: bool) -> Result<(), ProtoLinkError> {
+    pub async fn link_shims(&mut self, force: bool) -> Result<Vec<PathBuf>, ProtoLinkError> {
         let shims = Locator::new(self.tool, self.spec).locate_shims().await?;
 
         if shims.is_empty() {
-            return Ok(());
+            return Ok(vec![]);
         }
 
         let is_outdated = self.tool.inventory.manifest.shim_version != SHIM_VERSION;
@@ -104,6 +113,8 @@ impl<'tool> Linker<'tool> {
         }
 
         // Only create shims if necessary
+        let mut shims = vec![];
+
         if !to_create.is_empty() {
             let store = &self.tool.proto.store;
 
@@ -122,6 +133,8 @@ impl<'tool> Linker<'tool> {
                     shim_version = SHIM_VERSION,
                     "Creating shim"
                 );
+
+                shims.push(shim_path);
             }
 
             ShimRegistry::update(&store.shims_dir, registry)?;
@@ -130,12 +143,12 @@ impl<'tool> Linker<'tool> {
             self.tool.inventory.manifest.save()?;
         }
 
-        Ok(())
+        Ok(shims)
     }
 
     /// Symlink all primary and secondary binaries for the current tool.
     #[instrument(skip(self))]
-    pub async fn link_bins(&mut self, force: bool) -> Result<(), ProtoLinkError> {
+    pub async fn link_bins(&mut self, force: bool) -> Result<Vec<PathBuf>, ProtoLinkError> {
         let bins = Locator::new(self.tool, self.spec)
             .locate_bins(if force {
                 None
@@ -145,7 +158,7 @@ impl<'tool> Linker<'tool> {
             .await?;
 
         if bins.is_empty() {
-            return Ok(());
+            return Ok(vec![]);
         }
 
         if force {
@@ -195,6 +208,8 @@ impl<'tool> Linker<'tool> {
         }
 
         // Only create bins if necessary
+        let mut bins = vec![];
+
         if !to_create.is_empty() {
             let store = &self.tool.proto.store;
 
@@ -214,9 +229,11 @@ impl<'tool> Linker<'tool> {
 
                 store.unlink_bin(&output_path)?;
                 store.link_bin(&output_path, &input_path)?;
+
+                bins.push(output_path);
             }
         }
 
-        Ok(())
+        Ok(bins)
     }
 }

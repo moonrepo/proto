@@ -27,6 +27,15 @@ pub struct ExecutableLocation {
     pub version: Option<VersionSpec>,
 }
 
+#[derive(Debug, Default, Serialize)]
+pub struct LocatorRecord {
+    pub exe_file: PathBuf,
+    pub exes_dirs: Vec<PathBuf>,
+    pub globals_dir: Option<PathBuf>,
+    pub globals_dirs: Vec<PathBuf>,
+    pub globals_prefix: Option<String>,
+}
+
 /// Locates executables for installed tools.
 pub struct Locator<'tool> {
     pub product_dir: PathBuf,
@@ -56,6 +65,17 @@ impl<'tool> Locator<'tool> {
             globals_dirs: vec![],
             globals_prefix: None,
         }
+    }
+
+    /// Locate all applicable executable and global paths.
+    pub async fn locate(&mut self) -> Result<LocatorRecord, ProtoLocateError> {
+        Ok(LocatorRecord {
+            globals_dirs: self.locate_globals_dirs().await?,
+            globals_dir: self.locate_globals_dir().await?,
+            globals_prefix: self.locate_globals_prefix().await?,
+            exe_file: self.locate_exe_file().await?,
+            exes_dirs: self.locate_exes_dirs().await?,
+        })
     }
 
     pub(crate) async fn call_locate_executables(

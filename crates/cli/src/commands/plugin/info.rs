@@ -58,15 +58,16 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
     let mut locator = LocatorFlow::new(&tool, &spec);
     let bins = locator.locate_bins(None).await?;
     let shims = locator.locate_shims().await?;
+    let locations = locator.locate().await?;
 
     if session.should_print_json() {
         let result = InfoPluginResult {
             bins,
             config: tool.config.clone(),
-            exe_file: locator.locate_exe_file().await.ok(),
-            exes_dirs: locator.locate_exes_dirs().await?,
-            globals_dirs: locator.locate_globals_dirs().await?,
-            globals_prefix: locator.locate_globals_prefix().await?,
+            exe_file: Some(locations.exe_file.clone()),
+            exes_dirs: locations.exes_dirs,
+            globals_dirs: locations.globals_dirs,
+            globals_prefix: locations.globals_prefix,
             inventory_dir: tool.get_inventory_dir().to_path_buf(),
             shims,
             id: tool.get_id().clone(),
@@ -186,11 +187,6 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
 
     // INVENTORY
 
-    let exe_file = locator.locate_exe_file().await.ok();
-    let exes_dirs = locator.locate_exes_dirs().await?;
-    let globals_dir = locator.locate_globals_dir().await?;
-    let globals_prefix = locator.locate_globals_prefix().await?;
-
     session.console.render(element! {
         Container {
             Section(title: "Inventory") {
@@ -225,25 +221,21 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
                         )
                     }.into_any()
                 )
-                #(exe_file.map(|file| {
-                    element! {
-                        Entry(
-                            name: "Executable file",
-                            value: element! {
-                                StyledText(
-                                    content: file.to_string_lossy(),
-                                    style: Style::Path
-                                )
-                            }.into_any()
+                Entry(
+                    name: "Executable file",
+                    value: element! {
+                        StyledText(
+                            content: locations.exe_file.to_string_lossy(),
+                            style: Style::Path
                         )
-                    }
-                }))
+                    }.into_any()
+                )
                 Entry(
                     name: "Executables directories",
-                    no_children: exes_dirs.is_empty()
+                    no_children: locations.exes_dirs.is_empty()
                 ) {
                     List {
-                        #(exes_dirs.into_iter().map(|dir| {
+                        #(locations.exes_dirs.into_iter().map(|dir| {
                             element! {
                                 ListItem {
                                     StyledText(
@@ -255,7 +247,7 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
                         }))
                     }
                 }
-                #(globals_prefix.map(|prefix| {
+                #(locations.globals_prefix.map(|prefix| {
                     element! {
                         Entry(
                             name: "Global packages prefix",
@@ -268,7 +260,7 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
                         )
                     }
                 }))
-                #(globals_dir.map(|dir| {
+                #(locations.globals_dir.map(|dir| {
                     element! {
                         Entry(
                             name: "Global packages directory",

@@ -373,20 +373,17 @@ async fn prepare_tool(
         }
     }
 
-    let mut locator = Locator::new(&tool, &spec);
+    let locations = Locator::new(&tool, &spec).locate().await?;
 
     if params.pre_run_hook && tool.plugin.has_func(HookFunction::PreRun).await {
-        let globals_dir = locator.locate_globals_dir().await?;
-        let globals_prefix = locator.locate_globals_prefix().await?;
-
         let output: RunHookResult = tool
             .plugin
             .call_func_with(
                 HookFunction::PreRun,
                 RunHook {
                     context: tool.create_plugin_context(&spec),
-                    globals_dir: globals_dir.map(|dir| tool.to_virtual_path(&dir)),
-                    globals_prefix,
+                    globals_dir: locations.globals_dir.map(|dir| tool.to_virtual_path(&dir)),
+                    globals_prefix: locations.globals_prefix,
                     passthrough_args: params.passthrough_args,
                 },
             )
@@ -410,15 +407,15 @@ async fn prepare_tool(
     }
 
     // Extract executable directories
-    if let Some(dir) = locator.locate_exe_file().await?.parent() {
+    if let Some(dir) = locations.exe_file.parent() {
         item.add_path(dir.to_path_buf());
     }
 
-    for exes_dir in locator.locate_exes_dirs().await? {
+    for exes_dir in locations.exes_dirs {
         item.add_path(exes_dir);
     }
 
-    for globals_dir in locator.locate_globals_dirs().await? {
+    for globals_dir in locations.globals_dirs {
         item.add_path(globals_dir);
     }
 
