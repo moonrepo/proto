@@ -1,7 +1,7 @@
 pub use super::setup_error::ProtoSetupError;
 use crate::cfg;
 use crate::config::{PinLocation, ProtoConfig};
-use crate::flow::install::{InstallOptions, ProtoInstallError};
+use crate::flow::install::{InstallOptions, Installer, ProtoInstallError};
 use crate::flow::link::Linker;
 use crate::flow::locate::Locator;
 use crate::flow::lock::Locker;
@@ -30,7 +30,7 @@ impl Tool {
             "Checking if tool is installed",
         );
 
-        if self.is_installed(spec) {
+        if Installer::new(self, spec).is_installed() {
             debug!(
                 tool = self.context.as_str(),
                 install_dir = ?install_dir,
@@ -62,7 +62,7 @@ impl Tool {
     ) -> Result<Option<LockRecord>, ProtoSetupError> {
         let version = Resolver::new(self).resolve_version(spec, false).await?;
 
-        let record = match self.install(spec, options).await? {
+        let record = match Installer::new(self, spec).install(options).await? {
             // Update lock record with resolved spec information
             Some(mut record) => {
                 record.version = Some(version.clone());
@@ -130,7 +130,7 @@ impl Tool {
 
         let version = Resolver::new(self).resolve_version(spec, false).await?;
 
-        if !self.uninstall(spec).await? {
+        if !Installer::new(self, spec).uninstall().await? {
             return Ok(false);
         }
 

@@ -2,6 +2,7 @@ use crate::error::ProtoCliError;
 use crate::session::{LoadToolOptions, ProtoSession};
 use clap::Args;
 use iocraft::prelude::{Size, element};
+use proto_core::flow::install::Installer;
 use proto_core::flow::resolve::Resolver;
 use proto_core::{ToolContext, ToolSpec, VersionSpec};
 use serde::Serialize;
@@ -51,9 +52,11 @@ pub async fn status(session: ProtoSession, _args: StatusArgs) -> AppResult {
         if let Ok(version) = resolver.resolve_version(&mut spec, false).await
             && !version.is_latest()
         {
-            if tool.is_installed(&spec) {
+            let installer = Installer::new(&tool, &spec);
+
+            if installer.is_installed() {
                 item.is_installed = true;
-                item.product_dir = Some(tool.get_product_dir(&spec));
+                item.product_dir = Some(installer.install_dir);
             }
 
             item.resolved_version = Some(version);

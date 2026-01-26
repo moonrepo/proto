@@ -4,6 +4,7 @@ use crate::telemetry::{Metric, track_usage};
 use crate::utils::tool_record::ToolRecord;
 use clap::Args;
 use iocraft::element;
+use proto_core::flow::install::Installer;
 use proto_core::flow::locate::Locator;
 use proto_core::flow::lock::Locker;
 use proto_core::{ProtoConfig, ProtoConfigError, Tool, ToolContext, ToolSpec};
@@ -75,7 +76,9 @@ async fn try_uninstall_all(session: &ProtoSession, tool: &mut ToolRecord) -> mie
     // Loop through each version and uninstall and
     // don't use `teardown` as it does far too much
     for version in tool.installed_versions.clone() {
-        tool.uninstall(&mut ToolSpec::new_resolved(version)).await?;
+        let spec = ToolSpec::new_resolved(version);
+
+        Installer::new(tool, &spec).uninstall().await?;
     }
 
     let spec = ToolSpec::default();
