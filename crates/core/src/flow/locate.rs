@@ -28,7 +28,7 @@ pub struct ExecutableLocation {
 }
 
 #[derive(Debug, Default, Serialize)]
-pub struct LocatorRecord {
+pub struct LocatorResponse {
     pub exe_file: PathBuf,
     pub exes_dirs: Vec<PathBuf>,
     pub globals_dir: Option<PathBuf>,
@@ -38,18 +38,16 @@ pub struct LocatorRecord {
 
 /// Locates executables for installed tools.
 pub struct Locator<'tool> {
-    pub product_dir: PathBuf,
-
     tool: &'tool Tool,
     spec: &'tool ToolSpec,
 
-    // Cached values
-    cache: bool,
     exe_file: Option<PathBuf>,
     exes_dirs: Vec<PathBuf>,
     globals_dir: Option<PathBuf>,
     globals_dirs: Vec<PathBuf>,
     globals_prefix: Option<String>,
+
+    pub product_dir: PathBuf,
 }
 
 impl<'tool> Locator<'tool> {
@@ -58,7 +56,6 @@ impl<'tool> Locator<'tool> {
             product_dir: tool.get_product_dir(spec),
             tool,
             spec,
-            cache: false,
             exe_file: None,
             exes_dirs: vec![],
             globals_dir: None,
@@ -68,8 +65,8 @@ impl<'tool> Locator<'tool> {
     }
 
     /// Locate all applicable executable and global paths.
-    pub async fn locate(&mut self) -> Result<LocatorRecord, ProtoLocateError> {
-        Ok(LocatorRecord {
+    pub async fn locate(&mut self) -> Result<LocatorResponse, ProtoLocateError> {
+        Ok(LocatorResponse {
             globals_dirs: self.locate_globals_dirs().await?,
             globals_dir: self.locate_globals_dir().await?,
             globals_prefix: self.locate_globals_prefix().await?,
@@ -292,9 +289,7 @@ impl<'tool> Locator<'tool> {
         if exe_file.exists() {
             debug!(tool = self.tool.context.as_str(), exe_path = ?exe_file, "Found an executable");
 
-            if self.cache {
-                self.exe_file = Some(exe_file.clone());
-            }
+            self.exe_file = Some(exe_file.clone());
 
             return Ok(exe_file);
         }
@@ -347,9 +342,7 @@ impl<'tool> Locator<'tool> {
             }
         }
 
-        if self.cache {
-            self.exes_dirs = dirs.clone();
-        }
+        self.exes_dirs = dirs.clone();
 
         Ok(dirs)
     }
@@ -408,9 +401,7 @@ impl<'tool> Locator<'tool> {
             let _ = fs::create_dir_all(dir);
         }
 
-        if self.cache {
-            self.globals_dir = found_dir.clone();
-        }
+        self.globals_dir = found_dir.clone();
 
         Ok(found_dir)
     }
@@ -445,9 +436,7 @@ impl<'tool> Locator<'tool> {
         let output = self.call_locate_executables().await?;
 
         // Set the prefix for simpler caching
-        if self.cache {
-            self.globals_prefix = output.globals_prefix;
-        }
+        self.globals_prefix = output.globals_prefix;
 
         // Find all possible global directories that packages can be installed to
         let mut resolved_dirs = vec![];
@@ -501,9 +490,7 @@ impl<'tool> Locator<'tool> {
             "Located possible globals directories",
         );
 
-        if self.cache {
-            self.globals_dirs = resolved_dirs.clone();
-        }
+        self.globals_dirs = resolved_dirs.clone();
 
         Ok(resolved_dirs)
     }
@@ -532,9 +519,7 @@ impl<'tool> Locator<'tool> {
         let output = self.call_locate_executables().await?;
         let prefix = output.globals_prefix;
 
-        if self.cache {
-            self.globals_prefix = prefix.clone();
-        }
+        self.globals_prefix = prefix.clone();
 
         Ok(prefix)
     }

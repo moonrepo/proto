@@ -1,7 +1,9 @@
 use crate::utils::tool_record::ToolRecord;
 use indexmap::{IndexMap, IndexSet};
 use miette::IntoDiagnostic;
+use proto_core::flow::link::Linker;
 use proto_core::flow::locate::Locator;
+use proto_core::flow::resolve::Resolver;
 use proto_core::flow::setup::ProtoSetupError;
 use proto_core::{ProtoConfig, ProtoConfigEnvOptions, ToolContext, ToolSpec};
 use proto_pdk_api::{
@@ -336,7 +338,13 @@ async fn prepare_tool(
     item.active = true;
 
     // Resolve the version and locate executables
-    if !tool.is_setup(&mut spec).await? {
+    Resolver::new(&tool)
+        .resolve_version(&mut spec, true)
+        .await?;
+
+    if tool.is_installed(&spec) {
+        Linker::new(&mut tool, &spec).link(false).await?;
+    } else {
         return Ok(item);
     }
 

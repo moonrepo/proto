@@ -26,7 +26,7 @@ use version_spec::VersionSpec;
 // [ ] status
 //      [ ] add locked label to table
 
-/// Detects versions from the environment.
+/// Manages records in a lockfile.
 pub struct Locker<'tool> {
     tool: &'tool Tool,
 }

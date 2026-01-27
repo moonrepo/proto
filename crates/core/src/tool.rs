@@ -235,6 +235,35 @@ impl Tool {
         self.ty == PluginType::Backend
     }
 
+    /// Return true if the tool has been installed. This *requires* the spec to
+    /// have been resolved before hand.
+    pub fn is_installed(&self, spec: &ToolSpec) -> bool {
+        let dir = self.get_product_dir(spec);
+
+        debug!(
+            tool = self.context.as_str(),
+            install_dir = ?dir,
+            "Checking if tool is installed",
+        );
+
+        let installed = spec.version.as_ref().is_some_and(|v| {
+            !v.is_latest() && self.inventory.manifest.installed_versions.contains(v)
+        }) && dir.exists()
+            && !fs::is_dir_locked(&dir);
+
+        if installed {
+            debug!(
+                tool = self.context.as_str(),
+                install_dir = ?dir,
+                "Tool has already been installed",
+            );
+        } else {
+            debug!(tool = self.context.as_str(), "Tool has not been installed");
+        }
+
+        installed
+    }
+
     /// Convert a virtual path to a real path.
     pub fn from_virtual_path(&self, path: impl AsRef<Path> + Debug) -> PathBuf {
         self.plugin.from_virtual_path(path)

@@ -55,29 +55,18 @@ pub struct Installer<'tool> {
     tool: &'tool Tool,
     spec: &'tool ToolSpec,
 
-    pub install_dir: PathBuf,
+    pub product_dir: PathBuf,
     pub temp_dir: PathBuf,
 }
 
 impl<'tool> Installer<'tool> {
     pub fn new(tool: &'tool Tool, spec: &'tool ToolSpec) -> Self {
         Self {
-            install_dir: tool.get_product_dir(spec),
+            product_dir: tool.get_product_dir(spec),
             temp_dir: tool.get_temp_dir().to_path_buf(),
             tool,
             spec,
         }
-    }
-
-    /// Return true if the tool has been installed. This is less accurate than `is_setup`,
-    /// as it only checks for the existence of the inventory directory.
-    pub fn is_installed(&self) -> bool {
-        let dir = self.tool.get_product_dir(self.spec);
-
-        self.spec.version.as_ref().is_some_and(|v| {
-            !v.is_latest() && self.tool.inventory.manifest.installed_versions.contains(v)
-        }) && dir.exists()
-            && !fs::is_dir_locked(dir)
     }
 
     /// Install a tool into proto, either by downloading and unpacking
@@ -87,7 +76,7 @@ impl<'tool> Installer<'tool> {
         &self,
         options: InstallOptions,
     ) -> Result<Option<LockRecord>, ProtoInstallError> {
-        if self.is_installed() && !options.force {
+        if self.tool.is_installed(self.spec) && !options.force {
             debug!(
                 tool = self.tool.context.as_str(),
                 "Tool already installed, continuing"
@@ -122,7 +111,7 @@ impl<'tool> Installer<'tool> {
                 func(InstallPhase::Native);
             });
 
-            fs::create_dir_all(&self.install_dir)?;
+            fs::create_dir_all(&self.product_dir)?;
 
             let output: NativeInstallOutput = self
                 .tool
@@ -131,7 +120,7 @@ impl<'tool> Installer<'tool> {
                     PluginFunction::NativeInstall,
                     NativeInstallInput {
                         context: self.tool.create_plugin_context(self.spec),
-                        install_dir: self.tool.to_virtual_path(&self.install_dir),
+                        install_dir: self.tool.to_virtual_path(&self.product_dir),
                         force: options.force,
                     },
                 )
@@ -171,7 +160,7 @@ impl<'tool> Installer<'tool> {
 
                 debug!(
                     tool = self.tool.context.as_str(),
-                    install_dir = ?self.install_dir,
+                    install_dir = ?self.product_dir,
                     "Successfully installed tool",
                 );
 
@@ -182,13 +171,13 @@ impl<'tool> Installer<'tool> {
             Err(error) => {
                 debug!(
                     tool = self.tool.context.as_str(),
-                    install_dir = ?self.install_dir,
+                    install_dir = ?self.product_dir,
                     "Failed to install tool, cleaning up",
                 );
 
                 install_lock.unlock()?;
 
-                fs::remove_dir_all(&self.install_dir)?;
+                fs::remove_dir_all(&self.product_dir)?;
                 fs::remove_dir_all(&self.temp_dir)?;
 
                 Err(error)
@@ -226,7 +215,7 @@ impl<'tool> Installer<'tool> {
                 PluginFunction::BuildInstructions,
                 BuildInstructionsInput {
                     context: self.tool.create_plugin_context(self.spec),
-                    install_dir: self.tool.to_virtual_path(&self.install_dir),
+                    install_dir: self.tool.to_virtual_path(&self.product_dir),
                 },
             )
             .await?;
@@ -260,7 +249,7 @@ impl<'tool> Installer<'tool> {
                 .console
                 .as_ref()
                 .expect("Console required for builder!"),
-            install_dir: &self.install_dir,
+            install_dir: &self.product_dir,
             http_client: self.tool.proto.get_plugin_loader()?.get_http_client()?,
             log_writer: options
                 .log_writer
@@ -339,7 +328,7 @@ impl<'tool> Installer<'tool> {
                 PluginFunction::DownloadPrebuilt,
                 DownloadPrebuiltInput {
                     context: self.tool.create_plugin_context(self.spec),
-                    install_dir: self.tool.to_virtual_path(&self.install_dir),
+                    install_dir: self.tool.to_virtual_path(&self.product_dir),
                 },
             )
             .await?;
@@ -452,7 +441,7 @@ impl<'tool> Installer<'tool> {
         debug!(
             tool = self.tool.context.as_str(),
             download_file = ?download_file,
-            install_dir = ?self.install_dir,
+            install_dir = ?self.product_dir,
             "Attempting to unpack archive",
         );
 
@@ -474,7 +463,7 @@ impl<'tool> Installer<'tool> {
                     PluginFunction::UnpackArchive,
                     UnpackArchiveInput {
                         input_file: self.tool.to_virtual_path(&download_file),
-                        output_dir: self.tool.to_virtual_path(&self.install_dir),
+                        output_dir: self.tool.to_virtual_path(&self.product_dir),
                         context: self.tool.create_plugin_context(self.spec),
                     },
                 )
@@ -489,7 +478,7 @@ impl<'tool> Installer<'tool> {
             });
 
             let (ext, unpacked_path) = archive::unpack_raw(
-                &self.install_dir,
+                &self.product_dir,
                 &download_file,
                 output.archive_prefix.as_deref(),
             )?;
@@ -502,7 +491,7 @@ impl<'tool> Installer<'tool> {
         }
         // Not an archive, assume a file and copy
         else {
-            let install_path = self.install_dir.join(path::exe_name(path::encode_component(
+            let install_path = self.product_dir.join(path::exe_name(path::encode_component(
                 self.tool.get_file_name(),
             )));
 
@@ -512,7 +501,7 @@ impl<'tool> Installer<'tool> {
 
         // Execute post install script
         if let Some(rel_script) = output.post_script {
-            let abs_script = self.install_dir.join(rel_script);
+            let abs_script = self.product_dir.join(rel_script);
 
             if !abs_script.exists() {
                 warn!(
@@ -537,7 +526,7 @@ impl<'tool> Installer<'tool> {
                 let mut command = Command::new(shell.to_string());
                 command.arg("-c");
                 command.arg(shell.quote(&abs_script.to_string_lossy()));
-                command.current_dir(&self.install_dir);
+                command.current_dir(&self.product_dir);
 
                 process::exec_command(&mut command).await?;
             }
@@ -549,7 +538,7 @@ impl<'tool> Installer<'tool> {
     /// Uninstall the tool by deleting the current install directory.
     #[instrument(skip_all)]
     pub async fn uninstall(&self) -> Result<bool, ProtoInstallError> {
-        if !self.install_dir.exists() {
+        if !self.product_dir.exists() {
             debug!(
                 tool = self.tool.context.as_str(),
                 "Tool has not been installed, aborting"
@@ -576,7 +565,7 @@ impl<'tool> Installer<'tool> {
                     PluginFunction::NativeUninstall,
                     NativeUninstallInput {
                         context: self.tool.create_plugin_context(self.spec),
-                        uninstall_dir: self.tool.to_virtual_path(&self.install_dir),
+                        uninstall_dir: self.tool.to_virtual_path(&self.product_dir),
                     },
                 )
                 .await?;
@@ -591,11 +580,11 @@ impl<'tool> Installer<'tool> {
 
         debug!(
             tool = self.tool.context.as_str(),
-            install_dir = ?self.install_dir,
+            install_dir = ?self.product_dir,
             "Deleting install directory"
         );
 
-        fs::remove_dir_all(&self.install_dir)?;
+        fs::remove_dir_all(&self.product_dir)?;
 
         debug!(
             tool = self.tool.context.as_str(),

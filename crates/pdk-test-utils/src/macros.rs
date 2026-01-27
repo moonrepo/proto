@@ -35,19 +35,15 @@ macro_rules! do_build_from_source {
     ($sandbox:ident, $plugin:ident, $spec:literal) => {
         let mut spec = ToolSpec::parse($spec).unwrap();
 
-        let result = $plugin
-            .tool
-            .setup(
-                &mut spec,
-                flow::install::InstallOptions {
-                    console: Some(ProtoConsole::new_testing()),
-                    log_writer: Some(Default::default()),
-                    strategy: InstallStrategy::BuildFromSource,
-                    skip_prompts: true,
-                    skip_ui: true,
-                    ..Default::default()
-                },
-            )
+        let result = flow::setup::Setup::new(&mut $plugin.tool, &mut spec)
+            .setup(flow::install::InstallOptions {
+                console: Some(ProtoConsole::new_testing()),
+                log_writer: Some(Default::default()),
+                strategy: InstallStrategy::BuildFromSource,
+                skip_prompts: true,
+                skip_ui: true,
+                ..Default::default()
+            })
             .await;
 
         // Print the log so we can debug
@@ -93,9 +89,8 @@ macro_rules! do_install_prebuilt {
     ($sandbox:ident, $plugin:ident, $spec:literal) => {
         let mut spec = ToolSpec::parse($spec).unwrap();
 
-        let result = $plugin
-            .tool
-            .setup(&mut spec, flow::install::InstallOptions::default())
+        let result = flow::setup::Setup::new(&mut $plugin.tool, &mut spec)
+            .setup(flow::install::InstallOptions::default())
             .await;
 
         check_install_success!($plugin, spec);
@@ -125,7 +120,8 @@ macro_rules! generate_download_install_tests {
                 .await
                 .unwrap();
 
-            tool.install(&mut spec, flow::install::InstallOptions::default())
+            flow::install::Installer::new(&tool, &mut spec)
+                .install(flow::install::InstallOptions::default())
                 .await
                 .unwrap();
 
@@ -153,7 +149,8 @@ macro_rules! generate_download_install_tests {
             std::fs::create_dir_all(tool.get_product_dir(&spec)).unwrap();
 
             assert!(
-                tool.install(&mut spec, flow::install::InstallOptions::default())
+                flow::install::Installer::new(&tool, &mut spec)
+                    .install(flow::install::InstallOptions::default())
                     .await
                     .unwrap()
                     .is_none()

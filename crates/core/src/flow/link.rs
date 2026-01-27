@@ -12,7 +12,7 @@ use std::path::PathBuf;
 use tracing::{debug, instrument, warn};
 
 #[derive(Debug, Default, Serialize)]
-pub struct LinkerRecord {
+pub struct LinkerResponse {
     pub bins: Vec<PathBuf>,
     pub shims: Vec<PathBuf>,
 }
@@ -29,8 +29,8 @@ impl<'tool> Linker<'tool> {
     }
 
     /// Link both binaries and shims.
-    pub async fn link(&mut self, force: bool) -> Result<LinkerRecord, ProtoLinkError> {
-        Ok(LinkerRecord {
+    pub async fn link(&mut self, force: bool) -> Result<LinkerResponse, ProtoLinkError> {
+        Ok(LinkerResponse {
             bins: self.link_bins(force).await?,
             shims: self.link_shims(force).await?,
         })

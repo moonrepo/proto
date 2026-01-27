@@ -16,40 +16,15 @@ use starbase_utils::fs;
 use std::collections::{BTreeMap, BTreeSet};
 use tracing::{debug, instrument};
 
-impl Tool {
-    /// Return true if the tool has been setup (installed and executables are located).
-    #[instrument(skip(self))]
-    pub async fn is_setup(&mut self, spec: &mut ToolSpec) -> Result<bool, ProtoSetupError> {
-        Resolver::new(self).resolve_version(spec, true).await?;
+/// Set up and tears down tools.
+pub struct Setup<'tool> {
+    tool: &'tool mut Tool,
+    spec: &'tool mut ToolSpec,
+}
 
-        let install_dir = self.get_product_dir(spec);
-
-        debug!(
-            tool = self.context.as_str(),
-            install_dir = ?install_dir,
-            "Checking if tool is installed",
-        );
-
-        if Installer::new(self, spec).is_installed() {
-            debug!(
-                tool = self.context.as_str(),
-                install_dir = ?install_dir,
-                "Tool has already been installed, locating binaries and shims",
-            );
-
-            if self.exe_file.is_none() {
-                Linker::new(self, spec).link(false).await?;
-
-                // This conflicts with `proto run`...
-                // self.locate_exe_file().await?;
-            }
-
-            return Ok(true);
-        }
-
-        debug!(tool = self.context.as_str(), "Tool has not been installed");
-
-        Ok(false)
+impl<'tool> Setup<'tool> {
+    pub fn new(tool: &'tool mut Tool, spec: &'tool mut ToolSpec) -> Self {
+        Self { tool, spec }
     }
 
     /// Setup the tool by resolving a semantic version, installing the tool,
@@ -57,48 +32,55 @@ impl Tool {
     #[instrument(skip(self, options))]
     pub async fn setup(
         &mut self,
-        spec: &mut ToolSpec,
         options: InstallOptions,
     ) -> Result<Option<LockRecord>, ProtoSetupError> {
-        let version = Resolver::new(self).resolve_version(spec, false).await?;
+        let version = Resolver::new(self.tool)
+            .resolve_version(self.spec, false)
+            .await?;
 
-        let record = match Installer::new(self, spec).install(options).await? {
+        let record = match Installer::new(self.tool, self.spec)
+            .install(options)
+            .await?
+        {
             // Update lock record with resolved spec information
             Some(mut record) => {
                 record.version = Some(version.clone());
-                record.spec = Some(spec.req.clone());
+                record.spec = Some(self.spec.req.clone());
                 record
             }
             // Return an existing lock record if already installed
             None => {
-                return Ok(Locker::new(self).get_resolved_locked_record(spec).cloned());
+                return Ok(Locker::new(self.tool)
+                    .get_resolved_locked_record(self.spec)
+                    .cloned());
             }
         };
 
         // Add record to lockfile
-        if spec.update_lockfile {
-            Locker::new(self).insert_record_into_lockfile(&record)?;
+        if self.spec.update_lockfile {
+            Locker::new(self.tool).insert_record_into_lockfile(&record)?;
         }
 
         // Add version to manifest
-        let manifest = &mut self.inventory.manifest;
+        let manifest = &mut self.tool.inventory.manifest;
         manifest.installed_versions.insert(version.clone());
         manifest.versions.insert(
             version.clone(),
             ToolManifestVersion {
                 lock: Some(record.for_manifest()),
-                suffix: self.inventory.config.version_suffix.clone(),
+                suffix: self.tool.inventory.config.version_suffix.clone(),
                 ..Default::default()
             },
         );
         manifest.save()?;
 
         // Pin the global version
-        ProtoConfig::update_document(self.proto.get_config_dir(PinLocation::Global), |doc| {
-            if !doc.contains_key(self.get_id()) {
-                doc[self.context.as_str()] = cfg::value(
+        ProtoConfig::update_document(self.tool.proto.get_config_dir(PinLocation::Global), |doc| {
+            if !doc.contains_key(self.tool.get_id()) {
+                doc[self.tool.context.as_str()] = cfg::value(
                     ToolSpec::new(
-                        self.metadata
+                        self.tool
+                            .metadata
                             .default_version
                             .clone()
                             .unwrap_or_else(|| version.to_unresolved_spec()),
@@ -109,10 +91,10 @@ impl Tool {
         })?;
 
         // Allow plugins to override manifest
-        self.sync_manifest(spec).await?;
+        self.sync_manifest().await?;
 
-        // Create all the things
-        let mut linker = Linker::new(self, spec);
+        // Link all the things
+        let mut linker = Linker::new(self.tool, self.spec);
         linker.link_bins(false).await?;
         linker.link_shims(true).await?;
 
@@ -125,39 +107,43 @@ impl Tool {
     /// Teardown the tool by uninstalling the current version, removing the version
     /// from the manifest, and cleaning up temporary files. Return true if the teardown occurred.
     #[instrument(skip_all)]
-    pub async fn teardown(&mut self, spec: &mut ToolSpec) -> Result<bool, ProtoSetupError> {
+    pub async fn teardown(&mut self) -> Result<bool, ProtoSetupError> {
         self.cleanup().await?;
 
-        let version = Resolver::new(self).resolve_version(spec, false).await?;
+        let version = Resolver::new(self.tool)
+            .resolve_version(self.spec, false)
+            .await?;
 
-        if !Installer::new(self, spec).uninstall().await? {
+        if !Installer::new(self.tool, self.spec).uninstall().await? {
             return Ok(false);
         }
 
         // Remove record from lockfile
-        if spec.update_lockfile {
-            Locker::new(self).remove_version_from_lockfile(&version)?;
+        if self.spec.update_lockfile {
+            Locker::new(self.tool).remove_version_from_lockfile(&version)?;
         }
 
         // Delete bins and shims
-        let mut bin_manager = BinManager::from_manifest(&self.inventory.manifest);
-        let is_last_installed_version = self.inventory.manifest.installed_versions.len() == 1
+        let mut bin_manager = BinManager::from_manifest(&self.tool.inventory.manifest);
+        let is_last_installed_version = self.tool.inventory.manifest.installed_versions.len() == 1
             && self
+                .tool
                 .inventory
                 .manifest
                 .installed_versions
                 .contains(&version);
 
-        let locator = Locator::new(self, spec);
+        let locator = Locator::new(self.tool, self.spec);
+        let proto = &self.tool.proto;
 
         // If no more versions in general, delete all
         if is_last_installed_version {
             for bin in locator.locate_bins_with_manager(bin_manager, None).await? {
-                self.proto.store.unlink_bin(&bin.path)?;
+                proto.store.unlink_bin(&bin.path)?;
             }
 
             for shim in locator.locate_shims().await? {
-                self.proto.store.remove_shim(&shim.path)?;
+                proto.store.remove_shim(&shim.path)?;
             }
         }
         // Otherwise, delete bins for this specific version
@@ -166,27 +152,27 @@ impl Tool {
                 .locate_bins_with_manager(bin_manager, Some(&version))
                 .await?
             {
-                self.proto.store.unlink_bin(&bin.path)?;
+                proto.store.unlink_bin(&bin.path)?;
             }
         }
 
         // Unpin global version if a match
-        ProtoConfig::update_document(self.proto.get_config_dir(PinLocation::Global), |doc| {
+        ProtoConfig::update_document(proto.get_config_dir(PinLocation::Global), |doc| {
             if doc
-                .get(self.context.as_str())
+                .get(self.tool.context.as_str())
                 .and_then(|item| item.as_str())
                 .is_some_and(|v| version == v)
             {
                 debug!("Unpinning global version");
 
-                doc.as_table_mut().remove(self.context.as_str());
+                doc.as_table_mut().remove(self.tool.context.as_str());
             }
         })?;
 
         // Remove version from manifest/lockfile
         // We must do this last because the location resolves above
         // require `installed_versions` to have values!
-        let manifest = &mut self.inventory.manifest;
+        let manifest = &mut self.tool.inventory.manifest;
         manifest.installed_versions.remove(&version);
         manifest.versions.remove(&version);
         manifest.save()?;
@@ -196,13 +182,13 @@ impl Tool {
 
     /// Delete temporary files and downloads for the current version.
     #[instrument(skip_all)]
-    pub async fn cleanup(&mut self) -> Result<(), ProtoSetupError> {
+    pub async fn cleanup(&self) -> Result<(), ProtoSetupError> {
         debug!(
-            tool = self.context.as_str(),
+            tool = self.tool.context.as_str(),
             "Cleaning up temporary files and downloads"
         );
 
-        fs::remove_dir_all(self.get_temp_dir()).map_err(|error| {
+        fs::remove_dir_all(self.tool.get_temp_dir()).map_err(|error| {
             ProtoSetupError::Install(Box::new(ProtoInstallError::Fs(Box::new(error))))
         })?;
 
@@ -211,22 +197,28 @@ impl Tool {
 
     /// Sync the local tool manifest with changes from the plugin.
     #[instrument(skip_all)]
-    pub async fn sync_manifest(&mut self, spec: &ToolSpec) -> Result<(), ProtoSetupError> {
-        if !self.plugin.has_func(PluginFunction::SyncManifest).await {
+    pub async fn sync_manifest(&mut self) -> Result<(), ProtoSetupError> {
+        if !self
+            .tool
+            .plugin
+            .has_func(PluginFunction::SyncManifest)
+            .await
+        {
             return Ok(());
         }
 
         debug!(
-            tool = self.context.as_str(),
+            tool = self.tool.context.as_str(),
             "Syncing manifest with changes"
         );
 
         let output: SyncManifestOutput = self
+            .tool
             .plugin
             .call_func_with(
                 PluginFunction::SyncManifest,
                 SyncManifestInput {
-                    context: self.create_plugin_context(spec),
+                    context: self.tool.create_plugin_context(self.spec),
                 },
             )
             .await?;
@@ -236,7 +228,7 @@ impl Tool {
         }
 
         let mut modified = false;
-        let manifest = &mut self.inventory.manifest;
+        let manifest = &mut self.tool.inventory.manifest;
 
         if let Some(versions) = output.versions {
             modified = true;

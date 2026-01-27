@@ -6,6 +6,7 @@ use clap::Args;
 use miette::IntoDiagnostic;
 use proto_core::flow::detect::{Detector, ProtoDetectError};
 use proto_core::flow::locate::{Locator, ProtoLocateError};
+use proto_core::flow::resolve::Resolver;
 use proto_core::{
     Id, PROTO_PLUGIN_KEY, ProtoEnvironment, ProtoLoaderError, Tool, ToolContext, ToolSpec,
 };
@@ -250,7 +251,7 @@ fn run_global_tool(
 
 #[tracing::instrument(skip_all)]
 pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
-    let mut tool = match session.load_tool(&args.context).await {
+    let tool = match session.load_tool(&args.context).await {
         Ok(tool) => tool,
         Err(error) => {
             return if matches!(error, ProtoLoaderError::UnknownTool { .. }) {
@@ -297,8 +298,12 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
         }
     };
 
+    Resolver::new(&tool)
+        .resolve_version(&mut spec, false)
+        .await?;
+
     // Check if installed or need to install
-    if tool.is_setup(&mut spec).await? {
+    if tool.is_installed(&spec) {
         if tool.get_id() == PROTO_PLUGIN_KEY {
             use_global_proto = false;
         }
