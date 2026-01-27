@@ -87,7 +87,7 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
 
     // PLUGIN
 
-    let is_backend = tool.is_backend_plugin().await;
+    let is_backend = tool.is_backend_plugin();
     let is_tool = !is_backend;
 
     session.console.render(element! {

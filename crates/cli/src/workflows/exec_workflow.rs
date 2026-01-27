@@ -1,7 +1,6 @@
 use crate::utils::tool_record::ToolRecord;
 use indexmap::{IndexMap, IndexSet};
 use miette::IntoDiagnostic;
-use proto_core::flow::link::Linker;
 use proto_core::flow::locate::Locator;
 use proto_core::flow::manage::ProtoManageError;
 use proto_core::flow::resolve::Resolver;
@@ -314,7 +313,7 @@ impl<'app> ExecWorkflow<'app> {
 }
 
 async fn prepare_tool(
-    mut tool: ToolRecord,
+    tool: ToolRecord,
     provided_spec: Option<ToolSpec>,
     params: ExecWorkflowParams,
 ) -> Result<ExecItem, ProtoManageError> {
@@ -342,9 +341,7 @@ async fn prepare_tool(
         .resolve_version(&mut spec, true)
         .await?;
 
-    if tool.is_installed(&spec) {
-        Linker::new(&mut tool, &spec).link(false).await?;
-    } else {
+    if !tool.is_installed(&spec) {
         return Ok(item);
     }
 

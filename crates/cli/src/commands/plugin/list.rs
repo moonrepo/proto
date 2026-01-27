@@ -89,7 +89,7 @@ pub async fn list(session: ProtoSession, args: ListPluginsArgs) -> AppResult {
         aliases.extend(&tool.remote_aliases);
         aliases.extend(&tool.local_aliases);
 
-        let is_tool = !tool.is_backend_plugin().await;
+        let is_tool = !tool.is_backend_plugin();
 
         session.console.render(element! {
             Container {

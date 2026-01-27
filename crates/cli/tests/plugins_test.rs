@@ -31,7 +31,7 @@ where
     let mut spec = ToolSpec::new(UnresolvedVersionSpec::parse("1.0.0").unwrap());
 
     Manager::new(&mut tool, &mut spec)
-        .setup(InstallOptions::default())
+        .install(InstallOptions::default())
         .await
         .unwrap();
 

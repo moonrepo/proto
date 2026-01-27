@@ -247,7 +247,7 @@ async fn uninstall_one(
     debug!("Uninstalling {} with version {}", tool.get_name(), spec);
 
     if args.quiet {
-        Manager::new(&mut tool, &mut spec).teardown().await?;
+        Manager::new(&mut tool, &mut spec).uninstall().await?;
     } else {
         let progress = session.render_progress_loader().await;
 
@@ -257,7 +257,7 @@ async fn uninstall_one(
             spec.get_resolved_version()
         ));
 
-        let result = Manager::new(&mut tool, &mut spec).teardown().await;
+        let result = Manager::new(&mut tool, &mut spec).uninstall().await;
 
         if result.is_ok() {
             progress.set_message(format!("Uninstalled {}", tool.get_name()));

@@ -12,6 +12,7 @@ use tracing::{debug, instrument};
 pub struct Resolver<'tool> {
     tool: &'tool Tool,
 
+    /// Collection of loaded versions.
     pub data: VersionResolver<'tool>,
 }
 

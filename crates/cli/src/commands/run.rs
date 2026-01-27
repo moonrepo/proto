@@ -299,7 +299,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
     };
 
     Resolver::new(&tool)
-        .resolve_version(&mut spec, false)
+        .resolve_version(&mut spec, true)
         .await?;
 
     // Check if installed or need to install

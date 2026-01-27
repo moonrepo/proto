@@ -59,7 +59,6 @@ impl Store {
         }
     }
 
-    #[instrument(skip(self, config))]
     pub fn create_inventory(
         &self,
         id: &Id,

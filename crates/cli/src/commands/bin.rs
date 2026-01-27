@@ -1,6 +1,5 @@
 use crate::session::{LoadToolOptions, ProtoSession};
 use clap::{Args, ValueEnum};
-use proto_core::flow::link::Linker;
 use proto_core::flow::locate::Locator;
 use proto_core::flow::resolve::Resolver;
 use proto_core::{ToolContext, ToolSpec};
@@ -39,7 +38,7 @@ pub struct BinArgs {
 
 #[tracing::instrument(skip_all)]
 pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
-    let mut tool = session
+    let tool = session
         .load_tool_with_options(
             &args.context,
             LoadToolOptions {
@@ -59,10 +58,10 @@ pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
         .resolve_version(&mut spec, true)
         .await?;
 
-    if args.bin {
-        Linker::new(&mut tool, &spec).link_bins(true).await?;
+    let mut locator = Locator::new(&tool, &spec);
 
-        for bin in Locator::new(&tool, &spec).locate_bins(None).await? {
+    if args.bin {
+        for bin in locator.locate_bins(None).await? {
             if bin.config.primary {
                 session
                     .console
@@ -75,9 +74,7 @@ pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
     }
 
     if args.shim {
-        Linker::new(&mut tool, &spec).link_shims(true).await?;
-
-        for shim in Locator::new(&tool, &spec).locate_shims().await? {
+        for shim in locator.locate_shims().await? {
             if shim.config.primary {
                 session
                     .console
@@ -88,8 +85,6 @@ pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
             }
         }
     }
-
-    let mut locator = Locator::new(&tool, &spec);
 
     let paths = match args.dir {
         None => vec![locator.locate_exe_file().await?],

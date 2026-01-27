@@ -42,15 +42,15 @@ pub enum ProtoCliError {
 
     #[diagnostic(transparent)]
     #[error(transparent)]
+    Manage(#[from] Box<ProtoManageError>),
+
+    #[diagnostic(transparent)]
+    #[error(transparent)]
     Plugin(#[from] Box<WarpgatePluginError>),
 
     #[diagnostic(transparent)]
     #[error(transparent)]
     Resolve(#[from] Box<ProtoResolveError>),
-
-    #[diagnostic(transparent)]
-    #[error(transparent)]
-    Setup(#[from] Box<ProtoManageError>),
 
     #[diagnostic(transparent)]
     #[error(transparent)]
@@ -222,7 +222,7 @@ impl From<ProtoResolveError> for ProtoCliError {
 
 impl From<ProtoManageError> for ProtoCliError {
     fn from(e: ProtoManageError) -> ProtoCliError {
-        ProtoCliError::Setup(Box::new(e))
+        ProtoCliError::Manage(Box::new(e))
     }
 }
 

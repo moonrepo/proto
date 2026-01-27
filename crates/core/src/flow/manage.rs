@@ -30,7 +30,7 @@ impl<'tool> Manager<'tool> {
     /// Setup the tool by resolving a semantic version, installing the tool,
     /// locating binaries, creating shims, and more.
     #[instrument(skip(self, options))]
-    pub async fn setup(
+    pub async fn install(
         &mut self,
         options: InstallOptions,
     ) -> Result<Option<LockRecord>, ProtoManageError> {
@@ -107,7 +107,7 @@ impl<'tool> Manager<'tool> {
     /// Teardown the tool by uninstalling the current version, removing the version
     /// from the manifest, and cleaning up temporary files. Return true if the teardown occurred.
     #[instrument(skip_all)]
-    pub async fn teardown(&mut self) -> Result<bool, ProtoManageError> {
+    pub async fn uninstall(&mut self) -> Result<bool, ProtoManageError> {
         self.cleanup().await?;
 
         let version = Resolver::new(self.tool)

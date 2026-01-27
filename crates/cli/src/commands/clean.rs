@@ -203,7 +203,7 @@ pub async fn clean_tool(
             });
 
             Manager::new(&mut tool, &mut ToolSpec::new_resolved(version))
-                .teardown()
+                .uninstall()
                 .await?;
         }
     } else {

@@ -329,7 +329,7 @@ impl InstallWorkflow {
         });
 
         let record = Manager::new(&mut self.tool, spec)
-            .setup(InstallOptions {
+            .install(InstallOptions {
                 console: Some(self.console.clone()),
                 on_download_chunk: Some(on_download_chunk),
                 on_phase_change: Some(on_phase_change),

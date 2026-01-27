@@ -113,8 +113,6 @@ impl<'tool> Linker<'tool> {
         }
 
         // Only create shims if necessary
-        let mut shims = vec![];
-
         if !to_create.is_empty() {
             let store = &self.tool.proto.store;
 
@@ -124,8 +122,8 @@ impl<'tool> Linker<'tool> {
             #[cfg(debug_assertions)]
             let _lock = fs::lock_directory(&store.shims_dir)?;
 
-            for shim_path in to_create {
-                store.create_shim(&shim_path)?;
+            for shim_path in &to_create {
+                store.create_shim(shim_path)?;
 
                 debug!(
                     tool = self.tool.context.as_str(),
@@ -133,8 +131,6 @@ impl<'tool> Linker<'tool> {
                     shim_version = SHIM_VERSION,
                     "Creating shim"
                 );
-
-                shims.push(shim_path);
             }
 
             ShimRegistry::update(&store.shims_dir, registry)?;
@@ -143,7 +139,7 @@ impl<'tool> Linker<'tool> {
             self.tool.inventory.manifest.save()?;
         }
 
-        Ok(shims)
+        Ok(to_create)
     }
 
     /// Symlink all primary and secondary binaries for the current tool.
