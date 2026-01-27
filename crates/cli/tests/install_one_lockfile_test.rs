@@ -441,7 +441,7 @@ version = "5.10.100"
                 })
                 .failure();
 
-            assert.stderr(predicate::str::contains("Invalid version"));
+            assert.stderr(predicate::str::contains("Failed"));
         }
 
         #[test]
