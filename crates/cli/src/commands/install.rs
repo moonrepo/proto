@@ -6,6 +6,7 @@ use crate::utils::tool_record::ToolRecord;
 use crate::workflows::{InstallOutcome, InstallWorkflowManager, InstallWorkflowParams};
 use clap::Args;
 use iocraft::prelude::element;
+use proto_core::flow::detect::Detector;
 use proto_core::{ConfigMode, Id, PinLocation, Tool, ToolContext, ToolSpec};
 use proto_pdk_api::{InstallStrategy, PluginFunction};
 use starbase::AppResult;
@@ -146,7 +147,10 @@ pub async fn install_one(
     // otherwise fallback to "latest"
     let mut spec = if let Some(spec) = &args.spec {
         spec.to_owned()
-    } else if let Some((spec, _)) = tool.detect_version_from(&session.env.working_dir).await? {
+    } else if let Some((spec, _)) = Detector::new(&tool)
+        .detect_version_from(&session.env.working_dir)
+        .await?
+    {
         spec.into()
     } else if let Some(spec) = session.load_config()?.versions.get(&context) {
         spec.to_owned()

@@ -7,6 +7,7 @@ use crate::telemetry::*;
 use crate::utils::tool_record::ToolRecord;
 use iocraft::element;
 use proto_core::flow::install::{InstallOptions, InstallPhase};
+use proto_core::flow::manage::Manager;
 use proto_core::flow::resolve::Resolver;
 use proto_core::utils::log::LogWriter;
 use proto_core::{Id, LockRecord, PinLocation, ToolSpec};
@@ -104,7 +105,11 @@ impl InstallWorkflow {
         });
 
         // Check if already installed, or if forced, overwrite previous install
-        if !params.force && self.tool.is_setup(spec).await? {
+        Resolver::new(&self.tool)
+            .resolve_version(spec, false)
+            .await?;
+
+        if !params.force && self.tool.is_installed(spec) {
             self.pin_version(spec, &params.pin_to).await?;
             self.finish_progress(spec, started);
 
@@ -255,10 +260,6 @@ impl InstallWorkflow {
             log.add_header("Installing tool");
         });
 
-        Resolver::new(&self.tool)
-            .resolve_version(spec, false)
-            .await?;
-
         let resolved_version = spec.get_resolved_version();
         let default_strategy = self.tool.metadata.default_install_strategy;
 
@@ -327,23 +328,19 @@ impl InstallWorkflow {
             });
         });
 
-        let record = self
-            .tool
-            .setup(
-                spec,
-                InstallOptions {
-                    console: Some(self.console.clone()),
-                    on_download_chunk: Some(on_download_chunk),
-                    on_phase_change: Some(on_phase_change),
-                    force: params.force,
-                    log_writer: params.log_writer.clone(),
-                    skip_prompts: params.skip_prompts,
-                    // When installing multiple tools, we can't render the nice
-                    // UI for the build flow, so rely on the progress bars
-                    skip_ui: params.multiple,
-                    strategy: params.strategy.unwrap_or(default_strategy),
-                },
-            )
+        let record = Manager::new(&mut self.tool, spec)
+            .install(InstallOptions {
+                console: Some(self.console.clone()),
+                on_download_chunk: Some(on_download_chunk),
+                on_phase_change: Some(on_phase_change),
+                force: params.force,
+                log_writer: params.log_writer.clone(),
+                skip_prompts: params.skip_prompts,
+                // When installing multiple tools, we can't render the nice
+                // UI for the build flow, so rely on the progress bars
+                skip_ui: params.multiple,
+                strategy: params.strategy.unwrap_or(default_strategy),
+            })
             .await?;
 
         Ok(record)

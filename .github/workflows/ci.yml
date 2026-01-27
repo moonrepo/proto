@@ -66,6 +66,8 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
+      - uses: jlumbroso/free-disk-space@main
+        if: ${{ runner.os == 'Linux' }}
       - uses: moonrepo/setup-toolchain@v0
       - uses: moonrepo/setup-rust@v1
         with:

@@ -20,7 +20,6 @@ pub struct Inventory {
 }
 
 impl Inventory {
-    #[instrument(skip(self))]
     pub fn create_product(&self, version: &VersionSpec) -> Product {
         Product {
             dir: self.get_product_dir(version),

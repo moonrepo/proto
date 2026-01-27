@@ -1,7 +1,9 @@
 use crate::utils::tool_record::ToolRecord;
 use indexmap::{IndexMap, IndexSet};
 use miette::IntoDiagnostic;
-use proto_core::flow::setup::ProtoSetupError;
+use proto_core::flow::locate::Locator;
+use proto_core::flow::manage::ProtoManageError;
+use proto_core::flow::resolve::Resolver;
 use proto_core::{ProtoConfig, ProtoConfigEnvOptions, ToolContext, ToolSpec};
 use proto_pdk_api::{
     ActivateEnvironmentInput, ActivateEnvironmentOutput, HookFunction, PluginFunction, RunHook,
@@ -100,7 +102,7 @@ impl<'app> ExecWorkflow<'app> {
         mut specs: FxHashMap<ToolContext, ToolSpec>,
         params: ExecWorkflowParams,
     ) -> miette::Result<()> {
-        let mut set = JoinSet::<Result<ExecItem, ProtoSetupError>>::new();
+        let mut set = JoinSet::<Result<ExecItem, ProtoManageError>>::new();
 
         for tool in std::mem::take(&mut self.tools) {
             let provided_spec = specs.remove(&tool.context);
@@ -311,10 +313,10 @@ impl<'app> ExecWorkflow<'app> {
 }
 
 async fn prepare_tool(
-    mut tool: ToolRecord,
+    tool: ToolRecord,
     provided_spec: Option<ToolSpec>,
     params: ExecWorkflowParams,
-) -> Result<ExecItem, ProtoSetupError> {
+) -> Result<ExecItem, ProtoManageError> {
     let mut item = ExecItem {
         context: tool.context.clone(),
         ..Default::default()
@@ -335,7 +337,11 @@ async fn prepare_tool(
     item.active = true;
 
     // Resolve the version and locate executables
-    if !tool.is_setup(&mut spec).await? {
+    Resolver::new(&tool)
+        .resolve_version(&mut spec, true)
+        .await?;
+
+    if !tool.is_installed(&spec) {
         return Ok(item);
     }
 
@@ -372,18 +378,17 @@ async fn prepare_tool(
         }
     }
 
-    if params.pre_run_hook && tool.plugin.has_func(HookFunction::PreRun).await {
-        let globals_dir = tool.locate_globals_dir(&spec).await?;
-        let globals_prefix = tool.locate_globals_prefix(&spec).await?;
+    let locations = Locator::new(&tool, &spec).locate().await?;
 
+    if params.pre_run_hook && tool.plugin.has_func(HookFunction::PreRun).await {
         let output: RunHookResult = tool
             .plugin
             .call_func_with(
                 HookFunction::PreRun,
                 RunHook {
                     context: tool.create_plugin_context(&spec),
-                    globals_dir: globals_dir.map(|dir| tool.to_virtual_path(&dir)),
-                    globals_prefix,
+                    globals_dir: locations.globals_dir.map(|dir| tool.to_virtual_path(&dir)),
+                    globals_prefix: locations.globals_prefix,
                     passthrough_args: params.passthrough_args,
                 },
             )
@@ -407,15 +412,15 @@ async fn prepare_tool(
     }
 
     // Extract executable directories
-    if let Some(dir) = tool.locate_exe_file(&spec).await?.parent() {
+    if let Some(dir) = locations.exe_file.parent() {
         item.add_path(dir.to_path_buf());
     }
 
-    for exes_dir in tool.locate_exes_dirs(&spec).await? {
+    for exes_dir in locations.exes_dirs {
         item.add_path(exes_dir);
     }
 
-    for globals_dir in tool.locate_globals_dirs(&spec).await? {
+    for globals_dir in locations.globals_dirs {
         item.add_path(globals_dir);
     }
 

@@ -3,6 +3,7 @@ pub use super::build_error::ProtoBuildError;
 pub use super::install_error::ProtoInstallError;
 use crate::checksum::*;
 use crate::env::ProtoConsole;
+use crate::flow::lock::Locker;
 use crate::helpers::{extract_filename_from_url, is_archive_file, is_executable, is_offline};
 use crate::lockfile::*;
 use crate::tool::Tool;
@@ -14,11 +15,14 @@ use starbase_shell::ShellType;
 use starbase_styles::color;
 use starbase_utils::net::DownloadOptions;
 use starbase_utils::{fs, net, path};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use system_env::System;
 use tokio::process::Command;
 use tracing::{debug, instrument, warn};
+
+pub use starbase_utils::net::OnChunkFn;
+pub type OnPhaseFn = Arc<dyn Fn(InstallPhase) + Send + Sync>;
 
 // Prebuilt: Download -> Verify -> Unpack
 // Build: InstallDeps -> CheckRequirements -> ExecuteInstructions -> ...
@@ -34,9 +38,6 @@ pub enum InstallPhase {
     CloneRepository { url: String },
 }
 
-pub use starbase_utils::net::OnChunkFn;
-pub type OnPhaseFn = Arc<dyn Fn(InstallPhase) + Send + Sync>;
-
 #[derive(Default)]
 pub struct InstallOptions {
     pub console: Option<ProtoConsole>,
@@ -49,73 +50,139 @@ pub struct InstallOptions {
     pub strategy: InstallStrategy,
 }
 
-impl Tool {
-    /// Return true if the tool has been installed. This is less accurate than `is_setup`,
-    /// as it only checks for the existence of the inventory directory.
-    pub fn is_installed(&self, spec: &ToolSpec) -> bool {
-        let dir = self.get_product_dir(spec);
+/// Installs a tool into proto's store.
+pub struct Installer<'tool> {
+    tool: &'tool Tool,
+    spec: &'tool ToolSpec,
 
-        spec.version.as_ref().is_some_and(|v| {
-            !v.is_latest() && self.inventory.manifest.installed_versions.contains(v)
-        }) && dir.exists()
-            && !fs::is_dir_locked(dir)
+    pub product_dir: PathBuf,
+    pub temp_dir: PathBuf,
+}
+
+impl<'tool> Installer<'tool> {
+    pub fn new(tool: &'tool Tool, spec: &'tool ToolSpec) -> Self {
+        Self {
+            product_dir: tool.get_product_dir(spec),
+            temp_dir: tool.get_temp_dir().to_path_buf(),
+            tool,
+            spec,
+        }
     }
 
-    /// Verify the downloaded file using the checksum strategy for the tool.
-    /// Common strategies are SHA256 and MD5.
-    #[instrument(skip(self))]
-    pub async fn verify_checksum(
+    /// Install a tool into proto, either by downloading and unpacking
+    /// a pre-built archive, or by using a native installation method.
+    #[instrument(skip(self, options))]
+    pub async fn install(
         &self,
-        spec: &ToolSpec,
-        checksum_file: &Path,
-        download_file: &Path,
-        checksum_public_key: Option<&str>,
-    ) -> Result<Checksum, ProtoInstallError> {
-        debug!(
-            tool = self.context.as_str(),
-            download_file = ?download_file,
-            checksum_file = ?checksum_file,
-            "Verifying checksum of downloaded file",
-        );
+        options: InstallOptions,
+    ) -> Result<Option<LockRecord>, ProtoInstallError> {
+        if self.tool.is_installed(self.spec) && !options.force {
+            debug!(
+                tool = self.tool.context.as_str(),
+                "Tool already installed, continuing"
+            );
 
-        let checksum = generate_checksum(download_file, checksum_file, checksum_public_key)?;
-        let verified;
+            return Ok(None);
+        }
 
-        // Allow plugin to provide their own checksum verification method
-        if self.plugin.has_func(PluginFunction::VerifyChecksum).await {
-            let output: VerifyChecksumOutput = self
+        if is_offline() {
+            return Err(ProtoInstallError::RequiredInternetConnection);
+        }
+
+        // Lock the temporary directory instead of the install directory,
+        // because the latter needs to be clean for "build from source",
+        // and the `.lock` file breaks that contract
+        let mut install_lock = fs::lock_directory(&self.temp_dir)?;
+
+        // If this function is defined, it acts like an escape hatch and
+        // takes precedence over all other install strategies
+        if self
+            .tool
+            .plugin
+            .has_func(PluginFunction::NativeInstall)
+            .await
+        {
+            debug!(
+                tool = self.tool.context.as_str(),
+                "Installing tool natively"
+            );
+
+            options.on_phase_change.as_ref().inspect(|func| {
+                func(InstallPhase::Native);
+            });
+
+            fs::create_dir_all(&self.product_dir)?;
+
+            let output: NativeInstallOutput = self
+                .tool
                 .plugin
                 .call_func_with(
-                    PluginFunction::VerifyChecksum,
-                    VerifyChecksumInput {
-                        checksum_file: self.to_virtual_path(checksum_file),
-                        download_file: self.to_virtual_path(download_file),
-                        download_checksum: Some(checksum.clone()),
-                        context: self.create_plugin_context(spec),
+                    PluginFunction::NativeInstall,
+                    NativeInstallInput {
+                        context: self.tool.create_plugin_context(self.spec),
+                        install_dir: self.tool.to_virtual_path(&self.product_dir),
+                        force: options.force,
                     },
                 )
                 .await?;
 
-            verified = output.verified;
+            if output.installed {
+                let mut record = self.tool.create_locked_record();
+                record.checksum = output.checksum;
+
+                // Verify against lockfile
+                Locker::new(self.tool).verify_locked_record(self.spec, &record)?;
+
+                return Ok(Some(record));
+            }
+
+            if !output.skip_install {
+                return Err(ProtoInstallError::FailedInstall {
+                    tool: self.tool.get_name().to_owned(),
+                    error: output.error.unwrap_or_default(),
+                });
+            }
         }
-        // Otherwise attempt to verify it ourselves
+
+        // Build the tool from source
+        let result = if matches!(options.strategy, InstallStrategy::BuildFromSource) {
+            self.build_from_source(options).await
+        }
+        // Install from a prebuilt archive
         else {
-            verified = verify_checksum(download_file, checksum_file, &checksum)?;
+            self.install_from_prebuilt(options).await
+        };
+
+        match result {
+            Ok(record) => {
+                // Verify against lockfile
+                Locker::new(self.tool).verify_locked_record(self.spec, &record)?;
+
+                debug!(
+                    tool = self.tool.context.as_str(),
+                    install_dir = ?self.product_dir,
+                    "Successfully installed tool",
+                );
+
+                Ok(Some(record))
+            }
+
+            // Clean up if the install failed
+            Err(error) => {
+                debug!(
+                    tool = self.tool.context.as_str(),
+                    install_dir = ?self.product_dir,
+                    "Failed to install tool, cleaning up",
+                );
+
+                install_lock.unlock()?;
+
+                fs::remove_dir_all(&self.product_dir)?;
+                fs::remove_dir_all(&self.temp_dir)?;
+
+                Err(error)
+            }
         }
-
-        if verified {
-            debug!(
-                tool = self.context.as_str(),
-                "Successfully verified, checksum matches"
-            );
-
-            return Ok(checksum);
-        }
-
-        Err(ProtoInstallError::InvalidChecksum {
-            checksum: checksum_file.to_path_buf(),
-            download: download_file.to_path_buf(),
-        })
     }
 
     /// Build the tool from source using a set of requirements and instructions
@@ -123,53 +190,52 @@ impl Tool {
     #[instrument(skip(self, options))]
     async fn build_from_source(
         &self,
-        spec: &mut ToolSpec,
-        install_dir: &Path,
-        temp_dir: &Path,
         options: InstallOptions,
     ) -> Result<LockRecord, ProtoInstallError> {
         debug!(
-            tool = self.context.as_str(),
+            tool = self.tool.context.as_str(),
             "Installing tool by building from source"
         );
 
         if !self
+            .tool
             .plugin
             .has_func(PluginFunction::BuildInstructions)
             .await
         {
             return Err(ProtoInstallError::UnsupportedBuildFromSource {
-                tool: self.get_name().to_owned(),
+                tool: self.tool.get_name().to_owned(),
             });
         }
 
         let output: BuildInstructionsOutput = self
+            .tool
             .plugin
             .cache_func_with(
                 PluginFunction::BuildInstructions,
                 BuildInstructionsInput {
-                    context: self.create_plugin_context(spec),
-                    install_dir: self.to_virtual_path(install_dir),
+                    context: self.tool.create_plugin_context(self.spec),
+                    install_dir: self.tool.to_virtual_path(&self.product_dir),
                 },
             )
             .await?;
 
         let mut system = System::default();
-        let config = self.proto.load_config()?;
+        let config = self.tool.proto.load_config()?;
 
         if let Some(pm) = config.settings.build.system_package_manager.get(&system.os) {
             if let Some(pm) = pm {
                 system.manager = Some(*pm);
 
                 debug!(
-                    tool = self.context.as_str(),
+                    tool = self.tool.context.as_str(),
                     "Overwriting system package manager to {} for {}", pm, system.os
                 );
             } else {
                 system.manager = None;
 
                 debug!(
-                    tool = self.context.as_str(),
+                    tool = self.tool.context.as_str(),
                     "Disabling system package manager because {} was disabled for {}",
                     color::property("settings.build.system-package-manager"),
                     system.os
@@ -183,8 +249,8 @@ impl Tool {
                 .console
                 .as_ref()
                 .expect("Console required for builder!"),
-            install_dir,
-            http_client: self.proto.get_plugin_loader()?.get_http_client()?,
+            install_dir: &self.product_dir,
+            http_client: self.tool.proto.get_plugin_loader()?.get_http_client()?,
             log_writer: options
                 .log_writer
                 .as_ref()
@@ -193,15 +259,15 @@ impl Tool {
             skip_prompts: options.skip_prompts,
             skip_ui: options.skip_ui,
             system,
-            temp_dir,
-            version: spec.get_resolved_version(),
+            temp_dir: &self.temp_dir,
+            version: self.spec.get_resolved_version(),
         });
 
         // The build process may require using itself to build itself,
         // so allow proto to use any available version instead of failing
-        unsafe { std::env::set_var(format!("{}_VERSION", self.get_env_var_prefix()), "*") };
+        unsafe { std::env::set_var(format!("{}_VERSION", self.tool.get_env_var_prefix()), "*") };
 
-        let mut record = self.create_locked_record();
+        let mut record = self.tool.create_locked_record();
 
         // Step 0
         log_build_information(&mut builder, &output)?;
@@ -211,7 +277,7 @@ impl Tool {
             install_system_dependencies(&mut builder, &output).await?;
         } else {
             debug!(
-                tool = self.context.as_str(),
+                tool = self.tool.context.as_str(),
                 "Not installing system dependencies because {} was disabled",
                 color::property("settings.build.install-system-packages"),
             );
@@ -224,7 +290,7 @@ impl Tool {
         download_sources(&mut builder, &output, &mut record).await?;
 
         // Step 4
-        execute_instructions(&mut builder, &output, &self.proto).await?;
+        execute_instructions(&mut builder, &output, &self.tool.proto).await?;
 
         Ok(record)
     }
@@ -234,37 +300,40 @@ impl Tool {
     #[instrument(skip(self, options))]
     async fn install_from_prebuilt(
         &self,
-        spec: &mut ToolSpec,
-        install_dir: &Path,
-        temp_dir: &Path,
         options: InstallOptions,
     ) -> Result<LockRecord, ProtoInstallError> {
         debug!(
-            tool = self.context.as_str(),
+            tool = self.tool.context.as_str(),
             "Installing tool by downloading a pre-built archive"
         );
 
-        if !self.plugin.has_func(PluginFunction::DownloadPrebuilt).await {
+        if !self
+            .tool
+            .plugin
+            .has_func(PluginFunction::DownloadPrebuilt)
+            .await
+        {
             return Err(ProtoInstallError::UnsupportedDownloadPrebuilt {
-                tool: self.get_name().to_owned(),
+                tool: self.tool.get_name().to_owned(),
             });
         }
 
-        let client = self.proto.get_plugin_loader()?.get_http_client()?;
-        let config = self.proto.load_config()?;
+        let client = self.tool.proto.get_plugin_loader()?.get_http_client()?;
+        let config = self.tool.proto.load_config()?;
 
         let output: DownloadPrebuiltOutput = self
+            .tool
             .plugin
             .cache_func_with(
                 PluginFunction::DownloadPrebuilt,
                 DownloadPrebuiltInput {
-                    context: self.create_plugin_context(spec),
-                    install_dir: self.to_virtual_path(install_dir),
+                    context: self.tool.create_plugin_context(self.spec),
+                    install_dir: self.tool.to_virtual_path(&self.product_dir),
                 },
             )
             .await?;
 
-        let mut record = self.create_locked_record();
+        let mut record = self.tool.create_locked_record();
 
         // Download the prebuilt
         let download_url = config.rewrite_url(output.download_url);
@@ -272,7 +341,7 @@ impl Tool {
             Some(name) => name,
             None => extract_filename_from_url(&download_url),
         };
-        let download_file = temp_dir.join(&download_filename);
+        let download_file = self.temp_dir.join(&download_filename);
 
         record.source = Some(download_url.clone());
         options.on_phase_change.as_ref().inspect(|func| {
@@ -282,7 +351,10 @@ impl Tool {
             });
         });
 
-        debug!(tool = self.context.as_str(), "Downloading tool archive");
+        debug!(
+            tool = self.tool.context.as_str(),
+            "Downloading tool archive"
+        );
 
         net::download_from_url_with_options(
             &download_url,
@@ -301,7 +373,7 @@ impl Tool {
                 Some(name) => name,
                 None => extract_filename_from_url(&checksum_url),
             };
-            let checksum_file = temp_dir.join(&checksum_filename);
+            let checksum_file = self.temp_dir.join(&checksum_filename);
 
             options.on_phase_change.as_ref().inspect(|func| {
                 func(InstallPhase::Verify {
@@ -310,7 +382,10 @@ impl Tool {
                 });
             });
 
-            debug!(tool = self.context.as_str(), "Downloading tool checksum");
+            debug!(
+                tool = self.tool.context.as_str(),
+                "Downloading tool checksum"
+            );
 
             net::download_from_url_with_options(
                 &checksum_url,
@@ -324,7 +399,6 @@ impl Tool {
 
             record.checksum = Some(
                 self.verify_checksum(
-                    spec,
                     &checksum_file,
                     &download_file,
                     output.checksum_public_key.as_deref(),
@@ -334,20 +408,20 @@ impl Tool {
         }
         // Verify against an explicitly provided checksum
         else if let Some(checksum) = output.checksum {
-            let checksum_file =
-                temp_dir.join(format!("CHECKSUM.{:?}", checksum.algo).to_lowercase());
+            let checksum_file = self
+                .temp_dir
+                .join(format!("CHECKSUM.{:?}", checksum.algo).to_lowercase());
 
             fs::write_file(&checksum_file, checksum.hash.as_deref().unwrap_or_default())?;
 
             debug!(
-                tool = self.context.as_str(),
+                tool = self.tool.context.as_str(),
                 checksum = checksum.to_string(),
                 "Using provided checksum"
             );
 
             record.checksum = Some(
                 self.verify_checksum(
-                    spec,
                     &checksum_file,
                     &download_file,
                     output
@@ -365,26 +439,32 @@ impl Tool {
 
         // Attempt to unpack the archive
         debug!(
-            tool = self.context.as_str(),
+            tool = self.tool.context.as_str(),
             download_file = ?download_file,
-            install_dir = ?install_dir,
+            install_dir = ?self.product_dir,
             "Attempting to unpack archive",
         );
 
-        if self.plugin.has_func(PluginFunction::UnpackArchive).await {
+        if self
+            .tool
+            .plugin
+            .has_func(PluginFunction::UnpackArchive)
+            .await
+        {
             options.on_phase_change.as_ref().inspect(|func| {
                 func(InstallPhase::Unpack {
                     file: download_filename.clone(),
                 });
             });
 
-            self.plugin
+            self.tool
+                .plugin
                 .call_func_without_output(
                     PluginFunction::UnpackArchive,
                     UnpackArchiveInput {
-                        input_file: self.to_virtual_path(&download_file),
-                        output_dir: self.to_virtual_path(install_dir),
-                        context: self.create_plugin_context(spec),
+                        input_file: self.tool.to_virtual_path(&download_file),
+                        output_dir: self.tool.to_virtual_path(&self.product_dir),
+                        context: self.tool.create_plugin_context(self.spec),
                     },
                 )
                 .await?;
@@ -398,7 +478,7 @@ impl Tool {
             });
 
             let (ext, unpacked_path) = archive::unpack_raw(
-                install_dir,
+                &self.product_dir,
                 &download_file,
                 output.archive_prefix.as_deref(),
             )?;
@@ -411,8 +491,9 @@ impl Tool {
         }
         // Not an archive, assume a file and copy
         else {
-            let install_path =
-                install_dir.join(path::exe_name(path::encode_component(self.get_file_name())));
+            let install_path = self.product_dir.join(path::exe_name(path::encode_component(
+                self.tool.get_file_name(),
+            )));
 
             fs::rename(&download_file, &install_path)?;
             fs::update_perms(install_path, None)?;
@@ -420,23 +501,23 @@ impl Tool {
 
         // Execute post install script
         if let Some(rel_script) = output.post_script {
-            let abs_script = install_dir.join(rel_script);
+            let abs_script = self.product_dir.join(rel_script);
 
             if !abs_script.exists() {
                 warn!(
-                    tool = self.context.as_str(),
+                    tool = self.tool.context.as_str(),
                     script = ?abs_script,
                     "Post-install script does not exist",
                 );
             } else if !is_executable(&abs_script) {
                 warn!(
-                    tool = self.context.as_str(),
+                    tool = self.tool.context.as_str(),
                     script = ?abs_script,
                     "Post-install script is not executable",
                 );
             } else {
                 debug!(
-                    tool = self.context.as_str(),
+                    tool = self.tool.context.as_str(),
                     script = ?abs_script,
                     "Executing post-install script",
                 );
@@ -445,7 +526,7 @@ impl Tool {
                 let mut command = Command::new(shell.to_string());
                 command.arg("-c");
                 command.arg(shell.quote(&abs_script.to_string_lossy()));
-                command.current_dir(install_dir);
+                command.current_dir(&self.product_dir);
 
                 process::exec_command(&mut command).await?;
             }
@@ -454,168 +535,124 @@ impl Tool {
         Ok(record)
     }
 
-    /// Install a tool into proto, either by downloading and unpacking
-    /// a pre-built archive, or by using a native installation method.
-    #[instrument(skip(self, options))]
-    pub async fn install(
-        &mut self,
-        spec: &mut ToolSpec,
-        options: InstallOptions,
-    ) -> Result<Option<LockRecord>, ProtoInstallError> {
-        if self.is_installed(spec) && !options.force {
-            debug!(
-                tool = self.context.as_str(),
-                "Tool already installed, continuing"
-            );
-
-            return Ok(None);
-        }
-
-        if is_offline() {
-            return Err(ProtoInstallError::RequiredInternetConnection);
-        }
-
-        let temp_dir = self.get_temp_dir();
-        let install_dir = self.get_product_dir(spec);
-
-        // Lock the temporary directory instead of the install directory,
-        // because the latter needs to be clean for "build from source",
-        // and the `.lock` file breaks that contract
-        let mut install_lock = fs::lock_directory(temp_dir)?;
-
-        // If this function is defined, it acts like an escape hatch and
-        // takes precedence over all other install strategies
-        if self.plugin.has_func(PluginFunction::NativeInstall).await {
-            debug!(tool = self.context.as_str(), "Installing tool natively");
-
-            options.on_phase_change.as_ref().inspect(|func| {
-                func(InstallPhase::Native);
-            });
-
-            fs::create_dir_all(&install_dir)?;
-
-            let output: NativeInstallOutput = self
-                .plugin
-                .call_func_with(
-                    PluginFunction::NativeInstall,
-                    NativeInstallInput {
-                        context: self.create_plugin_context(spec),
-                        install_dir: self.to_virtual_path(&install_dir),
-                        force: options.force,
-                    },
-                )
-                .await?;
-
-            if output.installed {
-                let mut record = self.create_locked_record();
-                record.checksum = output.checksum;
-
-                // Verify against lockfile
-                self.verify_locked_record(spec, &record)?;
-
-                return Ok(Some(record));
-            }
-
-            if !output.skip_install {
-                return Err(ProtoInstallError::FailedInstall {
-                    tool: self.get_name().to_owned(),
-                    error: output.error.unwrap_or_default(),
-                });
-            }
-        }
-
-        // Build the tool from source
-        let result = if matches!(options.strategy, InstallStrategy::BuildFromSource) {
-            self.build_from_source(spec, &install_dir, temp_dir, options)
-                .await
-        }
-        // Install from a prebuilt archive
-        else {
-            self.install_from_prebuilt(spec, &install_dir, temp_dir, options)
-                .await
-        };
-
-        match result {
-            Ok(record) => {
-                // Verify against lockfile
-                self.verify_locked_record(spec, &record)?;
-
-                debug!(
-                    tool = self.context.as_str(),
-                    install_dir = ?install_dir,
-                    "Successfully installed tool",
-                );
-
-                Ok(Some(record))
-            }
-
-            // Clean up if the install failed
-            Err(error) => {
-                debug!(
-                    tool = self.context.as_str(),
-                    install_dir = ?install_dir,
-                    "Failed to install tool, cleaning up",
-                );
-
-                install_lock.unlock()?;
-
-                fs::remove_dir_all(install_dir)?;
-                fs::remove_dir_all(temp_dir)?;
-
-                Err(error)
-            }
-        }
-    }
-
     /// Uninstall the tool by deleting the current install directory.
     #[instrument(skip_all)]
-    pub async fn uninstall(&self, spec: &mut ToolSpec) -> Result<bool, ProtoInstallError> {
-        let install_dir = self.get_product_dir(spec);
-
-        if !install_dir.exists() {
+    pub async fn uninstall(&self) -> Result<bool, ProtoInstallError> {
+        if !self.product_dir.exists() {
             debug!(
-                tool = self.context.as_str(),
+                tool = self.tool.context.as_str(),
                 "Tool has not been installed, aborting"
             );
 
             return Ok(false);
         }
 
-        if self.plugin.has_func(PluginFunction::NativeUninstall).await {
-            debug!(tool = self.context.as_str(), "Uninstalling tool natively");
+        if self
+            .tool
+            .plugin
+            .has_func(PluginFunction::NativeUninstall)
+            .await
+        {
+            debug!(
+                tool = self.tool.context.as_str(),
+                "Uninstalling tool natively"
+            );
 
             let output: NativeUninstallOutput = self
+                .tool
                 .plugin
                 .call_func_with(
                     PluginFunction::NativeUninstall,
                     NativeUninstallInput {
-                        context: self.create_plugin_context(spec),
-                        uninstall_dir: self.to_virtual_path(&install_dir),
+                        context: self.tool.create_plugin_context(self.spec),
+                        uninstall_dir: self.tool.to_virtual_path(&self.product_dir),
                     },
                 )
                 .await?;
 
             if !output.uninstalled && !output.skip_uninstall {
                 return Err(ProtoInstallError::FailedUninstall {
-                    tool: self.get_name().to_owned(),
+                    tool: self.tool.get_name().to_owned(),
                     error: output.error.unwrap_or_default(),
                 });
             }
         }
 
         debug!(
-            tool = self.context.as_str(),
-            install_dir = ?install_dir,
+            tool = self.tool.context.as_str(),
+            install_dir = ?self.product_dir,
             "Deleting install directory"
         );
 
-        fs::remove_dir_all(install_dir)?;
+        fs::remove_dir_all(&self.product_dir)?;
 
         debug!(
-            tool = self.context.as_str(),
+            tool = self.tool.context.as_str(),
             "Successfully uninstalled tool"
         );
 
         Ok(true)
+    }
+
+    /// Verify the downloaded file using the checksum strategy for the tool.
+    /// Common strategies are SHA256 and MD5.
+    #[instrument(skip(self))]
+    pub async fn verify_checksum(
+        &self,
+        checksum_file: &Path,
+        download_file: &Path,
+        checksum_public_key: Option<&str>,
+    ) -> Result<Checksum, ProtoInstallError> {
+        debug!(
+            tool = self.tool.context.as_str(),
+            download_file = ?download_file,
+            checksum_file = ?checksum_file,
+            "Verifying checksum of downloaded file",
+        );
+
+        let checksum = generate_checksum(download_file, checksum_file, checksum_public_key)?;
+        let verified;
+
+        // Allow plugin to provide their own checksum verification method
+        if self
+            .tool
+            .plugin
+            .has_func(PluginFunction::VerifyChecksum)
+            .await
+        {
+            let output: VerifyChecksumOutput = self
+                .tool
+                .plugin
+                .call_func_with(
+                    PluginFunction::VerifyChecksum,
+                    VerifyChecksumInput {
+                        checksum_file: self.tool.to_virtual_path(checksum_file),
+                        download_file: self.tool.to_virtual_path(download_file),
+                        download_checksum: Some(checksum.clone()),
+                        context: self.tool.create_plugin_context(self.spec),
+                    },
+                )
+                .await?;
+
+            verified = output.verified;
+        }
+        // Otherwise attempt to verify it ourselves
+        else {
+            verified = verify_checksum(download_file, checksum_file, &checksum)?;
+        }
+
+        if verified {
+            debug!(
+                tool = self.tool.context.as_str(),
+                "Successfully verified, checksum matches"
+            );
+
+            return Ok(checksum);
+        }
+
+        Err(ProtoInstallError::InvalidChecksum {
+            checksum: checksum_file.to_path_buf(),
+            download: download_file.to_path_buf(),
+        })
     }
 }

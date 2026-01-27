@@ -1,6 +1,7 @@
 use crate::session::ProtoSession;
 use clap::Args;
 use iocraft::prelude::element;
+use proto_core::flow::link::Linker;
 use proto_core::flow::resolve::Resolver;
 use starbase::AppResult;
 use starbase_console::ui::*;
@@ -56,24 +57,27 @@ pub async fn regen(session: ProtoSession, args: RegenArgs) -> AppResult {
     for mut tool in session.load_tools().await? {
         progress.set_message(format!("Regenerating {}", tool.get_name()));
 
-        // Shims - Create once if tool has a configured version
         if let Some(version) = config.versions.get(&tool.context) {
-            debug!("Regenerating {} shim", tool.get_name());
-
             let mut spec = version.to_owned();
+            let name = tool.get_name().to_owned();
+
+            // Shims - Create once if tool has a configured version
+            debug!("Regenerating {name} shim");
 
             Resolver::new(&tool)
                 .resolve_version(&mut spec, true)
                 .await?;
 
-            tool.generate_shims(&spec, true).await?;
-        }
+            let mut linker = Linker::new(&mut tool, &spec);
 
-        // Bins - Create for each installed version
-        if args.bin {
-            debug!("Relinking {} bin", tool.get_name());
+            linker.link_shims(true).await?;
 
-            tool.symlink_bins(true).await?;
+            // Bins - Create for each installed version
+            if args.bin {
+                debug!("Relinking {name} bin");
+
+                linker.link_bins(true).await?;
+            }
         }
     }
 

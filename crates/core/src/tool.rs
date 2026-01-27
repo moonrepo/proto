@@ -40,12 +40,6 @@ pub struct Tool {
     // Cache
     pub(crate) backend_registered: bool,
     pub(crate) cache: bool,
-    pub(crate) cache_internal: bool,
-    pub(crate) exe_file: Option<PathBuf>,
-    pub(crate) exes_dirs: Vec<PathBuf>,
-    pub(crate) globals_dir: Option<PathBuf>,
-    pub(crate) globals_dirs: Vec<PathBuf>,
-    pub(crate) globals_prefix: Option<String>,
 }
 
 impl Tool {
@@ -62,13 +56,7 @@ impl Tool {
         let mut tool = Tool {
             backend_registered: false,
             cache: true,
-            cache_internal: true,
             context,
-            exe_file: None,
-            exes_dirs: vec![],
-            globals_dir: None,
-            globals_dirs: vec![],
-            globals_prefix: None,
             inventory: Inventory::default(),
             locator: None,
             metadata: ToolMetadata::default(),
@@ -148,35 +136,15 @@ impl Tool {
 
         #[cfg(debug_assertions)]
         {
-            use std::time::Duration;
-
-            manifest = manifest.with_timeout(Duration::from_secs(300));
+            manifest = manifest.with_timeout(std::time::Duration::from_secs(300));
         }
 
         Ok(manifest)
     }
 
-    /// Clear all in-memory cache on this tool instance.
-    pub fn clear_instance_cache(&mut self) {
-        self.exe_file = None;
-        self.exes_dirs.clear();
-        self.globals_dir = None;
-        self.globals_dirs.clear();
-        self.globals_prefix = None;
-
-        // Don't clear this field because it will cause issues based on order of
-        // operations. It will be set when a version is resolved.
-        // self.version_locked = None;
-    }
-
     /// Disable caching when applicable.
     pub fn disable_caching(&mut self) {
         self.cache = false;
-    }
-
-    /// Disable in-memory instance caching.
-    pub fn disable_instance_caching(&mut self) {
-        self.cache_internal = false;
     }
 
     /// Return the backend identifier.
@@ -231,8 +199,37 @@ impl Tool {
     }
 
     /// Return true if this tool instance is a backend plugin.
-    pub async fn is_backend_plugin(&self) -> bool {
+    pub fn is_backend_plugin(&self) -> bool {
         self.ty == PluginType::Backend
+    }
+
+    /// Return true if the tool has been installed. This *requires* the spec to
+    /// have been resolved before hand.
+    pub fn is_installed(&self, spec: &ToolSpec) -> bool {
+        let dir = self.get_product_dir(spec);
+
+        debug!(
+            tool = self.context.as_str(),
+            install_dir = ?dir,
+            "Checking if tool is installed",
+        );
+
+        let installed = spec.version.as_ref().is_some_and(|v| {
+            !v.is_latest() && self.inventory.manifest.installed_versions.contains(v)
+        }) && dir.exists()
+            && !fs::is_dir_locked(&dir);
+
+        if installed {
+            debug!(
+                tool = self.context.as_str(),
+                install_dir = ?dir,
+                "Tool has already been installed",
+            );
+        } else {
+            debug!(tool = self.context.as_str(), "Tool has not been installed");
+        }
+
+        installed
     }
 
     /// Convert a virtual path to a real path.
@@ -331,7 +328,7 @@ impl Tool {
 
             debug!(
                 tool = self.context.as_str(),
-                override_virtual = ?override_dir.real_path(),
+                override_virtual = ?override_dir.virtual_path(),
                 override_real = ?override_dir_path,
                 "Attempting to override inventory directory"
             );
@@ -390,10 +387,6 @@ impl Tool {
             .join(path::encode_component(&backend_id)); // node
         let update_perms = !backend_dir.exists();
         let config = self.proto.load_config()?;
-
-        // if is_offline() {
-        //     return Err(ProtoEnvError::RequiredInternetConnection.into());
-        // }
 
         debug!(
             tool = self.context.as_str(),

@@ -14,15 +14,17 @@ macro_rules! create_plugin {
 #[macro_export]
 macro_rules! check_install_success {
     ($plugin:ident, $spec:ident) => {
-        $plugin.tool.locate_exe_file(&$spec).await.unwrap();
+        let mut locator = flow::locate::Locator::new(&$plugin.tool, &$spec);
 
-        assert!($plugin.tool.get_product_dir(&$spec).exists());
+        locator.locate_exe_file().await.unwrap();
 
-        for bin in $plugin.tool.resolve_bin_locations(None).await.unwrap() {
+        assert!(locator.product_dir.exists());
+
+        for bin in locator.locate_bins(None).await.unwrap() {
             assert!(bin.path.exists());
         }
 
-        for shim in $plugin.tool.resolve_shim_locations(&$spec).await.unwrap() {
+        for shim in locator.locate_shims().await.unwrap() {
             assert!(shim.path.exists());
         }
     };
@@ -33,19 +35,15 @@ macro_rules! do_build_from_source {
     ($sandbox:ident, $plugin:ident, $spec:literal) => {
         let mut spec = ToolSpec::parse($spec).unwrap();
 
-        let result = $plugin
-            .tool
-            .setup(
-                &mut spec,
-                flow::install::InstallOptions {
-                    console: Some(ProtoConsole::new_testing()),
-                    log_writer: Some(Default::default()),
-                    strategy: InstallStrategy::BuildFromSource,
-                    skip_prompts: true,
-                    skip_ui: true,
-                    ..Default::default()
-                },
-            )
+        let result = flow::manage::Manager::new(&mut $plugin.tool, &mut spec)
+            .install(flow::install::InstallOptions {
+                console: Some(ProtoConsole::new_testing()),
+                log_writer: Some(Default::default()),
+                strategy: InstallStrategy::BuildFromSource,
+                skip_prompts: true,
+                skip_ui: true,
+                ..Default::default()
+            })
             .await;
 
         // Print the log so we can debug
@@ -91,9 +89,8 @@ macro_rules! do_install_prebuilt {
     ($sandbox:ident, $plugin:ident, $spec:literal) => {
         let mut spec = ToolSpec::parse($spec).unwrap();
 
-        let result = $plugin
-            .tool
-            .setup(&mut spec, flow::install::InstallOptions::default())
+        let result = flow::manage::Manager::new(&mut $plugin.tool, &mut spec)
+            .install(flow::install::InstallOptions::default())
             .await;
 
         check_install_success!($plugin, spec);
@@ -123,7 +120,8 @@ macro_rules! generate_download_install_tests {
                 .await
                 .unwrap();
 
-            tool.install(&mut spec, flow::install::InstallOptions::default())
+            flow::install::Installer::new(&tool, &mut spec)
+                .install(flow::install::InstallOptions::default())
                 .await
                 .unwrap();
 
@@ -151,7 +149,8 @@ macro_rules! generate_download_install_tests {
             std::fs::create_dir_all(tool.get_product_dir(&spec)).unwrap();
 
             assert!(
-                tool.install(&mut spec, flow::install::InstallOptions::default())
+                flow::install::Installer::new(&tool, &mut spec)
+                    .install(flow::install::InstallOptions::default())
                     .await
                     .unwrap()
                     .is_none()
@@ -277,7 +276,10 @@ macro_rules! generate_shims_test {
             let sandbox = create_empty_proto_sandbox();
             let mut plugin = create_plugin!(sandbox, $id, $schema, $factory);
 
-            plugin.tool.generate_shims(&ToolSpec::default(), false).await.unwrap();
+            flow::link::Linker::new(&mut plugin.tool, &ToolSpec::default())
+                .link_shims(false)
+                .await
+                .unwrap();
 
             $(
                 assert!(

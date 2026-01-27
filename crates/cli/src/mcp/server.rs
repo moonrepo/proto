@@ -2,6 +2,7 @@ use super::resources::*;
 use super::tools::*;
 use crate::session::ProtoSession;
 use crate::workflows::*;
+use proto_core::flow::install::Installer;
 use proto_core::flow::resolve::Resolver;
 use proto_core::{
     PinLocation, ProtoConfigEnvOptions, ToolContext, ToolSpec, UnresolvedVersionSpec,
@@ -212,7 +213,7 @@ impl ProtoMcp {
 
         handle_tool_error!(Resolver::new(&tool).resolve_version(&mut spec, false).await);
 
-        let uninstalled = handle_tool_error!(tool.uninstall(&mut spec).await);
+        let uninstalled = handle_tool_error!(Installer::new(&tool, &spec).uninstall().await);
 
         Ok(CallToolResult::structured(
             serde_json::to_value(UninstallToolResponse {

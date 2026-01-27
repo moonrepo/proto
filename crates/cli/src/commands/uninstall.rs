@@ -4,6 +4,11 @@ use crate::telemetry::{Metric, track_usage};
 use crate::utils::tool_record::ToolRecord;
 use clap::Args;
 use iocraft::element;
+use proto_core::flow::install::Installer;
+use proto_core::flow::locate::Locator;
+use proto_core::flow::lock::Locker;
+use proto_core::flow::manage::Manager;
+use proto_core::flow::resolve::Resolver;
 use proto_core::{ProtoConfig, ProtoConfigError, Tool, ToolContext, ToolSpec};
 use starbase::AppResult;
 use starbase_console::ui::*;
@@ -73,25 +78,30 @@ async fn try_uninstall_all(session: &ProtoSession, tool: &mut ToolRecord) -> mie
     // Loop through each version and uninstall and
     // don't use `teardown` as it does far too much
     for version in tool.installed_versions.clone() {
-        tool.uninstall(&mut ToolSpec::new_resolved(version)).await?;
+        let spec = ToolSpec::new_resolved(version);
+
+        Installer::new(tool, &spec).uninstall().await?;
     }
 
+    let spec = ToolSpec::default();
+    let locator = Locator::new(tool, &spec);
+
     // Delete bins
-    for bin in tool.resolve_bin_locations(None).await? {
+    for bin in locator.locate_bins(None).await? {
         session.env.store.unlink_bin(&bin.path)?;
     }
 
     // Delete shims
-    for shim in tool.resolve_shim_locations(&ToolSpec::default()).await? {
+    for shim in locator.locate_shims().await? {
         session.env.store.remove_shim(&shim.path)?;
     }
 
     // Delete inventory
     fs::remove_dir_all(tool.get_inventory_dir())?;
-    tool.cleanup().await?;
+    fs::remove_dir_all(tool.get_temp_dir())?;
 
     // Remove from lockfile
-    tool.remove_from_lockfile()?;
+    Locker::new(tool).remove_from_lockfile()?;
 
     Ok(())
 }
@@ -188,7 +198,11 @@ async fn uninstall_one(
 ) -> AppResult {
     let mut tool = session.load_tool(&args.context).await?;
 
-    if !tool.is_setup(&mut spec).await? {
+    Resolver::new(&tool)
+        .resolve_version(&mut spec, false)
+        .await?;
+
+    if !tool.is_installed(&spec) {
         if !args.quiet {
             session.console.render(element! {
                 Notice(variant: Variant::Caution) {
@@ -233,7 +247,7 @@ async fn uninstall_one(
     debug!("Uninstalling {} with version {}", tool.get_name(), spec);
 
     if args.quiet {
-        tool.teardown(&mut spec).await?;
+        Manager::new(&mut tool, &mut spec).uninstall().await?;
     } else {
         let progress = session.render_progress_loader().await;
 
@@ -243,7 +257,7 @@ async fn uninstall_one(
             spec.get_resolved_version()
         ));
 
-        let result = tool.teardown(&mut spec).await;
+        let result = Manager::new(&mut tool, &mut spec).uninstall().await;
 
         if result.is_ok() {
             progress.set_message(format!("Uninstalled {}", tool.get_name()));

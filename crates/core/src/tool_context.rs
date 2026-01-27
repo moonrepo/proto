@@ -105,8 +105,7 @@ impl Ord for ToolContext {
 impl fmt::Display for ToolContext {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some(backend) = &self.backend {
-            write!(f, "{backend}")?;
-            write!(f, ":")?;
+            write!(f, "{backend}:")?;
         }
 
         write!(f, "{}", self.id)
