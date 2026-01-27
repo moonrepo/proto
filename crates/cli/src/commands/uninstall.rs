@@ -7,8 +7,8 @@ use iocraft::element;
 use proto_core::flow::install::Installer;
 use proto_core::flow::locate::Locator;
 use proto_core::flow::lock::Locker;
+use proto_core::flow::manage::Manager;
 use proto_core::flow::resolve::Resolver;
-use proto_core::flow::setup::Setup;
 use proto_core::{ProtoConfig, ProtoConfigError, Tool, ToolContext, ToolSpec};
 use starbase::AppResult;
 use starbase_console::ui::*;
@@ -247,7 +247,7 @@ async fn uninstall_one(
     debug!("Uninstalling {} with version {}", tool.get_name(), spec);
 
     if args.quiet {
-        Setup::new(&mut tool, &mut spec).teardown().await?;
+        Manager::new(&mut tool, &mut spec).teardown().await?;
     } else {
         let progress = session.render_progress_loader().await;
 
@@ -257,7 +257,7 @@ async fn uninstall_one(
             spec.get_resolved_version()
         ));
 
-        let result = Setup::new(&mut tool, &mut spec).teardown().await;
+        let result = Manager::new(&mut tool, &mut spec).teardown().await;
 
         if result.is_ok() {
             progress.set_message(format!("Uninstalled {}", tool.get_name()));

@@ -35,7 +35,7 @@ macro_rules! do_build_from_source {
     ($sandbox:ident, $plugin:ident, $spec:literal) => {
         let mut spec = ToolSpec::parse($spec).unwrap();
 
-        let result = flow::setup::Setup::new(&mut $plugin.tool, &mut spec)
+        let result = flow::manage::Manager::new(&mut $plugin.tool, &mut spec)
             .setup(flow::install::InstallOptions {
                 console: Some(ProtoConsole::new_testing()),
                 log_writer: Some(Default::default()),
@@ -89,7 +89,7 @@ macro_rules! do_install_prebuilt {
     ($sandbox:ident, $plugin:ident, $spec:literal) => {
         let mut spec = ToolSpec::parse($spec).unwrap();
 
-        let result = flow::setup::Setup::new(&mut $plugin.tool, &mut spec)
+        let result = flow::manage::Manager::new(&mut $plugin.tool, &mut spec)
             .setup(flow::install::InstallOptions::default())
             .await;
 

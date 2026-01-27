@@ -3,8 +3,8 @@ use indexmap::{IndexMap, IndexSet};
 use miette::IntoDiagnostic;
 use proto_core::flow::link::Linker;
 use proto_core::flow::locate::Locator;
+use proto_core::flow::manage::ProtoManageError;
 use proto_core::flow::resolve::Resolver;
-use proto_core::flow::setup::ProtoSetupError;
 use proto_core::{ProtoConfig, ProtoConfigEnvOptions, ToolContext, ToolSpec};
 use proto_pdk_api::{
     ActivateEnvironmentInput, ActivateEnvironmentOutput, HookFunction, PluginFunction, RunHook,
@@ -103,7 +103,7 @@ impl<'app> ExecWorkflow<'app> {
         mut specs: FxHashMap<ToolContext, ToolSpec>,
         params: ExecWorkflowParams,
     ) -> miette::Result<()> {
-        let mut set = JoinSet::<Result<ExecItem, ProtoSetupError>>::new();
+        let mut set = JoinSet::<Result<ExecItem, ProtoManageError>>::new();
 
         for tool in std::mem::take(&mut self.tools) {
             let provided_spec = specs.remove(&tool.context);
@@ -317,7 +317,7 @@ async fn prepare_tool(
     mut tool: ToolRecord,
     provided_spec: Option<ToolSpec>,
     params: ExecWorkflowParams,
-) -> Result<ExecItem, ProtoSetupError> {
+) -> Result<ExecItem, ProtoManageError> {
     let mut item = ExecItem {
         context: tool.context.clone(),
         ..Default::default()

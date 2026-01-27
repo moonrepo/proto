@@ -7,8 +7,8 @@ use crate::telemetry::*;
 use crate::utils::tool_record::ToolRecord;
 use iocraft::element;
 use proto_core::flow::install::{InstallOptions, InstallPhase};
+use proto_core::flow::manage::Manager;
 use proto_core::flow::resolve::Resolver;
-use proto_core::flow::setup::Setup;
 use proto_core::utils::log::LogWriter;
 use proto_core::{Id, LockRecord, PinLocation, ToolSpec};
 use proto_pdk_api::{
@@ -328,7 +328,7 @@ impl InstallWorkflow {
             });
         });
 
-        let record = Setup::new(&mut self.tool, spec)
+        let record = Manager::new(&mut self.tool, spec)
             .setup(InstallOptions {
                 console: Some(self.console.clone()),
                 on_download_chunk: Some(on_download_chunk),

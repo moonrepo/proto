@@ -3,7 +3,7 @@ use crate::session::ProtoSession;
 use clap::{Args, ValueEnum};
 use iocraft::prelude::element;
 use proto_core::ToolSpec;
-use proto_core::flow::setup::Setup;
+use proto_core::flow::manage::Manager;
 use proto_core::{PROTO_PLUGIN_KEY, Tool, VersionSpec, flow::resolve::ProtoResolveError};
 use proto_shim::get_exe_file_name;
 use rustc_hash::FxHashSet;
@@ -202,7 +202,7 @@ pub async fn clean_tool(
                 version: version.clone(),
             });
 
-            Setup::new(&mut tool, &mut ToolSpec::new_resolved(version))
+            Manager::new(&mut tool, &mut ToolSpec::new_resolved(version))
                 .teardown()
                 .await?;
         }

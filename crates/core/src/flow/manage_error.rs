@@ -10,7 +10,7 @@ use thiserror::Error;
 use warpgate::WarpgatePluginError;
 
 #[derive(Error, Debug, miette::Diagnostic)]
-pub enum ProtoSetupError {
+pub enum ProtoManageError {
     #[diagnostic(transparent)]
     #[error(transparent)]
     Config(#[from] Box<ProtoConfigError>),
@@ -48,56 +48,56 @@ pub enum ProtoSetupError {
     Resolve(#[from] Box<ProtoResolveError>),
 }
 
-impl From<ProtoConfigError> for ProtoSetupError {
-    fn from(e: ProtoConfigError) -> ProtoSetupError {
-        ProtoSetupError::Config(Box::new(e))
+impl From<ProtoConfigError> for ProtoManageError {
+    fn from(e: ProtoConfigError) -> ProtoManageError {
+        ProtoManageError::Config(Box::new(e))
     }
 }
 
-impl From<ProtoInstallError> for ProtoSetupError {
-    fn from(e: ProtoInstallError) -> ProtoSetupError {
-        ProtoSetupError::Install(Box::new(e))
+impl From<ProtoInstallError> for ProtoManageError {
+    fn from(e: ProtoInstallError) -> ProtoManageError {
+        ProtoManageError::Install(Box::new(e))
     }
 }
 
-impl From<JsonError> for ProtoSetupError {
-    fn from(e: JsonError) -> ProtoSetupError {
-        ProtoSetupError::Json(Box::new(e))
+impl From<JsonError> for ProtoManageError {
+    fn from(e: JsonError) -> ProtoManageError {
+        ProtoManageError::Json(Box::new(e))
     }
 }
 
-impl From<ProtoLayoutError> for ProtoSetupError {
-    fn from(e: ProtoLayoutError) -> ProtoSetupError {
-        ProtoSetupError::Layout(Box::new(e))
+impl From<ProtoLayoutError> for ProtoManageError {
+    fn from(e: ProtoLayoutError) -> ProtoManageError {
+        ProtoManageError::Layout(Box::new(e))
     }
 }
 
-impl From<ProtoLinkError> for ProtoSetupError {
-    fn from(e: ProtoLinkError) -> ProtoSetupError {
-        ProtoSetupError::Link(Box::new(e))
+impl From<ProtoLinkError> for ProtoManageError {
+    fn from(e: ProtoLinkError) -> ProtoManageError {
+        ProtoManageError::Link(Box::new(e))
     }
 }
 
-impl From<ProtoLocateError> for ProtoSetupError {
-    fn from(e: ProtoLocateError) -> ProtoSetupError {
-        ProtoSetupError::Locate(Box::new(e))
+impl From<ProtoLocateError> for ProtoManageError {
+    fn from(e: ProtoLocateError) -> ProtoManageError {
+        ProtoManageError::Locate(Box::new(e))
     }
 }
 
-impl From<ProtoLockError> for ProtoSetupError {
-    fn from(e: ProtoLockError) -> ProtoSetupError {
-        ProtoSetupError::Lock(Box::new(e))
+impl From<ProtoLockError> for ProtoManageError {
+    fn from(e: ProtoLockError) -> ProtoManageError {
+        ProtoManageError::Lock(Box::new(e))
     }
 }
 
-impl From<WarpgatePluginError> for ProtoSetupError {
-    fn from(e: WarpgatePluginError) -> ProtoSetupError {
-        ProtoSetupError::Plugin(Box::new(e))
+impl From<WarpgatePluginError> for ProtoManageError {
+    fn from(e: WarpgatePluginError) -> ProtoManageError {
+        ProtoManageError::Plugin(Box::new(e))
     }
 }
 
-impl From<ProtoResolveError> for ProtoSetupError {
-    fn from(e: ProtoResolveError) -> ProtoSetupError {
-        ProtoSetupError::Resolve(Box::new(e))
+impl From<ProtoResolveError> for ProtoManageError {
+    fn from(e: ProtoResolveError) -> ProtoManageError {
+        ProtoManageError::Resolve(Box::new(e))
     }
 }

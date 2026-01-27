@@ -1,4 +1,4 @@
-pub use super::setup_error::ProtoSetupError;
+pub use super::manage_error::ProtoManageError;
 use crate::cfg;
 use crate::config::{PinLocation, ProtoConfig};
 use crate::flow::install::{InstallOptions, Installer, ProtoInstallError};
@@ -17,12 +17,12 @@ use std::collections::{BTreeMap, BTreeSet};
 use tracing::{debug, instrument};
 
 /// Set up and tears down tools.
-pub struct Setup<'tool> {
+pub struct Manager<'tool> {
     tool: &'tool mut Tool,
     spec: &'tool mut ToolSpec,
 }
 
-impl<'tool> Setup<'tool> {
+impl<'tool> Manager<'tool> {
     pub fn new(tool: &'tool mut Tool, spec: &'tool mut ToolSpec) -> Self {
         Self { tool, spec }
     }
@@ -33,7 +33,7 @@ impl<'tool> Setup<'tool> {
     pub async fn setup(
         &mut self,
         options: InstallOptions,
-    ) -> Result<Option<LockRecord>, ProtoSetupError> {
+    ) -> Result<Option<LockRecord>, ProtoManageError> {
         let version = Resolver::new(self.tool)
             .resolve_version(self.spec, false)
             .await?;
@@ -107,7 +107,7 @@ impl<'tool> Setup<'tool> {
     /// Teardown the tool by uninstalling the current version, removing the version
     /// from the manifest, and cleaning up temporary files. Return true if the teardown occurred.
     #[instrument(skip_all)]
-    pub async fn teardown(&mut self) -> Result<bool, ProtoSetupError> {
+    pub async fn teardown(&mut self) -> Result<bool, ProtoManageError> {
         self.cleanup().await?;
 
         let version = Resolver::new(self.tool)
@@ -182,14 +182,14 @@ impl<'tool> Setup<'tool> {
 
     /// Delete temporary files and downloads for the current version.
     #[instrument(skip_all)]
-    pub async fn cleanup(&self) -> Result<(), ProtoSetupError> {
+    pub async fn cleanup(&self) -> Result<(), ProtoManageError> {
         debug!(
             tool = self.tool.context.as_str(),
             "Cleaning up temporary files and downloads"
         );
 
         fs::remove_dir_all(self.tool.get_temp_dir()).map_err(|error| {
-            ProtoSetupError::Install(Box::new(ProtoInstallError::Fs(Box::new(error))))
+            ProtoManageError::Install(Box::new(ProtoInstallError::Fs(Box::new(error))))
         })?;
 
         Ok(())
@@ -197,7 +197,7 @@ impl<'tool> Setup<'tool> {
 
     /// Sync the local tool manifest with changes from the plugin.
     #[instrument(skip_all)]
-    pub async fn sync_manifest(&mut self) -> Result<(), ProtoSetupError> {
+    pub async fn sync_manifest(&mut self) -> Result<(), ProtoManageError> {
         if !self
             .tool
             .plugin

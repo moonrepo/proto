@@ -1,7 +1,7 @@
 mod utils;
 
 use proto_core::flow::locate::Locator;
-use proto_core::flow::setup::Setup;
+use proto_core::flow::manage::Manager;
 use proto_core::{
     PluginLocator, ProtoEnvironment, ProtoLoaderError, Tool, ToolContext, ToolSpec,
     UnresolvedVersionSpec, flow::install::InstallOptions, load_tool_from_locator,
@@ -30,7 +30,7 @@ where
     let mut tool = factory(&proto).await.unwrap();
     let mut spec = ToolSpec::new(UnresolvedVersionSpec::parse("1.0.0").unwrap());
 
-    Setup::new(&mut tool, &mut spec)
+    Manager::new(&mut tool, &mut spec)
         .setup(InstallOptions::default())
         .await
         .unwrap();
