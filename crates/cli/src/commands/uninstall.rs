@@ -178,6 +178,14 @@ async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult 
     Ok(None)
 }
 
+async fn try_uninstall_one(tool: &ToolRecord, spec: &mut ToolSpec) -> miette::Result<()> {
+    let mut manager = Manager::new(tool);
+    manager.uninstall(spec).await?;
+    manager.sync_manifest().await?;
+
+    Ok(())
+}
+
 #[instrument(skip(session))]
 async fn uninstall_one(
     session: ProtoSession,
@@ -235,7 +243,7 @@ async fn uninstall_one(
     debug!("Uninstalling {} with version {}", tool.get_name(), spec);
 
     if args.quiet {
-        Manager::new(&tool).uninstall(&mut spec).await?;
+        try_uninstall_one(&tool, &mut spec).await?;
     } else {
         let progress = session.render_progress_loader().await;
 
@@ -245,7 +253,7 @@ async fn uninstall_one(
             spec.get_resolved_version()
         ));
 
-        let result = Manager::new(&tool).uninstall(&mut spec).await;
+        let result = try_uninstall_one(&tool, &mut spec).await;
 
         if result.is_ok() {
             progress.set_message(format!("Uninstalled {}", tool.get_name()));

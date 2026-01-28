@@ -22,6 +22,7 @@ pub struct Manager<'tool> {
     locker: Locker<'tool>,
 
     /// The inventory manifest being modified during these operations.
+    /// It *must* be saved after installing/uninstalling!
     pub manifest: ToolManifest,
 }
 
@@ -93,7 +94,8 @@ impl<'tool> Manager<'tool> {
         })?;
 
         // Link all the things
-        let linker = Linker::new(self.tool, spec);
+        let mut linker = Linker::new(self.tool, spec);
+        linker.set_manifest(&self.manifest);
         linker.link_bins(false).await?;
         linker.link_shims(true).await?;
 

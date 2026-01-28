@@ -1,7 +1,8 @@
 pub use super::link_error::ProtoLinkError;
 use crate::flow::locate::Locator;
-use crate::layout::{Shim, ShimRegistry, ShimsMap};
+use crate::layout::{BinManager, Shim, ShimRegistry, ShimsMap};
 use crate::tool::Tool;
+use crate::tool_manifest::ToolManifest;
 use crate::tool_spec::ToolSpec;
 use proto_pdk_api::*;
 use proto_shim::*;
@@ -21,11 +22,26 @@ pub struct LinkerResponse {
 pub struct Linker<'tool> {
     tool: &'tool Tool,
     spec: &'tool ToolSpec,
+    manifest: Option<&'tool ToolManifest>,
 }
 
 impl<'tool> Linker<'tool> {
     pub fn new(tool: &'tool Tool, spec: &'tool ToolSpec) -> Self {
-        Self { tool, spec }
+        Self {
+            tool,
+            spec,
+            manifest: None,
+        }
+    }
+
+    pub fn set_manifest(&mut self, manifest: &'tool ToolManifest) -> &mut Self {
+        self.manifest = Some(manifest);
+        self
+    }
+
+    pub fn unset_manifest(&mut self) -> &mut Self {
+        self.manifest = None;
+        self
     }
 
     /// Link both binaries and shims.
@@ -135,7 +151,7 @@ impl<'tool> Linker<'tool> {
 
             ShimRegistry::update(&store.shims_dir, registry)?;
 
-            let mut manifest = self.tool.inventory.load_manifest()?;
+            let mut manifest = self.tool.inventory.manifest.clone();
             manifest.shim_version = SHIM_VERSION;
             manifest.save()?;
         }
@@ -147,11 +163,14 @@ impl<'tool> Linker<'tool> {
     #[instrument(skip(self))]
     pub async fn link_bins(&self, force: bool) -> Result<Vec<PathBuf>, ProtoLinkError> {
         let bins = Locator::new(self.tool, self.spec)
-            .locate_bins(if force {
-                None
-            } else {
-                self.spec.version.as_ref()
-            })
+            .locate_bins_with_manager(
+                BinManager::from_manifest(self.manifest.unwrap_or(&self.tool.inventory.manifest)),
+                if force {
+                    None
+                } else {
+                    self.spec.version.as_ref()
+                },
+            )
             .await?;
 
         if bins.is_empty() {
