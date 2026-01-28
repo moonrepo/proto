@@ -259,12 +259,14 @@ impl Tool {
     /// Return contextual information to pass to WASM plugin functions,
     /// representing an unresolved state, which has no version or tool
     /// data.
+    #[allow(deprecated)]
     pub fn create_plugin_unresolved_context(&self) -> PluginUnresolvedContext {
         PluginUnresolvedContext {
             proto_version: Some(get_proto_version().to_owned()),
             temp_dir: self.to_virtual_path(&self.inventory.temp_dir),
             // TODO: temporary until 3rd-party plugins update their PDKs
             tool_dir: self.to_virtual_path(&self.proto.store.inventory_dir),
+            version: "latest".into(),
         }
     }
 

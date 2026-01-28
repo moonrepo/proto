@@ -157,7 +157,11 @@ mod uninstall {
     #[test]
     fn removes_tool_shims() {
         let sandbox = create_empty_proto_sandbox();
-        sandbox.create_file(".proto/tools/protostar/manifest.json", "{}");
+        sandbox.create_file(
+            ".proto/tools/protostar/manifest.json",
+            r#"{ "installed_versions": ["1.2.3"] }"#,
+        );
+        sandbox.create_file(".proto/tools/protostar/1.2.3/protostar", "");
         sandbox.create_file(".proto/shims/protostar", "");
         sandbox.create_file(".proto/shims/protostar.exe", "");
 

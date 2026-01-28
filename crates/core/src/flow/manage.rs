@@ -120,7 +120,9 @@ impl<'tool> Manager<'tool> {
         let proto = &self.tool.proto;
 
         // If no more versions in general, delete all
-        if self.tool.inventory.manifest.is_only_version(&version) {
+        if self.tool.inventory.manifest.installed_versions.is_empty()
+            || self.tool.inventory.manifest.is_only_version(&version)
+        {
             for bin in locator.locate_bins_with_manager(bin_manager, None).await? {
                 proto.store.unlink_bin(&bin.path)?;
             }
