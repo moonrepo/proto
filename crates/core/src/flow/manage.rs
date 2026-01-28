@@ -19,6 +19,7 @@ use tracing::{debug, instrument};
 /// Set up and tears down tools.
 pub struct Manager<'tool> {
     tool: &'tool Tool,
+    locker: Locker<'tool>,
 
     /// The inventory manifest being modified during these operations.
     pub manifest: ToolManifest,
@@ -28,6 +29,7 @@ impl<'tool> Manager<'tool> {
     pub fn new(tool: &'tool Tool) -> Self {
         Self {
             manifest: tool.inventory.manifest.clone(),
+            locker: Locker::new(tool),
             tool,
         }
     }
@@ -41,6 +43,7 @@ impl<'tool> Manager<'tool> {
         options: InstallOptions,
     ) -> Result<Option<LockRecord>, ProtoManageError> {
         let version = Resolver::new(self.tool)
+            .set_manifest(&self.manifest)
             .resolve_version(spec, false)
             .await?;
 
@@ -53,15 +56,13 @@ impl<'tool> Manager<'tool> {
             }
             // Return an existing lock record if already installed
             None => {
-                return Ok(Locker::new(self.tool)
-                    .get_resolved_locked_record(spec)
-                    .cloned());
+                return Ok(self.locker.get_resolved_locked_record(spec).cloned());
             }
         };
 
         // Add record to lockfile
         if spec.update_lockfile {
-            Locker::new(self.tool).insert_record_into_lockfile(&record)?;
+            self.locker.insert_record_into_lockfile(&record)?;
         }
 
         // Add version to manifest
@@ -109,6 +110,7 @@ impl<'tool> Manager<'tool> {
         self.cleanup().await?;
 
         let version = Resolver::new(self.tool)
+            .set_manifest(&self.manifest)
             .resolve_version(spec, false)
             .await?;
 
@@ -118,7 +120,7 @@ impl<'tool> Manager<'tool> {
 
         // Remove record from lockfile
         if spec.update_lockfile {
-            Locker::new(self.tool).remove_version_from_lockfile(&version)?;
+            self.locker.remove_version_from_lockfile(&version)?;
         }
 
         // Delete bins and shims

@@ -2,6 +2,7 @@ pub use super::resolve_error::ProtoResolveError;
 use crate::flow::lock::Locker;
 use crate::helpers::is_offline;
 use crate::tool::Tool;
+use crate::tool_manifest::ToolManifest;
 use crate::tool_spec::ToolSpec;
 use crate::version_resolver::VersionResolver;
 use proto_pdk_api::*;
@@ -11,6 +12,7 @@ use tracing::{debug, instrument};
 /// Loads, resolves, and validates versions.
 pub struct Resolver<'tool> {
     tool: &'tool Tool,
+    manifest: Option<&'tool ToolManifest>,
 
     /// Collection of loaded versions.
     pub data: VersionResolver<'tool>,
@@ -20,8 +22,19 @@ impl<'tool> Resolver<'tool> {
     pub fn new(tool: &'tool Tool) -> Self {
         Self {
             tool,
+            manifest: None,
             data: VersionResolver::default(),
         }
+    }
+
+    pub fn set_manifest(&mut self, manifest: &'tool ToolManifest) -> &mut Self {
+        self.manifest = Some(manifest);
+        self
+    }
+
+    pub fn unset_manifest(&mut self) -> &mut Self {
+        self.manifest = None;
+        self
     }
 
     /// Load available versions to install and return a resolver instance.
@@ -79,7 +92,7 @@ impl<'tool> Resolver<'tool> {
         // Cache the results and create a resolver
         let mut resolver = VersionResolver::from_output(versions);
 
-        resolver.with_manifest(&self.tool.inventory.manifest);
+        resolver.with_manifest(self.manifest.unwrap_or(&self.tool.inventory.manifest));
 
         let config = self.tool.proto.load_config()?;
 
