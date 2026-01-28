@@ -54,7 +54,7 @@ pub async fn regen(session: ProtoSession, args: RegenArgs) -> AppResult {
     // Regenerate everything!
     let config = session.env.load_config()?;
 
-    for mut tool in session.load_tools().await? {
+    for tool in session.load_tools().await? {
         progress.set_message(format!("Regenerating {}", tool.get_name()));
 
         if let Some(version) = config.versions.get(&tool.context) {
@@ -68,7 +68,7 @@ pub async fn regen(session: ProtoSession, args: RegenArgs) -> AppResult {
                 .resolve_version(&mut spec, true)
                 .await?;
 
-            let mut linker = Linker::new(&mut tool, &spec);
+            let linker = Linker::new(&tool, &spec);
 
             linker.link_shims(true).await?;
 

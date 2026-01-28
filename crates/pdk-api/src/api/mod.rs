@@ -887,7 +887,7 @@ api_struct!(
     /// Input passed to the `sync_manifest` function.
     pub struct SyncManifestInput {
         /// Current tool context.
-        pub context: PluginContext,
+        pub context: PluginUnresolvedContext,
     }
 );
 

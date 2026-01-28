@@ -150,7 +150,7 @@ impl WasmTestWrapper {
     }
 
     pub async fn sync_manifest(&self, mut input: SyncManifestInput) -> SyncManifestOutput {
-        input.context = self.prepare_context(input.context);
+        input.context = self.prepare_unresolved_context(input.context);
 
         self.tool
             .plugin

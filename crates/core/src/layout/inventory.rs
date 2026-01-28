@@ -45,6 +45,13 @@ impl Inventory {
     }
 
     #[instrument(skip(self))]
+    pub fn load_manifest(&self) -> Result<ToolManifest, ProtoLayoutError> {
+        Ok(ToolManifest::load_from(
+            self.dir_original.as_deref().unwrap_or(self.dir.as_ref()),
+        )?)
+    }
+
+    #[instrument(skip(self))]
     pub fn load_remote_versions(
         &self,
         disable_cache: bool,

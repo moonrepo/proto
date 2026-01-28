@@ -328,20 +328,27 @@ impl InstallWorkflow {
             });
         });
 
-        let record = Manager::new(&mut self.tool, spec)
-            .install(InstallOptions {
-                console: Some(self.console.clone()),
-                on_download_chunk: Some(on_download_chunk),
-                on_phase_change: Some(on_phase_change),
-                force: params.force,
-                log_writer: params.log_writer.clone(),
-                skip_prompts: params.skip_prompts,
-                // When installing multiple tools, we can't render the nice
-                // UI for the build flow, so rely on the progress bars
-                skip_ui: params.multiple,
-                strategy: params.strategy.unwrap_or(default_strategy),
-            })
+        let mut manager = Manager::new(&self.tool);
+
+        let record = manager
+            .install(
+                spec,
+                InstallOptions {
+                    console: Some(self.console.clone()),
+                    on_download_chunk: Some(on_download_chunk),
+                    on_phase_change: Some(on_phase_change),
+                    force: params.force,
+                    log_writer: params.log_writer.clone(),
+                    skip_prompts: params.skip_prompts,
+                    // When installing multiple tools, we can't render the nice
+                    // UI for the build flow, so rely on the progress bars
+                    skip_ui: params.multiple,
+                    strategy: params.strategy.unwrap_or(default_strategy),
+                },
+            )
             .await?;
+
+        manager.sync_manifest().await?;
 
         Ok(record)
     }
