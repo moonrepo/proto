@@ -15,6 +15,13 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### ⚙️ Internal
+
+- Updated Rust to v1.93.0.
+- Updated dependencies.
+
 ## 0.54.2
 
 #### 🚀 Updates
