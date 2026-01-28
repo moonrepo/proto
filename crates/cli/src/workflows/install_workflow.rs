@@ -328,7 +328,7 @@ impl InstallWorkflow {
             });
         });
 
-        let mut manager = Manager::new(&self.tool);
+        let mut manager = Manager::new(&mut self.tool);
 
         let record = manager
             .install(

@@ -27,10 +27,10 @@ where
     fs::create_dir_all(&proto.store.dir).unwrap();
     fs::create_dir_all(&proto.home_dir).unwrap();
 
-    let tool = factory(&proto).await.unwrap();
+    let mut tool = factory(&proto).await.unwrap();
     let mut spec = ToolSpec::new(UnresolvedVersionSpec::parse("1.0.0").unwrap());
 
-    Manager::new(&tool)
+    Manager::new(&mut tool)
         .install(&mut spec, InstallOptions::default())
         .await
         .unwrap();

@@ -67,7 +67,7 @@ fn is_older_than_days(now: u128, other: u128, days: u64) -> bool {
 #[instrument(skip_all)]
 pub async fn clean_tool(
     session: &ProtoSession,
-    tool: Tool,
+    mut tool: Tool,
     now: SystemTime,
     days: u64,
 ) -> miette::Result<Vec<StaleTool>> {
@@ -195,12 +195,13 @@ pub async fn clean_tool(
     }
 
     if skip_prompts || confirmed {
-        let mut manager = Manager::new(&tool);
+        let tool_id = tool.get_id().to_string();
+        let mut manager = Manager::new(&mut tool);
 
         for version in versions_to_clean {
             cleaned.push(StaleTool {
                 dir: inventory_dir.join(version.to_string()),
-                id: tool.get_id().to_string(),
+                id: tool_id.clone(),
                 version: version.clone(),
             });
 
