@@ -231,9 +231,15 @@ api_struct!(
         /// Virtual path to the tool's temporary directory.
         pub temp_dir: VirtualPath,
 
-        // TODO: temporary compat with `ToolContext`
+        // TODO: Temporary compat with `PluginContext`
         #[doc(hidden)]
+        #[deprecated]
         pub tool_dir: VirtualPath,
+
+        // TODO: Temporary compat with `PluginContext`
+        #[doc(hidden)]
+        #[deprecated]
+        pub version: String,
     }
 );
 
@@ -887,7 +893,7 @@ api_struct!(
     /// Input passed to the `sync_manifest` function.
     pub struct SyncManifestInput {
         /// Current tool context.
-        pub context: PluginContext,
+        pub context: PluginUnresolvedContext,
     }
 );
 

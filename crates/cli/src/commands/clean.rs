@@ -195,17 +195,22 @@ pub async fn clean_tool(
     }
 
     if skip_prompts || confirmed {
+        let tool_id = tool.get_id().to_string();
+        let mut manager = Manager::new(&mut tool);
+
         for version in versions_to_clean {
             cleaned.push(StaleTool {
                 dir: inventory_dir.join(version.to_string()),
-                id: tool.get_id().to_string(),
+                id: tool_id.clone(),
                 version: version.clone(),
             });
 
-            Manager::new(&mut tool, &mut ToolSpec::new_resolved(version))
-                .uninstall()
+            manager
+                .uninstall(&mut ToolSpec::new_resolved(version))
                 .await?;
         }
+
+        manager.sync_manifest().await?;
     } else {
         debug!("Skipping remove, continuing to next tool");
     }

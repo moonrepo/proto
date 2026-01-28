@@ -19,17 +19,17 @@ pub struct LinkerResponse {
 
 /// Link binaries and shims for an installed tool.
 pub struct Linker<'tool> {
-    tool: &'tool mut Tool,
+    tool: &'tool Tool,
     spec: &'tool ToolSpec,
 }
 
 impl<'tool> Linker<'tool> {
-    pub fn new(tool: &'tool mut Tool, spec: &'tool ToolSpec) -> Self {
+    pub fn new(tool: &'tool Tool, spec: &'tool ToolSpec) -> Self {
         Self { tool, spec }
     }
 
     /// Link both binaries and shims.
-    pub async fn link(&mut self, force: bool) -> Result<LinkerResponse, ProtoLinkError> {
+    pub async fn link(&self, force: bool) -> Result<LinkerResponse, ProtoLinkError> {
         Ok(LinkerResponse {
             bins: self.link_bins(force).await?,
             shims: self.link_shims(force).await?,
@@ -39,7 +39,7 @@ impl<'tool> Linker<'tool> {
     /// Create shim files for the current tool if they are missing or out of date.
     /// If find only is enabled, will only check if they exist, and not create.
     #[instrument(skip(self))]
-    pub async fn link_shims(&mut self, force: bool) -> Result<Vec<PathBuf>, ProtoLinkError> {
+    pub async fn link_shims(&self, force: bool) -> Result<Vec<PathBuf>, ProtoLinkError> {
         let shims = Locator::new(self.tool, self.spec).locate_shims().await?;
 
         if shims.is_empty() {
@@ -135,8 +135,9 @@ impl<'tool> Linker<'tool> {
 
             ShimRegistry::update(&store.shims_dir, registry)?;
 
-            self.tool.inventory.manifest.shim_version = SHIM_VERSION;
-            self.tool.inventory.manifest.save()?;
+            let mut manifest = self.tool.inventory.manifest.clone();
+            manifest.shim_version = SHIM_VERSION;
+            manifest.save()?;
         }
 
         Ok(to_create)
@@ -144,7 +145,7 @@ impl<'tool> Linker<'tool> {
 
     /// Symlink all primary and secondary binaries for the current tool.
     #[instrument(skip(self))]
-    pub async fn link_bins(&mut self, force: bool) -> Result<Vec<PathBuf>, ProtoLinkError> {
+    pub async fn link_bins(&self, force: bool) -> Result<Vec<PathBuf>, ProtoLinkError> {
         let bins = Locator::new(self.tool, self.spec)
             .locate_bins(if force {
                 None

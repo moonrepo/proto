@@ -79,4 +79,18 @@ impl ToolManifest {
 
         Ok(())
     }
+
+    pub fn add_version(&mut self, version: &VersionSpec, meta: ToolManifestVersion) {
+        self.installed_versions.insert(version.to_owned());
+        self.versions.insert(version.to_owned(), meta);
+    }
+
+    pub fn remove_version(&mut self, version: &VersionSpec) {
+        self.installed_versions.remove(version);
+        self.versions.remove(version);
+    }
+
+    pub fn is_only_version(&self, version: &VersionSpec) -> bool {
+        self.installed_versions.len() == 1 && self.installed_versions.contains(version)
+    }
 }

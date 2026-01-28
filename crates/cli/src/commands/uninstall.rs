@@ -4,8 +4,6 @@ use crate::telemetry::{Metric, track_usage};
 use crate::utils::tool_record::ToolRecord;
 use clap::Args;
 use iocraft::element;
-use proto_core::flow::install::Installer;
-use proto_core::flow::locate::Locator;
 use proto_core::flow::lock::Locker;
 use proto_core::flow::manage::Manager;
 use proto_core::flow::resolve::Resolver;
@@ -74,27 +72,17 @@ async fn track_uninstall(tool: &Tool, spec: Option<&ToolSpec>) -> Result<(), Pro
     .await
 }
 
-async fn try_uninstall_all(session: &ProtoSession, tool: &mut ToolRecord) -> miette::Result<()> {
-    // Loop through each version and uninstall and
-    // don't use `teardown` as it does far too much
+async fn try_uninstall_all(tool: &mut ToolRecord) -> miette::Result<()> {
+    // Loop through each version and uninstall
+    let mut manager = Manager::new(&mut tool.tool);
+
     for version in tool.installed_versions.clone() {
-        let spec = ToolSpec::new_resolved(version);
-
-        Installer::new(tool, &spec).uninstall().await?;
+        manager
+            .uninstall(&mut ToolSpec::new_resolved(version))
+            .await?;
     }
 
-    let spec = ToolSpec::default();
-    let locator = Locator::new(tool, &spec);
-
-    // Delete bins
-    for bin in locator.locate_bins(None).await? {
-        session.env.store.unlink_bin(&bin.path)?;
-    }
-
-    // Delete shims
-    for shim in locator.locate_shims().await? {
-        session.env.store.remove_shim(&shim.path)?;
-    }
+    manager.sync_manifest().await?;
 
     // Delete inventory
     fs::remove_dir_all(tool.get_inventory_dir())?;
@@ -154,13 +142,13 @@ async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult 
     debug!("Uninstalling all {} versions", tool.get_name());
 
     if args.quiet {
-        try_uninstall_all(&session, &mut tool).await?;
+        try_uninstall_all(&mut tool).await?;
     } else {
         let progress = session.render_progress_loader().await;
 
         progress.set_message(format!("Uninstalling {}", tool.get_name()));
 
-        let result = try_uninstall_all(&session, &mut tool).await;
+        let result = try_uninstall_all(&mut tool).await;
 
         if result.is_ok() {
             progress.set_message(format!("Uninstalled {}", tool.get_name()));
@@ -188,6 +176,14 @@ async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult 
     }
 
     Ok(None)
+}
+
+async fn try_uninstall_one(tool: &mut ToolRecord, spec: &mut ToolSpec) -> miette::Result<()> {
+    let mut manager = Manager::new(tool);
+    manager.uninstall(spec).await?;
+    manager.sync_manifest().await?;
+
+    Ok(())
 }
 
 #[instrument(skip(session))]
@@ -247,7 +243,7 @@ async fn uninstall_one(
     debug!("Uninstalling {} with version {}", tool.get_name(), spec);
 
     if args.quiet {
-        Manager::new(&mut tool, &mut spec).uninstall().await?;
+        try_uninstall_one(&mut tool, &mut spec).await?;
     } else {
         let progress = session.render_progress_loader().await;
 
@@ -257,7 +253,7 @@ async fn uninstall_one(
             spec.get_resolved_version()
         ));
 
-        let result = Manager::new(&mut tool, &mut spec).uninstall().await;
+        let result = try_uninstall_one(&mut tool, &mut spec).await;
 
         if result.is_ok() {
             progress.set_message(format!("Uninstalled {}", tool.get_name()));

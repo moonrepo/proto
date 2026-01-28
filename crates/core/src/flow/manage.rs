@@ -19,12 +19,11 @@ use tracing::{debug, instrument};
 /// Set up and tears down tools.
 pub struct Manager<'tool> {
     tool: &'tool mut Tool,
-    spec: &'tool mut ToolSpec,
 }
 
 impl<'tool> Manager<'tool> {
-    pub fn new(tool: &'tool mut Tool, spec: &'tool mut ToolSpec) -> Self {
-        Self { tool, spec }
+    pub fn new(tool: &'tool mut Tool) -> Self {
+        Self { tool }
     }
 
     /// Setup the tool by resolving a semantic version, installing the tool,
@@ -32,47 +31,42 @@ impl<'tool> Manager<'tool> {
     #[instrument(skip(self, options))]
     pub async fn install(
         &mut self,
+        spec: &mut ToolSpec,
         options: InstallOptions,
     ) -> Result<Option<LockRecord>, ProtoManageError> {
         let version = Resolver::new(self.tool)
-            .resolve_version(self.spec, false)
+            .resolve_version(spec, false)
             .await?;
 
-        let record = match Installer::new(self.tool, self.spec)
-            .install(options)
-            .await?
-        {
+        let record = match Installer::new(self.tool, spec).install(options).await? {
             // Update lock record with resolved spec information
             Some(mut record) => {
                 record.version = Some(version.clone());
-                record.spec = Some(self.spec.req.clone());
+                record.spec = Some(spec.req.clone());
                 record
             }
             // Return an existing lock record if already installed
             None => {
                 return Ok(Locker::new(self.tool)
-                    .get_resolved_locked_record(self.spec)
+                    .get_resolved_locked_record(spec)
                     .cloned());
             }
         };
 
         // Add record to lockfile
-        if self.spec.update_lockfile {
+        if spec.update_lockfile {
             Locker::new(self.tool).insert_record_into_lockfile(&record)?;
         }
 
         // Add version to manifest
-        let manifest = &mut self.tool.inventory.manifest;
-        manifest.installed_versions.insert(version.clone());
-        manifest.versions.insert(
-            version.clone(),
+        self.tool.inventory.manifest.add_version(
+            &version,
             ToolManifestVersion {
                 lock: Some(record.for_manifest()),
                 suffix: self.tool.inventory.config.version_suffix.clone(),
                 ..Default::default()
             },
         );
-        manifest.save()?;
 
         // Pin the global version
         ProtoConfig::update_document(self.tool.proto.get_config_dir(PinLocation::Global), |doc| {
@@ -90,11 +84,8 @@ impl<'tool> Manager<'tool> {
             }
         })?;
 
-        // Allow plugins to override manifest
-        self.sync_manifest().await?;
-
         // Link all the things
-        let mut linker = Linker::new(self.tool, self.spec);
+        let linker = Linker::new(self.tool, spec);
         linker.link_bins(false).await?;
         linker.link_shims(true).await?;
 
@@ -107,37 +98,31 @@ impl<'tool> Manager<'tool> {
     /// Teardown the tool by uninstalling the current version, removing the version
     /// from the manifest, and cleaning up temporary files. Return true if the teardown occurred.
     #[instrument(skip_all)]
-    pub async fn uninstall(&mut self) -> Result<bool, ProtoManageError> {
+    pub async fn uninstall(&mut self, spec: &mut ToolSpec) -> Result<bool, ProtoManageError> {
         self.cleanup().await?;
 
         let version = Resolver::new(self.tool)
-            .resolve_version(self.spec, false)
+            .resolve_version(spec, false)
             .await?;
 
-        if !Installer::new(self.tool, self.spec).uninstall().await? {
+        if !Installer::new(self.tool, spec).uninstall().await? {
             return Ok(false);
         }
 
         // Remove record from lockfile
-        if self.spec.update_lockfile {
+        if spec.update_lockfile {
             Locker::new(self.tool).remove_version_from_lockfile(&version)?;
         }
 
         // Delete bins and shims
         let mut bin_manager = BinManager::from_manifest(&self.tool.inventory.manifest);
-        let is_last_installed_version = self.tool.inventory.manifest.installed_versions.len() == 1
-            && self
-                .tool
-                .inventory
-                .manifest
-                .installed_versions
-                .contains(&version);
-
-        let locator = Locator::new(self.tool, self.spec);
+        let locator = Locator::new(self.tool, spec);
         let proto = &self.tool.proto;
 
         // If no more versions in general, delete all
-        if is_last_installed_version {
+        if self.tool.inventory.manifest.installed_versions.is_empty()
+            || self.tool.inventory.manifest.is_only_version(&version)
+        {
             for bin in locator.locate_bins_with_manager(bin_manager, None).await? {
                 proto.store.unlink_bin(&bin.path)?;
             }
@@ -169,13 +154,9 @@ impl<'tool> Manager<'tool> {
             }
         })?;
 
-        // Remove version from manifest/lockfile
         // We must do this last because the location resolves above
         // require `installed_versions` to have values!
-        let manifest = &mut self.tool.inventory.manifest;
-        manifest.installed_versions.remove(&version);
-        manifest.versions.remove(&version);
-        manifest.save()?;
+        self.tool.inventory.manifest.remove_version(&version);
 
         Ok(true)
     }
@@ -197,13 +178,15 @@ impl<'tool> Manager<'tool> {
 
     /// Sync the local tool manifest with changes from the plugin.
     #[instrument(skip_all)]
-    pub async fn sync_manifest(&mut self) -> Result<(), ProtoManageError> {
+    pub async fn sync_manifest(self) -> Result<(), ProtoManageError> {
         if !self
             .tool
             .plugin
             .has_func(PluginFunction::SyncManifest)
             .await
         {
+            self.tool.inventory.manifest.save()?;
+
             return Ok(());
         }
 
@@ -218,38 +201,36 @@ impl<'tool> Manager<'tool> {
             .call_func_with(
                 PluginFunction::SyncManifest,
                 SyncManifestInput {
-                    context: self.tool.create_plugin_context(self.spec),
+                    context: self.tool.create_plugin_unresolved_context(),
                 },
             )
             .await?;
 
-        if output.skip_sync {
-            return Ok(());
-        }
-
-        let mut modified = false;
-        let manifest = &mut self.tool.inventory.manifest;
-
-        if let Some(versions) = output.versions {
-            modified = true;
-
+        if !output.skip_sync
+            && let Some(versions) = output.versions
+        {
             let mut entries = BTreeMap::default();
             let mut installed = BTreeSet::default();
 
             for key in versions {
-                let value = manifest.versions.get(&key).cloned().unwrap_or_default();
+                let value = self
+                    .tool
+                    .inventory
+                    .manifest
+                    .versions
+                    .get(&key)
+                    .cloned()
+                    .unwrap_or_default();
 
                 installed.insert(key.clone());
                 entries.insert(key, value);
             }
 
-            manifest.versions = entries;
-            manifest.installed_versions = installed;
+            self.tool.inventory.manifest.versions = entries;
+            self.tool.inventory.manifest.installed_versions = installed;
         }
 
-        if modified {
-            manifest.save()?;
-        }
+        self.tool.inventory.manifest.save()?;
 
         Ok(())
     }
