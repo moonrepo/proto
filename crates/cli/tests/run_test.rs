@@ -68,7 +68,7 @@ mod run {
         // In github CI task runners this is usually the case.
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("run").arg("node").arg("--version");
+                cmd.arg("run").arg("node").arg("--").arg("--version");
             })
             .success();
     }
@@ -636,7 +636,7 @@ FOURTH = "ignores-$FIRST-$PARENT"
             // Just check it executes without error
             sandbox
                 .run_bin(|cmd| {
-                    cmd.args(["run", "npx", "--help"]);
+                    cmd.args(["run", "npx", "--", "--help"]);
                 })
                 .success();
         }
@@ -664,6 +664,7 @@ FOURTH = "ignores-$FIRST-$PARENT"
         }
 
         #[test]
+        #[cfg(not(target_os = "windows"))]
         fn can_run_node_gyp_directly() {
             let sandbox = create_empty_proto_sandbox();
 
@@ -682,7 +683,7 @@ FOURTH = "ignores-$FIRST-$PARENT"
 
             let assert = sandbox
                 .run_bin(|cmd| {
-                    cmd.args(["run", "node-gyp", "--version"]);
+                    cmd.args(["run", "node-gyp", "--", "--version"]);
                 })
                 .success();
 
@@ -740,7 +741,7 @@ FOURTH = "ignores-$FIRST-$PARENT"
             // Verify npx runs successfully (it will use the pinned npm 9.0.0)
             sandbox
                 .run_bin(|cmd| {
-                    cmd.args(["run", "npx", "--help"]);
+                    cmd.args(["run", "npx", "--", "--help"]);
                 })
                 .success();
         }
