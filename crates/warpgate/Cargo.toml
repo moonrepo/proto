@@ -25,7 +25,6 @@ reqwest-middleware = { workspace = true, features = [
 	"query",
 	"rustls",
 ] }
-reqwest-netrc = { workspace = true }
 rust-netrc = "0.1.2"
 schematic = { workspace = true, optional = true, features = ["schema"] }
 scc = { workspace = true }
