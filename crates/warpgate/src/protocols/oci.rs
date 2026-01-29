@@ -82,7 +82,7 @@ impl OciLoader {
             let digest = layer.sha256_digest();
 
             LoadFrom::Blob {
-                data: layer.data.to_owned(),
+                data: layer.data.to_vec(),
                 hash: digest.strip_prefix("sha256:").unwrap_or(&digest).into(),
                 ext: match layer.media_type.as_str() {
                     WASM_LAYER_MEDIA_TYPE_WASM => ".wasm",
