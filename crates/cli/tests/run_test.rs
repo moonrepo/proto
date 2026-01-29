@@ -786,8 +786,8 @@ FOURTH = "ignores-$FIRST-$PARENT"
                 "Shims registry file should exist after tool installation"
             );
 
-            let registry_content = fs::read_to_string(&registry_path)
-                .expect("Should be able to read shims registry");
+            let registry_content =
+                fs::read_to_string(&registry_path).expect("Should be able to read shims registry");
 
             // Verify npx entry exists in registry with npm as parent
             assert!(
@@ -832,10 +832,7 @@ FOURTH = "ignores-$FIRST-$PARENT"
 
             // Delete the registry file to simulate missing/corrupted state
             fs::remove_file(&registry_path).expect("Should be able to delete registry");
-            assert!(
-                !registry_path.exists(),
-                "Registry should be deleted"
-            );
+            assert!(!registry_path.exists(), "Registry should be deleted");
 
             // Try to run a tool that doesn't exist - should fall back gracefully
             // Since there's no registry and no such tool exists, it should give a proper error
@@ -901,8 +898,8 @@ FOURTH = "ignores-$FIRST-$PARENT"
 
             // Verify the registry contains npx
             let registry_path = sandbox.path().join(".proto/shims/registry.json");
-            let registry_content = fs::read_to_string(&registry_path)
-                .expect("Should be able to read shims registry");
+            let registry_content =
+                fs::read_to_string(&registry_path).expect("Should be able to read shims registry");
 
             assert!(
                 registry_content.contains("\"npx\""),

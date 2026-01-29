@@ -9,7 +9,7 @@ use proto_core::flow::locate::{Locator, ProtoLocateError};
 use proto_core::flow::resolve::Resolver;
 use proto_core::{
     Id, PROTO_PLUGIN_KEY, ProtoEnvironment, ProtoLoaderError, Tool, ToolContext, ToolSpec,
-    layout::ShimsMap,
+    layout::{ProtoLayoutError, ShimsMap},
 };
 use proto_pdk_api::ExecutableConfig;
 use proto_shim::{exec_command_and_replace, locate_proto_exe};
@@ -268,20 +268,41 @@ pub async fn run(session: ProtoSession, mut args: RunArgs) -> AppResult {
 
             // Try reading the shims registry
             if registry_path.exists() {
-                if let Ok(file_content) = fs::read_file(&registry_path) {
-                    if let Ok(registry) = serde_json::from_str::<ShimsMap>(&file_content) {
-                        if let Some(shim_entry) = registry.get(id.as_str()) {
-                            if let Some(parent) = &shim_entry.parent {
-                                debug!(
-                                    bin = id.as_str(),
-                                    parent_tool = parent,
-                                    "Found {} in shims registry, redirecting to {}",
-                                    id.as_str(),
-                                    parent
-                                );
-                                parent_tool_id = Some(Id::raw(parent));
+                match fs::read_file(&registry_path) {
+                    Ok(file_content) => {
+                        match serde_json::from_str::<ShimsMap>(&file_content) {
+                            Ok(registry) => {
+                                if let Some(shim_entry) = registry.get(id.as_str()) {
+                                    if let Some(parent) = &shim_entry.parent {
+                                        debug!(
+                                            bin = id.as_str(),
+                                            parent_tool = parent,
+                                            "Found {} in shims registry, redirecting to {}",
+                                            id.as_str(),
+                                            parent
+                                        );
+                                        parent_tool_id = Some(Id::raw(parent));
+                                    }
+                                }
+                            }
+                            Err(error) => {
+                                // Registry file exists but is corrupted (invalid JSON)
+                                // Return an error instead of silently falling back
+                                return Err(ProtoCliError::Layout(Box::new(
+                                    ProtoLayoutError::Json(Box::new(
+                                        starbase_utils::json::JsonError::ReadFile {
+                                            path: registry_path,
+                                            error: Box::new(error),
+                                        },
+                                    )),
+                                ))
+                                .into());
                             }
                         }
+                    }
+                    Err(_) => {
+                        // File exists but can't be read - this is unusual but we'll fall back
+                        // to PATH rather than erroring out
                     }
                 }
             }
