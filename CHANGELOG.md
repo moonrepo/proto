@@ -17,9 +17,17 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- Added a `--tool-native` flag to `proto pin` that will pin the version to a native tool file using the tool itself (via a plugin call), instead of pinning to `.prototools`.
+  - For example, `proto pin node lts --tool-native` will pin to `package.json` `devEngines`.
+- **WASM API**
+  - Added `pin_version` plugin function.
+  - Added `PinVersionInput` and `PinVersionOutput` types.
+
 #### 🐞 Fixes
 
-- Fixed an issue with multiple `proto install` where if one tool failed to install, the others that required it would never resolve.
+- Fixed an issue with multi-`proto install` where if one tool failed to install, the others that required it would never resolve.
 - Fixed an issue with IPv6 IPs not resolving correctly during offline detection.
 
 #### ⚙️ Internal

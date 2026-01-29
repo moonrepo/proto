@@ -63,6 +63,36 @@ pub fn parse_version_file(
 }
 
 #[plugin_fn]
+pub fn pin_version(
+    Json(input): Json<PinVersionInput>,
+) -> FnResult<Json<PinVersionOutput>> {
+    let mut output = PinVersionOutput::default();
+    let id = get_plugin_id()?;
+
+    match input.version {
+        UnresolvedVersionSpec::Alias(_) => {
+            output.error = Some("Aliases are not supported.".into());
+        },
+        _ => {
+            let file = input.dir.join(format!(".{id}-version"));
+
+            match fs::write_file(&file, input.version.to_string()) {
+                Ok(_) => {
+                    output.file = Some(file);
+                    output.pinned = true;
+                }
+                Err(error) => {
+                    output.error = Some(error.to_string());
+                    output.pinned = false;
+                }
+            }
+        },
+    };
+
+    Ok(Json(output))
+}
+
+#[plugin_fn]
 pub fn load_versions(Json(_): Json<LoadVersionsInput>) -> FnResult<Json<LoadVersionsOutput>> {
     let mut tags = vec![];
 

@@ -1,6 +1,7 @@
 mod utils;
 
 use proto_core::{ToolContext, UnresolvedVersionSpec};
+use starbase_sandbox::predicates::prelude::*;
 use std::fs;
 use utils::*;
 
@@ -183,6 +184,59 @@ moonstone = "2.0.0"
             )
         }
     }
+
+    mod tool_native {
+        use super::*;
+
+        #[test]
+        fn writes_file() {
+            let sandbox = create_empty_proto_sandbox();
+            let version_file = sandbox.path().join(".protostar-version");
+
+            assert!(!version_file.exists());
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("pin")
+                        .arg("protostar")
+                        .arg("1.0.0")
+                        .arg("--tool-native");
+                })
+                .success();
+
+            assert!(version_file.exists());
+            assert_eq!(fs::read_to_string(version_file).unwrap(), "1.0.0")
+        }
+
+        #[test]
+        fn errors_if_tool_doesnt_support_it() {
+            let sandbox = create_empty_proto_sandbox();
+
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("pin").arg("go").arg("1.0.0").arg("--tool-native");
+            });
+
+            assert.failure().stderr(predicate::str::contains(
+                "Go does not support pinning to a native file",
+            ));
+        }
+
+        #[test]
+        fn bubbles_up_error_from_tool() {
+            let sandbox = create_empty_proto_sandbox();
+
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("pin")
+                    .arg("protostar")
+                    .arg("alias-to-error")
+                    .arg("--tool-native");
+            });
+
+            assert
+                .failure()
+                .stderr(predicate::str::contains("Aliases are not supported"));
+        }
+    }
 }
 
 mod pin_global {
@@ -351,6 +405,32 @@ mod pin_global {
             "proto = \"0.45.0\"\n"
         )
     }
+
+    mod tool_native {
+        use super::*;
+
+        #[test]
+        fn writes_file() {
+            let sandbox = create_empty_proto_sandbox();
+            let version_file = sandbox.path().join(".proto/.protostar-version");
+
+            assert!(!version_file.exists());
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("pin")
+                        .arg("protostar")
+                        .arg("1.0.0")
+                        .arg("--to")
+                        .arg("global")
+                        .arg("--tool-native");
+                })
+                .success();
+
+            assert!(version_file.exists());
+            assert_eq!(fs::read_to_string(version_file).unwrap(), "1.0.0")
+        }
+    }
 }
 
 mod pin_user {
@@ -402,5 +482,31 @@ mod pin_user {
             fs::read_to_string(version_file).unwrap(),
             "proto = \"0.45.0\"\n"
         )
+    }
+
+    mod tool_native {
+        use super::*;
+
+        #[test]
+        fn writes_file() {
+            let sandbox = create_empty_proto_sandbox();
+            let version_file = sandbox.path().join(".home/.protostar-version");
+
+            assert!(!version_file.exists());
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("pin")
+                        .arg("protostar")
+                        .arg("1.0.0")
+                        .arg("--to")
+                        .arg("home")
+                        .arg("--tool-native");
+                })
+                .success();
+
+            assert!(version_file.exists());
+            assert_eq!(fs::read_to_string(version_file).unwrap(), "1.0.0")
+        }
     }
 }
