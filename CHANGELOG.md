@@ -17,6 +17,10 @@
 
 ## Unreleased
 
+#### 🐞 Fixes
+
+- Fixed an issue with multiple `proto install` where if one tool failed to install, the others that required it would never resolve.
+
 #### ⚙️ Internal
 
 - Updated Rust to v1.93.0.
