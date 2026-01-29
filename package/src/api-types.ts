@@ -121,7 +121,7 @@ export interface PluginUnresolvedContext {
 	/** @deprecated */
 	toolDir: VirtualPath;
 	/** @deprecated */
-	version: string;
+	version?: VersionSpec | null;
 }
 
 /** Supported types of plugins. */

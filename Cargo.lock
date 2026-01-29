@@ -476,9 +476,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.5.55"
+version = "4.5.56"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e34525d5bbbd55da2bb745d34b36121baac88d07619a9a09cfcf4a6c0832785"
+checksum = "a75ca66430e33a14957acc24c5077b503e7d374151b2b4b3a10c83b4ceb4be0e"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -486,9 +486,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.5.55"
+version = "4.5.56"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59a20016a20a3da95bef50ec7238dbd09baeef4311dcdd38ec15aba69812fb61"
+checksum = "793207c7fa6300a0608d1080b858e5fdbe713cdc1c8db9fb17777d8a13e63df0"
 dependencies = [
  "anstream",
  "anstyle",
@@ -3785,9 +3785,9 @@ checksum = "a50f4cf475b65d88e057964e0e9bb1f0aa9bbb2036dc65c64596b42932536984"
 
 [[package]]
 name = "saa"
-version = "5.4.4"
+version = "5.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f43543436a9cd0ce0954a4fd5772263c7f70ba4e047d76c41891bcbb0b211ac"
+checksum = "78d0325695c3a94a3751f300fbf253ccc33db53eeed81b1474eec1081921e43e"
 
 [[package]]
 name = "same-file"

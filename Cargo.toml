@@ -6,7 +6,7 @@ default-members = ["crates/cli"]
 [workspace.dependencies]
 anyhow = "1.0.99"
 async-trait = "0.1.89"
-clap = "4.5.55"
+clap = "4.5.56"
 clap_complete = "4.5.65"
 compact_str = { version = "0.9.0", default-features = false, features = [
     "serde",
@@ -72,7 +72,3 @@ toml_edit = "0.23.9"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", default-features = false }
 uuid = { version = "1.20.0", features = ["v4"] }
-
-[profile.dist]
-inherits = "release"
-lto = "thin"

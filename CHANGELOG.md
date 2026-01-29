@@ -20,6 +20,7 @@
 #### 🐞 Fixes
 
 - Fixed an issue with multiple `proto install` where if one tool failed to install, the others that required it would never resolve.
+- Fixed an issue with IPv6 IPs not resolving correctly during offline detection.
 
 #### ⚙️ Internal
 
