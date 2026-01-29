@@ -369,7 +369,7 @@ mod plugins {
             );
         }
 
-        #[cfg(unix)]
+        #[cfg(target_os = "linux")]
         #[test]
         fn supports_ruby() {
             let sandbox = create_empty_proto_sandbox();
