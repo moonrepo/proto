@@ -76,10 +76,12 @@ impl InstallGraph {
                     continue;
                 }
 
+                if not_installed.contains(require_id) {
+                    return Some(InstallStatus::ReqFailed(require_id.clone()));
+                }
+
                 if !installed.contains(require_id) {
                     waiting_on.push(require_id.clone());
-                } else if not_installed.contains(require_id) {
-                    return Some(InstallStatus::ReqFailed(require_id.clone()));
                 }
             }
 

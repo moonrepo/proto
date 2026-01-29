@@ -34,7 +34,7 @@ path = "src/main_shim.rs"
 
 [dependencies]
 proto_core = { version = "0.54.4", path = "../core", features = ["clap"] }
-proto_pdk_api = { version = "0.31.4", path = "../pdk-api" }
+proto_pdk_api = { version = "0.31.5", path = "../pdk-api" }
 proto_shim = { version = "0.7.9", path = "../shim" }
 system_env = { version = "0.9.0", path = "../system-env" }
 anyhow = { workspace = true }
@@ -48,7 +48,7 @@ indexmap = { workspace = true }
 iocraft = { workspace = true }
 miette = { workspace = true, features = ["fancy"] }
 regex = { workspace = true }
-reqwest = { workspace = true, features = ["rustls-tls-native-roots"] }
+reqwest = { workspace = true, features = ["rustls"] }
 rmcp = { workspace = true, features = ["server", "transport-io"] }
 rustc-hash = { workspace = true }
 schemars = { workspace = true }
@@ -61,7 +61,7 @@ starbase_console = { workspace = true }
 starbase_shell = { workspace = true }
 starbase_styles = { workspace = true }
 starbase_utils = { workspace = true }
-sysinfo = { version = "0.37.2", default-features = false, features = [
+sysinfo = { version = "0.38.0", default-features = false, features = [
     "system",
 ] }
 thiserror = { workspace = true }

@@ -118,8 +118,9 @@ export interface PluginUnresolvedContext {
 	protoVersion?: string | null;
 	/** Virtual path to the tool's temporary directory. */
 	tempDir: VirtualPath;
+	/** @deprecated */
 	toolDir: VirtualPath;
-	/** Current version if defined. */
+	/** @deprecated */
 	version?: VersionSpec | null;
 }
 
@@ -372,6 +373,11 @@ export interface DownloadPrebuiltOutput {
 	downloadName?: string | null;
 	/** A secure URL to download the tool/archive. */
 	downloadUrl: string;
+	/**
+	 * A script, relative from the install directory, to execute after
+	 * the prebuilt has been installed.
+	 */
+	postScript?: string | null;
 }
 
 /** Input passed to the `unpack_archive` function. */
@@ -522,7 +528,7 @@ export interface ResolveVersionOutput {
 /** Input passed to the `sync_manifest` function. */
 export interface SyncManifestInput {
 	/** Current tool context. */
-	context: PluginContext;
+	context: PluginUnresolvedContext;
 }
 
 /** Output returned by the `sync_manifest` function. */

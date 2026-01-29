@@ -3,3 +3,7 @@ codegen-units = 1
 lto = true
 panic = "abort"
 strip = "debuginfo"
+
+[profile.dist]
+inherits = "release"
+lto = "thin"

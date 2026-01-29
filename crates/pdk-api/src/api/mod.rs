@@ -239,7 +239,8 @@ api_struct!(
         // TODO: Temporary compat with `PluginContext`
         #[doc(hidden)]
         #[deprecated]
-        pub version: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub version: Option<VersionSpec>,
     }
 );
 
