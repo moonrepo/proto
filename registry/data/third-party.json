@@ -1146,6 +1146,19 @@
       ]
     },
     {
+      "id": "sqruff",
+      "locator": "https://raw.githubusercontent.com/T0rvadaL/proto-plugins/main/sqruff.toml",
+      "format": "toml",
+      "name": "sqruff",
+      "description": "Fast SQL formatter/linter.",
+      "author": "T0rvadaL",
+      "homepageUrl": "https://github.com/quarylabs/sqruff",
+      "repositoryUrl": "https://github.com/T0rvadaL/proto-plugins",
+      "bins": [
+        "sqruff"
+      ]
+    },
+    {
       "id": "staticcheck",
       "locator": "https://raw.githubusercontent.com/crashdump/proto-tools/main/toml-plugins/staticcheck/plugin.toml",
       "format": "toml",
@@ -1169,6 +1182,24 @@
       "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins/tree/main/stern",
       "bins": [
         "stern"
+      ]
+    },
+    {
+      "id": "strawberry-perl",
+      "locator": "https://github.com/T0rvadaL/proto-plugins/blob/main/strawberry-perl.toml",
+      "format": "toml",
+      "name": "Strawberry Perl",
+      "description": "The Perl for MS Windows, free of charge!",
+      "author": "T0rvadaL",
+      "homepageUrl": "https://strawberryperl.com/",
+      "repositoryUrl": "https://github.com/T0rvadaL/proto-plugins",
+      "devicon": "perl",
+      "bins": [
+        "perl",
+        "cpan",
+        "perldoc",
+        "prove",
+        "portableshell"
       ]
     },
     {
@@ -1486,37 +1517,6 @@
       "devicon": "zig",
       "bins": [
         "zls"
-      ]
-    },
-    {
-      "id": "strawberry-perl",
-      "locator": "https://github.com/T0rvadaL/proto-plugins/blob/main/strawberry-perl.toml",
-      "format": "toml",
-      "name": "Strawberry Perl",
-      "description": "The Perl for MS Windows, free of charge!",
-      "author": "T0rvadaL",
-      "homepageUrl": "https://strawberryperl.com",
-      "repositoryUrl": "https://github.com/T0rvadaL/proto-plugins",
-      "devicon": "perl",
-      "bins": [
-        "perl",
-        "cpan",
-        "perldoc",
-        "prove",
-        "portableshell"
-      ]
-    },
-    {
-      "id": "sqruff",
-      "locator": "https://raw.githubusercontent.com/T0rvadaL/proto-plugins/main/sqruff.toml",
-      "format": "toml",
-      "name": "sqruff",
-      "description": "Fast SQL formatter/linter.",
-      "author": "T0rvadaL",
-      "homepageUrl": "https://github.com/quarylabs/sqruff",
-      "repositoryUrl": "https://github.com/T0rvadaL/proto-plugins",
-      "bins": [
-        "sqruff"
       ]
     }
   ]
