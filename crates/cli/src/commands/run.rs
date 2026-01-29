@@ -265,6 +265,8 @@ pub async fn run(session: ProtoSession, mut args: RunArgs) -> AppResult {
 
             let registry_path = session.env.store.shims_dir.join("registry.json");
             let mut parent_tool_id: Option<Id> = None;
+            let mut before_args: Vec<String> = vec![];
+            let mut after_args: Vec<String> = vec![];
 
             // Try reading the shims registry
             if registry_path.exists() {
@@ -282,6 +284,10 @@ pub async fn run(session: ProtoSession, mut args: RunArgs) -> AppResult {
                                             parent
                                         );
                                         parent_tool_id = Some(Id::raw(parent));
+
+                                        // Store before/after args from the shim entry
+                                        before_args = shim_entry.before_args.clone();
+                                        after_args = shim_entry.after_args.clone();
                                     }
                                 }
                             }
@@ -311,6 +317,12 @@ pub async fn run(session: ProtoSession, mut args: RunArgs) -> AppResult {
                 // Update args to run the parent tool with this bin as an alternate executable
                 args.exe = Some(id.to_string());
                 args.context = ToolContext::new(parent_id);
+
+                // Prepend before_args and append after_args to passthrough
+                let mut new_passthrough = before_args;
+                new_passthrough.extend(args.passthrough.clone());
+                new_passthrough.extend(after_args);
+                args.passthrough = new_passthrough;
 
                 // Load the parent tool (this will handle auto-install if enabled,
                 // or show a proper error message if the tool is not installed)
