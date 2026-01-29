@@ -266,7 +266,7 @@ impl Tool {
             temp_dir: self.to_virtual_path(&self.inventory.temp_dir),
             // TODO: temporary until 3rd-party plugins update their PDKs
             tool_dir: self.to_virtual_path(&self.proto.store.inventory_dir),
-            version: "latest".into(),
+            version: None,
         }
     }
 
