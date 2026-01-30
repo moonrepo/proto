@@ -237,7 +237,7 @@ mod install_one {
         let mtime_no_reinstall = fs::metadata(tool_bin.clone()).unwrap().modified().unwrap();
         assert_eq!(mtime, mtime_no_reinstall);
 
-        assert.stderr(predicate::str::contains(
+        assert.stdout(predicate::str::contains(
             "protostar canary has already been installed at",
         ));
 
