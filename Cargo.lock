@@ -3110,7 +3110,7 @@ dependencies = [
 
 [[package]]
 name = "proto_codegen"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "proto_core",
  "proto_pdk_api",
@@ -3120,7 +3120,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.54.4"
+version = "0.55.0"
 dependencies = [
  "clap",
  "convert_case",
@@ -3193,7 +3193,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.42.2"
+version = "0.43.0"
 dependencies = [
  "extism",
  "proto_core",
@@ -3206,7 +3206,7 @@ dependencies = [
 
 [[package]]
 name = "proto_shim"
-version = "0.7.9"
+version = "0.8.0"
 dependencies = [
  "dirs",
  "windows-sys 0.61.2",
@@ -5244,7 +5244,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.28.5"
+version = "0.29.0"
 dependencies = [
  "async-trait",
  "compact_str 0.9.0",
