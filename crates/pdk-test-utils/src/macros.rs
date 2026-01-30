@@ -35,7 +35,7 @@ macro_rules! do_build_from_source {
     ($sandbox:ident, $plugin:ident, $spec:literal) => {
         let mut spec = ToolSpec::parse($spec).unwrap();
 
-        let result = flow::manage::Manager::new(&$plugin.tool)
+        let result = flow::manage::Manager::new(&mut $plugin.tool)
             .install(
                 &mut spec,
                 flow::install::InstallOptions {
