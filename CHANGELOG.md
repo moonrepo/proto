@@ -17,6 +17,10 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- Improved `proto run` to automatically detect when a requested command is a bin provided by another tool (e.g., `npx` from `npm`, `bunx` from `bun`) by checking the local shims registry, and redirect to the parent tool with the correct executable.
+
 #### 🐞 Fixes
 
 - Fixed an issue with multiple `proto install` where if one tool failed to install, the others that required it would never resolve.

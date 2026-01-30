@@ -9,13 +9,14 @@ use proto_core::flow::locate::{Locator, ProtoLocateError};
 use proto_core::flow::resolve::Resolver;
 use proto_core::{
     Id, PROTO_PLUGIN_KEY, ProtoEnvironment, ProtoLoaderError, Tool, ToolContext, ToolSpec,
+    layout::{ProtoLayoutError, ShimsMap},
 };
 use proto_pdk_api::ExecutableConfig;
 use proto_shim::{exec_command_and_replace, locate_proto_exe};
 use rustc_hash::FxHashMap;
 use starbase::AppResult;
 use starbase_styles::color;
-use starbase_utils::{envx, path};
+use starbase_utils::{envx, fs, path};
 use std::env;
 use std::ffi::OsStr;
 use std::path::PathBuf;
@@ -250,9 +251,88 @@ fn run_global_tool(
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
+pub async fn run(session: ProtoSession, mut args: RunArgs) -> AppResult {
     let tool = match session.load_tool(&args.context).await {
         Ok(tool) => tool,
+        Err(ProtoLoaderError::UnknownTool { id }) => {
+            // Check if this is a bin provided by another tool (e.g., `npx` from `npm`).
+            // The shims registry contains mappings of secondary bins to their parent tools,
+            // which is maintained by proto during tool installation.
+            debug!(
+                bin = id.as_str(),
+                "Tool not found, checking shims registry for bin-to-tool mapping"
+            );
+
+            let registry_path = session.env.store.shims_dir.join("registry.json");
+            let mut parent_tool_id: Option<Id> = None;
+            let mut before_args: Vec<String> = vec![];
+            let mut after_args: Vec<String> = vec![];
+
+            // Try reading the shims registry
+            if registry_path.exists() {
+                match fs::read_file(&registry_path) {
+                    Ok(file_content) => {
+                        match serde_json::from_str::<ShimsMap>(&file_content) {
+                            Ok(registry) => {
+                                if let Some(shim_entry) = registry.get(id.as_str()) {
+                                    if let Some(parent) = &shim_entry.parent {
+                                        debug!(
+                                            bin = id.as_str(),
+                                            parent_tool = parent,
+                                            "Found {} in shims registry, redirecting to {}",
+                                            id.as_str(),
+                                            parent
+                                        );
+                                        parent_tool_id = Some(Id::raw(parent));
+
+                                        // Store before/after args from the shim entry
+                                        before_args = shim_entry.before_args.clone();
+                                        after_args = shim_entry.after_args.clone();
+                                    }
+                                }
+                            }
+                            Err(error) => {
+                                // Registry file exists but is corrupted (invalid JSON)
+                                // Return an error instead of silently falling back
+                                return Err(ProtoCliError::Layout(Box::new(
+                                    ProtoLayoutError::Json(Box::new(
+                                        starbase_utils::json::JsonError::ReadFile {
+                                            path: registry_path,
+                                            error: Box::new(error),
+                                        },
+                                    )),
+                                ))
+                                .into());
+                            }
+                        }
+                    }
+                    Err(_) => {
+                        // File exists but can't be read - this is unusual but we'll fall back
+                        // to PATH rather than erroring out
+                    }
+                }
+            }
+
+            if let Some(parent_id) = parent_tool_id {
+                // Update args to run the parent tool with this bin as an alternate executable
+                args.exe = Some(id.to_string());
+                args.context = ToolContext::new(parent_id);
+
+                // Prepend before_args and append after_args to passthrough
+                let mut new_passthrough = before_args;
+                new_passthrough.extend(args.passthrough.clone());
+                new_passthrough.extend(after_args);
+                args.passthrough = new_passthrough;
+
+                // Load the parent tool (this will handle auto-install if enabled,
+                // or show a proper error message if the tool is not installed)
+                session.load_tool(&args.context).await?
+            } else {
+                // Not found in shims registry, fall back to global tool on PATH
+                return run_global_tool(session, args, ProtoLoaderError::UnknownTool { id }.into())
+                    .map(|_| None);
+            }
+        }
         Err(error) => {
             return if matches!(error, ProtoLoaderError::UnknownTool { .. }) {
                 run_global_tool(session, args, error.into()).map(|_| None)
