@@ -103,7 +103,7 @@ async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult 
 
     if !tool.get_inventory_dir().exists() {
         if !args.quiet {
-            session.console.render(element! {
+            session.console.render_err(element! {
                 Notice(variant: Variant::Caution) {
                     StyledText(
                         content: format!(
@@ -200,7 +200,7 @@ async fn uninstall_one(
 
     if !tool.is_installed(&spec) {
         if !args.quiet {
-            session.console.render(element! {
+            session.console.render_err(element! {
                 Notice(variant: Variant::Caution) {
                     StyledText(
                         content: format!(

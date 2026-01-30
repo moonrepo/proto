@@ -51,7 +51,7 @@ pub async fn unalias(session: ProtoSession, args: UnaliasArgs) -> AppResult {
     })?;
 
     let Some(value) = value else {
-        session.console.render(element! {
+        session.console.render_err(element! {
             Notice(variant: Variant::Caution) {
                 StyledText(
                     content: format!(

@@ -112,7 +112,7 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
 
     // Confirm upgrade if another process is running
     if let Some(pid) = is_running() {
-        session.console.render(element! {
+        session.console.render_err(element! {
             Notice(variant: Variant::Caution) {
                 StyledText(
                     content: format!("Another instance of <shell>proto</shell> is currently running with the process ID {}. You may run into issues if you continue.", pid)

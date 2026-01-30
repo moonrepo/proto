@@ -36,7 +36,7 @@ pub async fn completions(session: ProtoSession, args: CompletionsArgs) -> AppRes
             return Ok(None);
         }
         unsupported => {
-            session.console.render(element! {
+            session.console.render_err(element! {
                 Notice(variant: Variant::Caution) {
                     StyledText(
                         content: format!(

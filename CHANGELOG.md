@@ -21,9 +21,10 @@
 
 - Added a `--tool-native` flag to `proto pin` that will pin the version to a native tool file using the tool itself (via a plugin call), instead of pinning to `.prototools`.
   - For example, `proto pin node lts --tool-native` will pin to `package.json` `devEngines`.
+- Added a `--tool-native` flag to `proto unpin` that will unpin the version from a native tool file using the tool itself (via a plugin call), instead of unpinning from `.prototools`.
 - **WASM API**
-  - Added `pin_version` plugin function.
-  - Added `PinVersionInput` and `PinVersionOutput` types.
+  - Added `pin_version` and `unpin_version` plugin functions.
+  - Added `PinVersionInput`, `PinVersionOutput`, `UnpinVersionInput`, and `UnpinVersionOutput` types.
 
 #### 🐞 Fixes
 
