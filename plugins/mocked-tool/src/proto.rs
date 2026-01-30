@@ -92,6 +92,30 @@ pub fn pin_version(
     Ok(Json(output))
 }
 
+
+#[plugin_fn]
+pub fn unpin_version(
+    Json(input): Json<UnpinVersionInput>,
+) -> FnResult<Json<UnpinVersionOutput>> {
+    let mut output = UnpinVersionOutput::default();
+    let id = get_plugin_id()?;
+    let file = input.dir.join(format!(".{id}-version"));
+
+    if file.exists() {
+        let version = fs::read_file(&file)?;
+
+        fs::remove_file(&file)?;
+
+        output.file = Some(file);
+        output.unpinned = true;
+        output.version = Some(UnresolvedVersionSpec::parse(&version)?);
+    } else {
+        output.error = Some("Version file does not exist.".into());
+    }
+
+    Ok(Json(output))
+}
+
 #[plugin_fn]
 pub fn load_versions(Json(_): Json<LoadVersionsInput>) -> FnResult<Json<LoadVersionsOutput>> {
     let mut tags = vec![];

@@ -53,7 +53,7 @@ pub async fn versions(session: ProtoSession, args: VersionsArgs) -> AppResult {
     debug!("Loading versions from remote");
 
     if tool.remote_versions.is_empty() {
-        session.console.render(element! {
+        session.console.render_err(element! {
             Notice(variant: Variant::Failure) {
                 StyledText(
                     content: "No versions available from remote registry"
