@@ -15,7 +15,7 @@ mod plugin_remove {
             cmd.arg("plugin").arg("remove").arg("id");
         });
 
-        assert.inner.stderr(predicate::str::contains(
+        assert.failure().stderr(predicate::str::contains(
             "No .prototools has been found in current directory.",
         ));
     }

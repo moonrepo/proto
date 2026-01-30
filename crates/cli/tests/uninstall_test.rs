@@ -17,7 +17,7 @@ mod uninstall {
                 .arg("--yes");
         });
 
-        assert.inner.stdout(predicate::str::contains(
+        assert.failure().stderr(predicate::str::contains(
             "protostar 1.0.0 has not been installed locally",
         ));
     }
@@ -58,7 +58,7 @@ mod uninstall {
             cmd.arg("uninstall").arg("protostar").arg("--yes");
         });
 
-        assert.inner.stdout(predicate::str::contains(
+        assert.failure().stderr(predicate::str::contains(
             "protostar has not been installed locally",
         ));
     }

@@ -14,7 +14,7 @@ mod bin {
             cmd.arg("bin").arg("protostar").arg("1.0.0");
         });
 
-        assert.inner.stderr(predicate::str::contains(
+        assert.failure().stderr(predicate::str::contains(
             "Unable to find an executable for protostar",
         ));
     }
@@ -34,12 +34,12 @@ mod bin {
         });
 
         if cfg!(windows) {
-            assert.inner.stdout(predicate::str::contains(
+            assert.success().stdout(predicate::str::contains(
                 "tools\\protostar\\1.0.0\\protostar.exe",
             ));
         } else {
             assert
-                .inner
+                .success()
                 .stdout(predicate::str::contains("tools/protostar/1.0.0/protostar"));
         }
     }
@@ -60,10 +60,12 @@ mod bin {
 
         if cfg!(windows) {
             assert
-                .inner
+                .success()
                 .stdout(predicate::str::contains("protostar.exe"));
         } else {
-            assert.inner.stdout(predicate::str::contains("protostar"));
+            assert
+                .success()
+                .stdout(predicate::str::contains("protostar"));
         }
     }
 
