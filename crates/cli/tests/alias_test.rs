@@ -97,7 +97,7 @@ mod alias_local {
             cmd.arg("alias").arg("protostar").arg("1.2.3").arg("4.5.6");
         });
 
-        assert.inner.stderr(predicate::str::contains(
+        assert.failure().stderr(predicate::str::contains(
             "Invalid alias name 1.2.3. Use alpha-numeric words instead.",
         ));
     }

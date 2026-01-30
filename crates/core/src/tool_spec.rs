@@ -66,6 +66,13 @@ impl ToolSpec {
             None => self.req.to_resolved_spec(),
         }
     }
+
+    pub fn to_unresolved_spec(&self) -> UnresolvedVersionSpec {
+        match &self.version {
+            Some(res) => res.to_unresolved_spec(),
+            None => self.req.clone(),
+        }
+    }
 }
 
 impl Default for ToolSpec {

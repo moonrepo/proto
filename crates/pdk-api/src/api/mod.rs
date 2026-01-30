@@ -64,6 +64,16 @@ pub enum PluginFunction {
     /// **Input:** [`ParseVersionFileInput`] | **Output:** [`ParseVersionFileOutput`]
     ParseVersionFile,
 
+    /// Pin a version to a file in the provided directory.
+    ///
+    /// **Input:** [`PinVersionInput`] | **Output:** [`PinVersionOutput`]
+    PinVersion,
+
+    /// Unpin a version from a file in the provided directory.
+    ///
+    /// **Input:** [`UnpinVersionInput`] | **Output:** [`UnpinVersionOutput`]
+    UnpinVersion,
+
     /// Load available versions for a tool.
     ///
     /// Fetches the list of available versions that can be installed, including
@@ -171,6 +181,8 @@ impl PluginFunction {
             Self::DefineBackendConfig => "define_backend_config",
             Self::DetectVersionFiles => "detect_version_files",
             Self::ParseVersionFile => "parse_version_file",
+            Self::PinVersion => "pin_version",
+            Self::UnpinVersion => "unpin_version",
             Self::LoadVersions => "load_versions",
             Self::ResolveVersion => "resolve_version",
             Self::DownloadPrebuilt => "download_prebuilt",
@@ -293,10 +305,10 @@ api_struct!(
 api_unit_enum!(
     /// Supported strategies for installing a tool.
     pub enum InstallStrategy {
-        #[serde(alias = "BuildFromSource")] // TEMP
+        #[serde(alias = "BuildFromSource")]
         BuildFromSource,
         #[default]
-        #[serde(alias = "DownloadPrebuilt")] // TEMP
+        #[serde(alias = "DownloadPrebuilt")]
         DownloadPrebuilt,
     }
 );
@@ -421,7 +433,7 @@ api_struct!(
     }
 );
 
-// VERSION DETECTION
+// VERSION DETECTION/PINNING
 
 api_struct!(
     /// Input passed to the `detect_version_files` function.
@@ -469,6 +481,68 @@ api_struct!(
         /// The version that was extracted from the file.
         /// Can be a semantic version or a version requirement/range.
         #[serde(skip_serializing_if = "Option::is_none")]
+        pub version: Option<UnresolvedVersionSpec>,
+    }
+);
+
+api_struct!(
+    /// Input passed to the `pin_version` function.
+    pub struct PinVersionInput {
+        /// Current tool context.
+        pub context: PluginUnresolvedContext,
+
+        /// Virtual directory in which the pin should occur.
+        pub dir: VirtualPath,
+
+        /// The version to pin.
+        pub version: UnresolvedVersionSpec,
+    }
+);
+
+api_struct!(
+    /// Output returned by the `pin_version` function.
+    #[serde(default)]
+    pub struct PinVersionOutput {
+        /// Virtual path of the file the version was pinned to.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub file: Option<VirtualPath>,
+
+        /// Error message if the pin failed.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub error: Option<String>,
+
+        /// Whether the pin was successful.
+        pub pinned: bool,
+    }
+);
+
+api_struct!(
+    /// Input passed to the `unpin_version` function.
+    pub struct UnpinVersionInput {
+        /// Current tool context.
+        pub context: PluginUnresolvedContext,
+
+        /// Virtual directory in which the unpin should occur.
+        pub dir: VirtualPath,
+    }
+);
+
+api_struct!(
+    /// Output returned by the `unpin_version` function.
+    #[serde(default)]
+    pub struct UnpinVersionOutput {
+        /// Virtual path of the file the version was unpinned from.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub file: Option<VirtualPath>,
+
+        /// Error message if the unpin failed.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub error: Option<String>,
+
+        /// Whether the unpin was successful.
+        pub unpinned: bool,
+
+        /// The version that was unpinned.
         pub version: Option<UnresolvedVersionSpec>,
     }
 );

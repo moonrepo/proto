@@ -3,6 +3,7 @@ mod utils;
 use proto_core::{ProtoConfig, ToolContext, UnresolvedVersionSpec};
 use starbase_sandbox::predicates::prelude::*;
 use std::collections::BTreeMap;
+use std::fs;
 use utils::*;
 
 mod unpin_local {
@@ -109,6 +110,54 @@ mod unpin_local {
             );
         }
     }
+
+    mod tool_native {
+        use super::*;
+
+        #[test]
+        fn removes_file() {
+            let sandbox = create_empty_proto_sandbox();
+            let version_file = sandbox.path().join(".protostar-version");
+
+            fs::write(&version_file, "1.0.0").unwrap();
+
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("unpin").arg("protostar").arg("--tool-native");
+                })
+                .success();
+
+            assert!(!version_file.exists());
+
+            assert.stdout(predicate::str::contains("Removed protostar version 1.0.0"));
+        }
+
+        #[test]
+        fn errors_if_tool_doesnt_support_it() {
+            let sandbox = create_empty_proto_sandbox();
+
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("unpin").arg("go").arg("--tool-native");
+            });
+
+            assert.failure().stderr(predicate::str::contains(
+                "Go does not support unpinning from a native file",
+            ));
+        }
+
+        #[test]
+        fn bubbles_up_error_from_tool() {
+            let sandbox = create_empty_proto_sandbox();
+
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("unpin").arg("protostar").arg("--tool-native");
+            });
+
+            assert
+                .failure()
+                .stderr(predicate::str::contains("Version file does not exist."));
+        }
+    }
 }
 
 mod unpin_global {
@@ -143,6 +192,30 @@ mod unpin_global {
                 .contains_key(&ToolContext::parse("protostar").unwrap())
         );
     }
+
+    mod tool_native {
+        use super::*;
+
+        #[test]
+        fn removes_file() {
+            let sandbox = create_empty_proto_sandbox();
+            let version_file = sandbox.path().join(".proto/.protostar-version");
+
+            fs::write(&version_file, "1.0.0").unwrap();
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("unpin")
+                        .arg("protostar")
+                        .arg("--from")
+                        .arg("global")
+                        .arg("--tool-native");
+                })
+                .success();
+
+            assert!(!version_file.exists());
+        }
+    }
 }
 
 mod unpin_user {
@@ -173,5 +246,29 @@ mod unpin_user {
                 .versions
                 .contains_key(&ToolContext::parse("protostar").unwrap())
         );
+    }
+
+    mod tool_native {
+        use super::*;
+
+        #[test]
+        fn removes_file() {
+            let sandbox = create_empty_proto_sandbox();
+            let version_file = sandbox.path().join(".home/.protostar-version");
+
+            fs::write(&version_file, "1.0.0").unwrap();
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("unpin")
+                        .arg("protostar")
+                        .arg("--from")
+                        .arg("user")
+                        .arg("--tool-native");
+                })
+                .success();
+
+            assert!(!version_file.exists());
+        }
     }
 }

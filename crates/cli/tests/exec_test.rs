@@ -14,7 +14,7 @@ mod exec {
             cmd.arg("exec");
         });
 
-        assert.inner.stderr(predicate::str::contains(
+        assert.failure().stderr(predicate::str::contains(
             "A command is required for execution.",
         ));
     }
@@ -27,7 +27,7 @@ mod exec {
             cmd.args(["exec", "foo bar", "--", "echo"]);
         });
 
-        assert.inner.stderr(predicate::str::contains(
+        assert.failure().stderr(predicate::str::contains(
             "Invalid identifier format for `foo bar`.",
         ));
     }
@@ -40,7 +40,7 @@ mod exec {
             cmd.args(["exec", "tool@a b c", "--", "echo"]);
         });
 
-        assert.inner.stderr(predicate::str::contains(
+        assert.failure().stderr(predicate::str::contains(
             "Invalid version or requirement in tool specification a b c.",
         ));
     }
@@ -53,7 +53,7 @@ mod exec {
             cmd.args(["exec", "--", "echo", "hello"]);
         });
 
-        assert.inner.stdout(predicate::str::contains("hello"));
+        assert.success().stdout(predicate::str::contains("hello"));
     }
 
     #[test]
@@ -70,7 +70,9 @@ mod exec {
             cmd.args(["exec", "node", "--", "node", "--version"]);
         });
 
-        assert.inner.stdout(predicate::str::contains("v20.20.0"));
+        assert
+            .success()
+            .stdout(predicate::str::contains("v20.20.0"));
     }
 
     #[test]
@@ -162,12 +164,16 @@ bun = "1.2"
             cmd.args(["exec", "node@20", "--", "node", "--version"]);
         });
 
-        assert.inner.stdout(predicate::str::contains("v20.19.5"));
+        assert
+            .success()
+            .stdout(predicate::str::contains("v20.19.5"));
 
         let assert = sandbox.run_bin(|cmd| {
             cmd.args(["exec", "node@20.18", "--", "node", "--version"]);
         });
 
-        assert.inner.stdout(predicate::str::contains("v20.18.3"));
+        assert
+            .success()
+            .stdout(predicate::str::contains("v20.18.3"));
     }
 }

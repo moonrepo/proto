@@ -179,7 +179,7 @@ pub async fn install_one(
 
     if workflow.is_build(args.get_strategy()) {
         if !args.quiet {
-            session.console.render(element! {
+            session.console.render_err(element! {
                 Notice(variant: Variant::Caution) {
                     StyledText(
                         content: "Building from source is currently unstable. Please report general issues to <url>https://github.com/moonrepo/proto</url>",
@@ -289,7 +289,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
     }
 
     if tools.is_empty() {
-        session.console.render(element! {
+        session.console.render_err(element! {
             Notice(variant: Variant::Caution) {
                 StyledText(
                     content: "No versions have been configured, nothing to install!",
