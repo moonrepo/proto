@@ -91,6 +91,17 @@ impl WasmTestWrapper {
             .unwrap()
     }
 
+    pub async fn pin_version(&self, mut input: PinVersionInput) -> PinVersionOutput {
+        input.context = self.prepare_unresolved_context(input.context);
+        input.dir = self.tool.to_virtual_path(input.dir);
+
+        self.tool
+            .plugin
+            .call_func_with(PluginFunction::PinVersion, input)
+            .await
+            .unwrap()
+    }
+
     pub async fn pre_install(&self, mut input: InstallHook) {
         input.context = self.prepare_context(input.context);
 
@@ -182,6 +193,17 @@ impl WasmTestWrapper {
             .call_func_with(PluginFunction::UnpackArchive, input)
             .await
             .unwrap();
+    }
+
+    pub async fn unpin_version(&self, mut input: UnpinVersionInput) -> UnpinVersionOutput {
+        input.context = self.prepare_unresolved_context(input.context);
+        input.dir = self.tool.to_virtual_path(input.dir);
+
+        self.tool
+            .plugin
+            .call_func_with(PluginFunction::UnpinVersion, input)
+            .await
+            .unwrap()
     }
 
     pub async fn verify_checksum(&self, mut input: VerifyChecksumInput) -> VerifyChecksumOutput {
