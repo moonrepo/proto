@@ -15,7 +15,7 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
-## Unreleased
+## 0.55.0
 
 This release is light on new features, but a large portion of the internals were rewritten to better scale with Rust's borrow checker and ownership model. This should lead to less bugs, easier maintenance, and more extensibility in the future. This should be fully backwards compatible, but please report any issues you may find.
 
