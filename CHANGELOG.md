@@ -17,6 +17,8 @@
 
 ## Unreleased
 
+This release is light on new features, but a large portion of the internals were rewritten to better scale with Rust's borrow checker and ownership model. This should lead to less bugs, easier maintenance, and more extensibility in the future. This should be fully backwards compatible, but please report any issues you may find.
+
 #### 🚀 Updates
 
 - Improved `proto run` to automatically detect when a requested command is a bin provided by another tool (e.g., `npx` from `npm`, `bunx` from `bun`) by checking the local shims registry, and redirect to the parent tool with the correct executable.
