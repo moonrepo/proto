@@ -17,6 +17,8 @@
 
 ## Unreleased
 
+This release is light on new features, but a large portion of the internals were rewritten to better scale with Rust's borrow checker and ownership model. This should lead to less bugs, easier maintenance, and more extensibility in the future. This should be fully backwards compatible, but please report any issues you may find.
+
 #### 🚀 Updates
 
 - Improved `proto run` to automatically detect when a requested command is a bin provided by another tool (e.g., `npx` from `npm`, `bunx` from `bun`) by checking the local shims registry, and redirect to the parent tool with the correct executable.
@@ -31,6 +33,19 @@
 
 - Fixed an issue with multi-`proto install` where if one tool failed to install, the others that required it would never resolve.
 - Fixed an issue with IPv6 IPs not resolving correctly during offline detection.
+
+#### 🧩 Plugins
+
+- Updated `bun_tool` to v0.16.6.
+  - Added `pin_version` and `unpin_version` support, which maps to `package.json` `devEngines`.
+  - Fixed some `package.json` version parsing issues.
+- Updated `node_tool` to v0.17.7.
+  - Added `pin_version` and `unpin_version` support, which maps to `package.json` `devEngines.runtime`.
+  - Fixed some `package.json` version parsing issues.
+- Updated `node_depman_tool` to v0.17.3.
+  - Added a `registry-url` config setting.
+  - Added `pin_version` and `unpin_version` support, which maps to `package.json` `devEngines.packageManager`.
+  - Fixed some `package.json` version parsing issues.
 
 #### ⚙️ Internal
 
@@ -49,7 +64,7 @@
 
 - Updated `bun_tool` to v0.16.5.
   - Added `package.json` `devEngines.runtime` support for version detection.
-- Updated `bun_tool` to v0.15.7.
+- Updated `deno_tool` to v0.15.7.
   - Fixed an issue where checksums did not work in v2.0.0.
 - Updated `node_tool` to v0.17.6.
   - Added `package.json` `devEngines.runtime` support for version detection.
