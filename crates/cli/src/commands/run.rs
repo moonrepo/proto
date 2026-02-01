@@ -7,16 +7,16 @@ use miette::IntoDiagnostic;
 use proto_core::flow::detect::{Detector, ProtoDetectError};
 use proto_core::flow::locate::{Locator, ProtoLocateError};
 use proto_core::flow::resolve::Resolver;
+use proto_core::layout::ShimRegistry;
 use proto_core::{
     Id, PROTO_PLUGIN_KEY, ProtoEnvironment, ProtoLoaderError, Tool, ToolContext, ToolSpec,
-    layout::{ProtoLayoutError, ShimsMap},
 };
 use proto_pdk_api::ExecutableConfig;
 use proto_shim::{exec_command_and_replace, locate_proto_exe};
 use rustc_hash::FxHashMap;
 use starbase::AppResult;
 use starbase_styles::color;
-use starbase_utils::{envx, fs, path};
+use starbase_utils::{envx, path};
 use std::env;
 use std::ffi::OsStr;
 use std::path::PathBuf;
@@ -263,54 +263,28 @@ pub async fn run(session: ProtoSession, mut args: RunArgs) -> AppResult {
                 "Tool not found, checking shims registry for bin-to-tool mapping"
             );
 
-            let registry_path = session.env.store.shims_dir.join("registry.json");
+            let registry = ShimRegistry::load(&session.env.store.shims_dir)?;
             let mut parent_tool_id: Option<Id> = None;
             let mut before_args: Vec<String> = vec![];
             let mut after_args: Vec<String> = vec![];
 
             // Try reading the shims registry
-            if registry_path.exists() {
-                match fs::read_file(&registry_path) {
-                    Ok(file_content) => {
-                        match serde_json::from_str::<ShimsMap>(&file_content) {
-                            Ok(registry) => {
-                                if let Some(shim_entry) = registry.get(id.as_str()) {
-                                    if let Some(parent) = &shim_entry.parent {
-                                        debug!(
-                                            bin = id.as_str(),
-                                            parent_tool = parent,
-                                            "Found {} in shims registry, redirecting to {}",
-                                            id.as_str(),
-                                            parent
-                                        );
-                                        parent_tool_id = Some(Id::raw(parent));
+            if let Some(shim_entry) = registry.shims.get(id.as_str())
+                && let Some(parent) = &shim_entry.parent
+            {
+                debug!(
+                    bin = id.as_str(),
+                    parent_tool = parent,
+                    "Found {} in shims registry, redirecting to {}",
+                    id.as_str(),
+                    parent
+                );
 
-                                        // Store before/after args from the shim entry
-                                        before_args = shim_entry.before_args.clone();
-                                        after_args = shim_entry.after_args.clone();
-                                    }
-                                }
-                            }
-                            Err(error) => {
-                                // Registry file exists but is corrupted (invalid JSON)
-                                // Return an error instead of silently falling back
-                                return Err(ProtoCliError::Layout(Box::new(
-                                    ProtoLayoutError::Json(Box::new(
-                                        starbase_utils::json::JsonError::ReadFile {
-                                            path: registry_path,
-                                            error: Box::new(error),
-                                        },
-                                    )),
-                                ))
-                                .into());
-                            }
-                        }
-                    }
-                    Err(_) => {
-                        // File exists but can't be read - this is unusual but we'll fall back
-                        // to PATH rather than erroring out
-                    }
-                }
+                parent_tool_id = Some(Id::raw(parent));
+
+                // Store before/after args from the shim entry
+                before_args = shim_entry.before_args.clone();
+                after_args = shim_entry.after_args.clone();
             }
 
             if let Some(parent_id) = parent_tool_id {

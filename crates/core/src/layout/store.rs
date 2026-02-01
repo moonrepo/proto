@@ -1,6 +1,7 @@
 use super::inventory::Inventory;
 use super::layout_error::ProtoLayoutError;
 use crate::id::Id;
+use crate::layout::ShimRegistry;
 use crate::tool_manifest::ToolManifest;
 use once_cell::sync::OnceCell;
 use proto_pdk_api::ToolInventoryOptions;
@@ -111,6 +112,11 @@ impl Store {
                 })?,
             )?)
         })
+    }
+
+    #[instrument(skip(self))]
+    pub fn load_shims_registry(&self) -> Result<ShimRegistry, ProtoLayoutError> {
+        ShimRegistry::load(&self.shims_dir)
     }
 
     #[instrument(skip(self))]
