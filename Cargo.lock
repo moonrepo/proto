@@ -3155,7 +3155,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.55.0"
+version = "0.55.1"
 dependencies = [
  "clap",
  "convert_case",
@@ -3228,7 +3228,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.43.2"
+version = "0.43.3"
 dependencies = [
  "extism",
  "proto_core",
