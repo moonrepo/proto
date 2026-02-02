@@ -10,6 +10,7 @@ use starbase_utils::{
     net::{Downloader, NetError},
 };
 use std::path::PathBuf;
+use std::time::Duration;
 use tracing::{debug, trace, warn};
 
 /// A downloader that uses our internal HTTP(S) client.
@@ -240,6 +241,7 @@ pub fn create_http_client_with_options(
                     cache_heuristic: 0.025,
                     ..Default::default()
                 }),
+                max_ttl: Some(Duration::from_hours(24 * 7)),
                 ..Default::default()
             },
         }));
