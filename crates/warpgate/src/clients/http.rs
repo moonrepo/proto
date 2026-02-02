@@ -241,7 +241,7 @@ pub fn create_http_client_with_options(
                     cache_heuristic: 0.025,
                     ..Default::default()
                 }),
-                max_ttl: Some(Duration::from_hours(24 * 7)),
+                max_ttl: Some(Duration::from_secs(604800)), // 7 days
                 ..Default::default()
             },
         }));

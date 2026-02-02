@@ -20,6 +20,7 @@
 #### 🐞 Fixes
 
 - Temporary fix for HTTP request cache failing with invalid UTF8/deserialization errors.
+- Potential fix for `package.json` fields being re-ordered when un/pinning versions.
 
 ## 0.55.0
 
