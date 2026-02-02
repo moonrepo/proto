@@ -3062,7 +3062,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.55.0"
+version = "0.55.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3193,7 +3193,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.43.3"
+version = "0.43.4"
 dependencies = [
  "extism",
  "proto_core",
