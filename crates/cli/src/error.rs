@@ -1,6 +1,7 @@
 #![allow(unused_assignments)]
 
 use miette::Diagnostic;
+use proto_core::flow::link::ProtoLinkError;
 use proto_core::flow::manage::ProtoManageError;
 use proto_core::flow::resolve::ProtoResolveError;
 use proto_core::layout::ProtoLayoutError;
@@ -39,6 +40,10 @@ pub enum ProtoCliError {
     #[diagnostic(transparent)]
     #[error(transparent)]
     Layout(#[from] Box<ProtoLayoutError>),
+
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Link(#[from] Box<ProtoLinkError>),
 
     #[diagnostic(transparent)]
     #[error(transparent)]
@@ -205,6 +210,12 @@ impl From<reqwest::Error> for ProtoCliError {
 impl From<ProtoLayoutError> for ProtoCliError {
     fn from(e: ProtoLayoutError) -> ProtoCliError {
         ProtoCliError::Layout(Box::new(e))
+    }
+}
+
+impl From<ProtoLinkError> for ProtoCliError {
+    fn from(e: ProtoLinkError) -> ProtoCliError {
+        ProtoCliError::Link(Box::new(e))
     }
 }
 
