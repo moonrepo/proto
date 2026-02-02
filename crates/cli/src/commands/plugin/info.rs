@@ -58,7 +58,7 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
     let mut locator = LocatorFlow::new(&tool, &spec);
     let bins = locator.locate_bins(None).await?;
     let shims = locator.locate_shims().await?;
-    let locations = locator.locate().await?;
+    let locations = locator.locate_all().await?;
 
     if session.should_print_json() {
         let result = InfoPluginResult {

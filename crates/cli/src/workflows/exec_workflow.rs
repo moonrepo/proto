@@ -376,7 +376,7 @@ async fn prepare_tool(
         }
     }
 
-    let locations = Locator::new(&tool, &spec).locate().await?;
+    let locations = Locator::locate(&tool, &spec).await?;
 
     if params.pre_run_hook && tool.plugin.has_func(HookFunction::PreRun).await {
         let output: RunHookResult = tool
