@@ -338,10 +338,8 @@ pub async fn run(session: ProtoSession, mut args: RunArgs) -> AppResult {
     } else if let Some(spec) = args.spec.clone() {
         (spec, None)
     } else {
-        let mut detector = Detector::new(&tool);
-
-        match detector.detect_version().await {
-            Ok(spec) => (spec, detector.source),
+        match Detector::detect(&tool).await {
+            Ok((spec, source)) => (spec, source),
             Err(error) => {
                 return if matches!(error, ProtoDetectError::FailedVersionDetect { .. }) {
                     run_global_tool(session, args, error.into()).map(|_| None)

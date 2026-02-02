@@ -22,6 +22,15 @@ impl<'tool> Detector<'tool> {
         Self { tool, source: None }
     }
 
+    pub async fn detect(
+        tool: &'tool Tool,
+    ) -> Result<(ToolSpec, Option<PathBuf>), ProtoDetectError> {
+        let mut detector = Self::new(tool);
+        let version = detector.detect_version().await?;
+
+        Ok((version, detector.source))
+    }
+
     /// Detect a version using all available strategies.
     #[instrument(skip(self))]
     pub async fn detect_version(&mut self) -> Result<ToolSpec, ProtoDetectError> {

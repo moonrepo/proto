@@ -45,11 +45,9 @@ impl ToolRecord {
     }
 
     pub async fn detect_version_and_source(&mut self) {
-        let mut detector = Detector::new(&self.tool);
-
-        if let Ok(config_version) = detector.detect_version().await {
+        if let Ok((config_version, source)) = Detector::detect(&self.tool).await {
             self.detected_version = Some(config_version);
-            self.detected_source = detector.source;
+            self.detected_source = source;
         }
     }
 
