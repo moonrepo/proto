@@ -95,7 +95,7 @@ impl ProtoEnvironment {
 
         self.plugin_loader.get_or_try_init(|| {
             let mut options = config.settings.http.clone();
-            options.cache_dir = Some(self.store.cache_dir.join("requests"));
+            options.cache_dir = Some(self.store.cache_dir.join("requests-v2"));
 
             let mut loader =
                 PluginLoader::new(&self.store.plugins_dir, self.store.temp_dir.join("plugins"));
