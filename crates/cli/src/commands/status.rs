@@ -44,11 +44,10 @@ pub async fn status(session: ProtoSession, _args: StatusArgs) -> AppResult {
         debug!(version = spec.to_string(), "Checking {}", tool.get_name());
 
         let item = items.entry(tool.context.clone()).or_default();
-        let mut resolver = Resolver::new(&tool);
 
         // Resolve a version based on the configured spec, and ignore errors
         // as they indicate a version could not be resolved!
-        if let Ok(version) = resolver.resolve_version(&mut spec, false).await
+        if let Ok(version) = Resolver::resolve(&tool, &mut spec, false).await
             && !version.is_latest()
         {
             if tool.is_installed(&spec) {

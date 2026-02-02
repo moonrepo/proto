@@ -337,9 +337,7 @@ async fn prepare_tool(
     item.active = true;
 
     // Resolve the version and locate executables
-    Resolver::new(&tool)
-        .resolve_version(&mut spec, true)
-        .await?;
+    Resolver::resolve(&tool, &mut spec, true).await?;
 
     if !tool.is_installed(&spec) {
         return Ok(item);

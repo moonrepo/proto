@@ -57,9 +57,7 @@ pub async fn pin(session: ProtoSession, args: PinArgs) -> AppResult {
     let tool = session.load_tool(&args.context).await?;
 
     if args.resolve {
-        Resolver::new(&tool)
-            .resolve_version(&mut spec, false)
-            .await?;
+        Resolver::resolve(&tool, &mut spec, false).await?;
     }
 
     let config_path;

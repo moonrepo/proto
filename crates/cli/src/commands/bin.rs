@@ -54,9 +54,7 @@ pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
         .or_else(|| tool.detected_version.clone())
         .unwrap_or_else(|| tool.spec.clone());
 
-    Resolver::new(&tool)
-        .resolve_version(&mut spec, true)
-        .await?;
+    Resolver::resolve(&tool, &mut spec, true).await?;
 
     let mut locator = Locator::new(&tool, &spec);
 

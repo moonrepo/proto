@@ -34,9 +34,7 @@ impl<'tool> Manager<'tool> {
         spec: &mut ToolSpec,
         options: InstallOptions,
     ) -> Result<Option<LockRecord>, ProtoManageError> {
-        let version = Resolver::new(self.tool)
-            .resolve_version(spec, false)
-            .await?;
+        let version = Resolver::resolve(self.tool, spec, false).await?;
 
         let record = match Installer::new(self.tool, spec).install(options).await? {
             // Update lock record with resolved spec information
@@ -101,9 +99,7 @@ impl<'tool> Manager<'tool> {
     pub async fn uninstall(&mut self, spec: &mut ToolSpec) -> Result<bool, ProtoManageError> {
         self.cleanup().await?;
 
-        let version = Resolver::new(self.tool)
-            .resolve_version(spec, false)
-            .await?;
+        let version = Resolver::resolve(self.tool, spec, false).await?;
 
         if !Installer::new(self.tool, spec).uninstall().await? {
             return Ok(false);

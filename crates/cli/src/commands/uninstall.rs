@@ -194,9 +194,7 @@ async fn uninstall_one(
 ) -> AppResult {
     let mut tool = session.load_tool(&args.context).await?;
 
-    Resolver::new(&tool)
-        .resolve_version(&mut spec, false)
-        .await?;
+    Resolver::resolve(&tool, &mut spec, false).await?;
 
     if !tool.is_installed(&spec) {
         if !args.quiet {

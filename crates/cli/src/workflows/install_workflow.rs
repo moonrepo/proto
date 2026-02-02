@@ -105,9 +105,7 @@ impl InstallWorkflow {
         });
 
         // Check if already installed, or if forced, overwrite previous install
-        Resolver::new(&self.tool)
-            .resolve_version(spec, false)
-            .await?;
+        Resolver::resolve(&self.tool, spec, false).await?;
 
         if !params.force && self.tool.is_installed(spec) {
             self.pin_version(spec, &params.pin_to).await?;
