@@ -17,6 +17,10 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- When writing `package.json` files, we'll now respect `.editorconfig` settings.
+
 #### 🐞 Fixes
 
 - Fixed a regression where bins/shims would not be created if the toolchain was restored from a cache and the tools were already installed. This only affects CI environments like GitHub Actions.
