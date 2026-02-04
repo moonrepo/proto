@@ -337,9 +337,7 @@ async fn prepare_tool(
     item.active = true;
 
     // Resolve the version and locate executables
-    Resolver::new(&tool)
-        .resolve_version(&mut spec, true)
-        .await?;
+    Resolver::resolve(&tool, &mut spec, true).await?;
 
     if !tool.is_installed(&spec) {
         return Ok(item);
@@ -378,7 +376,7 @@ async fn prepare_tool(
         }
     }
 
-    let locations = Locator::new(&tool, &spec).locate().await?;
+    let locations = Locator::locate(&tool, &spec).await?;
 
     if params.pre_run_hook && tool.plugin.has_func(HookFunction::PreRun).await {
         let output: RunHookResult = tool

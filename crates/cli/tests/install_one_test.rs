@@ -338,6 +338,37 @@ mod install_one {
     }
 
     #[test]
+    fn creates_shims_if_the_tool_already_exists() {
+        let sandbox = create_empty_proto_sandbox();
+
+        // Install once
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install").arg("protostar").arg("1.0.0");
+            })
+            .success();
+
+        // Remove shims
+        fs::remove_dir_all(sandbox.path().join(".proto/shims")).unwrap();
+
+        // Install again
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install").arg("protostar").arg("1.0.0");
+            })
+            .success();
+
+        if cfg!(windows) {
+            assert!(sandbox.path().join(".proto/shims/protostar.exe").exists());
+        } else {
+            assert!(sandbox.path().join(".proto/shims/protostar").exists());
+        }
+
+        // Check that the registry was created also
+        assert!(sandbox.path().join(".proto/shims/registry.json").exists());
+    }
+
+    #[test]
     fn updates_the_manifest_when_installing() {
         let sandbox = create_empty_proto_sandbox();
         let manifest_file = sandbox.path().join(".proto/tools/protostar/manifest.json");

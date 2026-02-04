@@ -64,9 +64,7 @@ pub async fn regen(session: ProtoSession, args: RegenArgs) -> AppResult {
             // Shims - Create once if tool has a configured version
             debug!("Regenerating {name} shim");
 
-            Resolver::new(&tool)
-                .resolve_version(&mut spec, true)
-                .await?;
+            Resolver::resolve(&tool, &mut spec, true).await?;
 
             let linker = Linker::new(&tool, &spec);
 

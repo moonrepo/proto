@@ -7,6 +7,7 @@ use crate::telemetry::*;
 use crate::utils::tool_record::ToolRecord;
 use iocraft::element;
 use proto_core::flow::install::{InstallOptions, InstallPhase};
+use proto_core::flow::link::Linker;
 use proto_core::flow::manage::Manager;
 use proto_core::flow::resolve::Resolver;
 use proto_core::utils::log::LogWriter;
@@ -105,13 +106,14 @@ impl InstallWorkflow {
         });
 
         // Check if already installed, or if forced, overwrite previous install
-        Resolver::new(&self.tool)
-            .resolve_version(spec, false)
-            .await?;
+        Resolver::resolve(&self.tool, spec, false).await?;
 
         if !params.force && self.tool.is_installed(spec) {
             self.pin_version(spec, &params.pin_to).await?;
             self.finish_progress(spec, started);
+
+            // Ensure bins/shims exist
+            Linker::link(&self.tool, spec, false).await?;
 
             return Ok(InstallOutcome::AlreadyInstalled(self.tool.get_id().clone()));
         }

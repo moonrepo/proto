@@ -24,6 +24,14 @@ impl<'tool> Resolver<'tool> {
         }
     }
 
+    pub async fn resolve(
+        tool: &'tool Tool,
+        spec: &mut ToolSpec,
+        short_circuit: bool,
+    ) -> Result<VersionSpec, ProtoResolveError> {
+        Self::new(tool).resolve_version(spec, short_circuit).await
+    }
+
     /// Load available versions to install and return a resolver instance.
     /// To reduce network overhead, results will be cached for 12 hours.
     #[instrument(skip(self))]

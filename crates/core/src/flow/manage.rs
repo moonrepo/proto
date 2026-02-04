@@ -34,9 +34,7 @@ impl<'tool> Manager<'tool> {
         spec: &mut ToolSpec,
         options: InstallOptions,
     ) -> Result<Option<LockRecord>, ProtoManageError> {
-        let version = Resolver::new(self.tool)
-            .resolve_version(spec, false)
-            .await?;
+        let version = Resolver::resolve(self.tool, spec, false).await?;
 
         let record = match Installer::new(self.tool, spec).install(options).await? {
             // Update lock record with resolved spec information
@@ -47,6 +45,8 @@ impl<'tool> Manager<'tool> {
             }
             // Return an existing lock record if already installed
             None => {
+                self.post_install(spec, false).await?;
+
                 return Ok(Locker::new(self.tool)
                     .get_resolved_locked_record(spec)
                     .cloned());
@@ -84,15 +84,19 @@ impl<'tool> Manager<'tool> {
             }
         })?;
 
+        self.post_install(spec, true).await?;
+
+        Ok(Some(record))
+    }
+
+    async fn post_install(&self, spec: &mut ToolSpec, force: bool) -> Result<(), ProtoManageError> {
         // Link all the things
-        let linker = Linker::new(self.tool, spec);
-        linker.link_bins(false).await?;
-        linker.link_shims(true).await?;
+        Linker::link(self.tool, spec, force).await?;
 
         // Remove temp files
         self.cleanup().await?;
 
-        Ok(Some(record))
+        Ok(())
     }
 
     /// Teardown the tool by uninstalling the current version, removing the version
@@ -101,9 +105,7 @@ impl<'tool> Manager<'tool> {
     pub async fn uninstall(&mut self, spec: &mut ToolSpec) -> Result<bool, ProtoManageError> {
         self.cleanup().await?;
 
-        let version = Resolver::new(self.tool)
-            .resolve_version(spec, false)
-            .await?;
+        let version = Resolver::resolve(self.tool, spec, false).await?;
 
         if !Installer::new(self.tool, spec).uninstall().await? {
             return Ok(false);

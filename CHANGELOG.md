@@ -15,6 +15,12 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Fixed a regression where bins/shims would not be created if the toolchain was restored from a cache and the tools were already installed. This only affects CI environments like GitHub Actions.
+
 ## 0.55.1
 
 #### 🐞 Fixes

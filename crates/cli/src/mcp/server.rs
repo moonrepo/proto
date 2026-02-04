@@ -211,7 +211,7 @@ impl ProtoMcp {
 
         let tool = handle_tool_error!(self.session.load_tool(&context).await);
 
-        handle_tool_error!(Resolver::new(&tool).resolve_version(&mut spec, false).await);
+        handle_tool_error!(Resolver::resolve(&tool, &mut spec, false).await);
 
         let uninstalled = handle_tool_error!(Installer::new(&tool, &spec).uninstall().await);
 

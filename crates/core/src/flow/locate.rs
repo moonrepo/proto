@@ -64,8 +64,15 @@ impl<'tool> Locator<'tool> {
         }
     }
 
+    pub async fn locate(
+        tool: &'tool Tool,
+        spec: &'tool ToolSpec,
+    ) -> Result<LocatorResponse, ProtoLocateError> {
+        Self::new(tool, spec).locate_all().await
+    }
+
     /// Locate all applicable executable and global paths.
-    pub async fn locate(&mut self) -> Result<LocatorResponse, ProtoLocateError> {
+    pub async fn locate_all(&mut self) -> Result<LocatorResponse, ProtoLocateError> {
         Ok(LocatorResponse {
             globals_dirs: self.locate_globals_dirs().await?,
             globals_dir: self.locate_globals_dir().await?,
