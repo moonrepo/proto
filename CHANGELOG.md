@@ -19,6 +19,7 @@
 
 #### 🐞 Fixes
 
+- Fixed an issue when attempting to link binaries and a "failed to create" error occurs. This mainly affects the `moonx` binary.
 - Fixed an issue with (un)pin/(un)alias commands that would print broken output when the version contains `>` or `<`.
 
 #### ⚙️ Internal
