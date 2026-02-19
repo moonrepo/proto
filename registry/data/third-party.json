@@ -1042,6 +1042,45 @@
       ]
     },
     {
+      "id": "restate",
+      "locator": "https://raw.githubusercontent.com/jacobdrury/proto-plugins/refs/heads/master/restate.toml",
+      "format": "toml",
+      "name": "restate",
+      "description": "A command-line tool for interacting with Restate",
+      "author": "jacobdrury",
+      "homepageUrl": "https://github.com/restatedev/restate",
+      "repositoryUrl": "https://github.com/restatedev/restate",
+      "bins": [
+        "restate"
+      ]
+    },
+    {
+      "id": "restate-server",
+      "locator": "https://raw.githubusercontent.com/jacobdrury/proto-plugins/refs/heads/master/restate-server.toml",
+      "format": "toml",
+      "name": "restate-server",
+      "description": "A command-line tool for running a Restate server locally",
+      "author": "jacobdrury",
+      "homepageUrl": "https://github.com/restatedev/restate",
+      "repositoryUrl": "https://github.com/restatedev/restate",
+      "bins": [
+        "restate-server"
+      ]
+    },
+    {
+      "id": "restatectl",
+      "locator": "https://raw.githubusercontent.com/jacobdrury/proto-plugins/refs/heads/master/restatectl.toml",
+      "format": "toml",
+      "name": "restatectl",
+      "description": "A command-line tool for managing Restate clusters.",
+      "author": "jacobdrury",
+      "homepageUrl": "https://github.com/restatedev/restate",
+      "repositoryUrl": "https://github.com/restatedev/restate",
+      "bins": [
+        "restatectl"
+      ]
+    },
+    {
       "id": "ruff",
       "locator": "https://raw.githubusercontent.com/risk1996/proto-plugins/refs/heads/main/ruff/plugin.toml",
       "format": "toml",
