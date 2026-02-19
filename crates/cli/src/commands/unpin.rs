@@ -5,6 +5,7 @@ use proto_core::{PinLocation, ProtoConfig, ToolContext};
 use proto_pdk_api::{PluginFunction, UnpinVersionInput, UnpinVersionOutput};
 use starbase::AppResult;
 use starbase_console::ui::*;
+use starbase_styles::encode_style_tags;
 
 #[derive(Args, Clone, Debug)]
 pub struct UnpinArgs {
@@ -110,7 +111,7 @@ pub async fn unpin(session: ProtoSession, args: UnpinArgs) -> AppResult {
                 content: format!(
                     "Removed <id>{}</id> version <version>{}</version> from config <path>{}</path>",
                     args.context,
-                    value.to_string(),
+                    encode_style_tags(value),
                     config_path.display()
                 ),
             )

@@ -6,6 +6,7 @@ use proto_core::{PinLocation, ProtoConfig, ProtoConfigError, Tool, ToolContext, 
 use proto_pdk_api::{PinVersionInput, PinVersionOutput, PluginFunction};
 use starbase::AppResult;
 use starbase_console::ui::*;
+use starbase_styles::encode_style_tags;
 use std::path::PathBuf;
 use tracing::debug;
 
@@ -85,7 +86,8 @@ pub async fn pin(session: ProtoSession, args: PinArgs) -> AppResult {
                     Notice(variant: Variant::Failure) {
                         StyledText(
                             content: format!(
-                                "Failed to pin version <version>{spec}</version> for <id>{}</id>.",
+                                "Failed to pin version <version>{}</version> for <id>{}</id>.",
+                                encode_style_tags(spec.to_string()),
                                 args.context,
                             )
                         )
@@ -125,14 +127,14 @@ pub async fn pin(session: ProtoSession, args: PinArgs) -> AppResult {
                         "Pinned <id>{}</id> version <version>{}</version> (resolved from <versionalt>{}</versionalt>) to config <path>{}</path>",
                         args.context,
                         spec.get_resolved_version(),
-                        spec.req,
+                        encode_style_tags(spec.req.to_string()),
                         config_path.display()
                     )
                 } else {
                     format!(
                         "Pinned <id>{}</id> version <version>{}</version> to config <path>{}</path>",
                         args.context,
-                        spec.req,
+                        encode_style_tags(spec.req.to_string()),
                         config_path.display()
                     )
                 },

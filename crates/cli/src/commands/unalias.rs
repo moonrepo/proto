@@ -4,6 +4,7 @@ use iocraft::element;
 use proto_core::{PinLocation, ProtoConfig, ToolContext};
 use starbase::AppResult;
 use starbase_console::ui::*;
+use starbase_styles::encode_style_tags;
 
 #[derive(Args, Clone, Debug)]
 pub struct UnaliasArgs {
@@ -74,7 +75,7 @@ pub async fn unalias(session: ProtoSession, args: UnaliasArgs) -> AppResult {
                     "Removed <id>{}</id> alias <id>{}</id> <mutedlight>(with specification <versionalt>{}</versionalt>)</mutedlight> from config <path>{}</path>",
                     args.context,
                     args.alias,
-                    value.to_string(),
+                    encode_style_tags(value.to_string()),
                     config_path.display()
                 ),
             )
