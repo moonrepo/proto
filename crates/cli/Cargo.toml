@@ -61,7 +61,7 @@ starbase_console = { workspace = true }
 starbase_shell = { workspace = true }
 starbase_styles = { workspace = true }
 starbase_utils = { workspace = true }
-sysinfo = { version = "0.38.0", default-features = false, features = [
+sysinfo = { version = "0.38.2", default-features = false, features = [
     "system",
 ] }
 thiserror = { workspace = true }
@@ -79,7 +79,7 @@ wasi-common = "~37.0.3"
 wiggle = "~37.0.3"
 
 # Overrides
-liblzma = { version = "0.4.5", features = ["static"] }
+liblzma = { version = "0.4.6", features = ["static"] }
 
 [dev-dependencies]
 starbase_sandbox = { workspace = true }

@@ -155,13 +155,12 @@ impl Store {
 
     #[instrument(skip(self))]
     pub fn unlink_bin(&self, bin_path: &Path) -> Result<(), ProtoLayoutError> {
-        // Windows copies files
-        #[cfg(windows)]
-        fs::remove_file(bin_path)?;
-
-        // Unix uses symlinks
-        #[cfg(unix)]
-        fs::remove_link(bin_path)?;
+        // Remove any file at this path, whether a symlink or not!
+        if bin_path.is_symlink() {
+            fs::remove_link(bin_path)?;
+        } else if bin_path.is_file() {
+            fs::remove_file(bin_path)?;
+        }
 
         Ok(())
     }
@@ -180,7 +179,7 @@ impl Store {
 
     #[instrument(skip(self))]
     pub fn remove_shim(&self, shim_path: &Path) -> Result<(), ProtoLayoutError> {
-        fs::remove_file(shim_path)?;
+        fs::remove(shim_path)?;
 
         Ok(())
     }
