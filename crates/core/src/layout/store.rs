@@ -156,7 +156,11 @@ impl Store {
     #[instrument(skip(self))]
     pub fn unlink_bin(&self, bin_path: &Path) -> Result<(), ProtoLayoutError> {
         // Remove any file at this path, whether a symlink or not!
-        fs::remove(bin_path)?;
+        if bin_path.is_symlink() {
+            fs::remove_link(bin_path)?;
+        } else if bin_path.is_file() {
+            fs::remove_file(bin_path)?;
+        }
 
         Ok(())
     }
