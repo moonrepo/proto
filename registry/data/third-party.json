@@ -482,6 +482,19 @@
       ]
     },
     {
+      "id": "git-issue",
+      "locator": "https://raw.githubusercontent.com/remenoscodes/git-native-issue/main/proto/plugin.toml",
+      "format": "toml",
+      "name": "git-native-issue",
+      "description": "Distributed issue tracking embedded in Git — track issues locally, sync anywhere.",
+      "author": "remenoscodes",
+      "homepageUrl": "https://github.com/remenoscodes/git-native-issue",
+      "repositoryUrl": "https://github.com/remenoscodes/git-native-issue",
+      "bins": [
+        "git-issue"
+      ]
+    },
+    {
       "id": "gitleaks",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/gitleaks/plugin.toml",
       "format": "toml",
