@@ -1279,6 +1279,12 @@
       "devicon": "terraform",
       "bins": [
         "terraform"
+      ],
+      "detectionSources": [
+        {
+          "file": ".terraform-version",
+          "url": "https://github.com/tfutils/tfenv#terraform-version-file"
+        }
       ]
     },
     {
