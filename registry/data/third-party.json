@@ -189,6 +189,26 @@
       ]
     },
     {
+      "id": "composer",
+      "locator": "github://KonstantinKai/proto-composer-plugin",
+      "format": "wasm",
+      "name": "Composer",
+      "description": "A dependency manager for PHP.",
+      "author": {
+        "name": "Konstantin Kai",
+        "email": "kai@konstantinkai.dev"
+      },
+      "homepageUrl": "https://getcomposer.org/",
+      "repositoryUrl": "https://github.com/KonstantinKai/proto-composer-plugin",
+      "bins": [
+        "composer"
+      ],
+      "globalsDirs": [
+        "$COMPOSER_HOME/vendor/bin",
+        "$HOME/.composer/vendor/bin"
+      ]
+    },
+    {
       "id": "cmake",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/cmake/plugin.toml",
       "format": "toml",
@@ -1013,6 +1033,32 @@
       "devicon": "packer",
       "bins": [
         "packer"
+      ]
+    },
+    {
+      "id": "php",
+      "locator": "github://KonstantinKai/proto-php-plugin",
+      "format": "wasm",
+      "name": "PHP",
+      "description": "A popular general-purpose scripting language that is especially suited to web development.",
+      "author": {
+        "name": "Konstantin Kai",
+        "email": "kai@konstantinkai.dev"
+      },
+      "homepageUrl": "https://www.php.net/",
+      "repositoryUrl": "https://github.com/KonstantinKai/proto-php-plugin",
+      "devicon": "php",
+      "bins": [
+        "php"
+      ],
+      "detectionSources": [
+        {
+          "file": ".php-version"
+        },
+        {
+          "file": "composer.json",
+          "url": "https://getcomposer.org/doc/04-schema.md#require"
+        }
       ]
     },
     {
