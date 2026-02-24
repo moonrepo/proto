@@ -7,7 +7,6 @@ use starbase_styles::{apply_style_tags, color};
 use starbase_utils::{envx, fs};
 use std::collections::BTreeMap;
 use std::env;
-use std::io::Write;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::str::FromStr;
@@ -132,10 +131,10 @@ fn host_log(
 
 // Commands
 
-fn get_default_shell() -> ShellType {
-    static SHELL_CACHE: OnceLock<ShellType> = OnceLock::new();
+fn get_default_shell() -> Option<ShellType> {
+    static SHELL_CACHE: OnceLock<Option<ShellType>> = OnceLock::new();
 
-    *SHELL_CACHE.get_or_init(ShellType::detect_with_fallback)
+    *SHELL_CACHE.get_or_init(ShellType::detect)
 }
 
 fn get_shell_exe_path(name: &str) -> PathBuf {
@@ -213,19 +212,35 @@ fn exec_command(
     };
 
     // Determine the shell
-    let shell = match input.shell.or_else(|| env::var("PROTO_SHELL").ok()) {
-        Some(name) => ShellType::from_str(&name)?.build(),
-        None => get_default_shell().build(),
+    let shell_type = match input.shell.or_else(|| env::var("PROTO_SHELL").ok()) {
+        Some(name) => Some(ShellType::from_str(&name)?),
+        None => get_default_shell(),
     };
-    let shell_command = shell.get_exec_command();
-    let shell_exe_name = shell.to_string();
-    let shell_exe_path = get_shell_exe_path(&shell_exe_name);
+    let shell_name = shell_type.as_ref().map(|sh| sh.to_string());
 
     // Create and execute command
-    let command_line = format!("{} {}", input.command, join_args(&shell, &input.args));
+    let mut command = match shell_type {
+        Some(shell) => {
+            let shell = shell.build();
+            let shell_command = shell.get_exec_command();
+            let shell_exe_name = shell.to_string();
 
-    let mut command = Command::new(&shell_exe_path);
-    command.args(shell_command.shell_args);
+            let mut command = Command::new(get_shell_exe_path(&shell_exe_name));
+            command.args(shell_command.shell_args);
+            command.arg(format!(
+                "{} {}",
+                input.command,
+                join_args(&shell, &input.args)
+            ));
+            command
+        }
+        None => {
+            let mut command = Command::new(&input.command);
+            command.args(&input.args);
+            command
+        }
+    };
+
     command.envs(&input.env);
     command.current_dir(&cwd);
 
@@ -241,12 +256,7 @@ fn exec_command(
         }
     }
 
-    if shell_command.pass_args_stdin {
-        command.stdin(Stdio::piped());
-    } else {
-        command.arg(&command_line);
-        command.stdin(Stdio::null());
-    }
+    command.stdin(Stdio::null());
 
     if should_stream {
         command.stderr(Stdio::inherit()).stdout(Stdio::inherit());
@@ -257,15 +267,9 @@ fn exec_command(
     let mut child = command.spawn()?;
     let pid = child.id();
 
-    if shell_command.pass_args_stdin
-        && let Some(mut stdin) = child.stdin.take()
-    {
-        stdin.write_all(command_line.as_bytes())?;
-    }
-
     trace!(
         plugin = &uuid,
-        shell = &shell_exe_name,
+        shell = &shell_name,
         exe = &input.command,
         args = ?input.args,
         cwd = ?cwd,
@@ -295,7 +299,7 @@ fn exec_command(
 
     trace!(
         plugin = plugin.id().to_string(),
-        shell = ?shell_exe_path,
+        shell = &shell_name,
         exe = ?exe,
         pid = pid,
         exit_code = output.exit_code,

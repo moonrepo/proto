@@ -4,8 +4,10 @@ use crate::session::ProtoSession;
 use crate::workflows::{ExecWorkflow, ExecWorkflowParams};
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::flow::detect::ProtoDetectError;
-use proto_core::flow::locate::ProtoLocateError;
+use proto_core::flow::detect::{Detector, ProtoDetectError};
+use proto_core::flow::locate::{Locator, ProtoLocateError};
+use proto_core::flow::resolve::Resolver;
+use proto_core::layout::ShimRegistry;
 use proto_core::{
     Id, PROTO_PLUGIN_KEY, ProtoEnvironment, ProtoLoaderError, Tool, ToolContext, ToolSpec,
 };
@@ -97,18 +99,22 @@ fn is_trying_to_self_upgrade(tool: &Tool, args: &[String]) -> bool {
     false
 }
 
-async fn get_tool_executable(tool: &Tool, alt: Option<&str>) -> miette::Result<ExecutableConfig> {
-    let tool_dir = tool.get_product_dir();
+async fn get_tool_executable(
+    tool: &Tool,
+    spec: &ToolSpec,
+    alt: Option<&str>,
+) -> miette::Result<ExecutableConfig> {
+    let locator = Locator::new(tool, spec);
 
     // Run an alternate executable (via shim)
     if let Some(alt_name) = alt {
-        for location in tool.resolve_shim_locations().await? {
+        for location in locator.locate_shims().await? {
             if location.name == alt_name {
                 let Some(exe_path) = &location.config.exe_path else {
                     continue;
                 };
 
-                let alt_exe_path = tool_dir.join(exe_path);
+                let alt_exe_path = locator.product_dir.join(exe_path);
 
                 if alt_exe_path.exists() {
                     debug!(
@@ -127,13 +133,13 @@ async fn get_tool_executable(tool: &Tool, alt: Option<&str>) -> miette::Result<E
 
         return Err(ProtoCliError::RunMissingAltBin {
             bin: alt_name.to_owned(),
-            path: tool_dir.to_path_buf(),
+            path: locator.product_dir.clone(),
         }
         .into());
     }
 
     // Otherwise use the primary
-    let mut config = match tool.resolve_primary_exe_location().await? {
+    let mut config = match locator.locate_primary_exe().await? {
         Some(inner) => inner.config,
         None => {
             return Err(ProtoLocateError::NoPrimaryExecutable {
@@ -145,7 +151,7 @@ async fn get_tool_executable(tool: &Tool, alt: Option<&str>) -> miette::Result<E
 
     // We don't use `locate_exe_file` here because we need to handle
     // tools whose primary file is not executable, like JavaScript!
-    config.exe_path = Some(tool_dir.join(config.exe_path.as_ref().unwrap()));
+    config.exe_path = Some(locator.product_dir.join(config.exe_path.as_ref().unwrap()));
 
     Ok(config)
 }
@@ -245,9 +251,62 @@ fn run_global_tool(
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
-    let mut tool = match session.load_tool(&args.context).await {
+pub async fn run(session: ProtoSession, mut args: RunArgs) -> AppResult {
+    let tool = match session.load_tool(&args.context).await {
         Ok(tool) => tool,
+        Err(ProtoLoaderError::UnknownTool { id }) => {
+            // Check if this is a bin provided by another tool (e.g., `npx` from `npm`).
+            // The shims registry contains mappings of secondary bins to their parent tools,
+            // which is maintained by proto during tool installation.
+            debug!(
+                bin = id.as_str(),
+                "Tool not found, checking shims registry for bin-to-tool mapping"
+            );
+
+            let registry = ShimRegistry::load(&session.env.store.shims_dir)?;
+            let mut parent_tool_id: Option<Id> = None;
+            let mut before_args: Vec<String> = vec![];
+            let mut after_args: Vec<String> = vec![];
+
+            // Try reading the shims registry
+            if let Some(shim_entry) = registry.shims.get(id.as_str())
+                && let Some(parent) = &shim_entry.parent
+            {
+                debug!(
+                    bin = id.as_str(),
+                    parent_tool = parent,
+                    "Found {} in shims registry, redirecting to {}",
+                    id.as_str(),
+                    parent
+                );
+
+                parent_tool_id = Some(Id::raw(parent));
+
+                // Store before/after args from the shim entry
+                before_args = shim_entry.before_args.clone();
+                after_args = shim_entry.after_args.clone();
+            }
+
+            if let Some(parent_id) = parent_tool_id {
+                // Update args to run the parent tool with this bin as an alternate executable
+                args.exe = Some(id.to_string());
+                args.context = ToolContext::new(parent_id);
+
+                // Prepend before_args and append after_args to passthrough
+                let mut new_passthrough = before_args;
+                new_passthrough.extend(args.passthrough.clone());
+                new_passthrough.extend(after_args);
+                args.passthrough = new_passthrough;
+
+                // Load the parent tool (this will handle auto-install if enabled,
+                // or show a proper error message if the tool is not installed)
+                session.load_tool(&args.context).await?
+            } else {
+                // Not found in shims registry, fall back to global tool on PATH
+                return run_global_tool(session, args, ProtoLoaderError::UnknownTool { id }.into())
+                    .map(|_| None);
+            }
+        }
         Err(error) => {
             return if matches!(error, ProtoLoaderError::UnknownTool { .. }) {
                 run_global_tool(session, args, error.into()).map(|_| None)
@@ -269,15 +328,18 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
     }
 
     // Detect a version to run with
-    let spec = if use_global_proto {
-        args.spec
-            .clone()
-            .unwrap_or_else(|| ToolSpec::parse("*").unwrap())
+    let (mut spec, detected_source) = if use_global_proto {
+        (
+            args.spec
+                .clone()
+                .unwrap_or_else(|| ToolSpec::parse("*").unwrap()),
+            None,
+        )
     } else if let Some(spec) = args.spec.clone() {
-        spec
+        (spec, None)
     } else {
-        match tool.detect_version().await {
-            Ok(spec) => spec,
+        match Detector::detect(&tool).await {
+            Ok((spec, source)) => (spec, source),
             Err(error) => {
                 return if matches!(error, ProtoDetectError::FailedVersionDetect { .. }) {
                     run_global_tool(session, args, error.into()).map(|_| None)
@@ -288,14 +350,16 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
         }
     };
 
+    Resolver::resolve(&tool, &mut spec, true).await?;
+
     // Check if installed or need to install
-    if tool.is_setup(&spec).await? {
+    if tool.is_installed(&spec) {
         if tool.get_id() == PROTO_PLUGIN_KEY {
             use_global_proto = false;
         }
     } else {
         let config = tool.proto.load_config()?;
-        let resolved_version = tool.get_resolved_version();
+        let resolved_version = spec.get_resolved_version();
 
         // Auto-install the missing tool
         if config.settings.auto_install {
@@ -319,6 +383,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
                     spec: Some(ToolSpec {
                         req: resolved_version.to_unresolved_spec(),
                         version: Some(resolved_version.clone()),
+                        version_locked: None,
                         resolve_from_manifest: false,
                         resolve_from_lockfile: false,
                         update_lockfile: false,
@@ -349,12 +414,12 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
         else {
             let command = format!("proto install {} {}", tool.context, resolved_version);
 
-            if let Ok(source) = env::var(format!("{}_DETECTED_FROM", tool.get_env_var_prefix())) {
+            if let Some(source) = detected_source {
                 return Err(ProtoCliError::RunMissingToolWithSource {
                     tool: tool.get_name().to_owned(),
                     version: spec.req.to_string(),
                     command,
-                    path: source.into(),
+                    path: source,
                 }
                 .into());
             }
@@ -376,7 +441,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
             ..Default::default()
         }
     } else {
-        get_tool_executable(&tool, args.exe.as_deref()).await?
+        get_tool_executable(&tool, &spec, args.exe.as_deref()).await?
     };
 
     let mut command = create_command(&tool, &exe_config, &args.passthrough)?;

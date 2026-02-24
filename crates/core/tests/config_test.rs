@@ -429,8 +429,7 @@ foo = "file://./test.toml"
         }
 
         #[test]
-        #[should_panic(expected = "MissingEnvFile")]
-        fn errors_if_file_missing() {
+        fn doesnt_error_if_file_missing() {
             let sandbox = create_empty_sandbox();
             sandbox.create_file(
                 ".prototools",

@@ -65,6 +65,12 @@ impl UnresolvedVersionSpec {
         }
     }
 
+    /// Return true if the current specification can be treated as a
+    /// fully qualified version, either calendar or semantic.
+    pub fn is_fully_qualified(&self) -> bool {
+        matches!(self, Self::Calendar(_) | Self::Semantic(_))
+    }
+
     /// Return true if the current specification is the "latest" alias.
     pub fn is_latest(&self) -> bool {
         match self {

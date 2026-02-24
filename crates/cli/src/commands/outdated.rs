@@ -3,7 +3,7 @@ use crate::session::{LoadToolOptions, ProtoSession};
 use clap::Args;
 use iocraft::prelude::{Size, element};
 use miette::IntoDiagnostic;
-use proto_core::flow::resolve::ProtoResolveError;
+use proto_core::flow::resolve::{ProtoResolveError, Resolver};
 use proto_core::{
     PROTO_CONFIG_NAME, ProtoConfig, ToolContext, ToolSpec, UnresolvedVersionSpec, VersionSpec, cfg,
 };
@@ -80,7 +80,9 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
 
             let initial_version = UnresolvedVersionSpec::default(); // latest
             let config_version = tool.detected_version.as_ref().unwrap();
-            let version_resolver = tool.load_version_resolver(&initial_version).await?;
+            let mut version_resolver = Resolver::new(&tool);
+
+            version_resolver.load_versions(&initial_version).await?;
 
             debug!(
                 tool = tool.context.as_str(),
@@ -88,8 +90,8 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
                 "Resolving current version"
             );
 
-            let current_version = tool
-                .resolve_version_candidate(&version_resolver, &config_version.req, true)
+            let current_version = version_resolver
+                .resolve_version_candidate(&config_version.req, true)
                 .await?;
             let newest_range = get_in_major_range(&config_version.req);
 
@@ -99,8 +101,8 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
                 "Resolving newest version"
             );
 
-            let newest_version = tool
-                .resolve_version_candidate(&version_resolver, &newest_range, false)
+            let newest_version = version_resolver
+                .resolve_version_candidate(&newest_range, false)
                 .await?;
 
             debug!(
@@ -109,8 +111,8 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
                 "Resolving latest version"
             );
 
-            let latest_version = tool
-                .resolve_version_candidate(&version_resolver, &initial_version, true)
+            let latest_version = version_resolver
+                .resolve_version_candidate(&initial_version, true)
                 .await?;
 
             Result::<_, ProtoResolveError>::Ok((

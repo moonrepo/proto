@@ -6,6 +6,7 @@ use crate::utils::tool_record::ToolRecord;
 use crate::workflows::{InstallOutcome, InstallWorkflowManager, InstallWorkflowParams};
 use clap::Args;
 use iocraft::prelude::element;
+use proto_core::flow::detect::Detector;
 use proto_core::{ConfigMode, Id, PinLocation, Tool, ToolContext, ToolSpec};
 use proto_pdk_api::{InstallStrategy, PluginFunction};
 use starbase::AppResult;
@@ -146,7 +147,10 @@ pub async fn install_one(
     // otherwise fallback to "latest"
     let mut spec = if let Some(spec) = &args.spec {
         spec.to_owned()
-    } else if let Some((spec, _)) = tool.detect_version_from(&session.env.working_dir).await? {
+    } else if let Some((spec, _)) = Detector::new(&tool)
+        .detect_version_from(&session.env.working_dir)
+        .await?
+    {
         spec.into()
     } else if let Some(spec) = session.load_config()?.versions.get(&context) {
         spec.to_owned()
@@ -175,7 +179,7 @@ pub async fn install_one(
 
     if workflow.is_build(args.get_strategy()) {
         if !args.quiet {
-            session.console.render(element! {
+            session.console.render_err(element! {
                 Notice(variant: Variant::Caution) {
                     StyledText(
                         content: "Building from source is currently unstable. Please report general issues to <url>https://github.com/moonrepo/proto</url>",
@@ -192,7 +196,7 @@ pub async fn install_one(
 
     let result = workflow
         .install_with_logging(
-            spec,
+            &mut spec,
             InstallWorkflowParams {
                 log_writer: None,
                 pin_to: args.get_pin_location(),
@@ -226,8 +230,8 @@ pub async fn install_one(
                         content: format!(
                             "{} <version>{}</version> has been installed to <path>{}</path>!",
                             tool.get_name(),
-                            tool.get_resolved_version(),
-                            tool.get_product_dir().display(),
+                            spec.get_resolved_version(),
+                            tool.get_product_dir(&spec).display(),
                         ),
                     )
                 }
@@ -240,8 +244,8 @@ pub async fn install_one(
                         content: format!(
                             "{} <version>{}</version> has already been installed at <path>{}</path>!",
                             tool.get_name(),
-                            tool.get_resolved_version(),
-                            tool.get_product_dir().display(),
+                            spec.get_resolved_version(),
+                            tool.get_product_dir(&spec).display(),
                         ),
                     )
                 }
@@ -285,7 +289,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
     }
 
     if tools.is_empty() {
-        session.console.render(element! {
+        session.console.render_err(element! {
             Notice(variant: Variant::Caution) {
                 StyledText(
                     content: "No versions have been configured, nothing to install!",
@@ -369,7 +373,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
 
             match workflow
                 .install_with_logging(
-                    spec,
+                    &mut spec,
                     InstallWorkflowParams {
                         force,
                         log_writer: None,

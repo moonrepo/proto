@@ -17,7 +17,7 @@ mod uninstall {
                 .arg("--yes");
         });
 
-        assert.inner.stdout(predicate::str::contains(
+        assert.failure().stderr(predicate::str::contains(
             "protostar 1.0.0 has not been installed locally",
         ));
     }
@@ -58,7 +58,7 @@ mod uninstall {
             cmd.arg("uninstall").arg("protostar").arg("--yes");
         });
 
-        assert.inner.stdout(predicate::str::contains(
+        assert.failure().stderr(predicate::str::contains(
             "protostar has not been installed locally",
         ));
     }
@@ -157,7 +157,11 @@ mod uninstall {
     #[test]
     fn removes_tool_shims() {
         let sandbox = create_empty_proto_sandbox();
-        sandbox.create_file(".proto/tools/protostar/manifest.json", "{}");
+        sandbox.create_file(
+            ".proto/tools/protostar/manifest.json",
+            r#"{ "installed_versions": ["1.2.3"] }"#,
+        );
+        sandbox.create_file(".proto/tools/protostar/1.2.3/protostar", "");
         sandbox.create_file(".proto/shims/protostar", "");
         sandbox.create_file(".proto/shims/protostar.exe", "");
 

@@ -1,10 +1,12 @@
 use crate::flow::resolve::ProtoResolveError;
+use crate::lockfile::LockRecord;
 use serde::{Deserialize, Serialize};
 use std::fmt;
+use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 use version_spec::{UnresolvedVersionSpec, VersionSpec};
 
-#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(into = "String", try_from = "String")]
 pub struct ToolSpec {
     /// Requested version/requirement.
@@ -12,6 +14,9 @@ pub struct ToolSpec {
 
     /// Resolved version.
     pub version: Option<VersionSpec>,
+
+    /// Resolved version metadata from a lockfile.
+    pub version_locked: Option<LockRecord>,
 
     /// Resolve a version from the lockfile?
     pub resolve_from_lockfile: bool,
@@ -31,17 +36,24 @@ impl ToolSpec {
         }
     }
 
-    pub fn is_fully_qualified(&self) -> bool {
-        matches!(
-            self.req,
-            UnresolvedVersionSpec::Canary
-                | UnresolvedVersionSpec::Calendar(_)
-                | UnresolvedVersionSpec::Semantic(_)
-        )
+    pub fn new_resolved(version: VersionSpec) -> Self {
+        Self {
+            req: version.to_unresolved_spec(),
+            version: Some(version),
+            ..Default::default()
+        }
     }
 
     pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, ProtoResolveError> {
         Self::from_str(value.as_ref())
+    }
+
+    pub fn get_resolved_version(&self) -> VersionSpec {
+        self.version.clone().unwrap_or_default()
+    }
+
+    pub fn is_resolved(&self) -> bool {
+        self.version.is_some()
     }
 
     pub fn resolve(&mut self, res: VersionSpec) {
@@ -54,6 +66,13 @@ impl ToolSpec {
             None => self.req.to_resolved_spec(),
         }
     }
+
+    pub fn to_unresolved_spec(&self) -> UnresolvedVersionSpec {
+        match &self.version {
+            Some(res) => res.to_unresolved_spec(),
+            None => self.req.clone(),
+        }
+    }
 }
 
 impl Default for ToolSpec {
@@ -61,6 +80,7 @@ impl Default for ToolSpec {
         Self {
             req: UnresolvedVersionSpec::default(),
             version: None,
+            version_locked: None,
             resolve_from_lockfile: true,
             resolve_from_manifest: true,
             update_lockfile: true,
@@ -126,6 +146,20 @@ impl AsRef<ToolSpec> for ToolSpec {
 impl AsRef<UnresolvedVersionSpec> for ToolSpec {
     fn as_ref(&self) -> &UnresolvedVersionSpec {
         &self.req
+    }
+}
+
+impl AsRef<VersionSpec> for ToolSpec {
+    fn as_ref(&self) -> &VersionSpec {
+        self.version
+            .as_ref()
+            .expect("Specification has not been resolved to a valid version!")
+    }
+}
+
+impl Hash for ToolSpec {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.req.hash(state);
     }
 }
 

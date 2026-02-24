@@ -1,8 +1,9 @@
 #![allow(unused_assignments)]
 
 use miette::Diagnostic;
+use proto_core::flow::link::ProtoLinkError;
+use proto_core::flow::manage::ProtoManageError;
 use proto_core::flow::resolve::ProtoResolveError;
-use proto_core::flow::setup::ProtoSetupError;
 use proto_core::layout::ProtoLayoutError;
 use proto_core::warpgate::WarpgatePluginError;
 use proto_core::{IdError, PROTO_CONFIG_NAME, ProtoConfigError};
@@ -42,15 +43,19 @@ pub enum ProtoCliError {
 
     #[diagnostic(transparent)]
     #[error(transparent)]
+    Link(#[from] Box<ProtoLinkError>),
+
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Manage(#[from] Box<ProtoManageError>),
+
+    #[diagnostic(transparent)]
+    #[error(transparent)]
     Plugin(#[from] Box<WarpgatePluginError>),
 
     #[diagnostic(transparent)]
     #[error(transparent)]
     Resolve(#[from] Box<ProtoResolveError>),
-
-    #[diagnostic(transparent)]
-    #[error(transparent)]
-    Setup(#[from] Box<ProtoSetupError>),
 
     #[diagnostic(transparent)]
     #[error(transparent)]
@@ -208,6 +213,12 @@ impl From<ProtoLayoutError> for ProtoCliError {
     }
 }
 
+impl From<ProtoLinkError> for ProtoCliError {
+    fn from(e: ProtoLinkError) -> ProtoCliError {
+        ProtoCliError::Link(Box::new(e))
+    }
+}
+
 impl From<WarpgatePluginError> for ProtoCliError {
     fn from(e: WarpgatePluginError) -> ProtoCliError {
         ProtoCliError::Plugin(Box::new(e))
@@ -220,9 +231,9 @@ impl From<ProtoResolveError> for ProtoCliError {
     }
 }
 
-impl From<ProtoSetupError> for ProtoCliError {
-    fn from(e: ProtoSetupError) -> ProtoCliError {
-        ProtoCliError::Setup(Box::new(e))
+impl From<ProtoManageError> for ProtoCliError {
+    fn from(e: ProtoManageError) -> ProtoCliError {
+        ProtoCliError::Manage(Box::new(e))
     }
 }
 

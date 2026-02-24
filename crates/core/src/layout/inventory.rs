@@ -20,17 +20,10 @@ pub struct Inventory {
 }
 
 impl Inventory {
-    #[instrument(skip(self))]
-    pub fn create_product(&self, spec: &VersionSpec) -> Product {
-        let mut name = spec.to_string();
-
-        if let Some(suffix) = &self.config.version_suffix {
-            name = format!("{name}{suffix}");
-        }
-
+    pub fn create_product(&self, version: &VersionSpec) -> Product {
         Product {
-            dir: self.dir.join(path::encode_component(name)),
-            version: spec.to_owned(),
+            dir: self.get_product_dir(version),
+            version: version.to_owned(),
         }
     }
 
@@ -39,6 +32,16 @@ impl Inventory {
             .versions
             .get(version)
             .and_then(|man| man.lock.as_ref())
+    }
+
+    pub fn get_product_dir(&self, version: &VersionSpec) -> PathBuf {
+        let mut name = version.to_string();
+
+        if let Some(suffix) = &self.config.version_suffix {
+            name = format!("{name}{suffix}");
+        }
+
+        self.dir.join(path::encode_component(name))
     }
 
     #[instrument(skip(self))]

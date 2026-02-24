@@ -12,7 +12,7 @@ use version_spec::{UnresolvedVersionSpec, VersionSpec};
 
 pub const PROTO_LOCK_NAME: &str = ".protolock";
 
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(default)]
 pub struct LockRecord {
     #[serde(skip_serializing_if = "Option::is_none")]

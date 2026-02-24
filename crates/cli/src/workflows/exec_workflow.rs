@@ -1,7 +1,9 @@
 use crate::utils::tool_record::ToolRecord;
 use indexmap::{IndexMap, IndexSet};
 use miette::IntoDiagnostic;
-use proto_core::flow::setup::ProtoSetupError;
+use proto_core::flow::locate::Locator;
+use proto_core::flow::manage::ProtoManageError;
+use proto_core::flow::resolve::Resolver;
 use proto_core::{ProtoConfig, ProtoConfigEnvOptions, ToolContext, ToolSpec};
 use proto_pdk_api::{
     ActivateEnvironmentInput, ActivateEnvironmentOutput, HookFunction, PluginFunction, RunHook,
@@ -100,7 +102,7 @@ impl<'app> ExecWorkflow<'app> {
         mut specs: FxHashMap<ToolContext, ToolSpec>,
         params: ExecWorkflowParams,
     ) -> miette::Result<()> {
-        let mut set = JoinSet::<Result<ExecItem, ProtoSetupError>>::new();
+        let mut set = JoinSet::<Result<ExecItem, ProtoManageError>>::new();
 
         for tool in std::mem::take(&mut self.tools) {
             let provided_spec = specs.remove(&tool.context);
@@ -311,17 +313,17 @@ impl<'app> ExecWorkflow<'app> {
 }
 
 async fn prepare_tool(
-    mut tool: ToolRecord,
+    tool: ToolRecord,
     provided_spec: Option<ToolSpec>,
     params: ExecWorkflowParams,
-) -> Result<ExecItem, ProtoSetupError> {
+) -> Result<ExecItem, ProtoManageError> {
     let mut item = ExecItem {
         context: tool.context.clone(),
         ..Default::default()
     };
 
     // Extract the spec, otherwise return early
-    let spec = match provided_spec {
+    let mut spec = match provided_spec {
         Some(inner) => inner,
         None => {
             if params.fallback_any_spec {
@@ -335,14 +337,16 @@ async fn prepare_tool(
     item.active = true;
 
     // Resolve the version and locate executables
-    if !tool.is_setup(&spec).await? {
+    Resolver::resolve(&tool, &mut spec, true).await?;
+
+    if !tool.is_installed(&spec) {
         return Ok(item);
     }
 
     if params.version_env_vars {
         item.set_env(
             format!("{}_VERSION", tool.get_env_var_prefix()),
-            tool.get_resolved_version().to_string(),
+            spec.get_resolved_version().to_string(),
         );
     }
 
@@ -358,7 +362,7 @@ async fn prepare_tool(
             .call_func_with(
                 PluginFunction::ActivateEnvironment,
                 ActivateEnvironmentInput {
-                    context: tool.create_plugin_context(),
+                    context: tool.create_plugin_context(&spec),
                 },
             )
             .await?;
@@ -372,18 +376,17 @@ async fn prepare_tool(
         }
     }
 
-    if params.pre_run_hook && tool.plugin.has_func(HookFunction::PreRun).await {
-        let globals_dir = tool.locate_globals_dir().await?;
-        let globals_prefix = tool.locate_globals_prefix().await?;
+    let locations = Locator::locate(&tool, &spec).await?;
 
+    if params.pre_run_hook && tool.plugin.has_func(HookFunction::PreRun).await {
         let output: RunHookResult = tool
             .plugin
             .call_func_with(
                 HookFunction::PreRun,
                 RunHook {
-                    context: tool.create_plugin_context(),
-                    globals_dir: globals_dir.map(|dir| tool.to_virtual_path(&dir)),
-                    globals_prefix,
+                    context: tool.create_plugin_context(&spec),
+                    globals_dir: locations.globals_dir.map(|dir| tool.to_virtual_path(&dir)),
+                    globals_prefix: locations.globals_prefix,
                     passthrough_args: params.passthrough_args,
                 },
             )
@@ -407,21 +410,23 @@ async fn prepare_tool(
     }
 
     // Extract executable directories
-    if let Some(dir) = tool.locate_exe_file().await?.parent() {
+    if let Some(dir) = locations.exe_file.parent() {
         item.add_path(dir.to_path_buf());
     }
 
-    for exes_dir in tool.locate_exes_dirs().await? {
+    for exes_dir in locations.exes_dirs {
         item.add_path(exes_dir);
     }
 
-    for globals_dir in tool.locate_globals_dirs().await? {
+    for globals_dir in locations.globals_dirs {
         item.add_path(globals_dir);
     }
 
     // Mark it as used so that auto-clean doesn't remove it!
-    if std::env::var("PROTO_SKIP_USED_AT").is_err() {
-        let _ = tool.product.track_used_at();
+    if std::env::var("PROTO_SKIP_USED_AT").is_err()
+        && let Some(version) = &spec.version
+    {
+        let _ = tool.inventory.create_product(version).track_used_at();
     }
 
     Ok(item)

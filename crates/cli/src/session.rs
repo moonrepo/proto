@@ -5,6 +5,7 @@ use crate::systems::*;
 use crate::utils::progress_instance::ProgressInstance;
 use crate::utils::tool_record::ToolRecord;
 use async_trait::async_trait;
+use proto_core::flow::resolve::Resolver;
 use proto_core::{
     ConfigMode, ProtoConfig, ProtoEnvironment, SCHEMA_PLUGIN_KEY, ToolContext, ToolSpec,
     load_schema_plugin_with_proto, load_tool, registry::ProtoRegistry,
@@ -105,12 +106,14 @@ impl ProtoSession {
         if options.detect_version {
             record.detect_version_and_source().await;
 
-            let spec = record
+            let mut spec = record
                 .detected_version
                 .clone()
                 .unwrap_or_else(|| ToolSpec::parse("*").unwrap());
 
-            record.tool.resolve_version(&spec, false).await?;
+            Resolver::resolve(&record.tool, &mut spec, false).await?;
+
+            record.spec = spec;
         }
 
         Ok(record)

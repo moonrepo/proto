@@ -3,6 +3,7 @@ use crate::session::ProtoSession;
 use clap::{Args, ValueEnum};
 use iocraft::prelude::element;
 use proto_core::ToolSpec;
+use proto_core::flow::manage::Manager;
 use proto_core::{PROTO_PLUGIN_KEY, Tool, VersionSpec, flow::resolve::ProtoResolveError};
 use proto_shim::get_exe_file_name;
 use rustc_hash::FxHashSet;
@@ -194,19 +195,22 @@ pub async fn clean_tool(
     }
 
     if skip_prompts || confirmed {
+        let tool_id = tool.get_id().to_string();
+        let mut manager = Manager::new(&mut tool);
+
         for version in versions_to_clean {
             cleaned.push(StaleTool {
                 dir: inventory_dir.join(version.to_string()),
-                id: tool.get_id().to_string(),
+                id: tool_id.clone(),
                 version: version.clone(),
             });
 
-            // Reset any previously resolved version to ensure we teardown
-            // the correct version when called multiple times in a loop
-            tool.version = None;
-            tool.teardown(&ToolSpec::new(version.to_unresolved_spec()))
+            manager
+                .uninstall(&mut ToolSpec::new_resolved(version))
                 .await?;
         }
+
+        manager.sync_manifest().await?;
     } else {
         debug!("Skipping remove, continuing to next tool");
     }

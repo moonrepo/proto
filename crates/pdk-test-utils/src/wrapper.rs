@@ -1,4 +1,4 @@
-use proto_core::Tool;
+use proto_core::{Tool, ToolSpec};
 use proto_pdk_api::*;
 
 #[derive(Debug)]
@@ -91,6 +91,17 @@ impl WasmTestWrapper {
             .unwrap()
     }
 
+    pub async fn pin_version(&self, mut input: PinVersionInput) -> PinVersionOutput {
+        input.context = self.prepare_unresolved_context(input.context);
+        input.dir = self.tool.to_virtual_path(input.dir);
+
+        self.tool
+            .plugin
+            .call_func_with(PluginFunction::PinVersion, input)
+            .await
+            .unwrap()
+    }
+
     pub async fn pre_install(&self, mut input: InstallHook) {
         input.context = self.prepare_context(input.context);
 
@@ -150,7 +161,7 @@ impl WasmTestWrapper {
     }
 
     pub async fn sync_manifest(&self, mut input: SyncManifestInput) -> SyncManifestOutput {
-        input.context = self.prepare_context(input.context);
+        input.context = self.prepare_unresolved_context(input.context);
 
         self.tool
             .plugin
@@ -184,6 +195,17 @@ impl WasmTestWrapper {
             .unwrap();
     }
 
+    pub async fn unpin_version(&self, mut input: UnpinVersionInput) -> UnpinVersionOutput {
+        input.context = self.prepare_unresolved_context(input.context);
+        input.dir = self.tool.to_virtual_path(input.dir);
+
+        self.tool
+            .plugin
+            .call_func_with(PluginFunction::UnpinVersion, input)
+            .await
+            .unwrap()
+    }
+
     pub async fn verify_checksum(&self, mut input: VerifyChecksumInput) -> VerifyChecksumOutput {
         input.checksum_file = self.tool.to_virtual_path(input.checksum_file);
         input.download_file = self.tool.to_virtual_path(input.download_file);
@@ -197,9 +219,9 @@ impl WasmTestWrapper {
 
     fn prepare_context(&self, context: PluginContext) -> PluginContext {
         let tool_dir = if context.tool_dir.any_path().components().count() == 0 {
-            self.tool.get_product_dir()
+            self.tool.get_product_dir(&ToolSpec::default())
         } else {
-            context.tool_dir.any_path()
+            context.tool_dir.any_path().to_path_buf()
         };
 
         let temp_dir = if context.temp_dir.any_path().components().count() == 0 {

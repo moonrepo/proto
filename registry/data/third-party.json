@@ -123,6 +123,19 @@
       ]
     },
     {
+      "id": "bottom",
+      "locator": "https://raw.githubusercontent.com/yuhua99/proto-toml-plugins/refs/heads/main/bottom/bottom.toml",
+      "format": "toml",
+      "name": "bottom",
+      "description": "A customizable cross-platform graphical process/system monitor for the terminal.",
+      "author": "yuhua99",
+      "homepageUrl": "https://bottom.pages.dev/",
+      "repositoryUrl": "https://github.com/yuhua99/proto-toml-plugins",
+      "bins": [
+        "btm"
+      ]
+    },
+    {
       "id": "buf",
       "locator": "https://raw.githubusercontent.com/stk0vrfl0w/proto-toml-plugins/main/plugins/buf.toml",
       "format": "toml",
@@ -442,6 +455,19 @@
       ]
     },
     {
+      "id": "geoipupdate",
+      "locator": "https://raw.githubusercontent.com/maxmind/geoipupdate/main/proto.yaml",
+      "format": "yaml",
+      "name": "GeoIPUpdate",
+      "description": "Updater for GeoIP2 and GeoLite databases.",
+      "author": "maxmind",
+      "homepageUrl": "https://dev.maxmind.com/geoip",
+      "repositoryUrl": "https://github.com/maxmind/geoipupdate",
+      "bins": [
+        "geoipupdate"
+      ]
+    },
+    {
       "id": "gh",
       "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/gh/plugin.toml",
       "format": "toml",
@@ -453,6 +479,19 @@
       "devicon": "github",
       "bins": [
         "gh"
+      ]
+    },
+    {
+      "id": "git-issue",
+      "locator": "https://raw.githubusercontent.com/remenoscodes/git-native-issue/main/proto/plugin.toml",
+      "format": "toml",
+      "name": "git-native-issue",
+      "description": "Distributed issue tracking embedded in Git — track issues locally, sync anywhere.",
+      "author": "remenoscodes",
+      "homepageUrl": "https://github.com/remenoscodes/git-native-issue",
+      "repositoryUrl": "https://github.com/remenoscodes/git-native-issue",
+      "bins": [
+        "git-issue"
       ]
     },
     {
@@ -867,6 +906,19 @@
       ]
     },
     {
+      "id": "neovim",
+      "locator": "https://raw.githubusercontent.com/yuhua99/proto-toml-plugins/refs/heads/main/neovim/neovim.toml",
+      "format": "toml",
+      "name": "Neovim",
+      "description": "Hyperextensible Vim-based text editor.",
+      "author": "yuhua99",
+      "homepageUrl": "https://neovim.io/",
+      "repositoryUrl": "https://github.com/yuhua99/proto-toml-plugins",
+      "bins": [
+        "nvim"
+      ]
+    },
+    {
       "id": "ninja",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/ninja/plugin.toml",
       "format": "toml",
@@ -1003,6 +1055,45 @@
       ]
     },
     {
+      "id": "restate",
+      "locator": "https://raw.githubusercontent.com/jacobdrury/proto-plugins/refs/heads/master/restate.toml",
+      "format": "toml",
+      "name": "restate",
+      "description": "A command-line tool for interacting with Restate",
+      "author": "jacobdrury",
+      "homepageUrl": "https://github.com/restatedev/restate",
+      "repositoryUrl": "https://github.com/restatedev/restate",
+      "bins": [
+        "restate"
+      ]
+    },
+    {
+      "id": "restate-server",
+      "locator": "https://raw.githubusercontent.com/jacobdrury/proto-plugins/refs/heads/master/restate-server.toml",
+      "format": "toml",
+      "name": "restate-server",
+      "description": "A command-line tool for running a Restate server locally",
+      "author": "jacobdrury",
+      "homepageUrl": "https://github.com/restatedev/restate",
+      "repositoryUrl": "https://github.com/restatedev/restate",
+      "bins": [
+        "restate-server"
+      ]
+    },
+    {
+      "id": "restatectl",
+      "locator": "https://raw.githubusercontent.com/jacobdrury/proto-plugins/refs/heads/master/restatectl.toml",
+      "format": "toml",
+      "name": "restatectl",
+      "description": "A command-line tool for managing Restate clusters.",
+      "author": "jacobdrury",
+      "homepageUrl": "https://github.com/restatedev/restate",
+      "repositoryUrl": "https://github.com/restatedev/restate",
+      "bins": [
+        "restatectl"
+      ]
+    },
+    {
       "id": "ruff",
       "locator": "https://raw.githubusercontent.com/risk1996/proto-plugins/refs/heads/main/ruff/plugin.toml",
       "format": "toml",
@@ -1107,6 +1198,19 @@
       ]
     },
     {
+      "id": "sqruff",
+      "locator": "https://raw.githubusercontent.com/T0rvadaL/proto-plugins/main/sqruff.toml",
+      "format": "toml",
+      "name": "sqruff",
+      "description": "Fast SQL formatter/linter.",
+      "author": "T0rvadaL",
+      "homepageUrl": "https://github.com/quarylabs/sqruff",
+      "repositoryUrl": "https://github.com/T0rvadaL/proto-plugins",
+      "bins": [
+        "sqruff"
+      ]
+    },
+    {
       "id": "staticcheck",
       "locator": "https://raw.githubusercontent.com/crashdump/proto-tools/main/toml-plugins/staticcheck/plugin.toml",
       "format": "toml",
@@ -1130,6 +1234,24 @@
       "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins/tree/main/stern",
       "bins": [
         "stern"
+      ]
+    },
+    {
+      "id": "strawberry-perl",
+      "locator": "https://github.com/T0rvadaL/proto-plugins/blob/main/strawberry-perl.toml",
+      "format": "toml",
+      "name": "Strawberry Perl",
+      "description": "The Perl for MS Windows, free of charge!",
+      "author": "T0rvadaL",
+      "homepageUrl": "https://strawberryperl.com/",
+      "repositoryUrl": "https://github.com/T0rvadaL/proto-plugins",
+      "devicon": "perl",
+      "bins": [
+        "perl",
+        "cpan",
+        "perldoc",
+        "prove",
+        "portableshell"
       ]
     },
     {
@@ -1157,6 +1279,12 @@
       "devicon": "terraform",
       "bins": [
         "terraform"
+      ],
+      "detectionSources": [
+        {
+          "file": ".terraform-version",
+          "url": "https://github.com/tfutils/tfenv#terraform-version-file"
+        }
       ]
     },
     {
@@ -1274,6 +1402,19 @@
       "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
       "bins": [
         "trufflehog"
+      ]
+    },
+    {
+      "id": "ty",
+      "locator": "https://raw.githubusercontent.com/yuhua99/proto-toml-plugins/refs/heads/main/ty/ty.toml",
+      "format": "toml",
+      "name": "ty",
+      "description": "An extremely fast Python type checker and language server, written in Rust.",
+      "author": "yuhua99",
+      "homepageUrl": "https://docs.astral.sh/ty/",
+      "repositoryUrl": "https://github.com/yuhua99/proto-toml-plugins",
+      "bins": [
+        "ty"
       ]
     },
     {

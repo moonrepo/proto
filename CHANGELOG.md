@@ -15,6 +15,94 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## 0.55.3
+
+#### 🐞 Fixes
+
+- Fixed an issue when attempting to link binaries and a "failed to create" error occurs. This mainly affects the `moonx` binary.
+- Fixed an issue with (un)pin/(un)alias commands that would print broken output when the version contains `>` or `<`.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
+## 0.55.2
+
+#### 🚀 Updates
+
+- When writing `package.json` files, we'll now respect `.editorconfig` settings.
+
+#### 🐞 Fixes
+
+- Fixed a regression where bins/shims would not be created if the toolchain was restored from a cache and the tools were already installed. This only affects CI environments like GitHub Actions.
+
+## 0.55.1
+
+#### 🐞 Fixes
+
+- Temporary fix for HTTP request cache failing with invalid UTF8/deserialization errors.
+- Potential fix for `package.json` fields being re-ordered when un/pinning versions.
+
+## 0.55.0
+
+This release is light on new features, but a large portion of the internals were rewritten to better scale with Rust's borrow checker and ownership model. This should lead to less bugs, easier maintenance, and more extensibility in the future. This should be fully backwards compatible, but please report any issues you may find.
+
+#### 🚀 Updates
+
+- Improved `proto run` to automatically detect when a requested command is a bin provided by another tool (e.g., `npx` from `npm`, `bunx` from `bun`) by checking the local shims registry, and redirect to the parent tool with the correct executable.
+- Added a `--tool-native` flag to `proto pin` that will pin the version to a native tool file using the tool itself (via a plugin call), instead of pinning to `.prototools`.
+  - For example, `proto pin node lts --tool-native` will pin to `package.json` `devEngines`.
+- Added a `--tool-native` flag to `proto unpin` that will unpin the version from a native tool file using the tool itself (via a plugin call), instead of unpinning from `.prototools`.
+- **WASM API**
+  - Added `pin_version` and `unpin_version` plugin functions.
+  - Added `PinVersionInput`, `PinVersionOutput`, `UnpinVersionInput`, and `UnpinVersionOutput` types.
+
+#### 🐞 Fixes
+
+- Fixed an issue with multi-`proto install` where if one tool failed to install, the others that required it would never resolve.
+- Fixed an issue with IPv6 IPs not resolving correctly during offline detection.
+
+#### 🧩 Plugins
+
+- Updated `bun_tool` to v0.16.6.
+  - Added `pin_version` and `unpin_version` support, which maps to `package.json` `devEngines`.
+  - Fixed some `package.json` version parsing issues.
+- Updated `node_tool` to v0.17.7.
+  - Added `pin_version` and `unpin_version` support, which maps to `package.json` `devEngines.runtime`.
+  - Fixed some `package.json` version parsing issues.
+- Updated `node_depman_tool` to v0.17.3.
+  - Added a `registry-url` config setting.
+  - Added `pin_version` and `unpin_version` support, which maps to `package.json` `devEngines.packageManager`.
+  - Fixed some `package.json` version parsing issues.
+
+#### ⚙️ Internal
+
+- Updated Rust to v1.93.0.
+- Updated dependencies.
+
+## 0.54.2
+
+#### 🚀 Updates
+
+- Updated `proto uninstall <tool>` (without a version) to call uninstall hooks for each installed version before tearing down.
+- Updated `env.file`s to not error when the file does not exist.
+- Updated plugin commands to execute in the current process scope if no shell could be detected.
+
+#### 🧩 Plugins
+
+- Updated `bun_tool` to v0.16.5.
+  - Added `package.json` `devEngines.runtime` support for version detection.
+- Updated `deno_tool` to v0.15.7.
+  - Fixed an issue where checksums did not work in v2.0.0.
+- Updated `node_tool` to v0.17.6.
+  - Added `package.json` `devEngines.runtime` support for version detection.
+- Updated `node_depman_tool` to v0.17.2.
+  - Added `package.json` `devEngines.packageManager` support for version detection.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.54.1
 
 #### 🚀 Updates

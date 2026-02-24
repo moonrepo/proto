@@ -1,4 +1,5 @@
 pub use super::resolve_error::ProtoResolveError;
+use crate::flow::lock::Locker;
 use crate::helpers::is_offline;
 use crate::tool::Tool;
 use crate::tool_spec::ToolSpec;
@@ -7,20 +8,46 @@ use proto_pdk_api::*;
 use std::env;
 use tracing::{debug, instrument};
 
-impl Tool {
+/// Loads, resolves, and validates versions.
+pub struct Resolver<'tool> {
+    tool: &'tool Tool,
+
+    /// Collection of loaded versions.
+    pub data: VersionResolver<'tool>,
+}
+
+impl<'tool> Resolver<'tool> {
+    pub fn new(tool: &'tool Tool) -> Self {
+        Self {
+            tool,
+            data: VersionResolver::default(),
+        }
+    }
+
+    pub async fn resolve(
+        tool: &'tool Tool,
+        spec: &mut ToolSpec,
+        short_circuit: bool,
+    ) -> Result<VersionSpec, ProtoResolveError> {
+        Self::new(tool).resolve_version(spec, short_circuit).await
+    }
+
     /// Load available versions to install and return a resolver instance.
-    /// To reduce network overhead, results will be cached for 24 hours.
+    /// To reduce network overhead, results will be cached for 12 hours.
     #[instrument(skip(self))]
-    pub async fn load_version_resolver(
-        &self,
+    pub async fn load_versions(
+        &mut self,
         initial_version: &UnresolvedVersionSpec,
-    ) -> Result<VersionResolver<'_>, ProtoResolveError> {
-        debug!(tool = self.context.as_str(), "Loading available versions");
+    ) -> Result<(), ProtoResolveError> {
+        debug!(
+            tool = self.tool.context.as_str(),
+            "Loading available versions"
+        );
 
         let mut versions = LoadVersionsOutput::default();
         let mut cached = false;
 
-        if let Some(cached_versions) = self.inventory.load_remote_versions(!self.cache)? {
+        if let Some(cached_versions) = self.tool.inventory.load_remote_versions(!self.tool.cache)? {
             versions = cached_versions;
             cached = true;
         }
@@ -31,27 +58,28 @@ impl Tool {
                 return Err(ProtoResolveError::RequiredInternetConnectionForVersion {
                     command: format!(
                         "{}_VERSION=1.2.3 {}",
-                        self.get_env_var_prefix(),
-                        self.get_id()
+                        self.tool.get_env_var_prefix(),
+                        self.tool.get_id()
                     ),
-                    bin_dir: self.proto.store.bin_dir.clone(),
+                    bin_dir: self.tool.proto.store.bin_dir.clone(),
                 });
             }
 
             if env::var("PROTO_BYPASS_VERSION_CHECK").is_err() {
                 versions = self
+                    .tool
                     .plugin
                     .cache_func_with(
                         PluginFunction::LoadVersions,
                         LoadVersionsInput {
-                            context: self.create_plugin_unresolved_context(),
+                            context: self.tool.create_plugin_unresolved_context(),
                             initial: initial_version.to_owned(),
                         },
                     )
                     .await?;
 
                 if !versions.versions.is_empty() {
-                    self.inventory.save_remote_versions(&versions)?;
+                    self.tool.inventory.save_remote_versions(&versions)?;
                 }
             }
         }
@@ -59,15 +87,17 @@ impl Tool {
         // Cache the results and create a resolver
         let mut resolver = VersionResolver::from_output(versions);
 
-        resolver.with_manifest(&self.inventory.manifest);
+        resolver.with_manifest(&self.tool.inventory.manifest);
 
-        let config = self.proto.load_config()?;
+        let config = self.tool.proto.load_config()?;
 
-        if let Some(tool_config) = config.get_tool_config(&self.context) {
+        if let Some(tool_config) = config.get_tool_config(&self.tool.context) {
             resolver.with_config(tool_config);
         }
 
-        Ok(resolver)
+        self.data = resolver;
+
+        Ok(())
     }
 
     /// Given an initial spec, resolve it to a fully qualifed and semantic version
@@ -75,16 +105,16 @@ impl Tool {
     #[instrument(skip(self))]
     pub async fn resolve_version(
         &mut self,
-        spec: &ToolSpec,
+        spec: &mut ToolSpec,
         short_circuit: bool,
     ) -> Result<VersionSpec, ProtoResolveError> {
-        if self.version.is_some() {
-            return Ok(self.get_resolved_version());
+        if spec.is_resolved() {
+            return Ok(spec.get_resolved_version());
         }
 
         debug!(
-            tool = self.context.as_str(),
-            initial_version = spec.to_string(),
+            tool = self.tool.context.as_str(),
+            spec = spec.to_string(),
             "Resolving a semantic version or alias",
         );
 
@@ -92,7 +122,7 @@ impl Tool {
 
         // If requested, resolve the version from a lockfile
         if spec.resolve_from_lockfile
-            && let Some(record) = self.resolve_locked_record(spec)?
+            && let Some(record) = Locker::new(self.tool).resolve_locked_record(spec)?
         {
             let version = record
                 .version
@@ -100,83 +130,64 @@ impl Tool {
                 .expect("Version missing from lockfile record!");
 
             debug!(
-                tool = self.context.as_str(),
+                tool = self.tool.context.as_str(),
                 spec = candidate.to_string(),
                 "Inherited version {} from lockfile",
                 version
             );
 
-            self.version_locked = Some(record);
+            spec.version_locked = Some(record);
             candidate = version.to_unresolved_spec();
         }
 
         // If we have a fully qualified semantic version,
         // exit early and assume the version is legitimate!
         // Also canary is a special type that we can simply just use.
-        if short_circuit
-            && matches!(
-                candidate,
-                UnresolvedVersionSpec::Calendar(_) | UnresolvedVersionSpec::Semantic(_)
-            )
+        if short_circuit && candidate.is_fully_qualified()
             || matches!(candidate, UnresolvedVersionSpec::Canary)
         {
             let version = candidate.to_resolved_spec();
 
             debug!(
-                tool = self.context.as_str(),
+                tool = self.tool.context.as_str(),
                 spec = candidate.to_string(),
                 "Resolved to {} (without validation)",
                 version
             );
 
-            self.set_version(version.clone());
+            spec.resolve(version.clone());
 
             return Ok(version);
         }
 
-        let resolver = self.load_version_resolver(&candidate).await?;
+        self.load_versions(&candidate).await?;
+
         let version = self
-            .resolve_version_candidate(&resolver, &candidate, spec.resolve_from_manifest)
+            .resolve_version_candidate(&candidate, spec.resolve_from_manifest)
             .await?;
 
         debug!(
-            tool = self.context.as_str(),
+            tool = self.tool.context.as_str(),
             spec = candidate.to_string(),
             "Resolved to {}",
             version
         );
 
-        self.set_version(version.clone());
+        spec.resolve(version.clone());
 
         Ok(version)
     }
 
-    /// Only resolve the provided spec if it is different than a previously resolved version.
+    /// Given a list of version candidates, resolve one to a valid version by
+    /// calling the plugin to validate and choose.
     #[instrument(skip(self))]
-    pub async fn resolve_version_if_different(
-        &mut self,
-        spec: &ToolSpec,
-        short_circuit: bool,
-    ) -> Result<VersionSpec, ProtoResolveError> {
-        if self
-            .version
-            .as_ref()
-            .is_some_and(|current| spec.req == *current)
-        {
-            return Ok(self.version.clone().unwrap());
-        }
-
-        self.version = None;
-        self.resolve_version(spec, short_circuit).await
-    }
-
-    #[instrument(skip(self, resolver))]
     pub async fn resolve_version_candidate(
         &self,
-        resolver: &VersionResolver<'_>,
         initial_candidate: &UnresolvedVersionSpec,
         with_manifest: bool,
     ) -> Result<VersionSpec, ProtoResolveError> {
+        let resolver = &self.data;
+
         let resolve = |candidate: &UnresolvedVersionSpec| {
             let result = if with_manifest {
                 resolver.resolve(candidate)
@@ -185,18 +196,24 @@ impl Tool {
             };
 
             result.ok_or_else(|| ProtoResolveError::FailedVersionResolve {
-                tool: self.get_name().to_owned(),
+                tool: self.tool.get_name().to_owned(),
                 version: candidate.to_string(),
             })
         };
 
-        if self.plugin.has_func(PluginFunction::ResolveVersion).await {
+        if self
+            .tool
+            .plugin
+            .has_func(PluginFunction::ResolveVersion)
+            .await
+        {
             let output: ResolveVersionOutput = self
+                .tool
                 .plugin
                 .call_func_with(
                     PluginFunction::ResolveVersion,
                     ResolveVersionInput {
-                        context: self.create_plugin_unresolved_context(),
+                        context: self.tool.create_plugin_unresolved_context(),
                         initial: initial_candidate.to_owned(),
                     },
                 )
@@ -204,7 +221,7 @@ impl Tool {
 
             if let Some(candidate) = output.candidate {
                 debug!(
-                    tool = self.context.as_str(),
+                    tool = self.tool.context.as_str(),
                     candidate = candidate.to_string(),
                     "Received a possible version or alias to use",
                 );
@@ -214,7 +231,7 @@ impl Tool {
 
             if let Some(candidate) = output.version {
                 debug!(
-                    tool = self.context.as_str(),
+                    tool = self.tool.context.as_str(),
                     version = candidate.to_string(),
                     "Received an explicit version or alias to use",
                 );

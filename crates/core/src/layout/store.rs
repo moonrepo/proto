@@ -1,6 +1,7 @@
 use super::inventory::Inventory;
 use super::layout_error::ProtoLayoutError;
 use crate::id::Id;
+use crate::layout::ShimRegistry;
 use crate::tool_manifest::ToolManifest;
 use once_cell::sync::OnceCell;
 use proto_pdk_api::ToolInventoryOptions;
@@ -59,7 +60,6 @@ impl Store {
         }
     }
 
-    #[instrument(skip(self, config))]
     pub fn create_inventory(
         &self,
         id: &Id,
@@ -115,6 +115,11 @@ impl Store {
     }
 
     #[instrument(skip(self))]
+    pub fn load_shims_registry(&self) -> Result<ShimRegistry, ProtoLayoutError> {
+        ShimRegistry::load(&self.shims_dir)
+    }
+
+    #[instrument(skip(self))]
     pub fn save_preferred_profile(&self, path: &Path) -> Result<(), ProtoLayoutError> {
         fs::write_file(
             self.dir.join("profile"),
@@ -150,13 +155,12 @@ impl Store {
 
     #[instrument(skip(self))]
     pub fn unlink_bin(&self, bin_path: &Path) -> Result<(), ProtoLayoutError> {
-        // Windows copies files
-        #[cfg(windows)]
-        fs::remove_file(bin_path)?;
-
-        // Unix uses symlinks
-        #[cfg(unix)]
-        fs::remove_link(bin_path)?;
+        // Remove any file at this path, whether a symlink or not!
+        if bin_path.is_symlink() {
+            fs::remove_link(bin_path)?;
+        } else if bin_path.is_file() {
+            fs::remove_file(bin_path)?;
+        }
 
         Ok(())
     }
@@ -175,7 +179,7 @@ impl Store {
 
     #[instrument(skip(self))]
     pub fn remove_shim(&self, shim_path: &Path) -> Result<(), ProtoLayoutError> {
-        fs::remove_file(shim_path)?;
+        fs::remove(shim_path)?;
 
         Ok(())
     }

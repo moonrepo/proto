@@ -1,4 +1,5 @@
-use proto_core::flow::resolve::ProtoResolveError;
+use proto_core::flow::detect::Detector;
+use proto_core::flow::resolve::{ProtoResolveError, Resolver};
 use proto_core::{
     ProtoConfig, ProtoToolConfig, Tool, ToolSpec, UnresolvedVersionSpec, VersionSpec,
 };
@@ -9,6 +10,7 @@ use std::path::PathBuf;
 #[derive(Debug)]
 pub struct ToolRecord {
     pub tool: Tool,
+    pub spec: ToolSpec,
     pub config: ProtoToolConfig,
     pub detected_source: Option<PathBuf>,
     pub detected_version: Option<ToolSpec>,
@@ -31,6 +33,7 @@ impl ToolRecord {
 
         Self {
             tool,
+            spec: ToolSpec::parse("*").unwrap(),
             config: ProtoToolConfig::default(),
             detected_source: None,
             detected_version: None,
@@ -42,12 +45,9 @@ impl ToolRecord {
     }
 
     pub async fn detect_version_and_source(&mut self) {
-        if let Ok(config_version) = self.tool.detect_version().await {
+        if let Ok((config_version, source)) = Detector::detect(&self.tool).await {
             self.detected_version = Some(config_version);
-            self.detected_source =
-                std::env::var(format!("{}_DETECTED_FROM", self.tool.get_env_var_prefix()))
-                    .ok()
-                    .map(PathBuf::from);
+            self.detected_source = source;
         }
     }
 
@@ -59,18 +59,20 @@ impl ToolRecord {
     }
 
     pub async fn inherit_from_remote(&mut self) -> Result<(), ProtoResolveError> {
-        let version_resolver = self
-            .tool
-            .load_version_resolver(&UnresolvedVersionSpec::default())
+        let mut resolver = Resolver::new(&self.tool);
+
+        resolver
+            .load_versions(&UnresolvedVersionSpec::default())
             .await?;
 
         self.remote_aliases.extend(
-            version_resolver
+            resolver
+                .data
                 .aliases
                 .into_iter()
                 .map(|(k, v)| (k, ToolSpec::new(v))),
         );
-        self.remote_versions.extend(version_resolver.versions);
+        self.remote_versions.extend(resolver.data.versions);
         self.remote_versions.sort();
 
         Ok(())

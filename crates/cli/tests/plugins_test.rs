@@ -1,5 +1,7 @@
 mod utils;
 
+use proto_core::flow::locate::Locator;
+use proto_core::flow::manage::Manager;
 use proto_core::{
     PluginLocator, ProtoEnvironment, ProtoLoaderError, Tool, ToolContext, ToolSpec,
     UnresolvedVersionSpec, flow::install::InstallOptions, load_tool_from_locator,
@@ -26,28 +28,29 @@ where
     fs::create_dir_all(&proto.home_dir).unwrap();
 
     let mut tool = factory(&proto).await.unwrap();
+    let mut spec = ToolSpec::new(UnresolvedVersionSpec::parse("1.0.0").unwrap());
 
-    tool.setup(
-        &ToolSpec::new(UnresolvedVersionSpec::parse("1.0.0").unwrap()),
-        InstallOptions::default(),
-    )
-    .await
-    .unwrap();
+    Manager::new(&mut tool)
+        .install(&mut spec, InstallOptions::default())
+        .await
+        .unwrap();
 
-    assert!(tool.get_product_dir().exists());
+    assert!(tool.get_product_dir(&spec).exists());
 
     let base_dir = proto.store.inventory_dir.join("moon/1.0.0");
 
+    let mut locator = Locator::new(&tool, &spec);
+
     if cfg!(windows) {
         assert_eq!(
-            &tool.locate_exe_file().await.unwrap(),
-            &base_dir.join("moon.exe")
+            locator.locate_exe_file().await.unwrap(),
+            base_dir.join("moon.exe")
         );
         assert!(proto.store.shims_dir.join("moon.exe").exists());
     } else {
         assert_eq!(
-            &tool.locate_exe_file().await.unwrap(),
-            &base_dir.join("moon")
+            locator.locate_exe_file().await.unwrap(),
+            base_dir.join("moon")
         );
         assert!(proto.store.shims_dir.join("moon").exists());
     }
@@ -132,7 +135,7 @@ mod plugins {
                 ToolContext::parse("moon").unwrap(),
                 env.to_owned(),
                 PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://raw.githubusercontent.com/moonrepo/moon/master/proto-plugin.toml"
+                    url: "https://raw.githubusercontent.com/moonrepo/proto/refs/heads/master/crates/cli/tests/__fixtures__/moon-schema.toml"
                         .into(),
                 })),
             )
@@ -366,7 +369,7 @@ mod plugins {
             );
         }
 
-        #[cfg(unix)]
+        #[cfg(target_os = "linux")]
         #[test]
         fn supports_ruby() {
             let sandbox = create_empty_proto_sandbox();

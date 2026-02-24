@@ -1,6 +1,6 @@
 [package]
 name = "proto_core"
-version = "0.54.3"
+version = "0.55.4"
 edition = "2024"
 license = "MIT"
 description = "Core proto APIs."
@@ -9,15 +9,15 @@ repository = "https://github.com/moonrepo/proto"
 rust-version = "1.89.0"
 
 [dependencies]
-proto_pdk_api = { version = "0.31.4", path = "../pdk-api", features = [
+proto_pdk_api = { version = "0.31.6", path = "../pdk-api", features = [
     "schematic",
 ] }
-proto_shim = { version = "0.7.9", path = "../shim" }
+proto_shim = { version = "0.8.0", path = "../shim" }
 system_env = { version = "0.9.0", path = "../system-env" }
-version_spec = { version = "0.10.0", path = "../version-spec", features = [
+version_spec = { version = "0.10.2", path = "../version-spec", features = [
     "schematic",
 ] }
-warpgate = { version = "0.28.4", path = "../warpgate", features = [
+warpgate = { version = "0.29.2", path = "../warpgate", features = [
     "miette",
     "schematic",
 ] }
@@ -58,7 +58,7 @@ thiserror = { workspace = true }
 tokio = { workspace = true }
 toml_edit = { workspace = true }
 tracing = { workspace = true }
-url = { version = "2.5.7", features = ["serde"] }
+url = { version = "2.5.8", features = ["serde"] }
 uuid = { workspace = true }
 
 [dev-dependencies]

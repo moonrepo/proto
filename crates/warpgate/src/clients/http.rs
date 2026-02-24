@@ -1,15 +1,16 @@
 use super::WarpgateHttpClientError;
 use async_trait::async_trait;
 use core::ops::Deref;
+use netrc::Netrc;
 use reqwest::{Client, Response, Url};
-use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
-use reqwest_netrc::NetrcMiddleware;
+use reqwest_middleware::{ClientBuilder, ClientWithMiddleware, RequestBuilder, RequestInitialiser};
 use serde::{Deserialize, Serialize};
 use starbase_utils::{
     envx, fs,
     net::{Downloader, NetError},
 };
 use std::path::PathBuf;
+use std::time::Duration;
 use tracing::{debug, trace, warn};
 
 /// A downloader that uses our internal HTTP(S) client.
@@ -240,6 +241,7 @@ pub fn create_http_client_with_options(
                     cache_heuristic: 0.025,
                     ..Default::default()
                 }),
+                max_ttl: Some(Duration::from_secs(604800)), // 7 days
                 ..Default::default()
             },
         }));
@@ -250,4 +252,48 @@ pub fn create_http_client_with_options(
     debug!("Created HTTP client");
 
     Ok(HttpClient { client, middleware })
+}
+
+pub struct NetrcMiddleware {
+    nrc: Netrc,
+}
+
+impl NetrcMiddleware {
+    pub fn new() -> netrc::Result<Self> {
+        Netrc::new().map(|nrc| NetrcMiddleware { nrc })
+    }
+}
+
+impl RequestInitialiser for NetrcMiddleware {
+    fn init(&self, req: RequestBuilder) -> RequestBuilder {
+        match req.try_clone() {
+            Some(nr) => req
+                .try_clone()
+                .unwrap()
+                .build()
+                .ok()
+                .and_then(|r| {
+                    r.url()
+                        .host_str()
+                        .and_then(|host| {
+                            self.nrc
+                                .hosts
+                                .get(host)
+                                .or_else(|| self.nrc.hosts.get("default"))
+                        })
+                        .map(|auth| {
+                            nr.basic_auth(
+                                &auth.login,
+                                if auth.password.is_empty() {
+                                    None
+                                } else {
+                                    Some(&auth.password)
+                                },
+                            )
+                        })
+                })
+                .unwrap_or(req),
+            None => req,
+        }
+    }
 }

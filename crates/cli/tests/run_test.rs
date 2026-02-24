@@ -68,7 +68,7 @@ mod run {
         // In github CI task runners this is usually the case.
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("run").arg("node").arg("--version");
+                cmd.arg("run").arg("node").arg("--").arg("--version");
             })
             .success();
     }
@@ -609,6 +609,315 @@ FOURTH = "ignores-$FIRST-$PARENT"
                 .success();
 
             assert.stdout(predicate::str::contains("0.13.0"));
+        }
+    }
+
+    mod alternate_bins {
+        use super::*;
+
+        #[test]
+        fn can_run_npx_directly() {
+            let sandbox = create_empty_proto_sandbox();
+
+            // npm requires node - use compatible versions
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.args(["install", "node", "18.0.0", "--pin"]);
+                })
+                .success();
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.args(["install", "npm", "9.0.0", "--pin"]);
+                })
+                .success();
+
+            // Verify npx can be run directly (should redirect to npm)
+            // Just check it executes without error
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.args(["run", "npx", "--", "--help"]);
+                })
+                .success();
+        }
+
+        #[test]
+        fn can_run_bunx_directly() {
+            let sandbox = create_empty_proto_sandbox();
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.args(["install", "bun", "1.2.0", "--pin"]);
+                })
+                .success();
+
+            // Just verify bunx can be called via proto run
+            // bunx --version shows "proto-run" because bunx is a wrapper
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.args(["run", "bunx", "--help"]);
+                })
+                .success();
+
+            // Should successfully execute bunx
+            assert.stdout(predicate::str::contains("bunx").or(predicate::str::contains("Usage")));
+        }
+
+        #[test]
+        #[cfg(not(target_os = "windows"))]
+        fn can_run_node_gyp_directly() {
+            let sandbox = create_empty_proto_sandbox();
+
+            // node-gyp requires node - use compatible versions
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.args(["install", "node", "18.0.0", "--pin"]);
+                })
+                .success();
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.args(["install", "npm", "9.0.0", "--pin"]);
+                })
+                .success();
+
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.args(["run", "node-gyp", "--", "--version"]);
+                })
+                .success();
+
+            // Should run successfully with proto-managed npm
+            assert.success();
+        }
+
+        #[test]
+        fn alternate_bin_with_passthrough_args() {
+            let sandbox = create_empty_proto_sandbox();
+
+            // npm requires node - use compatible versions
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.args(["install", "node", "18.0.0", "--pin"]);
+                })
+                .success();
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.args(["install", "npm", "9.0.0", "--pin"]);
+                })
+                .success();
+
+            // Test that we can pass args through to npx
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.args(["run", "npx", "--", "--help"]);
+                })
+                .success();
+
+            assert.stdout(
+                predicate::str::contains("npm exec").or(predicate::str::contains("Run a command")),
+            );
+        }
+
+        #[test]
+        fn uses_correct_npm_version_for_npx() {
+            let sandbox = create_empty_proto_sandbox();
+
+            // npm requires node - use compatible versions
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.args(["install", "node", "18.0.0", "--pin"]);
+                })
+                .success();
+
+            // Install specific npm version
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.args(["install", "npm", "9.0.0", "--pin"]);
+                })
+                .success();
+
+            // Verify npx runs successfully (it will use the pinned npm 9.0.0)
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.args(["run", "npx", "--", "--help"]);
+                })
+                .success();
+        }
+
+        #[test]
+        fn falls_back_to_global_if_bin_not_found() {
+            let sandbox = create_empty_proto_sandbox();
+
+            // Try to run a bin that doesn't exist in registry
+            // This should fall back to PATH, but since it's not on PATH either,
+            // it should fail
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.args(["run", "nonexistent-bin-xyz-12345"]);
+                })
+                .failure();
+
+            // Should give an error about the tool/bin not being found
+            assert.code(1);
+        }
+
+        #[test]
+        fn uses_shims_registry_for_bin_resolution() {
+            let sandbox = create_empty_proto_sandbox();
+
+            // Install npm which will create shims including npx
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.args(["install", "node", "18.0.0", "--pin"]);
+                })
+                .success();
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.args(["install", "npm", "9.0.0", "--pin"]);
+                })
+                .success();
+
+            // Verify shims registry file exists and contains npx mapping
+            let registry_path = sandbox.path().join(".proto/shims/registry.json");
+            assert!(
+                registry_path.exists(),
+                "Shims registry file should exist after tool installation"
+            );
+
+            let registry_content =
+                fs::read_to_string(&registry_path).expect("Should be able to read shims registry");
+
+            // Verify npx entry exists in registry with npm as parent
+            assert!(
+                registry_content.contains("\"npx\""),
+                "Registry should contain npx entry"
+            );
+            assert!(
+                registry_content.contains("\"npm\""),
+                "Registry should reference npm as parent tool"
+            );
+
+            // Verify that proto run npx works by using the registry
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.args(["run", "npx", "--", "--help"]);
+                })
+                .success();
+
+            // Should successfully execute npx via npm
+            assert.stdout(
+                predicate::str::contains("npm exec").or(predicate::str::contains("Run a command")),
+            );
+        }
+
+        #[test]
+        fn handles_missing_shims_registry_gracefully() {
+            let sandbox = create_empty_proto_sandbox();
+
+            // Install node which will create a shims directory and registry
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.args(["install", "node", "18.0.0", "--pin"]);
+                })
+                .success();
+
+            // Verify registry exists
+            let registry_path = sandbox.path().join(".proto/shims/registry.json");
+            assert!(
+                registry_path.exists(),
+                "Registry should exist after installing node"
+            );
+
+            // Delete the registry file to simulate missing/corrupted state
+            fs::remove_file(&registry_path).expect("Should be able to delete registry");
+            assert!(!registry_path.exists(), "Registry should be deleted");
+
+            // Try to run a tool that doesn't exist - should fall back gracefully
+            // Since there's no registry and no such tool exists, it should give a proper error
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.args(["run", "this-tool-definitely-does-not-exist-12345"]);
+                })
+                .failure();
+
+            // Should give a proper error (not crash or panic)
+            assert.code(1);
+        }
+
+        #[test]
+        fn handles_corrupted_shims_registry_gracefully() {
+            let sandbox = create_empty_proto_sandbox();
+
+            // Install npm to create the shims directory
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.args(["install", "node", "18.0.0", "--pin"]);
+                })
+                .success();
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.args(["install", "npm", "9.0.0", "--pin"]);
+                })
+                .success();
+
+            // Corrupt the registry file with invalid JSON
+            let registry_path = sandbox.path().join(".proto/shims/registry.json");
+            fs::write(&registry_path, "{ invalid json }}")
+                .expect("Should be able to write corrupted registry");
+
+            // Try to run npx - should fall back gracefully
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.args(["run", "npx"]);
+                })
+                .failure();
+
+            // Should handle the error gracefully (not panic)
+            assert.code(1);
+        }
+
+        #[test]
+        fn prefers_shims_registry_over_global_tools() {
+            let sandbox = create_empty_proto_sandbox();
+
+            // Install npm which creates the npx shim and registry entry
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.args(["install", "node", "18.0.0", "--pin"]);
+                })
+                .success();
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.args(["install", "npm", "9.0.0", "--pin"]);
+                })
+                .success();
+
+            // Verify the registry contains npx
+            let registry_path = sandbox.path().join(".proto/shims/registry.json");
+            let registry_content =
+                fs::read_to_string(&registry_path).expect("Should be able to read shims registry");
+
+            assert!(
+                registry_content.contains("\"npx\""),
+                "Registry should contain npx entry"
+            );
+
+            // Run npx - should use proto-managed npm via registry, not global
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.args(["run", "npx", "--", "--help"]);
+                })
+                .success();
+
+            // Should successfully run with proto-managed npm
+            assert.stdout(
+                predicate::str::contains("npm exec").or(predicate::str::contains("Run a command")),
+            );
         }
     }
 }

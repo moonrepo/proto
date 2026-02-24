@@ -38,7 +38,7 @@ pub async fn search(session: ProtoSession, args: SearchPluginArgs) -> AppResult 
     }
 
     if queried_plugins.is_empty() {
-        session.console.render(element! {
+        session.console.render_err(element! {
             Notice(title: "No results".to_owned(), variant: Variant::Caution) {
                 StyledText(
                     content: format!("Please try again, there are no plugins found in the registry for the query <shell>{query}</shell>"),

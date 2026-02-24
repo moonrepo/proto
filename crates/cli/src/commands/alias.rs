@@ -7,6 +7,7 @@ use proto_core::{
 };
 use starbase::AppResult;
 use starbase_console::ui::*;
+use starbase_styles::encode_style_tags;
 
 #[derive(Args, Clone, Debug)]
 pub struct AliasArgs {
@@ -55,7 +56,7 @@ pub async fn alias(session: ProtoSession, args: AliasArgs) -> AppResult {
                     "Added <id>{}</id> alias <id>{}</id> <mutedlight>(with specification <versionalt>{}</versionalt>)</mutedlight> to config <path>{}</path>",
                     args.context,
                     args.alias,
-                    args.spec.to_string(),
+                    encode_style_tags(args.spec.to_string()),
                     config_path.display()
                 ),
             )
