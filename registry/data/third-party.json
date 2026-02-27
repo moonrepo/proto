@@ -189,6 +189,19 @@
       ]
     },
     {
+      "id": "claude-code",
+      "locator": "github://BarretoTech/proto-claude-code-plugin",
+      "format": "wasm",
+      "name": "Claude Code",
+      "description": "An agentic coding tool that lives in your terminal.",
+      "author": "BarretoTech",
+      "homepageUrl": "https://github.com/anthropics/claude-code",
+      "repositoryUrl": "https://github.com/BarretoTech/proto-claude-code-plugin",
+      "bins": [
+        "claude"
+      ]
+    },
+    {
       "id": "composer",
       "locator": "github://KonstantinKai/proto-composer-plugin",
       "format": "wasm",
