@@ -4,9 +4,9 @@ members = ["crates/*"]
 default-members = ["crates/cli"]
 
 [workspace.dependencies]
-anyhow = "1.0.101"
+anyhow = "1.0.102"
 async-trait = "0.1.89"
-clap = "4.5.59"
+clap = "4.5.60"
 clap_complete = "4.5.66"
 compact_str = { version = "0.9.0", default-features = false, features = [
     "serde",
@@ -40,7 +40,7 @@ rmcp = { version = "0.14.0", default-features = false, features = [
     "macros",
 ] }
 rustc-hash = "2.1.1"
-scc = "3.6.3"
+scc = "3.6.6"
 schemars = "1.2.1"
 schematic = { version = "0.19.4", default-features = false }
 semver = { version = "1.0.27", features = ["serde"] }
@@ -67,7 +67,7 @@ starbase_utils = { version = "0.12.6", default-features = false, features = [
     "toml",
 ] }
 thiserror = "2.0.18"
-tokio = { version = "1.49.0", features = ["full", "tracing"] }
+tokio = { version = "1.50.0", features = ["full", "tracing"] }
 toml_edit = "0.23.9"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", default-features = false }
