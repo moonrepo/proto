@@ -7,6 +7,19 @@ pub struct WasmTestWrapper {
 }
 
 impl WasmTestWrapper {
+    pub async fn activate_environment(
+        &self,
+        mut input: ActivateEnvironmentInput,
+    ) -> ActivateEnvironmentOutput {
+        input.context = self.prepare_context(input.context);
+
+        self.tool
+            .plugin
+            .call_func_with(PluginFunction::ActivateEnvironment, input)
+            .await
+            .unwrap()
+    }
+
     pub async fn detect_version_files(&self, mut input: DetectVersionInput) -> DetectVersionOutput {
         input.context = self.prepare_unresolved_context(input.context);
 
