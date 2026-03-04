@@ -17,6 +17,11 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- **WASM API**
+  - Added a `ActivateEnvironmentInput.globals_dir` field.
+
 #### ⚙️ Internal
 
 - Updated dependencies.

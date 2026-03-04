@@ -839,6 +839,9 @@ api_struct!(
     pub struct ActivateEnvironmentInput {
         /// Current tool context.
         pub context: PluginContext,
+
+        /// Path to the global packages directory for the tool, if found.
+        pub globals_dir: Option<VirtualPath>,
     }
 );
 

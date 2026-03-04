@@ -351,6 +351,8 @@ async fn prepare_tool(
     }
 
     // Extract vars/paths for environment
+    let locations = Locator::locate(&tool, &spec).await?;
+
     if params.activate_environment
         && tool
             .plugin
@@ -363,6 +365,10 @@ async fn prepare_tool(
                 PluginFunction::ActivateEnvironment,
                 ActivateEnvironmentInput {
                     context: tool.create_plugin_context(&spec),
+                    globals_dir: locations
+                        .globals_dir
+                        .as_ref()
+                        .map(|dir| tool.to_virtual_path(dir)),
                 },
             )
             .await?;
@@ -376,8 +382,6 @@ async fn prepare_tool(
         }
     }
 
-    let locations = Locator::locate(&tool, &spec).await?;
-
     if params.pre_run_hook && tool.plugin.has_func(HookFunction::PreRun).await {
         let output: RunHookResult = tool
             .plugin
@@ -385,7 +389,10 @@ async fn prepare_tool(
                 HookFunction::PreRun,
                 RunHook {
                     context: tool.create_plugin_context(&spec),
-                    globals_dir: locations.globals_dir.map(|dir| tool.to_virtual_path(&dir)),
+                    globals_dir: locations
+                        .globals_dir
+                        .as_ref()
+                        .map(|dir| tool.to_virtual_path(dir)),
                     globals_prefix: locations.globals_prefix,
                     passthrough_args: params.passthrough_args,
                 },
