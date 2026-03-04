@@ -99,6 +99,13 @@ pub fn create_process_command<T: AsRef<OsStr>, I: IntoIterator<Item = A>, A: AsR
         find_command_on_path(exe).unwrap_or_else(|| exe.into())
     };
 
+    create_process_command_from_path(exe_path, args)
+}
+
+fn create_process_command_from_path<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
+    exe_path: PathBuf,
+    args: I,
+) -> Command {
     // If a Windows script, we must execute the command through powershell
     match exe_path.extension().and_then(|ext| ext.to_str()) {
         Some("ps1" | "cmd" | "bat") => {
@@ -111,7 +118,10 @@ pub fn create_process_command<T: AsRef<OsStr>, I: IntoIterator<Item = A>, A: AsR
             let mut cmd =
                 Command::new(find_command_on_path("pwsh").unwrap_or_else(|| "powershell".into()));
             cmd.arg("-Command");
-            cmd.arg(format!("{} {}", exe_path.display(), shell_words::join(args)).trim());
+            // Wrap the exe path in single quotes for PowerShell, escaping
+            // any existing single quotes by doubling them (PowerShell convention).
+            let escaped_path = exe_path.display().to_string().replace("'", "''");
+            cmd.arg(format!("& '{}' {}", escaped_path, shell_words::join(args)).trim());
             cmd
         }
         _ => {
@@ -119,5 +129,60 @@ pub fn create_process_command<T: AsRef<OsStr>, I: IntoIterator<Item = A>, A: AsR
             cmd.args(args);
             cmd
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // https://github.com/moonrepo/proto/issues/960
+    #[test]
+    fn test_create_process_command_escapes_special_chars_in_path() {
+        let exe_path =
+            PathBuf::from(r"C:\Users\vbox)user\.proto\tools\pnpm\10.30.3\shims\pnpm.cmd");
+        let args: Vec<&str> = vec!["--version"];
+
+        let cmd = create_process_command_from_path(exe_path, args);
+
+        let cmd_args: Vec<String> = cmd
+            .get_args()
+            .map(|a| a.to_string_lossy().to_string())
+            .collect();
+
+        // The -Command argument should have the exe path properly quoted
+        // so that PowerShell doesn't choke on special characters like ")"
+        assert_eq!(cmd_args.len(), 2);
+        assert_eq!(cmd_args[0], "-Command");
+
+        let command_str = &cmd_args[1];
+
+        // The path must be wrapped with & '...' so PowerShell treats it
+        // as a literal path even with special characters like ")"
+        assert_eq!(
+            command_str,
+            r"& 'C:\Users\vbox)user\.proto\tools\pnpm\10.30.3\shims\pnpm.cmd' --version"
+        );
+    }
+
+    #[test]
+    fn test_create_process_command_escapes_single_quotes_in_path() {
+        let exe_path = PathBuf::from(r"C:\Users\O'Brien\.proto\tools\pnpm\10.30.3\shims\pnpm.cmd");
+        let args: Vec<&str> = vec!["install"];
+
+        let cmd = create_process_command_from_path(exe_path, args);
+
+        let cmd_args: Vec<String> = cmd
+            .get_args()
+            .map(|a| a.to_string_lossy().to_string())
+            .collect();
+
+        assert_eq!(cmd_args[0], "-Command");
+
+        // Single quotes in the path must be doubled for PowerShell
+        assert_eq!(
+            cmd_args[1],
+            r"& 'C:\Users\O''Brien\.proto\tools\pnpm\10.30.3\shims\pnpm.cmd' install"
+        );
     }
 }
