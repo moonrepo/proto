@@ -9,7 +9,7 @@ repository = "https://github.com/moonrepo/proto"
 rust-version = "1.89.0"
 
 [dependencies]
-proto_pdk_api = { version = "0.31.6", path = "../pdk-api", features = [
+proto_pdk_api = { version = "0.31.7", path = "../pdk-api", features = [
     "schematic",
 ] }
 proto_shim = { version = "0.8.0", path = "../shim" }
@@ -27,7 +27,7 @@ dotenvy = "0.15.7"
 indexmap = { workspace = true }
 iocraft = { workspace = true }
 miette = { workspace = true }
-minisign-verify = "0.2.4"
+minisign-verify = "0.2.5"
 once_cell = { workspace = true }
 oci-client = { workspace = true }
 docker_credential = { workspace = true }

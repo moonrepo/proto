@@ -118,10 +118,17 @@ fn create_process_command_from_path<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
             let mut cmd =
                 Command::new(find_command_on_path("pwsh").unwrap_or_else(|| "powershell".into()));
             cmd.arg("-Command");
-            // Wrap the exe path in single quotes for PowerShell, escaping
-            // any existing single quotes by doubling them (PowerShell convention).
-            let escaped_path = exe_path.display().to_string().replace("'", "''");
-            cmd.arg(format!("& '{}' {}", escaped_path, shell_words::join(args)).trim());
+
+            // Wrap the exe path in double quotes for PowerShell
+            cmd.arg(
+                format!(
+                    "& \"{}\" {}",
+                    exe_path.display().to_string().replace("\"", "`\""),
+                    shell_words::join(args)
+                )
+                .trim(),
+            );
+
             cmd
         }
         _ => {
@@ -161,7 +168,7 @@ mod tests {
         // as a literal path even with special characters like ")"
         assert_eq!(
             command_str,
-            r"& 'C:\Users\vbox)user\.proto\tools\pnpm\10.30.3\shims\pnpm.cmd' --version"
+            r#"& "C:\Users\vbox)user\.proto\tools\pnpm\10.30.3\shims\pnpm.cmd" --version"#
         );
     }
 
@@ -179,10 +186,9 @@ mod tests {
 
         assert_eq!(cmd_args[0], "-Command");
 
-        // Single quotes in the path must be doubled for PowerShell
         assert_eq!(
             cmd_args[1],
-            r"& 'C:\Users\O''Brien\.proto\tools\pnpm\10.30.3\shims\pnpm.cmd' install"
+            r#"& "C:\Users\O'Brien\.proto\tools\pnpm\10.30.3\shims\pnpm.cmd" install"#
         );
     }
 }
