@@ -119,8 +119,18 @@ impl ProtoEnvironment {
             (self.home_dir.clone(), "/userhome".into()),
         ]);
 
-        if self.test_only {
-            paths.insert(self.working_dir.clone(), "/sandbox".into());
+        if !paths.contains_key(&self.working_dir) {
+            // This is required for situtations where users are using proto
+            // outside of the home directory, and the WASM plugin will need
+            // access to it!
+            paths.insert(
+                self.working_dir.clone(),
+                if self.test_only {
+                    "/sandbox".into()
+                } else {
+                    "/cwd".into()
+                },
+            );
         }
 
         paths

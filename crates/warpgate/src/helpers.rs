@@ -129,14 +129,13 @@ pub fn move_or_unpack_download(
 
 /// Sort virtual paths from longest to shortest host path,
 /// so that prefix replacing is deterministic and accurate.
-fn sort_virtual_paths(map: &BTreeMap<PathBuf, PathBuf>) -> Vec<(&PathBuf, &PathBuf)> {
+pub fn sort_virtual_paths(map: &BTreeMap<PathBuf, PathBuf>) -> Vec<(&PathBuf, &PathBuf)> {
     let mut list = map.iter().collect::<Vec<_>>();
-    list.sort_by(|a, d| d.0.cmp(a.0));
+    list.sort_by(|a, d| d.0.cmp(a.0).then(d.1.cmp(a.1)));
     list
 }
 
 /// Convert the provided virtual guest path to an absolute host path.
-#[instrument]
 pub fn from_virtual_path(
     paths_map: &BTreeMap<PathBuf, PathBuf>,
     path: impl AsRef<Path> + Debug,
@@ -156,7 +155,6 @@ pub fn from_virtual_path(
 
 /// Convert the provided absolute host path to a virtual guest path suitable
 /// for WASI sandboxed runtimes.
-#[instrument]
 pub fn to_virtual_path(
     paths_map: &BTreeMap<PathBuf, PathBuf>,
     path: impl AsRef<Path> + Debug,

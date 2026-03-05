@@ -33,6 +33,7 @@
 #### 🐞 Fixes
 
 - Fixed an issue executing paths on Windows that contain special characters.
+- Potential fix for issues where proto is used outside of the user directory and WASM doesn't have file system access.
 
 #### ⚙️ Internal
 
