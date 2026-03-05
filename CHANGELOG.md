@@ -22,6 +22,10 @@
 - **WASM API**
   - Added a `ActivateEnvironmentInput.globals_dir` field.
 
+#### 🐞 Fixes
+
+- Fixed an issue executing paths on Windows that contain special characters.
+
 #### ⚙️ Internal
 
 - Updated dependencies.
