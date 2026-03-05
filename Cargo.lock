@@ -3056,7 +3056,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.55.3"
+version = "0.55.4"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3114,7 +3114,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.55.4"
+version = "0.55.5"
 dependencies = [
  "clap",
  "convert_case",
@@ -3158,7 +3158,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.32.6"
+version = "0.32.7"
 dependencies = [
  "extism-pdk",
  "proto_pdk",
@@ -3170,7 +3170,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.31.7"
+version = "0.31.8"
 dependencies = [
  "derive_setters",
  "proto_pdk_api",
@@ -3187,7 +3187,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.43.6"
+version = "0.43.7"
 dependencies = [
  "extism",
  "proto_core",
@@ -4533,7 +4533,7 @@ dependencies = [
 
 [[package]]
 name = "system_env"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "regex",
  "schematic",
@@ -5240,7 +5240,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.29.2"
+version = "0.29.3"
 dependencies = [
  "async-trait",
  "compact_str 0.9.0",
@@ -5274,7 +5274,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_api"
-version = "0.17.2"
+version = "0.17.3"
 dependencies = [
  "anyhow",
  "derive_setters",
