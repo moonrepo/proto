@@ -22,6 +22,14 @@
 - **WASM API**
   - Added a `ActivateEnvironmentInput.globals_dir` field.
 
+#### 🧩 Plugins
+
+- Updated `deno_tool` to v0.15.9.
+  - Added Windows Arm64 support.
+- Updated `node_depman_tool` to v0.17.6.
+  - Updated `shared-globals-dir` to also work with `proto activate` and not just `proto run`.
+  - Now sets `pnpm_config_global_dir` and `pnpm_config_global_bin_dir` environment variables.
+
 #### 🐞 Fixes
 
 - Fixed an issue executing paths on Windows that contain special characters.
