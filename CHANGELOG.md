@@ -36,6 +36,7 @@
 
 #### ⚙️ Internal
 
+- Updated Rust to v1.94.0.
 - Updated dependencies.
 
 ## 0.55.3
