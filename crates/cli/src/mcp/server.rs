@@ -277,21 +277,19 @@ impl ProtoMcp {
 #[tool_handler]
 impl ServerHandler for ProtoMcp {
     fn get_info(&self) -> ServerInfo {
-        ServerInfo {
-            protocol_version: ProtocolVersion::LATEST,
-            capabilities: ServerCapabilities::builder()
+        ServerInfo::new(
+            ServerCapabilities::builder()
                 // .enable_prompts()
                 .enable_resources()
                 .enable_tools()
-                .build(),
-            server_info: Implementation {
-                name: env!("CARGO_CRATE_NAME").to_owned(),
-                version: env!("CARGO_PKG_VERSION").to_owned(),
-                website_url: Some("https://moonrepo.dev/proto".into()),
-                ..Default::default()
-            },
-            instructions: Some("The proto MCP server provides resources and tools for managing your toolchain, environment, and more.".to_string()),
-        }
+                .build()
+        )
+        .with_server_info(
+            Implementation::from_build_env().with_website_url("https://moonrepo.dev/proto")
+        )
+        .with_instructions(
+            "The proto MCP server provides resources and tools for managing your toolchain, environment, and more."
+        )
     }
 
     async fn list_resources(
@@ -340,14 +338,14 @@ impl ServerHandler for ProtoMcp {
             }
         };
 
-        Ok(ReadResourceResult {
-            contents: vec![ResourceContents::TextResourceContents {
+        Ok(ReadResourceResult::new(vec![
+            ResourceContents::TextResourceContents {
                 uri,
                 text,
                 mime_type: Some("application/json".into()),
                 meta: None,
-            }],
-        })
+            },
+        ]))
     }
 }
 

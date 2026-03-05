@@ -168,7 +168,7 @@ mod tests {
         // as a literal path even with special characters like ")"
         assert_eq!(
             command_str,
-            r"& 'C:\Users\vbox)user\.proto\tools\pnpm\10.30.3\shims\pnpm.cmd' --version"
+            r#"& "C:\Users\vbox)user\.proto\tools\pnpm\10.30.3\shims\pnpm.cmd" --version"#
         );
     }
 
@@ -186,10 +186,9 @@ mod tests {
 
         assert_eq!(cmd_args[0], "-Command");
 
-        // Single quotes in the path must be doubled for PowerShell
         assert_eq!(
             cmd_args[1],
-            r"& 'C:\Users\O''Brien\.proto\tools\pnpm\10.30.3\shims\pnpm.cmd' install"
+            r#"& "C:\Users\O'Brien\.proto\tools\pnpm\10.30.3\shims\pnpm.cmd" install"#
         );
     }
 }
