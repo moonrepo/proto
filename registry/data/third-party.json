@@ -202,26 +202,6 @@
       ]
     },
     {
-      "id": "composer",
-      "locator": "github://KonstantinKai/proto-composer-plugin",
-      "format": "wasm",
-      "name": "Composer",
-      "description": "A dependency manager for PHP.",
-      "author": {
-        "name": "Konstantin Kai",
-        "email": "kai@konstantinkai.dev"
-      },
-      "homepageUrl": "https://getcomposer.org/",
-      "repositoryUrl": "https://github.com/KonstantinKai/proto-composer-plugin",
-      "bins": [
-        "composer"
-      ],
-      "globalsDirs": [
-        "$COMPOSER_HOME/vendor/bin",
-        "$HOME/.composer/vendor/bin"
-      ]
-    },
-    {
       "id": "cmake",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/cmake/plugin.toml",
       "format": "toml",
@@ -246,6 +226,26 @@
       "repositoryUrl": "https://github.com/ageha734/proto-plugins",
       "bins": [
         "commitlint"
+      ]
+    },
+    {
+      "id": "composer",
+      "locator": "github://KonstantinKai/proto-composer-plugin",
+      "format": "wasm",
+      "name": "Composer",
+      "description": "A dependency manager for PHP.",
+      "author": {
+        "name": "Konstantin Kai",
+        "email": "kai@konstantinkai.dev"
+      },
+      "homepageUrl": "https://getcomposer.org/",
+      "repositoryUrl": "https://github.com/KonstantinKai/proto-composer-plugin",
+      "bins": [
+        "composer"
+      ],
+      "globalsDirs": [
+        "$COMPOSER_HOME/vendor/bin",
+        "$HOME/.composer/vendor/bin"
       ]
     },
     {
