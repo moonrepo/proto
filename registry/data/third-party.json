@@ -529,6 +529,20 @@
     },
     {
       "id": "gitleaks",
+      "locator": "github://muuvmuuv/proto-plugins/gitleaks_tool",
+      "format": "wasm",
+      "name": "Gitleaks",
+      "description": "A fast, light-weight, portable, and open-source secret scanner for Git repositories, files, and directories.",
+      "author": "muuvmuuv",
+      "homepageUrl": "https://github.com/gitleaks/gitleaks",
+      "repositoryUrl": "https://github.com/muuvmuuv/proto-plugins",
+      "devicon": "git",
+      "bins": [
+        "gitleaks"
+      ]
+    },
+    {
+      "id": "gitleaks",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/gitleaks/plugin.toml",
       "format": "toml",
       "name": "Gitleaks",
@@ -742,6 +756,20 @@
     },
     {
       "id": "jq",
+      "locator": "github://muuvmuuv/proto-plugins/jq_tool",
+      "format": "wasm",
+      "name": "jq",
+      "description": "A lightweight and flexible command-line JSON processor.",
+      "author": "muuvmuuv",
+      "homepageUrl": "https://jqlang.github.io/jq/",
+      "repositoryUrl": "https://github.com/muuvmuuv/proto-plugins",
+      "devicon": "json",
+      "bins": [
+        "jq"
+      ]
+    },
+    {
+      "id": "jq",
       "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/jq/plugin.toml",
       "format": "toml",
       "name": "jq",
@@ -751,6 +779,20 @@
       "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins/tree/main/jq",
       "bins": [
         "jq"
+      ]
+    },
+    {
+      "id": "just",
+      "locator": "github://muuvmuuv/proto-plugins/just_tool",
+      "format": "wasm",
+      "name": "just",
+      "description": "A handy way to save and run project-specific commands.",
+      "author": "muuvmuuv",
+      "homepageUrl": "https://github.com/casey/just",
+      "repositoryUrl": "https://github.com/muuvmuuv/proto-plugins",
+      "devicon": "bash",
+      "bins": [
+        "just"
       ]
     },
     {
@@ -1565,6 +1607,20 @@
       "repositoryUrl": "https://github.com/davearel/proto-plugins/tree/main/xurl",
       "bins": [
         "xurl"
+      ]
+    },
+    {
+      "id": "yq",
+      "locator": "github://muuvmuuv/proto-plugins/yq_tool",
+      "format": "wasm",
+      "name": "yq",
+      "description": "A portable command-line YAML, JSON, XML, CSV, TOML, and properties processor.",
+      "author": "muuvmuuv",
+      "homepageUrl": "https://github.com/mikefarah/yq",
+      "repositoryUrl": "https://github.com/muuvmuuv/proto-plugins",
+      "devicon": "yaml",
+      "bins": [
+        "yq"
       ]
     },
     {
