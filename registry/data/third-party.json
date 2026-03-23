@@ -383,14 +383,20 @@
     },
     {
       "id": "dotnet",
-      "locator": "github://Phault/proto-dotnet-plugin",
-      "format": "wasm",
+      "locator": "https://raw.githubusercontent.com/RemiKalbe/proto-dotnet-plugin/main/plugin.toml",
+      "format": "toml",
       "name": ".NET",
       "description": ".NET is the free, open-source, cross-platform framework for building modern apps and powerful cloud services.",
-      "author": "Phault",
+      "author": "RemiKalbe",
       "homepageUrl": "https://dotnet.microsoft.com/",
-      "repositoryUrl": "https://github.com/Phault/proto-dotnet-plugin",
+      "repositoryUrl": "https://github.com/RemiKalbe/proto-dotnet-plugin",
       "devicon": "dot-net",
+      "detectionSources": [
+        {
+          "file": "global.json",
+          "url": "https://learn.microsoft.com/en-us/dotnet/core/tools/global-json"
+        }
+      ],
       "bins": [
         "dotnet"
       ]
