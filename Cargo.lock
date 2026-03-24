@@ -3831,9 +3831,9 @@ dependencies = [
 
 [[package]]
 name = "scc"
-version = "3.6.11"
+version = "3.6.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6e0fa9801e22430b9ddd8f10b981e42fed14367508a07b5cb713cab979b1d51"
+checksum = "f448f7d881535036452f0cac656a41463807f095eda504890764ca7d11e2a2ea"
 dependencies = [
  "saa",
  "sdd",
@@ -4396,9 +4396,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_shell"
-version = "0.11.5"
+version = "0.11.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8aeca660b3a421e5be94028be52801dc7e747e3c62b73c5fea8aedf9c25d11d9"
+checksum = "1312f35d259419c211538224ecad56ce3af4ee442e442362dc0c131bbecbc107"
 dependencies = [
  "miette 7.6.0",
  "regex",
