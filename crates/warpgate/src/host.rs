@@ -2,7 +2,7 @@ use crate::clients::{HttpClient, WarpgateHttpClientError};
 use crate::helpers;
 use crate::plugin_error::WarpgatePluginError;
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
-use starbase_shell::{Quotable, ShellType};
+use starbase_shell::{ShellType, join_exe_args};
 use starbase_styles::{apply_style_tags, color};
 use starbase_utils::{envx, fs};
 use std::collections::BTreeMap;
@@ -211,17 +211,7 @@ fn exec_command(
         Some(shell) => {
             let shell = shell.build();
 
-            shell.create_wrapped_command(
-                format!(
-                    "{} {}",
-                    // Quote the executable since it may contain spaces
-                    // or other characters that must be quoted
-                    shell.quote_with(Quotable::from(exe)),
-                    // Assume arguments are already properly quoted
-                    input.args.join(" ")
-                )
-                .trim(),
-            )
+            shell.create_wrapped_command_with(join_exe_args(&shell, exe, &input.args, false))
         }
         None => {
             let mut command = Command::new(exe);

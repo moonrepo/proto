@@ -10,7 +10,7 @@ use proto_pdk_api::{
     RunHookResult,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
-use starbase_shell::{BoxedShell, Quotable};
+use starbase_shell::{BoxedShell, join_exe_args};
 use starbase_utils::envx;
 use std::collections::VecDeque;
 use std::env;
@@ -138,79 +138,29 @@ impl<'app> ExecWorkflow<'app> {
         Ok(())
     }
 
-    #[cfg(unix)]
-    pub fn create_wrapped_command<E, AI, A>(
-        &self,
-        shell: &BoxedShell,
-        exe: E,
-        args: AI,
-        raw: bool,
-    ) -> String
+    pub fn wrap_command<E, I, A>(&self, shell: &BoxedShell, exe: E, args: I, raw: bool) -> OsString
     where
         E: AsRef<OsStr>,
-        AI: IntoIterator<Item = A>,
+        I: IntoIterator<Item = A>,
         A: AsRef<OsStr>,
     {
-        let exe_string = shell.quote_with(Quotable::from(exe.as_ref()));
+        let mut next_args = vec![];
 
-        let args = args.into_iter().collect::<Vec<_>>();
-        let mut line = vec![];
-
-        if raw {
-            line.push(exe.as_ref());
-        } else {
-            line.push(OsStr::new(exe_string.as_str()));
+        for arg in args {
+            next_args.push(arg.as_ref().to_os_string());
         }
-
-        line.extend(args.iter().map(|arg| arg.as_ref()));
 
         if !self.multiple && !self.args.is_empty() {
-            line.extend(self.args.iter().map(OsStr::new));
+            next_args.extend(self.args.iter().map(OsString::from));
         }
 
-        line.join(OsStr::new(" ")).into_string().unwrap()
+        join_exe_args(shell, exe, next_args, !raw)
     }
 
-    // `Quotable` doesn't support `OsStr` on Windows,
-    // so we need to convert everything to strings...
-    #[cfg(windows)]
-    pub fn create_wrapped_command<E, AI, A>(
-        &self,
-        shell: &BoxedShell,
-        exe: E,
-        args: AI,
-        raw: bool,
-    ) -> String
+    pub fn create_command<E, I, A>(self, exe: E, args: I) -> miette::Result<Command>
     where
         E: AsRef<OsStr>,
-        AI: IntoIterator<Item = A>,
-        A: AsRef<OsStr>,
-    {
-        let args = args.into_iter().collect::<Vec<_>>();
-        let mut line = vec![];
-
-        if raw {
-            line.push(exe.as_ref().to_string_lossy().to_string());
-        } else {
-            line.push(shell.quote_with(Quotable::from(exe.as_ref())));
-        }
-
-        line.extend(
-            args.iter()
-                .map(|arg| arg.as_ref().to_string_lossy().to_string()),
-        );
-
-        if !self.multiple && !self.args.is_empty() {
-            line.extend(self.args.clone());
-        }
-
-        line.join(" ")
-    }
-
-    pub fn create_command<E, AI, A>(self, exe: E, args: AI) -> miette::Result<Command>
-    where
-        E: AsRef<OsStr>,
-        AI: IntoIterator<Item = A>,
+        I: IntoIterator<Item = A>,
         A: AsRef<OsStr>,
     {
         let mut command = Command::new(exe);
@@ -221,20 +171,20 @@ impl<'app> ExecWorkflow<'app> {
         Ok(command)
     }
 
-    pub fn create_command_with_shell<E, AI, A>(
+    pub fn create_command_with_shell<E, I, A>(
         self,
         shell: BoxedShell,
         exe: E,
-        args: AI,
+        args: I,
         raw: bool,
     ) -> miette::Result<Command>
     where
         E: AsRef<OsStr>,
-        AI: IntoIterator<Item = A>,
+        I: IntoIterator<Item = A>,
         A: AsRef<OsStr>,
     {
-        let mut command = shell
-            .create_wrapped_command(self.create_wrapped_command(&shell, exe, args, raw).trim());
+        let mut command =
+            shell.create_wrapped_command_with(self.wrap_command(&shell, exe, args, raw));
 
         self.apply_to_command(&mut command, true)?;
 
