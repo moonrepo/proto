@@ -20,6 +20,12 @@
 #### 🚀 Updates
 
 - Added support for base64 encoded `data://` locators for plugins. This is primarily for tools built around proto, like moon.
+- Added Dash shell support.
+
+#### ⚙️ Internal
+
+- Updated quoting/escaping for many shells.
+- Updated dependencies.
 
 ## 0.55.4
 

@@ -10,7 +10,7 @@ use proto_pdk_api::{
     RunHookResult,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
-use starbase_shell::{BoxedShell, join_args};
+use starbase_shell::{BoxedShell, Quotable};
 use starbase_utils::envx;
 use std::collections::VecDeque;
 use std::env;
@@ -151,8 +151,16 @@ impl<'app> ExecWorkflow<'app> {
         AI: IntoIterator<Item = A>,
         A: AsRef<OsStr>,
     {
+        let exe_string = shell.quote_with(Quotable::from(exe.as_ref()));
+
         let args = args.into_iter().collect::<Vec<_>>();
-        let mut line = vec![exe.as_ref()];
+        let mut line = vec![];
+
+        if raw {
+            line.push(exe.as_ref());
+        } else {
+            line.push(OsStr::new(exe_string.as_str()));
+        }
 
         line.extend(args.iter().map(|arg| arg.as_ref()));
 
@@ -160,11 +168,7 @@ impl<'app> ExecWorkflow<'app> {
             line.extend(self.args.iter().map(OsStr::new));
         }
 
-        if raw {
-            line.join(OsStr::new(" ")).into_string().unwrap()
-        } else {
-            join_args(shell, line)
-        }
+        line.join(OsStr::new(" ")).into_string().unwrap()
     }
 
     // `Quotable` doesn't support `OsStr` on Windows,
@@ -183,7 +187,13 @@ impl<'app> ExecWorkflow<'app> {
         A: AsRef<OsStr>,
     {
         let args = args.into_iter().collect::<Vec<_>>();
-        let mut line = vec![exe.as_ref().to_string_lossy().to_string()];
+        let mut line = vec![];
+
+        if raw {
+            line.push(exe.as_ref().to_string_lossy().to_string());
+        } else {
+            line.push(shell.quote_with(Quotable::from(exe.as_ref())));
+        }
 
         line.extend(
             args.iter()
@@ -194,11 +204,7 @@ impl<'app> ExecWorkflow<'app> {
             line.extend(self.args.clone());
         }
 
-        if raw {
-            line.join(" ")
-        } else {
-            join_args(shell, line.iter().collect::<Vec<_>>())
-        }
+        line.join(" ")
     }
 
     pub fn create_command<E, AI, A>(self, exe: E, args: AI) -> miette::Result<Command>
@@ -227,9 +233,8 @@ impl<'app> ExecWorkflow<'app> {
         AI: IntoIterator<Item = A>,
         A: AsRef<OsStr>,
     {
-        let mut command = Command::new(shell.to_string());
-        command.args(shell.get_exec_command().shell_args);
-        command.arg(self.create_wrapped_command(&shell, exe, args, raw));
+        let mut command = shell
+            .create_wrapped_command(self.create_wrapped_command(&shell, exe, args, raw).trim());
 
         self.apply_to_command(&mut command, true)?;
 

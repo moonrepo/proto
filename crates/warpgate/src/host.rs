@@ -2,7 +2,7 @@ use crate::clients::{HttpClient, WarpgateHttpClientError};
 use crate::helpers;
 use crate::plugin_error::WarpgatePluginError;
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
-use starbase_shell::{ShellType, join_args};
+use starbase_shell::{Quotable, ShellType};
 use starbase_styles::{apply_style_tags, color};
 use starbase_utils::{envx, fs};
 use std::collections::BTreeMap;
@@ -137,18 +137,6 @@ fn get_default_shell() -> Option<ShellType> {
     *SHELL_CACHE.get_or_init(ShellType::detect)
 }
 
-fn get_shell_exe_path(name: &str) -> PathBuf {
-    // pwsh.exe isn't available on all Windows machines by default,
-    // but powershell.exe typically is!
-    if name == "pwsh" {
-        return find_command_on_path("pwsh")
-            .or_else(|| find_command_on_path("powershell"))
-            .unwrap_or_else(|| "powershell".into());
-    }
-
-    find_command_on_path(name).unwrap_or_else(|| name.into())
-}
-
 #[instrument(name = "host_func_exec_command", skip_all)]
 fn exec_command(
     plugin: &mut CurrentPlugin,
@@ -222,20 +210,21 @@ fn exec_command(
     let mut command = match shell_type {
         Some(shell) => {
             let shell = shell.build();
-            let shell_command = shell.get_exec_command();
-            let shell_exe_name = shell.to_string();
 
-            let mut command = Command::new(get_shell_exe_path(&shell_exe_name));
-            command.args(shell_command.shell_args);
-            command.arg(format!(
-                "{} {}",
-                input.command,
-                join_args(&shell, &input.args)
-            ));
-            command
+            shell.create_wrapped_command(
+                format!(
+                    "{} {}",
+                    // Quote the executable since it may contain spaces
+                    // or other characters that must be quoted
+                    shell.quote_with(Quotable::from(exe)),
+                    // Assume arguments are already properly quoted
+                    input.args.join(" ")
+                )
+                .trim(),
+            )
         }
         None => {
-            let mut command = Command::new(&input.command);
+            let mut command = Command::new(exe);
             command.args(&input.args);
             command
         }
