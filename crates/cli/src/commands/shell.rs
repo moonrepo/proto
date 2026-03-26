@@ -47,7 +47,6 @@ pub async fn shell(session: ProtoSession, args: ShellArgs) -> AppResult {
         ExecArgs {
             tools_from_config: args.tools.is_empty(),
             tools: args.tools,
-            raw: false,
             shell: None,
             command: command
                 .split_whitespace()

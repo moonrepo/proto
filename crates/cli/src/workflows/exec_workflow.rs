@@ -10,7 +10,8 @@ use proto_pdk_api::{
     RunHookResult,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
-use starbase_shell::{BoxedShell, join_exe_args};
+use starbase_args::parse as parse_args;
+use starbase_shell::BoxedShell;
 use starbase_utils::envx;
 use std::collections::VecDeque;
 use std::env;
@@ -138,23 +139,29 @@ impl<'app> ExecWorkflow<'app> {
         Ok(())
     }
 
-    pub fn wrap_command<E, I, A>(&self, shell: &BoxedShell, exe: E, args: I, raw: bool) -> OsString
+    pub fn wrap_command<I, A>(&self, args: I) -> OsString
     where
-        E: AsRef<OsStr>,
         I: IntoIterator<Item = A>,
         A: AsRef<OsStr>,
     {
-        let mut next_args = vec![];
+        let mut out = OsString::new();
 
         for arg in args {
-            next_args.push(arg.as_ref().to_os_string());
+            if !out.is_empty() {
+                out.push(OsStr::new(" "));
+            }
+
+            out.push(arg.as_ref());
         }
 
         if !self.multiple && !self.args.is_empty() {
-            next_args.extend(self.args.iter().map(OsString::from));
+            for arg in &self.args {
+                out.push(OsStr::new(" "));
+                out.push(arg);
+            }
         }
 
-        join_exe_args(shell, exe, next_args, !raw)
+        out
     }
 
     pub fn create_command<E, I, A>(self, exe: E, args: I) -> miette::Result<Command>
@@ -171,20 +178,12 @@ impl<'app> ExecWorkflow<'app> {
         Ok(command)
     }
 
-    pub fn create_command_with_shell<E, I, A>(
+    pub fn create_command_with_shell(
         self,
         shell: BoxedShell,
-        exe: E,
-        args: I,
-        raw: bool,
-    ) -> miette::Result<Command>
-    where
-        E: AsRef<OsStr>,
-        I: IntoIterator<Item = A>,
-        A: AsRef<OsStr>,
-    {
-        let mut command =
-            shell.create_wrapped_command_with(self.wrap_command(&shell, exe, args, raw));
+        command_line: OsString,
+    ) -> miette::Result<Command> {
+        let mut command = shell.create_wrapped_command_with(command_line);
 
         self.apply_to_command(&mut command, true)?;
 
@@ -264,6 +263,13 @@ impl<'app> ExecWorkflow<'app> {
 
     pub fn reset_and_join_paths(&self, store_dir: &Path) -> miette::Result<OsString> {
         env::join_paths(self.reset_paths(store_dir)).into_diagnostic()
+    }
+
+    pub fn requires_shell(&self, args: &[String]) -> bool {
+        match parse_args(args.join(" ")) {
+            Ok(command_line) => command_line.is_complex_command(),
+            Err(_) => true,
+        }
     }
 }
 
