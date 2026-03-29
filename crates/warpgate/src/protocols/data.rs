@@ -12,7 +12,7 @@ impl LoaderProtocol<DataLocator> for DataLoader {
     type Data = ();
 
     fn is_latest(&self, _locator: &DataLocator) -> bool {
-        true
+        false
     }
 
     async fn load(

@@ -37,7 +37,7 @@ mod loader {
                 .await
                 .unwrap();
 
-            assert_eq!(path, sandbox.path().join("plugins/test-latest-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.wasm"));
+            assert_eq!(path, sandbox.path().join("plugins/test-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.wasm"));
         }
     }
 
