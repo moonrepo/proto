@@ -144,6 +144,16 @@ pub enum WarpgateLoaderError {
         .location.style(Style::Path),
     )]
     OCIReferenceError { message: String, location: String },
+
+    #[cfg_attr(
+        feature = "miette",
+        diagnostic(code(plugin::loader::data::decode_failure))
+    )]
+    #[error("Failed to decode base64 data for plugin.")]
+    Base64DecodeError {
+        #[source]
+        error: Box<base64::DecodeError>,
+    },
 }
 
 impl From<ArchiveError> for WarpgateLoaderError {

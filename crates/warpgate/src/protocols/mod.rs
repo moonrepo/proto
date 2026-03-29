@@ -1,8 +1,10 @@
+mod data;
 mod file;
 mod github;
 mod http;
 mod oci;
 
+pub use data::*;
 pub use file::*;
 pub use github::*;
 pub use http::*;

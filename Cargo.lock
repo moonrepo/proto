@@ -5243,6 +5243,7 @@ name = "warpgate"
 version = "0.29.3"
 dependencies = [
  "async-trait",
+ "base64 0.22.1",
  "compact_str 0.9.0",
  "docker_credential",
  "extism",
