@@ -1,6 +1,11 @@
+use base64::Engine;
+use base64::prelude::BASE64_STANDARD;
 use starbase_sandbox::{Sandbox, create_empty_sandbox, locate_fixture};
+use starbase_utils::fs;
 use std::path::PathBuf;
-use warpgate::{FileLocator, GitHubLocator, Id, PluginLoader, PluginLocator, UrlLocator};
+use warpgate::{
+    DataLocator, FileLocator, GitHubLocator, Id, PluginLoader, PluginLocator, UrlLocator,
+};
 
 fn create_loader() -> (Sandbox, PluginLoader) {
     let sandbox = create_empty_sandbox();
@@ -11,6 +16,30 @@ fn create_loader() -> (Sandbox, PluginLoader) {
 
 mod loader {
     use super::*;
+
+    mod data {
+        use super::*;
+
+        #[tokio::test]
+        async fn decodes_bytes() {
+            let (sandbox, loader) = create_loader();
+            let fixture = locate_fixture("loader");
+            let wasm = fs::read_file_bytes(fixture.join("test.wasm")).unwrap();
+
+            let path = loader
+                .load_plugin(
+                    Id::raw("test"),
+                    PluginLocator::Data(Box::new(DataLocator {
+                        data: format!("data://{}", BASE64_STANDARD.encode(wasm)),
+                        bytes: None,
+                    })),
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(path, sandbox.path().join("plugins/test-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.wasm"));
+        }
+    }
 
     mod source_file {
         use super::*;

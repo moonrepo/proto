@@ -11,6 +11,7 @@ rust-version = "1.89.0"
 system_env = { version = "0.9.1", path = "../system-env" }
 warpgate_api = { version = "0.17.3", path = "../warpgate-api" }
 async-trait = { workspace = true }
+base64 = "0.22.1"
 compact_str = { workspace = true }
 docker_credential = { workspace = true }
 extism = { workspace = true, features = ["http"] }

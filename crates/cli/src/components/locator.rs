@@ -10,6 +10,17 @@ pub struct LocatorProps<'a> {
 #[component]
 pub fn Locator<'a>(props: &LocatorProps<'a>) -> impl Into<AnyElement<'a>> + use<'a> {
     match props.value.as_ref().expect("`value` prop is required!") {
+        PluginLocator::Data(_) => element! {
+            Entry(
+                name: "Source",
+                value: element! {
+                    StyledText(
+                        content: "(built-in plugin)",
+                    )
+                }.into_any()
+            )
+        }
+        .into_any(),
         PluginLocator::File(file) => element! {
             Entry(
                 name: "Source file",
