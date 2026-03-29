@@ -23,9 +23,14 @@ impl LoaderProtocol<DataLocator> for DataLoader {
     ) -> Result<LoadFrom, WarpgateLoaderError> {
         trace!(id = id.as_str(), "Linking plugin from explicit byte stream");
 
+        let encoded_data = locator
+            .data
+            .strip_prefix("data://")
+            .unwrap_or(&locator.data);
+
         let data = match &locator.bytes {
             Some(bytes) => bytes.clone(),
-            None => BASE64_STANDARD.decode(&locator.data).map_err(|error| {
+            None => BASE64_STANDARD.decode(encoded_data).map_err(|error| {
                 WarpgateLoaderError::Base64DecodeError {
                     error: Box::new(error),
                 }
@@ -33,7 +38,7 @@ impl LoaderProtocol<DataLocator> for DataLoader {
         };
 
         Ok(LoadFrom::Blob {
-            hash: create_cache_key(&locator.data, None),
+            hash: create_cache_key(encoded_data, None),
             ext: ".wasm".into(),
             data,
         })

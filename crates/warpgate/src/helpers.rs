@@ -101,7 +101,7 @@ pub fn move_or_unpack_download(
     match temp_file.extension().and_then(|ext| ext.to_str()) {
         Some("wasm" | "toml" | "json" | "jsonc" | "yaml" | "yml") => {
             // Plugins can be downloaded in parallel, which means
-            // that his temp file can also be moved by another process.
+            // that this temp file can also be moved by another process.
             // Because of this, proto constantly runs into "Failed to rename"
             // errors when hitting this block, so let's avoid the failure
             // if the condition is met and assume all is good!
