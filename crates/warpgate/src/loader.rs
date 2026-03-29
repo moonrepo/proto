@@ -3,7 +3,9 @@ use crate::helpers::{
     create_cache_key, determine_cache_extension, download_from_url_to_file, move_or_unpack_download,
 };
 use crate::loader_error::WarpgateLoaderError;
-use crate::protocols::{FileLoader, GitHubLoader, HttpLoader, LoadFrom, LoaderProtocol, OciLoader};
+use crate::protocols::{
+    DataLoader, FileLoader, GitHubLoader, HttpLoader, LoadFrom, LoaderProtocol, OciLoader,
+};
 use crate::registry::RegistryConfig;
 use once_cell::sync::OnceCell;
 use starbase_styles::color;
@@ -23,6 +25,9 @@ pub type OfflineChecker = Arc<fn() -> bool>;
 pub struct PluginLoader {
     /// Duration in seconds in which to cache downloaded plugins.
     cache_duration: Duration,
+
+    /// Loader for referencing local plugins using byte streams.
+    data_loader: OnceCell<DataLoader>,
 
     /// Loader for referencing local plugins using file paths.
     file_loader: OnceCell<FileLoader>,
@@ -70,6 +75,7 @@ impl PluginLoader {
 
         Self {
             cache_duration: Duration::from_secs(86400 * 30), // 30 days
+            data_loader: OnceCell::new(),
             file_loader: OnceCell::new(),
             github_loader: OnceCell::new(),
             http_client: OnceCell::new(),
@@ -95,6 +101,11 @@ impl PluginLoader {
         for registry in registries {
             self.add_registry(registry);
         }
+    }
+
+    /// Return a data loader for use with [`DataLocator`]s.
+    pub fn get_data_loader(&self) -> Result<&DataLoader, WarpgateLoaderError> {
+        self.data_loader.get_or_try_init(|| Ok(DataLoader {}))
     }
 
     /// Return a file loader for use with [`FileLocator`]s.
@@ -157,6 +168,11 @@ impl PluginLoader {
 
         // Determine the source location
         let (source, is_latest) = match locator {
+            PluginLocator::Data(data) => {
+                let loader = self.get_data_loader()?;
+
+                (loader.load(id, data, &()).await?, loader.is_latest(data))
+            }
             PluginLocator::File(file) => {
                 let loader = self.get_file_loader()?;
 
