@@ -4,6 +4,17 @@ use std::fmt::Display;
 use std::path::PathBuf;
 use std::str::FromStr;
 
+/// An inline data locator.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct DataLocator {
+    /// Base64 encoded data (with data://).
+    pub data: String,
+
+    /// The decoded bytes of the data.
+    /// This must be done manually on the host side.
+    pub bytes: Option<Vec<u8>>,
+}
+
 /// A file system locator.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct FileLocator {
@@ -77,6 +88,9 @@ pub struct RegistryLocator {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(untagged, into = "String", try_from = "String")]
 pub enum PluginLocator {
+    /// data://base64encodeddata
+    Data(Box<DataLocator>),
+
     /// file:///abs/path/to/file.wasm
     /// file://../rel/path/to/file.wasm
     File(Box<FileLocator>),
@@ -109,6 +123,13 @@ impl schematic::Schematic for PluginLocator {
 impl Display for PluginLocator {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            PluginLocator::Data(data) => {
+                if data.data.starts_with("data://") {
+                    write!(f, "{}", data.data)
+                } else {
+                    write!(f, "data://{}", data.data)
+                }
+            }
             PluginLocator::File(file) => {
                 if file.file.starts_with("file://") {
                     write!(f, "{}", file.file)
@@ -192,6 +213,10 @@ impl TryFrom<String> for PluginLocator {
         }
 
         match protocol {
+            "data" => Ok(PluginLocator::Data(Box::new(DataLocator {
+                data: value,
+                bytes: None,
+            }))),
             "file" => Ok(PluginLocator::File(Box::new(FileLocator {
                 file: value,
                 path: None,
