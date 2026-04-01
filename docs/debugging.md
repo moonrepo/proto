@@ -39,7 +39,7 @@ fn installs_without_minor() {
 
 The `assert()` method is what executes the child process, waits, and returns the result. This is what we need to interact with to debug the test.
 
-To start, comment out `success()` since it triggers a panic if the process is not succesful. You may need to replace it with an `assert!(false)` to force the test to keep failing (to view captured output).
+To start, comment out `success()` since it triggers a panic if the process is not successful. You may need to replace it with an `assert!(false)` to force the test to keep failing (to view captured output).
 
 We can then print stdout/stderr from the assert result like so:
 
