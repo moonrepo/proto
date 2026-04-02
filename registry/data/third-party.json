@@ -1026,6 +1026,33 @@
       ]
     },
     {
+      "id": "ocaml",
+      "locator": "github://Hebilicious/proto-ocaml",
+      "format": "wasm",
+      "name": "OCaml",
+      "description": "The OCaml compiler toolchain, powered by opam and dune.",
+      "author": "Hebilicious",
+      "homepageUrl": "https://ocaml.org/",
+      "repositoryUrl": "https://github.com/Hebilicious/proto-ocaml",
+      "bins": [
+        "dune",
+        "ocaml",
+        "ocamlc",
+        "ocamldep",
+        "ocamlopt",
+        "opam"
+      ],
+      "detectionSources": [
+        {
+          "file": ".ocaml-version"
+        },
+        {
+          "file": "dune-project",
+          "url": "https://dune.readthedocs.io/en/stable/reference/dune-project/index.html"
+        }
+      ]
+    },
+    {
       "id": "octopus",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/octopus/plugin.toml",
       "format": "toml",
