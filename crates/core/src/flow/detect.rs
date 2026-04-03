@@ -151,9 +151,9 @@ impl<'tool> Detector<'tool> {
                     .call_func_with(
                         PluginFunction::ParseVersionFile,
                         ParseVersionFileInput {
-                            content,
+                            content: &content,
                             context: self.tool.create_plugin_unresolved_context(),
-                            file: file.clone(),
+                            file: &file,
                             path: self.tool.to_virtual_path(&file_path),
                         },
                     )

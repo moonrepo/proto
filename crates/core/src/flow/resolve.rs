@@ -73,7 +73,7 @@ impl<'tool> Resolver<'tool> {
                         PluginFunction::LoadVersions,
                         LoadVersionsInput {
                             context: self.tool.create_plugin_unresolved_context(),
-                            initial: initial_version.to_owned(),
+                            initial: initial_version,
                         },
                     )
                     .await?;

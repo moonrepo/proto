@@ -390,7 +390,7 @@ export interface UnpackArchiveInput {
 	outputDir: VirtualPath;
 }
 
-/** Output returned by the `verify_checksum` function. */
+/** Input passed to the `verify_checksum` function. */
 export interface VerifyChecksumInput {
 	/** Virtual path to the checksum file. */
 	checksumFile: VirtualPath;
@@ -401,7 +401,7 @@ export interface VerifyChecksumInput {
 	 * is derived from the checksum file's extension, otherwise
 	 * it defaults to SHA256.
 	 */
-	downloadChecksum?: Checksum | null;
+	downloadChecksum?: string | null;
 	/** Virtual path to the downloaded file. */
 	downloadFile: VirtualPath;
 }
@@ -491,7 +491,7 @@ export interface LoadVersionsInput {
 	/** Current tool context. */
 	context: PluginUnresolvedContext;
 	/** The alias or version currently being resolved. */
-	initial: UnresolvedVersionSpec;
+	initial: string;
 }
 
 /** Output returned by the `load_versions` function. */

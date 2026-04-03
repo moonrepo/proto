@@ -22,6 +22,26 @@ macro_rules! api_struct {
     };
 }
 
+/// Wrap an input struct with common derives and serde required attributes.
+#[macro_export]
+macro_rules! api_input_struct {
+    ($struct:item) => {
+        #[derive(Clone, Debug, PartialEq, serde::Serialize)]
+        #[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
+        $struct
+    };
+}
+
+/// Wrap an output struct with common derives and serde required attributes.
+#[macro_export]
+macro_rules! api_output_struct {
+    ($struct:item) => {
+        #[derive(Clone, Debug, Default, serde::Deserialize, PartialEq)]
+        #[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
+        $struct
+    };
+}
+
 /// Wrap an enum with common derives and serde required attributes.
 #[macro_export]
 macro_rules! api_enum {
