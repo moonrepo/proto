@@ -131,7 +131,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7b7b6141e96a8c160799cc2d5adecd5cbbe5054cb8c7c4af53da0f83bb7ad256"
 dependencies = [
  "aws-lc-sys",
- "untrusted 0.7.1",
  "zeroize",
 ]
 
@@ -2140,7 +2139,6 @@ version = "10.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0529410abe238729a60b108898784df8984c87f6054c9c4fcacc47e4803c1ce1"
 dependencies = [
- "aws-lc-rs",
  "base64 0.22.1",
  "getrandom 0.2.16",
  "js-sys",
@@ -2529,9 +2527,9 @@ dependencies = [
 
 [[package]]
 name = "oci-client"
-version = "0.16.0"
+version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "407c69ed8de3ceeef4662d8fc2d830769b66f0b31ac23fdc9e9f59ac5f995f62"
+checksum = "1b7f8deaffcd3b0e3baf93dddcab3d18b91d46dc37d38a8b170089b234de5bb3"
 dependencies = [
  "bytes",
  "chrono",
@@ -2555,9 +2553,9 @@ dependencies = [
 
 [[package]]
 name = "oci-spec"
-version = "0.8.3"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2eb4684653aeaba48dea019caa17b2773e1212e281d50b6fa759f36fe032239d"
+checksum = "e8445a2631507cec628a15fdd6154b54a3ab3f20ed4fe9d73a3b8b7a4e1ba03a"
 dependencies = [
  "const_format",
  "derive_builder",
@@ -2899,7 +2897,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.55.4"
+version = "0.55.5"
 dependencies = [
  "convert_case",
  "docker_credential",
@@ -2952,7 +2950,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.32.6"
+version = "0.32.7"
 dependencies = [
  "extism-pdk",
  "proto_pdk_api",
@@ -2963,7 +2961,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.31.7"
+version = "0.31.8"
 dependencies = [
  "derive_setters",
  "rustc-hash",
@@ -2979,7 +2977,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.43.6"
+version = "0.43.7"
 dependencies = [
  "extism",
  "proto_core",
@@ -3335,7 +3333,7 @@ dependencies = [
  "cfg-if",
  "getrandom 0.2.16",
  "libc",
- "untrusted 0.9.0",
+ "untrusted",
  "windows-sys 0.52.0",
 ]
 
@@ -3493,7 +3491,7 @@ dependencies = [
  "aws-lc-rs",
  "ring",
  "rustls-pki-types",
- "untrusted 0.9.0",
+ "untrusted",
 ]
 
 [[package]]
@@ -3544,9 +3542,9 @@ dependencies = [
 
 [[package]]
 name = "schematic"
-version = "0.19.4"
+version = "0.19.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "abc7d9aef1d4faaa9fb78e2976423d24b0961cb15dfd61ed7785fdbffd89e9fa"
+checksum = "cc12ebacdd2b93bc506fffc0376c1d8b04b35bce54e5ed6f3228c6e41d346921"
 dependencies = [
  "convert_case",
  "garde",
@@ -3569,9 +3567,9 @@ dependencies = [
 
 [[package]]
 name = "schematic_macros"
-version = "0.19.3"
+version = "0.19.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2de6118658d45bba6f7eb5c050a4af41dca2760f79cf3543e276ba8e80624984"
+checksum = "22ef30d52d6ce2b34b0dbedf49efaaec437c93aada037e575e9831d95de8f82a"
 dependencies = [
  "convert_case",
  "darling 0.23.0",
@@ -3582,9 +3580,9 @@ dependencies = [
 
 [[package]]
 name = "schematic_types"
-version = "0.11.3"
+version = "0.11.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "21ca3461a8dd2ba8439cbd64ae546f95b32c08cb6a8c81ef18986d125710d291"
+checksum = "87f45f7fb23e4533d3a0a9f5b27a8bb897a7b3b410730f0c1ee99025bf8b06aa"
 dependencies = [
  "indexmap",
  "regex",
@@ -4160,7 +4158,7 @@ dependencies = [
 
 [[package]]
 name = "system_env"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "regex",
  "schematic",
@@ -4666,12 +4664,6 @@ checksum = "b39abd59bf32521c7f2301b52d05a6a2c975b6003521cbd0c6dc1582f0a22104"
 
 [[package]]
 name = "untrusted"
-version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a156c684c91ea7d62626509bce3cb4e1d9ed5c4d978f7b4352658f96a4c26b4a"
-
-[[package]]
-name = "untrusted"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
@@ -4803,9 +4795,10 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.29.2"
+version = "0.29.3"
 dependencies = [
  "async-trait",
+ "base64 0.22.1",
  "compact_str 0.9.0",
  "docker_credential",
  "extism",
@@ -4836,7 +4829,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_api"
-version = "0.17.2"
+version = "0.17.3"
 dependencies = [
  "anyhow",
  "derive_setters",

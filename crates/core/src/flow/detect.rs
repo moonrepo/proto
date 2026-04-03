@@ -5,6 +5,7 @@ use crate::tool::Tool;
 use crate::tool_spec::ToolSpec;
 use proto_pdk_api::*;
 use starbase_utils::fs;
+use std::borrow::Cow;
 use std::env;
 use std::path::{Path, PathBuf};
 use tracing::{debug, instrument, trace};
@@ -151,9 +152,9 @@ impl<'tool> Detector<'tool> {
                     .call_func_with(
                         PluginFunction::ParseVersionFile,
                         ParseVersionFileInput {
-                            content,
+                            content: Cow::Borrowed(&content),
                             context: self.tool.create_plugin_unresolved_context(),
-                            file: file.clone(),
+                            file: Cow::Borrowed(&file),
                             path: self.tool.to_virtual_path(&file_path),
                         },
                     )

@@ -6,6 +6,7 @@ use crate::shapes::*;
 use derive_setters::Setters;
 use rustc_hash::FxHashMap;
 use schematic::Schema;
+use std::borrow::Cow;
 use std::path::PathBuf;
 use version_spec::{CalVer, SemVer, SpecError, UnresolvedVersionSpec, VersionSpec};
 use warpgate_api::*;
@@ -213,7 +214,7 @@ pub(crate) fn is_default<T: Default + PartialEq>(value: &T) -> bool {
     value == &T::default()
 }
 
-api_struct!(
+api_input_struct!(
     /// Information about the current state of the plugin,
     /// after a version has been resolved.
     pub struct PluginContext {
@@ -232,7 +233,7 @@ api_struct!(
     }
 );
 
-api_struct!(
+api_input_struct!(
     /// Information about the current state of the plugin,
     /// before a version has been resolved.
     pub struct PluginUnresolvedContext {
@@ -259,28 +260,25 @@ api_struct!(
 api_unit_enum!(
     /// Supported types of plugins.
     pub enum PluginType {
-        #[serde(alias = "CLI", alias = "CommandLine")] // TEMP
+        #[serde(alias = "CLI", alias = "CommandLine")]
         CommandLine,
         #[default]
         #[serde(alias = "Language")]
         Language,
-        #[serde(alias = "PM", alias = "DependencyManager")] // TEMP
+        #[serde(alias = "PM", alias = "DependencyManager")]
         DependencyManager,
-        #[serde(alias = "VM", alias = "VersionManager")] // TEMP
+        #[serde(alias = "VM", alias = "VersionManager")]
         VersionManager,
     }
 );
 
-api_struct!(
+api_input_struct!(
     /// Input passed to the `register_tool` function.
     pub struct RegisterToolInput {
         /// ID of the tool, as it was configured.
         pub id: Id,
     }
 );
-
-#[deprecated(note = "Use `RegisterToolInput` instead.")]
-pub type ToolMetadataInput = RegisterToolInput;
 
 api_struct!(
     /// Controls aspects of the tool inventory.
@@ -382,12 +380,9 @@ api_struct!(
     }
 );
 
-#[deprecated(note = "Use `RegisterToolOutput` instead.")]
-pub type ToolMetadataOutput = RegisterToolOutput;
-
 pub type ConfigSchema = Schema;
 
-api_struct!(
+api_output_struct!(
     /// Output returned from the `define_tool_config` function.
     pub struct DefineToolConfigOutput {
         /// Schema shape of the tool's configuration.
@@ -397,7 +392,7 @@ api_struct!(
 
 // BACKEND
 
-api_struct!(
+api_input_struct!(
     /// Input passed to the `register_backend` function.
     pub struct RegisterBackendInput {
         /// Current tool context.
@@ -408,7 +403,7 @@ api_struct!(
     }
 );
 
-api_struct!(
+api_output_struct!(
     /// Output returned by the `register_backend` function.
     pub struct RegisterBackendOutput {
         /// Unique identifier for this backend. Will be used as the folder name.
@@ -425,7 +420,7 @@ api_struct!(
     }
 );
 
-api_struct!(
+api_output_struct!(
     /// Output returned from the `define_backend_config` function.
     pub struct DefineBackendConfigOutput {
         /// Schema shape of the backend's configuration.
@@ -435,7 +430,7 @@ api_struct!(
 
 // VERSION DETECTION/PINNING
 
-api_struct!(
+api_input_struct!(
     /// Input passed to the `detect_version_files` function.
     pub struct DetectVersionInput {
         /// Current tool context.
@@ -443,7 +438,7 @@ api_struct!(
     }
 );
 
-api_struct!(
+api_output_struct!(
     /// Output returned by the `detect_version_files` function.
     #[serde(default)]
     pub struct DetectVersionOutput {
@@ -457,24 +452,26 @@ api_struct!(
     }
 );
 
-api_struct!(
+api_input_struct!(
     /// Input passed to the `parse_version_file` function.
-    pub struct ParseVersionFileInput {
+    pub struct ParseVersionFileInput<'a> {
         /// File contents to parse/extract a version from.
-        pub content: String,
+        #[serde(borrow)]
+        pub content: Cow<'a, str>,
 
         /// Current tool context.
         pub context: PluginUnresolvedContext,
 
         /// Name of file that's being parsed.
-        pub file: String,
+        #[serde(borrow)]
+        pub file: Cow<'a, str>,
 
         /// Virtual path to the file being parsed.
         pub path: VirtualPath,
     }
 );
 
-api_struct!(
+api_output_struct!(
     /// Output returned by the `parse_version_file` function.
     #[serde(default)]
     pub struct ParseVersionFileOutput {
@@ -485,7 +482,7 @@ api_struct!(
     }
 );
 
-api_struct!(
+api_input_struct!(
     /// Input passed to the `pin_version` function.
     pub struct PinVersionInput {
         /// Current tool context.
@@ -499,7 +496,7 @@ api_struct!(
     }
 );
 
-api_struct!(
+api_output_struct!(
     /// Output returned by the `pin_version` function.
     #[serde(default)]
     pub struct PinVersionOutput {
@@ -516,7 +513,7 @@ api_struct!(
     }
 );
 
-api_struct!(
+api_input_struct!(
     /// Input passed to the `unpin_version` function.
     pub struct UnpinVersionInput {
         /// Current tool context.
@@ -527,7 +524,7 @@ api_struct!(
     }
 );
 
-api_struct!(
+api_output_struct!(
     /// Output returned by the `unpin_version` function.
     #[serde(default)]
     pub struct UnpinVersionOutput {
@@ -549,7 +546,7 @@ api_struct!(
 
 // DOWNLOAD, BUILD, INSTALL, VERIFY
 
-api_struct!(
+api_input_struct!(
     /// Input passed to the `native_install` function.
     pub struct NativeInstallInput {
         /// Current tool context.
@@ -563,7 +560,7 @@ api_struct!(
     }
 );
 
-api_struct!(
+api_output_struct!(
     /// Output returned by the `native_install` function.
     pub struct NativeInstallOutput {
         /// A checksum/hash that was generated.
@@ -583,7 +580,7 @@ api_struct!(
     }
 );
 
-api_struct!(
+api_input_struct!(
     /// Input passed to the `native_uninstall` function.
     pub struct NativeUninstallInput {
         /// Current tool context.
@@ -594,7 +591,7 @@ api_struct!(
     }
 );
 
-api_struct!(
+api_output_struct!(
     /// Output returned by the `native_uninstall` function.
     pub struct NativeUninstallOutput {
         /// Error message if the uninstall failed.
@@ -610,7 +607,7 @@ api_struct!(
     }
 );
 
-api_struct!(
+api_input_struct!(
     /// Input passed to the `download_prebuilt` function.
     pub struct DownloadPrebuiltInput {
         /// Current tool context.
@@ -621,7 +618,7 @@ api_struct!(
     }
 );
 
-api_struct!(
+api_output_struct!(
     /// Output returned by the `download_prebuilt` function.
     pub struct DownloadPrebuiltOutput {
         /// Name of the direct folder within the archive that contains the tool,
@@ -662,7 +659,7 @@ api_struct!(
     }
 );
 
-api_struct!(
+api_input_struct!(
     /// Input passed to the `unpack_archive` function.
     pub struct UnpackArchiveInput {
         /// Current tool context.
@@ -676,8 +673,8 @@ api_struct!(
     }
 );
 
-api_struct!(
-    /// Output returned by the `verify_checksum` function.
+api_input_struct!(
+    /// Input passed to the `verify_checksum` function.
     pub struct VerifyChecksumInput {
         /// Current tool context.
         pub context: PluginContext,
@@ -696,7 +693,7 @@ api_struct!(
     }
 );
 
-api_struct!(
+api_output_struct!(
     /// Output returned by the `verify_checksum` function.
     pub struct VerifyChecksumOutput {
         /// Was the checksum correct?
@@ -706,7 +703,7 @@ api_struct!(
 
 // EXECUTABLES, BINARYS, GLOBALS
 
-api_struct!(
+api_input_struct!(
     /// Input passed to the `locate_executables` function.
     pub struct LocateExecutablesInput {
         /// Current tool context.
@@ -803,7 +800,7 @@ impl ExecutableConfig {
     }
 }
 
-api_struct!(
+api_output_struct!(
     /// Output returned by the `locate_executables` function.
     #[serde(default)]
     pub struct LocateExecutablesOutput {
@@ -834,7 +831,7 @@ api_struct!(
     }
 );
 
-api_struct!(
+api_input_struct!(
     /// Input passed to the `activate_environment` function.
     pub struct ActivateEnvironmentInput {
         /// Current tool context.
@@ -845,7 +842,7 @@ api_struct!(
     }
 );
 
-api_struct!(
+api_output_struct!(
     /// Output returned by the `activate_environment` function.
     #[serde(default)]
     pub struct ActivateEnvironmentOutput {
@@ -861,7 +858,7 @@ api_struct!(
 
 // VERSION RESOLVING
 
-api_struct!(
+api_input_struct!(
     /// Input passed to the `load_versions` function.
     pub struct LoadVersionsInput {
         /// Current tool context.
@@ -939,7 +936,7 @@ impl LoadVersionsOutput {
     }
 }
 
-api_struct!(
+api_input_struct!(
     /// Input passed to the `resolve_version` function.
     pub struct ResolveVersionInput {
         /// Current tool context.
@@ -950,7 +947,7 @@ api_struct!(
     }
 );
 
-api_struct!(
+api_output_struct!(
     /// Output returned by the `resolve_version` function.
     #[serde(default)]
     pub struct ResolveVersionOutput {
@@ -967,7 +964,7 @@ api_struct!(
 
 // MISCELLANEOUS
 
-api_struct!(
+api_input_struct!(
     /// Input passed to the `sync_manifest` function.
     pub struct SyncManifestInput {
         /// Current tool context.
@@ -975,7 +972,7 @@ api_struct!(
     }
 );
 
-api_struct!(
+api_output_struct!(
     /// Output returned by the `sync_manifest` function.
     #[serde(default)]
     pub struct SyncManifestOutput {
@@ -989,18 +986,19 @@ api_struct!(
     }
 );
 
-api_struct!(
+api_input_struct!(
     /// Input passed to the `sync_shell_profile` function.
-    pub struct SyncShellProfileInput {
+    pub struct SyncShellProfileInput<'a> {
         /// Current tool context.
         pub context: PluginContext,
 
         /// Arguments passed after `--` that was directly passed to the tool's executable.
-        pub passthrough_args: Vec<String>,
+        #[serde(borrow)]
+        pub passthrough_args: Vec<&'a str>,
     }
 );
 
-api_struct!(
+api_output_struct!(
     /// Output returned by the `sync_shell_profile` function.
     pub struct SyncShellProfileOutput {
         /// An environment variable to check for in the shell profile.

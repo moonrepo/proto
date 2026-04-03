@@ -393,8 +393,8 @@ async fn prepare_tool(
                         .globals_dir
                         .as_ref()
                         .map(|dir| tool.to_virtual_path(dir)),
-                    globals_prefix: locations.globals_prefix,
-                    passthrough_args: params.passthrough_args,
+                    globals_prefix: locations.globals_prefix.as_deref(),
+                    passthrough_args: params.passthrough_args.iter().map(|a| a.as_str()).collect(),
                 },
             )
             .await?;

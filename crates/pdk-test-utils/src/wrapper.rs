@@ -92,7 +92,7 @@ impl WasmTestWrapper {
 
     pub async fn parse_version_file(
         &self,
-        mut input: ParseVersionFileInput,
+        mut input: ParseVersionFileInput<'_>,
     ) -> ParseVersionFileOutput {
         input.context = self.prepare_unresolved_context(input.context);
         input.path = self.tool.to_virtual_path(input.path);
@@ -115,7 +115,7 @@ impl WasmTestWrapper {
             .unwrap()
     }
 
-    pub async fn pre_install(&self, mut input: InstallHook) {
+    pub async fn pre_install(&self, mut input: InstallHook<'_>) {
         input.context = self.prepare_context(input.context);
 
         self.tool
@@ -125,7 +125,7 @@ impl WasmTestWrapper {
             .unwrap();
     }
 
-    pub async fn pre_run(&self, mut input: RunHook) -> RunHookResult {
+    pub async fn pre_run(&self, mut input: RunHook<'_>) -> RunHookResult {
         input.context = self.prepare_context(input.context);
 
         self.tool
@@ -135,7 +135,7 @@ impl WasmTestWrapper {
             .unwrap()
     }
 
-    pub async fn post_install(&self, mut input: InstallHook) {
+    pub async fn post_install(&self, mut input: InstallHook<'_>) {
         input.context = self.prepare_context(input.context);
 
         self.tool
@@ -185,7 +185,7 @@ impl WasmTestWrapper {
 
     pub async fn sync_shell_profile(
         &self,
-        mut input: SyncShellProfileInput,
+        mut input: SyncShellProfileInput<'_>,
     ) -> SyncShellProfileOutput {
         input.context = self.prepare_context(input.context);
 

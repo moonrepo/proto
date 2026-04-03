@@ -1,6 +1,7 @@
 use crate::helpers::{from_virtual_path, to_virtual_path};
 use crate::plugin_error::WarpgatePluginError;
 use extism::{Error, Function, Manifest, Plugin};
+use scc::hash_map::Entry;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use starbase_styles::{apply_style_tags, color};
@@ -87,7 +88,7 @@ pub type OnCallFn = Arc<dyn Fn(&str, Option<&str>, Option<&str>) + Send + Sync>;
 /// additional methods for easily working with WASI and virtual paths.
 pub struct PluginContainer {
     pub id: Id,
-    pub manifest: Manifest,
+    pub manifest: Arc<Manifest>,
 
     debug_call: bool,
     func_cache: Arc<scc::HashMap<String, Vec<u8>>>,
@@ -123,7 +124,7 @@ impl PluginContainer {
         );
 
         Ok(PluginContainer {
-            manifest,
+            manifest: Arc::new(manifest),
             plugin: Arc::new(RwLock::new(plugin)),
             id,
             func_cache: Arc::new(scc::HashMap::new()),
@@ -168,8 +169,6 @@ impl PluginContainer {
         I: Debug + Serialize,
         O: Debug + DeserializeOwned,
     {
-        use scc::hash_map::Entry;
-
         let func = func.as_ref();
         let input = self.format_input(func, input)?;
         let cache_key = format!("{func}-{input}");
@@ -210,7 +209,7 @@ impl PluginContainer {
 
         self.parse_output(
             func,
-            &self.call(func, self.format_input(func, input)?).await?,
+            self.call(func, self.format_input(func, input)?).await?,
         )
     }
 
@@ -234,7 +233,24 @@ impl PluginContainer {
 
     /// Return true if the plugin has a function with the given id.
     pub async fn has_func(&self, func: impl AsRef<str>) -> bool {
-        self.plugin.read().await.function_exists(func.as_ref())
+        let func = func.as_ref();
+
+        match self.func_cache.entry_async(func.to_owned()).await {
+            Entry::Occupied(entry) => entry.get()[0] != 0,
+            Entry::Vacant(entry) => {
+                let has = self.plugin.read().await.function_exists(func);
+
+                entry.insert_entry(vec![has as u8]);
+
+                has
+            }
+        }
+    }
+
+    /// Convert the provided absolute host path to a virtual guest path suitable
+    /// for WASI sandboxed runtimes.
+    pub fn from_real_path(&self, path: impl AsRef<Path> + Debug) -> VirtualPath {
+        self.to_virtual_path(path)
     }
 
     /// Convert the provided virtual guest path to an absolute host path.
@@ -246,6 +262,11 @@ impl PluginContainer {
         let paths = map_virtual_paths(virtual_paths);
 
         from_virtual_path(&paths, path)
+    }
+
+    /// Convert the provided virtual guest path to an absolute host path.
+    pub fn to_real_path(&self, path: impl AsRef<Path> + Debug) -> PathBuf {
+        self.from_virtual_path(path)
     }
 
     /// Convert the provided absolute host path to a virtual guest path suitable
@@ -261,10 +282,10 @@ impl PluginContainer {
     }
 
     /// Call a function on the plugin with the given raw input and return the raw output.
-    pub async fn call(
+    pub async fn call<I: AsRef<[u8]>>(
         &self,
         func: &str,
-        input: impl AsRef<[u8]>,
+        input: I,
     ) -> Result<Vec<u8>, WarpgatePluginError> {
         let mut instance = self.plugin.write().await;
         let input = input.as_ref();
@@ -357,12 +378,12 @@ impl PluginContainer {
         })
     }
 
-    fn parse_output<O: DeserializeOwned>(
+    fn parse_output<O: DeserializeOwned, D: AsRef<[u8]>>(
         &self,
         func: &str,
-        data: &[u8],
+        data: D,
     ) -> Result<O, WarpgatePluginError> {
-        serde_json::from_slice(data).map_err(|error| WarpgatePluginError::InvalidOutput {
+        serde_json::from_slice(data.as_ref()).map_err(|error| WarpgatePluginError::InvalidOutput {
             id: self.id.clone(),
             func: func.to_owned(),
             error: Box::new(error),

@@ -5,9 +5,9 @@ use rustc_hash::FxHashMap;
 use semver::VersionReq;
 use std::path::PathBuf;
 use system_env::SystemDependency;
-use warpgate_api::{Id, VirtualPath, api_enum, api_struct};
+use warpgate_api::{Id, VirtualPath, api_enum, api_input_struct, api_output_struct, api_struct};
 
-api_struct!(
+api_input_struct!(
     /// Input passed to the `build_instructions` function.
     pub struct BuildInstructionsInput {
         /// Current tool context.
@@ -141,7 +141,7 @@ api_enum!(
     }
 );
 
-api_struct!(
+api_output_struct!(
     /// Output returned by the `build_instructions` function.
     #[serde(default)]
     pub struct BuildInstructionsOutput {

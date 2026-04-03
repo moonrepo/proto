@@ -54,10 +54,10 @@ impl AsRef<str> for HookFunction {
     }
 }
 
-api_struct!(
+api_input_struct!(
     /// Input passed to the `pre_install` and `post_install` hooks,
     /// while a `proto install` command is running.
-    pub struct InstallHook {
+    pub struct InstallHook<'a> {
         /// Current tool context.
         pub context: PluginContext,
 
@@ -65,7 +65,8 @@ api_struct!(
         pub forced: bool,
 
         /// Arguments passed after `--` that was directly passed to the tool's executable.
-        pub passthrough_args: Vec<String>,
+        #[serde(borrow)]
+        pub passthrough_args: Vec<&'a str>,
 
         /// Whether the resolved version was pinned.
         pub pinned: bool,
@@ -75,10 +76,10 @@ api_struct!(
     }
 );
 
-api_struct!(
+api_input_struct!(
     /// Input passed to the `pre_run` hook, before a `proto run` command
     /// or language executable is ran.
-    pub struct RunHook {
+    pub struct RunHook<'a> {
         /// Current tool context.
         pub context: PluginContext,
 
@@ -86,14 +87,14 @@ api_struct!(
         pub globals_dir: Option<VirtualPath>,
 
         /// A prefix applied to the file names of globally installed packages.
-        pub globals_prefix: Option<String>,
+        pub globals_prefix: Option<&'a str>,
 
         /// Arguments passed after `--` that was directly passed to the tool's executable.
-        pub passthrough_args: Vec<String>,
+        pub passthrough_args: Vec<&'a str>,
     }
 );
 
-api_struct!(
+api_output_struct!(
     /// Output returned from the `pre_run` hook.
     #[serde(default)]
     pub struct RunHookResult {
