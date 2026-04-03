@@ -44,7 +44,7 @@ impl WasmTestWrapper {
             .unwrap()
     }
 
-    pub async fn load_versions(&self, mut input: LoadVersionsInput<'_>) -> LoadVersionsOutput {
+    pub async fn load_versions(&self, mut input: LoadVersionsInput) -> LoadVersionsOutput {
         input.context = self.prepare_unresolved_context(input.context);
 
         self.tool
@@ -219,10 +219,7 @@ impl WasmTestWrapper {
             .unwrap()
     }
 
-    pub async fn verify_checksum(
-        &self,
-        mut input: VerifyChecksumInput<'_>,
-    ) -> VerifyChecksumOutput {
+    pub async fn verify_checksum(&self, mut input: VerifyChecksumInput) -> VerifyChecksumOutput {
         input.checksum_file = self.tool.to_virtual_path(input.checksum_file);
         input.download_file = self.tool.to_virtual_path(input.download_file);
 

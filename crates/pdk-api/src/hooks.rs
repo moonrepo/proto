@@ -65,7 +65,8 @@ api_input_struct!(
         pub forced: bool,
 
         /// Arguments passed after `--` that was directly passed to the tool's executable.
-        pub passthrough_args: &'a [String],
+        #[serde(borrow)]
+        pub passthrough_args: Vec<&'a str>,
 
         /// Whether the resolved version was pinned.
         pub pinned: bool,
@@ -86,10 +87,10 @@ api_input_struct!(
         pub globals_dir: Option<VirtualPath>,
 
         /// A prefix applied to the file names of globally installed packages.
-        pub globals_prefix: Option<&'a String>,
+        pub globals_prefix: Option<&'a str>,
 
         /// Arguments passed after `--` that was directly passed to the tool's executable.
-        pub passthrough_args: &'a [String],
+        pub passthrough_args: Vec<&'a str>,
     }
 );
 

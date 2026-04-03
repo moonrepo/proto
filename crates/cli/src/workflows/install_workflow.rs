@@ -242,7 +242,11 @@ impl InstallWorkflow {
                     InstallHook {
                         context: tool.create_plugin_context(spec),
                         forced: params.force,
-                        passthrough_args: &params.passthrough_args,
+                        passthrough_args: params
+                            .passthrough_args
+                            .iter()
+                            .map(|a| a.as_str())
+                            .collect(),
                         pinned: params.pin_to.is_some(),
                         quiet: params.quiet,
                     },
@@ -373,7 +377,11 @@ impl InstallWorkflow {
                     InstallHook {
                         context: tool.create_plugin_context(spec),
                         forced: params.force,
-                        passthrough_args: &params.passthrough_args,
+                        passthrough_args: params
+                            .passthrough_args
+                            .iter()
+                            .map(|a| a.as_str())
+                            .collect(),
                         pinned: params.pin_to.is_some(),
                         quiet: params.quiet,
                     },
@@ -438,7 +446,7 @@ impl InstallWorkflow {
                 PluginFunction::SyncShellProfile,
                 SyncShellProfileInput {
                     context: tool.create_plugin_context(spec),
-                    passthrough_args: &params.passthrough_args,
+                    passthrough_args: params.passthrough_args.iter().map(|a| a.as_str()).collect(),
                 },
             )
             .await?;

@@ -628,7 +628,7 @@ impl<'tool> Installer<'tool> {
                     VerifyChecksumInput {
                         checksum_file: self.tool.to_virtual_path(checksum_file),
                         download_file: self.tool.to_virtual_path(download_file),
-                        download_checksum: Some(&checksum),
+                        download_checksum: Some(checksum.clone()),
                         context: self.tool.create_plugin_context(self.spec),
                     },
                 )

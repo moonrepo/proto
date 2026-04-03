@@ -6,6 +6,7 @@ use crate::shapes::*;
 use derive_setters::Setters;
 use rustc_hash::FxHashMap;
 use schematic::Schema;
+use std::borrow::Cow;
 use std::path::PathBuf;
 use version_spec::{CalVer, SemVer, SpecError, UnresolvedVersionSpec, VersionSpec};
 use warpgate_api::*;
@@ -455,13 +456,15 @@ api_input_struct!(
     /// Input passed to the `parse_version_file` function.
     pub struct ParseVersionFileInput<'a> {
         /// File contents to parse/extract a version from.
-        pub content: &'a String,
+        #[serde(borrow)]
+        pub content: Cow<'a, str>,
 
         /// Current tool context.
         pub context: PluginUnresolvedContext,
 
         /// Name of file that's being parsed.
-        pub file: &'a String,
+        #[serde(borrow)]
+        pub file: Cow<'a, str>,
 
         /// Virtual path to the file being parsed.
         pub path: VirtualPath,
@@ -672,7 +675,7 @@ api_input_struct!(
 
 api_input_struct!(
     /// Input passed to the `verify_checksum` function.
-    pub struct VerifyChecksumInput<'a> {
+    pub struct VerifyChecksumInput {
         /// Current tool context.
         pub context: PluginContext,
 
@@ -683,7 +686,7 @@ api_input_struct!(
         /// is derived from the checksum file's extension, otherwise
         /// it defaults to SHA256.
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        pub download_checksum: Option<&'a Checksum>,
+        pub download_checksum: Option<Checksum>,
 
         /// Virtual path to the downloaded file.
         pub download_file: VirtualPath,
@@ -857,12 +860,12 @@ api_output_struct!(
 
 api_input_struct!(
     /// Input passed to the `load_versions` function.
-    pub struct LoadVersionsInput<'a> {
+    pub struct LoadVersionsInput {
         /// Current tool context.
         pub context: PluginUnresolvedContext,
 
         /// The alias or version currently being resolved.
-        pub initial: &'a UnresolvedVersionSpec,
+        pub initial: UnresolvedVersionSpec,
     }
 );
 
@@ -990,7 +993,8 @@ api_input_struct!(
         pub context: PluginContext,
 
         /// Arguments passed after `--` that was directly passed to the tool's executable.
-        pub passthrough_args: &'a [String],
+        #[serde(borrow)]
+        pub passthrough_args: Vec<&'a str>,
     }
 );
 

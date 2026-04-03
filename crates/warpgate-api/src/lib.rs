@@ -26,7 +26,7 @@ macro_rules! api_struct {
 #[macro_export]
 macro_rules! api_input_struct {
     ($struct:item) => {
-        #[derive(Clone, Debug, PartialEq, serde::Serialize)]
+        #[derive(Clone, Debug, serde::Deserialize, PartialEq, serde::Serialize)]
         #[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
         $struct
     };
@@ -36,7 +36,7 @@ macro_rules! api_input_struct {
 #[macro_export]
 macro_rules! api_output_struct {
     ($struct:item) => {
-        #[derive(Clone, Debug, Default, serde::Deserialize, PartialEq)]
+        #[derive(Clone, Debug, Default, serde::Deserialize, PartialEq, serde::Serialize)]
         #[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
         $struct
     };

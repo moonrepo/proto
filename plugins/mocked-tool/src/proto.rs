@@ -44,7 +44,7 @@ struct VersionJson {
 
 #[plugin_fn]
 pub fn parse_version_file(
-    Json(input): Json<ParseVersionFileInput>,
+    Json(input): Json<ParseVersionFileInput<'_>>,
 ) -> FnResult<Json<ParseVersionFileOutput>> {
     let mut version = None;
     let id = get_plugin_id()?;
