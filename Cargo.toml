@@ -17,7 +17,7 @@ extism = ">=1.6.0" # Lower for consumers
 extism-pdk = "1.4.1"
 http-cache-reqwest = "1.0.0-alpha.4"
 human-sort = "0.2.2"
-indexmap = "2.13.0"
+indexmap = "2.13.1"
 iocraft = "0.8.0"
 # iocraft = { git = "https://github.com/ccbrown/iocraft.git", branch = "main" }
 miette = "7.6.0"
@@ -39,11 +39,11 @@ rmcp = { version = "1.3.0", default-features = false, features = [
     "base64",
     "macros",
 ] }
-rustc-hash = "2.1.1"
+rustc-hash = "2.1.2"
 scc = "3.6.12"
 schemars = "1.2.1"
-schematic = { version = "0.19.4", default-features = false }
-semver = { version = "1.0.27", features = ["serde"] }
+schematic = { version = "0.19.6", default-features = false }
+semver = { version = "1.0.28", features = ["serde"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = { version = "1.0.49", features = ["preserve_order"] }
 sha2 = "0.10.9"
@@ -68,8 +68,8 @@ starbase_utils = { version = "0.12.6", default-features = false, features = [
     "toml",
 ] }
 thiserror = "2.0.18"
-tokio = { version = "1.50.0", features = ["full", "tracing"] }
-toml_edit = "0.23.9"
+tokio = { version = "1.51.0", features = ["full", "tracing"] }
+toml_edit = "0.25"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", default-features = false }
-uuid = { version = "1.22.0", features = ["v4"] }
+uuid = { version = "1.23.0", features = ["v4"] }
