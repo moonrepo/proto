@@ -24,6 +24,7 @@
   - If you need to use quotes/escapes, you can quote the entire command to execute:
     - Before: `proto exec node -- node -e "console.log('hello world')"`
     - After: `proto exec node -- 'node -e "console.log('hello world')"'`
+- Updated child processes executed from WASM plugins to not always run in a shell by default, as it adds too much overhead.
 
 #### 🚀 Updates
 
