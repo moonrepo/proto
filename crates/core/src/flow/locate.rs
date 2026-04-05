@@ -1,4 +1,5 @@
 pub use super::locate_error::ProtoLocateError;
+use crate::helpers::is_executable;
 use crate::helpers::ENV_VAR;
 use crate::layout::BinManager;
 use crate::tool::Tool;
@@ -10,10 +11,13 @@ use proto_shim::{get_exe_file_name, get_shim_file_name};
 use serde::Serialize;
 use starbase_utils::{fs, path};
 use std::env;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tracing::{debug, instrument};
 use version_spec::VersionSpec;
 
+fn should_update_perms(path: &Path, update_perms: bool) -> bool {
+    update_perms && path.exists() && !is_executable(path)
+}
 // Executable = File within the tool's install directory
 // Binary/shim = File within proto's store directories
 
@@ -110,7 +114,7 @@ impl<'tool> Locator<'tool> {
 
             let path = self.product_dir.join(path::normalize_separators(exe_path));
 
-            if config.update_perms && path.exists() {
+            if should_update_perms(&path, config.update_perms) {
                 fs::update_perms(&path, None)?;
             }
 
@@ -531,3 +535,4 @@ impl<'tool> Locator<'tool> {
         Ok(prefix)
     }
 }
+
