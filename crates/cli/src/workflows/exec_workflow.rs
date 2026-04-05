@@ -392,3 +392,132 @@ async fn prepare_tool(
 
     Ok(item)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use proto_core::ProtoConfig;
+
+    fn make_item(paths: Vec<PathBuf>, env: Vec<(&str, &str)>) -> ExecItem {
+        let mut item = ExecItem {
+            active: true,
+            paths: paths.into_iter().collect(),
+            ..Default::default()
+        };
+
+        for (k, v) in env {
+            item.set_env(k.to_string(), v.to_string());
+        }
+
+        item
+    }
+
+    mod exec_item_tests {
+        use super::*;
+
+        #[test]
+        fn add_path_only_adds_existing() {
+            let mut item = ExecItem::default();
+            item.add_path(std::env::temp_dir());
+            item.add_path(PathBuf::from("/nonexistent_proto_test_xyz_12345"));
+
+            assert_eq!(item.paths.len(), 1);
+            assert!(item.paths.contains(&std::env::temp_dir()));
+        }
+
+        #[test]
+        fn add_path_deduplicates() {
+            let mut item = ExecItem::default();
+            let tmp = std::env::temp_dir();
+            item.add_path(tmp.clone());
+            item.add_path(tmp.clone());
+
+            assert_eq!(item.paths.len(), 1);
+        }
+
+        #[test]
+        fn add_path_preserves_insertion_order() {
+            let mut item = ExecItem::default();
+            // Use two paths that definitely exist
+            let tmp = std::env::temp_dir();
+            let root = if cfg!(windows) {
+                PathBuf::from("C:\\")
+            } else {
+                PathBuf::from("/")
+            };
+            item.add_path(tmp.clone());
+            item.add_path(root.clone());
+
+            let paths: Vec<_> = item.paths.into_iter().collect();
+            assert_eq!(paths, vec![tmp, root]);
+        }
+    }
+
+    mod exec_workflow_tests {
+        use super::*;
+
+        fn make_workflow() -> ExecWorkflow<'static> {
+            // Use a leaked static ref for the config to satisfy the lifetime
+            let config: &'static ProtoConfig = Box::leak(Box::new(ProtoConfig::default()));
+            ExecWorkflow::new(vec![], config)
+        }
+
+        #[test]
+        fn collect_item_deduplicates_paths() {
+            let mut wf = make_workflow();
+
+            let path_a = PathBuf::from("/path/a");
+            let path_b = PathBuf::from("/path/b");
+
+            wf.collect_item(make_item(vec![path_a.clone(), path_b.clone()], vec![]));
+            wf.collect_item(make_item(vec![path_a.clone()], vec![]));
+
+            assert_eq!(wf.paths.len(), 2);
+            let paths: Vec<_> = wf.paths.iter().collect();
+            assert_eq!(paths, vec![&path_a, &path_b]);
+        }
+
+        #[test]
+        fn collect_item_preserves_path_order() {
+            let mut wf = make_workflow();
+
+            let paths = vec![
+                PathBuf::from("/first"),
+                PathBuf::from("/second"),
+                PathBuf::from("/third"),
+            ];
+            wf.collect_item(make_item(paths.clone(), vec![]));
+
+            let result: Vec<_> = wf.paths.iter().collect();
+            assert_eq!(result, paths.iter().collect::<Vec<_>>());
+        }
+
+        #[test]
+        fn collect_item_env_later_overrides_earlier() {
+            let mut wf = make_workflow();
+
+            wf.collect_item(make_item(vec![], vec![("KEY", "first")]));
+            wf.collect_item(make_item(vec![], vec![("KEY", "second")]));
+
+            assert_eq!(wf.env.get("KEY"), Some(&Some("second".to_string())));
+        }
+
+        #[test]
+        fn join_paths_returns_none_when_empty() {
+            let wf = make_workflow();
+            assert!(wf.join_paths().unwrap().is_none());
+        }
+
+        #[test]
+        fn join_paths_returns_some_when_non_empty() {
+            let mut wf = make_workflow();
+            wf.paths.insert(PathBuf::from("/test/bin"));
+
+            let result = wf.join_paths().unwrap();
+            assert!(result.is_some());
+
+            let joined = result.unwrap().to_string_lossy().to_string();
+            assert!(joined.starts_with("/test/bin"));
+        }
+    }
+}

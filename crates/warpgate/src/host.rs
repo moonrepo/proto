@@ -199,8 +199,7 @@ fn exec_command(
     // Create and execute command
     let mut command = match &shell_name {
         Some(shell_name) => {
-            let shell = ShellType::from_str(&shell_name)?.build();
-
+            let shell = ShellType::from_str(shell_name)?.build();
             shell.create_wrapped_command_with(join_exe_args(&shell, exe, &input.args, false))
         }
         None => {
