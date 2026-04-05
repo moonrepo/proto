@@ -225,6 +225,20 @@ fn exec_command(
         }
     }
 
+    if !input.paths.is_empty() {
+        let mut path_list = vec![];
+
+        path_list.extend(
+            input
+                .paths
+                .iter()
+                .map(|virtual_path| helpers::from_virtual_path(&data.virtual_paths, virtual_path)),
+        );
+        path_list.extend(envx::paths());
+
+        command.env("PATH", env::join_paths(path_list)?);
+    }
+
     command.stdin(Stdio::null());
 
     if should_stream {
@@ -254,6 +268,7 @@ fn exec_command(
             exit_code: result.code().unwrap_or(-1),
             stderr: String::new(),
             stdout: String::new(),
+            streamed: true,
         }
     } else {
         let result = child.wait_with_output()?;
@@ -263,6 +278,7 @@ fn exec_command(
             exit_code: result.status.code().unwrap_or(-1),
             stderr: String::from_utf8_lossy(&result.stderr).to_string(),
             stdout: String::from_utf8_lossy(&result.stdout).to_string(),
+            streamed: false,
         }
     };
 
