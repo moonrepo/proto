@@ -99,7 +99,7 @@ moonstone = "2.0.0"
 
         let output = get_activate_output(&assert, &sandbox);
 
-        assert!(output.contains("<WORKSPACE>/.proto/activate-start <WORKSPACE>/.proto/shims <WORKSPACE>/.proto/bin <WORKSPACE>/.proto/activate-stop"));
+        assert!(output.contains("'<WORKSPACE>/.proto/activate-start' '<WORKSPACE>/.proto/shims' '<WORKSPACE>/.proto/bin' '<WORKSPACE>/.proto/activate-stop'"));
     }
 
     #[test]
@@ -183,7 +183,7 @@ KEY2 = "value2"
 
             let output = get_activate_output(&assert, &sandbox);
 
-            assert!(output.contains("<WORKSPACE>/.proto/activate-start <WORKSPACE>/.proto/shims <WORKSPACE>/.proto/bin <WORKSPACE>/.proto/activate-stop"));
+            assert!(output.contains("'<WORKSPACE>/.proto/activate-start' '<WORKSPACE>/.proto/shims' '<WORKSPACE>/.proto/bin' '<WORKSPACE>/.proto/activate-stop'"));
         }
 
         #[test]

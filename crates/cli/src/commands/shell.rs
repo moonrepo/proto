@@ -26,6 +26,7 @@ pub async fn shell(session: ProtoSession, args: ShellArgs) -> AppResult {
     let command = match shell_type {
         ShellType::Ash => "ash -i",
         ShellType::Bash => "bash -i",
+        ShellType::Dash => "dash -i",
         ShellType::Elvish => "elvish",
         ShellType::Fish => "fish --interactive",
         ShellType::Ion => "ion",
@@ -46,7 +47,6 @@ pub async fn shell(session: ProtoSession, args: ShellArgs) -> AppResult {
         ExecArgs {
             tools_from_config: args.tools.is_empty(),
             tools: args.tools,
-            raw: false,
             shell: None,
             command: command
                 .split_whitespace()

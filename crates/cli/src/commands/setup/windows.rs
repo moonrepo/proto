@@ -63,7 +63,7 @@ fn set_path_var(new_path: &[u16]) -> Result<()> {
         .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
         .and_then(|environment| {
             let reg_value = RegValue {
-                bytes: winreg_ext::to_winreg_bytes(new_path),
+                bytes: winreg_ext::to_winreg_bytes(new_path).into(),
                 vtype: RegType::REG_EXPAND_SZ,
             };
             environment.set_raw_value("PATH", &reg_value)
