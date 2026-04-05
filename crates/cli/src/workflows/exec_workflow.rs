@@ -105,12 +105,11 @@ impl<'app> ExecWorkflow<'app> {
     ) -> miette::Result<()> {
         let mut set = JoinSet::<Result<ExecItem, ProtoManageError>>::new();
 
+        // Extract in a background thread
         for tool in std::mem::take(&mut self.tools) {
-            let provided_spec = specs.remove(&tool.context);
-            let params = params.clone();
+            let spec = specs.remove(&tool.context);
 
-            // Extract in a background thread
-            set.spawn(async move { prepare_tool(tool, provided_spec, params).await });
+            set.spawn(Box::pin(prepare_tool(tool, spec, params.clone())));
         }
 
         // Inherit shared environment variables
