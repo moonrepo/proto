@@ -99,7 +99,6 @@ bun = "1.2"
                 "bun",
                 "--shell",
                 "bash",
-                "--raw",
                 "--",
                 "node --version && bun --version",
             ]);
@@ -133,7 +132,6 @@ bun = "1.2"
                 "--tools-from-config",
                 "--shell",
                 "bash",
-                "--raw",
                 "--",
                 "node --version && bun --version",
             ]);

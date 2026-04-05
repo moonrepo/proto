@@ -2,3 +2,7 @@ node_modules/
 shims/
 target/
 **/*.rs.bk
+
+# AI / agents
+.claude/settings.local.json
+.claude/worktrees

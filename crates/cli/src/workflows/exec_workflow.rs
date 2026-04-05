@@ -10,7 +10,8 @@ use proto_pdk_api::{
     RunHookResult,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
-use starbase_shell::{BoxedShell, join_args};
+use starbase_args::parse as parse_args;
+use starbase_shell::BoxedShell;
 use starbase_utils::envx;
 use std::collections::VecDeque;
 use std::env;
@@ -138,73 +139,35 @@ impl<'app> ExecWorkflow<'app> {
         Ok(())
     }
 
-    #[cfg(unix)]
-    pub fn create_wrapped_command<E, AI, A>(
-        &self,
-        shell: &BoxedShell,
-        exe: E,
-        args: AI,
-        raw: bool,
-    ) -> String
+    pub fn wrap_command<I, A>(&self, args: I) -> OsString
     where
-        E: AsRef<OsStr>,
-        AI: IntoIterator<Item = A>,
+        I: IntoIterator<Item = A>,
         A: AsRef<OsStr>,
     {
-        let args = args.into_iter().collect::<Vec<_>>();
-        let mut line = vec![exe.as_ref()];
+        let mut out = OsString::new();
 
-        line.extend(args.iter().map(|arg| arg.as_ref()));
+        for arg in args {
+            if !out.is_empty() {
+                out.push(OsStr::new(" "));
+            }
+
+            out.push(arg.as_ref());
+        }
 
         if !self.multiple && !self.args.is_empty() {
-            line.extend(self.args.iter().map(OsStr::new));
+            for arg in &self.args {
+                out.push(OsStr::new(" "));
+                out.push(arg);
+            }
         }
 
-        if raw {
-            line.join(OsStr::new(" ")).into_string().unwrap()
-        } else {
-            join_args(shell, line)
-        }
+        out
     }
 
-    // `Quotable` doesn't support `OsStr` on Windows,
-    // so we need to convert everything to strings...
-    #[cfg(windows)]
-    pub fn create_wrapped_command<E, AI, A>(
-        &self,
-        shell: &BoxedShell,
-        exe: E,
-        args: AI,
-        raw: bool,
-    ) -> String
+    pub fn create_command<E, I, A>(self, exe: E, args: I) -> miette::Result<Command>
     where
         E: AsRef<OsStr>,
-        AI: IntoIterator<Item = A>,
-        A: AsRef<OsStr>,
-    {
-        let args = args.into_iter().collect::<Vec<_>>();
-        let mut line = vec![exe.as_ref().to_string_lossy().to_string()];
-
-        line.extend(
-            args.iter()
-                .map(|arg| arg.as_ref().to_string_lossy().to_string()),
-        );
-
-        if !self.multiple && !self.args.is_empty() {
-            line.extend(self.args.clone());
-        }
-
-        if raw {
-            line.join(" ")
-        } else {
-            join_args(shell, line.iter().collect::<Vec<_>>())
-        }
-    }
-
-    pub fn create_command<E, AI, A>(self, exe: E, args: AI) -> miette::Result<Command>
-    where
-        E: AsRef<OsStr>,
-        AI: IntoIterator<Item = A>,
+        I: IntoIterator<Item = A>,
         A: AsRef<OsStr>,
     {
         let mut command = Command::new(exe);
@@ -215,21 +178,12 @@ impl<'app> ExecWorkflow<'app> {
         Ok(command)
     }
 
-    pub fn create_command_with_shell<E, AI, A>(
+    pub fn create_command_with_shell(
         self,
         shell: BoxedShell,
-        exe: E,
-        args: AI,
-        raw: bool,
-    ) -> miette::Result<Command>
-    where
-        E: AsRef<OsStr>,
-        AI: IntoIterator<Item = A>,
-        A: AsRef<OsStr>,
-    {
-        let mut command = Command::new(shell.to_string());
-        command.args(shell.get_exec_command().shell_args);
-        command.arg(self.create_wrapped_command(&shell, exe, args, raw));
+        command_line: OsString,
+    ) -> miette::Result<Command> {
+        let mut command = shell.create_wrapped_command_with(command_line);
 
         self.apply_to_command(&mut command, true)?;
 
@@ -309,6 +263,13 @@ impl<'app> ExecWorkflow<'app> {
 
     pub fn reset_and_join_paths(&self, store_dir: &Path) -> miette::Result<OsString> {
         env::join_paths(self.reset_paths(store_dir)).into_diagnostic()
+    }
+
+    pub fn requires_shell(&self, args: &[String]) -> bool {
+        match parse_args(args.join(" ")) {
+            Ok(command_line) => command_line.is_complex_command(),
+            Err(_) => true,
+        }
     }
 }
 

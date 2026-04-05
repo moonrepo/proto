@@ -2,7 +2,7 @@ use crate::clients::{HttpClient, WarpgateHttpClientError};
 use crate::helpers;
 use crate::plugin_error::WarpgatePluginError;
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
-use starbase_shell::{ShellType, join_args};
+use starbase_shell::{ShellType, join_exe_args};
 use starbase_styles::{apply_style_tags, color};
 use starbase_utils::{envx, fs};
 use std::collections::BTreeMap;
@@ -10,7 +10,7 @@ use std::env;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::str::FromStr;
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 use std::time::Instant;
 use system_env::find_command_on_path;
 use tokio::runtime::Handle;
@@ -131,24 +131,6 @@ fn host_log(
 
 // Commands
 
-fn get_default_shell() -> Option<ShellType> {
-    static SHELL_CACHE: OnceLock<Option<ShellType>> = OnceLock::new();
-
-    *SHELL_CACHE.get_or_init(ShellType::detect)
-}
-
-fn get_shell_exe_path(name: &str) -> PathBuf {
-    // pwsh.exe isn't available on all Windows machines by default,
-    // but powershell.exe typically is!
-    if name == "pwsh" {
-        return find_command_on_path("pwsh")
-            .or_else(|| find_command_on_path("powershell"))
-            .unwrap_or_else(|| "powershell".into());
-    }
-
-    find_command_on_path(name).unwrap_or_else(|| name.into())
-}
-
 #[instrument(name = "host_func_exec_command", skip_all)]
 fn exec_command(
     plugin: &mut CurrentPlugin,
@@ -212,30 +194,17 @@ fn exec_command(
     };
 
     // Determine the shell
-    let shell_type = match input.shell.or_else(|| env::var("PROTO_SHELL").ok()) {
-        Some(name) => Some(ShellType::from_str(&name)?),
-        None => get_default_shell(),
-    };
-    let shell_name = shell_type.as_ref().map(|sh| sh.to_string());
+    let shell_name = input.shell.or_else(|| env::var("PROTO_SHELL").ok());
 
     // Create and execute command
-    let mut command = match shell_type {
-        Some(shell) => {
-            let shell = shell.build();
-            let shell_command = shell.get_exec_command();
-            let shell_exe_name = shell.to_string();
+    let mut command = match &shell_name {
+        Some(shell_name) => {
+            let shell = ShellType::from_str(&shell_name)?.build();
 
-            let mut command = Command::new(get_shell_exe_path(&shell_exe_name));
-            command.args(shell_command.shell_args);
-            command.arg(format!(
-                "{} {}",
-                input.command,
-                join_args(&shell, &input.args)
-            ));
-            command
+            shell.create_wrapped_command_with(join_exe_args(&shell, exe, &input.args, false))
         }
         None => {
-            let mut command = Command::new(&input.command);
+            let mut command = Command::new(exe);
             command.args(&input.args);
             command
         }
