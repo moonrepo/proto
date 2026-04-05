@@ -17,9 +17,6 @@ pub struct ExecArgs {
     #[arg(long, help = "Inherit tools to initialize from .prototools configs")]
     pub tools_from_config: bool,
 
-    #[arg(long, help = "Execute the command as-is without quoting or escaping")]
-    pub raw: bool,
-
     #[arg(long, help = "Shell to execute the command with")]
     pub shell: Option<ShellType>,
 
@@ -97,14 +94,12 @@ pub async fn exec(session: ProtoSession, mut args: ExecArgs) -> AppResult {
         .await?;
 
     // Create and run command
-    let command = match args.shell {
-        None => workflow.create_command(args.command.remove(0), args.command)?,
-        Some(shell) => workflow.create_command_with_shell(
-            shell.build(),
-            args.command.remove(0),
-            args.command,
-            args.raw,
-        )?,
+    let command = if args.shell.is_some() || workflow.requires_shell(&args.command) {
+        let command_line = workflow.wrap_command(&args.command);
+
+        workflow.create_command_with_shell(args.shell.unwrap_or_default().build(), command_line)?
+    } else {
+        workflow.create_command(args.command.remove(0), args.command)?
     };
 
     // Must be the last line!

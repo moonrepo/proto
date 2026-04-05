@@ -1,6 +1,6 @@
 mod utils;
 
-use proto_core::{PartialProtoToolConfig, ProtoConfig, ToolSpec, UnresolvedVersionSpec};
+use proto_core::{PartialProtoToolConfig, ProtoConfig, UnresolvedVersionSpec};
 use starbase_sandbox::predicates::prelude::*;
 use std::collections::BTreeMap;
 use utils::*;
@@ -122,6 +122,7 @@ mod alias_local {
     #[cfg(unix)]
     mod backend {
         use super::*;
+        use proto_core::ToolSpec;
 
         #[test]
         fn can_set() {
