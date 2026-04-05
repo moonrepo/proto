@@ -15,6 +15,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use starbase_args::parse as parse_args;
 use starbase_shell::BoxedShell;
 use starbase_utils::envx;
+use std::collections::VecDeque;
 use std::env;
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
@@ -60,7 +61,7 @@ pub struct ExecWorkflowParams {
 pub struct ExecWorkflow<'app> {
     pub args: Vec<String>,
     pub env: IndexMap<String, Option<String>>,
-    pub paths: IndexSet<PathBuf>,
+    pub paths: VecDeque<PathBuf>,
 
     config: &'app ProtoConfig,
     multiple: bool,
@@ -74,17 +75,27 @@ impl<'app> ExecWorkflow<'app> {
             tools,
             args: vec![],
             env: IndexMap::default(),
-            paths: IndexSet::default(),
+            paths: VecDeque::default(),
             config,
         }
     }
 
-    pub fn collect_item(&mut self, item: ExecItem) {
+    pub fn collect_item(&mut self, mut item: ExecItem) {
         self.args.extend(item.args);
-        self.paths.extend(item.paths);
 
         for (key, value) in item.env {
             self.env.insert(key, value);
+        }
+
+        // Tools run in dependency order, so latter paths must take precedence
+        // over former paths, and in regards to `PATH`, that means the paths must
+        // come before, so we push to the front. Additionally, since this is pushing
+        // in reverse order, we need to reverse the paths first to ensure the
+        // original order is preserved.
+        item.paths.reverse();
+
+        for path in item.paths {
+            self.paths.push_front(path);
         }
     }
 
@@ -463,21 +474,6 @@ mod tests {
         }
 
         #[test]
-        fn collect_item_deduplicates_paths() {
-            let mut wf = make_workflow();
-
-            let path_a = PathBuf::from("/path/a");
-            let path_b = PathBuf::from("/path/b");
-
-            wf.collect_item(make_item(vec![path_a.clone(), path_b.clone()], vec![]));
-            wf.collect_item(make_item(vec![path_a.clone()], vec![]));
-
-            assert_eq!(wf.paths.len(), 2);
-            let paths: Vec<_> = wf.paths.iter().collect();
-            assert_eq!(paths, vec![&path_a, &path_b]);
-        }
-
-        #[test]
         fn collect_item_preserves_path_order() {
             let mut wf = make_workflow();
 
@@ -511,7 +507,7 @@ mod tests {
         #[test]
         fn join_paths_returns_some_when_non_empty() {
             let mut wf = make_workflow();
-            wf.paths.insert(PathBuf::from("/test/bin"));
+            wf.paths.push_back(PathBuf::from("/test/bin"));
 
             let result = wf.join_paths().unwrap();
             assert!(result.is_some());
