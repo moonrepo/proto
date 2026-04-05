@@ -1,4 +1,6 @@
-use crate::utils::tool_record::ToolRecord;
+use crate::utils::tool_record::{ToolRecord, sort_tools_by_dependency};
+use futures::StreamExt;
+use futures::stream::FuturesOrdered;
 use indexmap::{IndexMap, IndexSet};
 use miette::IntoDiagnostic;
 use proto_core::flow::locate::Locator;
@@ -17,7 +19,6 @@ use std::env;
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use tokio::task::JoinSet;
 use tracing::trace;
 
 #[derive(Default)]
@@ -44,10 +45,6 @@ impl ExecItem {
     pub fn set_env(&mut self, key: String, value: String) {
         self.env.insert(key, Some(value));
     }
-
-    // pub fn remove_env(&mut self, key: String) {
-    //     self.env.insert(key, None);
-    // }
 }
 
 #[derive(Clone, Default)]
@@ -84,13 +81,10 @@ impl<'app> ExecWorkflow<'app> {
 
     pub fn collect_item(&mut self, item: ExecItem) {
         self.args.extend(item.args);
+        self.paths.extend(item.paths);
 
         for (key, value) in item.env {
             self.env.insert(key, value);
-        }
-
-        for path in item.paths {
-            self.paths.insert(path);
         }
     }
 
@@ -99,13 +93,17 @@ impl<'app> ExecWorkflow<'app> {
         mut specs: FxHashMap<ToolContext, ToolSpec>,
         params: ExecWorkflowParams,
     ) -> miette::Result<()> {
-        let mut set = JoinSet::<Result<ExecItem, ProtoManageError>>::new();
+        let mut futures = FuturesOrdered::<_>::new();
 
         // Extract in a background thread
-        for tool in std::mem::take(&mut self.tools) {
+        for tool in sort_tools_by_dependency(std::mem::take(&mut self.tools))? {
             let spec = specs.remove(&tool.context);
 
-            set.spawn(Box::pin(prepare_tool(tool, spec, params.clone())));
+            futures.push_back(tokio::spawn(Box::pin(prepare_tool(
+                tool,
+                spec,
+                params.clone(),
+            ))));
         }
 
         // Inherit shared environment variables
@@ -115,7 +113,7 @@ impl<'app> ExecWorkflow<'app> {
                 ..Default::default()
             })?);
 
-        while let Some(item) = set.join_next().await {
+        while let Some(item) = futures.next().await {
             let item = item.into_diagnostic()??;
 
             if item.active {

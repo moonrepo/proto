@@ -3199,6 +3199,7 @@ dependencies = [
  "clap_complete_nushell",
  "dirs",
  "extism",
+ "futures",
  "indexmap",
  "iocraft",
  "liblzma",

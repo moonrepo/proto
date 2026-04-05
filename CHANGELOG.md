@@ -28,8 +28,10 @@
 
 #### 🚀 Updates
 
+- Updated `proto activate` and `proto exec` to resolve and execute tools in dependency chain order, ensuring environment variables and PATH entries are set in the correct order.
+  - This allows tools that depend on other tools to work correctly in these workflows. For example, `npm` depends on `node`, but `npm` should take precedence.
 - Added support for base64 encoded `data://` locators for plugins. This is primarily for tools built around proto, like moon.
-- Added Dash shell support.
+- Added `dash` shell support.
 - **WASM API**
   - Added `ExecCommandInput.paths` field, which allows plugins to specify a list of real or virtual paths to prepend to the `PATH` environment variable when executing a command.
   - Added `ExecCommandOutput.streamed` field, which indicates whether the command was executed with streaming output or not.

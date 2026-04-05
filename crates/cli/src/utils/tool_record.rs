@@ -1,7 +1,8 @@
+use indexmap::IndexSet;
 use proto_core::flow::detect::Detector;
 use proto_core::flow::resolve::{ProtoResolveError, Resolver};
 use proto_core::{
-    ProtoConfig, ProtoToolConfig, Tool, ToolSpec, UnresolvedVersionSpec, VersionSpec,
+    ProtoConfig, ProtoToolConfig, Tool, ToolContext, ToolSpec, UnresolvedVersionSpec, VersionSpec,
 };
 use std::collections::BTreeMap;
 use std::ops::{Deref, DerefMut};
@@ -91,4 +92,44 @@ impl DerefMut for ToolRecord {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.tool
     }
+}
+
+pub fn sort_tools_by_dependency(mut tools: Vec<ToolRecord>) -> miette::Result<Vec<ToolRecord>> {
+    let mut list = vec![];
+    let mut visited = IndexSet::default();
+
+    fn visit(
+        context: ToolContext,
+        tools: &[ToolRecord],
+        visited: &mut IndexSet<ToolContext>,
+    ) -> miette::Result<()> {
+        if !visited.contains(&context)
+            && let Some(tool) = tools.iter().find(|tool| tool.context == context)
+        {
+            for dependency in &tool.metadata.requires {
+                visit(ToolContext::parse(dependency)?, tools, visited)?;
+            }
+
+            visited.insert(context);
+        }
+
+        Ok(())
+    }
+
+    for tool in &tools {
+        visit(tool.context.clone(), &tools, &mut visited)?;
+    }
+
+    for context in visited {
+        if let Some(index) = tools.iter().position(|tool| tool.context == context) {
+            list.push(tools.remove(index));
+        }
+    }
+
+    // Reverse the order so that tools with dependencies come last,
+    // and their dependencies come first, so that the former can
+    // override environment variables and PATH entries set by the latter.
+    list.reverse();
+
+    Ok(list)
 }
