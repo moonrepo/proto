@@ -15,7 +15,7 @@ use starbase_styles::color;
 use starbase_utils::json;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
-use tokio::spawn;
+use tokio::task::JoinSet;
 use tracing::{debug, warn};
 
 #[derive(Args, Clone, Debug)]
@@ -60,7 +60,6 @@ fn get_in_major_range(spec: &UnresolvedVersionSpec) -> UnresolvedVersionSpec {
 pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
     debug!("Determining outdated tools based on config...");
 
-    let mut futures = vec![];
     let tools = session
         .load_all_tools_with_options(LoadToolOptions {
             detect_version: true,
@@ -68,12 +67,14 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
         })
         .await?;
 
+    let mut set = JoinSet::new();
+
     for mut tool in tools {
         if tool.detected_version.is_none() {
             continue;
         }
 
-        futures.push(spawn(async move {
+        set.spawn(Box::pin(async move {
             tool.disable_caching();
 
             debug!("Checking {}", tool.get_name());
@@ -133,8 +134,8 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
 
     let mut items = BTreeMap::default();
 
-    for future in futures {
-        let (context, item) = future.await.into_diagnostic()??;
+    while let Some(result) = set.join_next().await {
+        let (context, item) = result.into_diagnostic()??;
 
         items.insert(context, item);
     }
