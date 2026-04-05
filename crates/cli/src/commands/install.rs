@@ -339,7 +339,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
         let topo_graph = topo_graph.clone();
         let mut workflow = workflow_manager.create_workflow(tool);
 
-        let handle = set.spawn(async move {
+        let handle = set.spawn(Box::pin(async move {
             while let Some(status) = topo_graph
                 .check_install_status(workflow.tool.get_id())
                 .await
@@ -401,7 +401,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
                     InstallOutcome::FailedToInstall(workflow.tool.get_id().clone())
                 }
             }
-        });
+        }));
 
         trace!(
             task_id = handle.id().to_string(),

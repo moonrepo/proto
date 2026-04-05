@@ -1,4 +1,6 @@
-use crate::utils::tool_record::ToolRecord;
+use crate::utils::tool_record::{ToolRecord, sort_tools_by_dependency};
+use futures::StreamExt;
+use futures::stream::FuturesOrdered;
 use indexmap::{IndexMap, IndexSet};
 use miette::IntoDiagnostic;
 use proto_core::flow::locate::Locator;
@@ -18,7 +20,6 @@ use std::env;
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use tokio::task::JoinSet;
 use tracing::trace;
 
 #[derive(Default)]
@@ -45,10 +46,6 @@ impl ExecItem {
     pub fn set_env(&mut self, key: String, value: String) {
         self.env.insert(key, Some(value));
     }
-
-    // pub fn remove_env(&mut self, key: String) {
-    //     self.env.insert(key, None);
-    // }
 }
 
 #[derive(Clone, Default)]
@@ -83,18 +80,22 @@ impl<'app> ExecWorkflow<'app> {
         }
     }
 
-    pub fn collect_item(&mut self, item: ExecItem) {
+    pub fn collect_item(&mut self, mut item: ExecItem) {
         self.args.extend(item.args);
 
         for (key, value) in item.env {
             self.env.insert(key, value);
         }
 
-        // Don't use a set as we need to persist the order!
+        // Tools run in dependency order, so latter paths must take precedence
+        // over former paths, and in regards to `PATH`, that means the paths must
+        // come before, so we push to the front. Additionally, since this is pushing
+        // in reverse order, we need to reverse the paths first to ensure the
+        // original order is preserved.
+        item.paths.reverse();
+
         for path in item.paths {
-            if !self.paths.contains(&path) {
-                self.paths.push_back(path);
-            }
+            self.paths.push_front(path);
         }
     }
 
@@ -103,14 +104,17 @@ impl<'app> ExecWorkflow<'app> {
         mut specs: FxHashMap<ToolContext, ToolSpec>,
         params: ExecWorkflowParams,
     ) -> miette::Result<()> {
-        let mut set = JoinSet::<Result<ExecItem, ProtoManageError>>::new();
+        let mut futures = FuturesOrdered::<_>::new();
 
-        for tool in std::mem::take(&mut self.tools) {
-            let provided_spec = specs.remove(&tool.context);
-            let params = params.clone();
+        // Extract in a background thread
+        for tool in sort_tools_by_dependency(std::mem::take(&mut self.tools))? {
+            let spec = specs.remove(&tool.context);
 
-            // Extract in a background thread
-            set.spawn(async move { prepare_tool(tool, provided_spec, params).await });
+            futures.push_back(tokio::spawn(Box::pin(prepare_tool(
+                tool,
+                spec,
+                params.clone(),
+            ))));
         }
 
         // Inherit shared environment variables
@@ -120,7 +124,7 @@ impl<'app> ExecWorkflow<'app> {
                 ..Default::default()
             })?);
 
-        while let Some(item) = set.join_next().await {
+        while let Some(item) = futures.next().await {
             let item = item.into_diagnostic()??;
 
             if item.active {
@@ -217,7 +221,7 @@ impl<'app> ExecWorkflow<'app> {
 
     pub fn join_paths(&self) -> miette::Result<Option<OsString>> {
         if !self.paths.is_empty() {
-            let mut list = self.paths.clone().into_iter().collect::<Vec<_>>();
+            let mut list = self.paths.clone();
             list.extend(envx::paths());
 
             return Ok(Some(env::join_paths(list).into_diagnostic()?));
@@ -398,4 +402,118 @@ async fn prepare_tool(
     }
 
     Ok(item)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use proto_core::ProtoConfig;
+
+    fn make_item(paths: Vec<PathBuf>, env: Vec<(&str, &str)>) -> ExecItem {
+        let mut item = ExecItem {
+            active: true,
+            paths: paths.into_iter().collect(),
+            ..Default::default()
+        };
+
+        for (k, v) in env {
+            item.set_env(k.to_string(), v.to_string());
+        }
+
+        item
+    }
+
+    mod exec_item_tests {
+        use super::*;
+
+        #[test]
+        fn add_path_only_adds_existing() {
+            let mut item = ExecItem::default();
+            item.add_path(std::env::temp_dir());
+            item.add_path(PathBuf::from("/nonexistent_proto_test_xyz_12345"));
+
+            assert_eq!(item.paths.len(), 1);
+            assert!(item.paths.contains(&std::env::temp_dir()));
+        }
+
+        #[test]
+        fn add_path_deduplicates() {
+            let mut item = ExecItem::default();
+            let tmp = std::env::temp_dir();
+            item.add_path(tmp.clone());
+            item.add_path(tmp.clone());
+
+            assert_eq!(item.paths.len(), 1);
+        }
+
+        #[test]
+        fn add_path_preserves_insertion_order() {
+            let mut item = ExecItem::default();
+            // Use two paths that definitely exist
+            let tmp = std::env::temp_dir();
+            let root = if cfg!(windows) {
+                PathBuf::from("C:\\")
+            } else {
+                PathBuf::from("/")
+            };
+            item.add_path(tmp.clone());
+            item.add_path(root.clone());
+
+            let paths: Vec<_> = item.paths.into_iter().collect();
+            assert_eq!(paths, vec![tmp, root]);
+        }
+    }
+
+    mod exec_workflow_tests {
+        use super::*;
+
+        fn make_workflow() -> ExecWorkflow<'static> {
+            // Use a leaked static ref for the config to satisfy the lifetime
+            let config: &'static ProtoConfig = Box::leak(Box::new(ProtoConfig::default()));
+            ExecWorkflow::new(vec![], config)
+        }
+
+        #[test]
+        fn collect_item_preserves_path_order() {
+            let mut wf = make_workflow();
+
+            let paths = vec![
+                PathBuf::from("/first"),
+                PathBuf::from("/second"),
+                PathBuf::from("/third"),
+            ];
+            wf.collect_item(make_item(paths.clone(), vec![]));
+
+            let result: Vec<_> = wf.paths.iter().collect();
+            assert_eq!(result, paths.iter().collect::<Vec<_>>());
+        }
+
+        #[test]
+        fn collect_item_env_later_overrides_earlier() {
+            let mut wf = make_workflow();
+
+            wf.collect_item(make_item(vec![], vec![("KEY", "first")]));
+            wf.collect_item(make_item(vec![], vec![("KEY", "second")]));
+
+            assert_eq!(wf.env.get("KEY"), Some(&Some("second".to_string())));
+        }
+
+        #[test]
+        fn join_paths_returns_none_when_empty() {
+            let wf = make_workflow();
+            assert!(wf.join_paths().unwrap().is_none());
+        }
+
+        #[test]
+        fn join_paths_returns_some_when_non_empty() {
+            let mut wf = make_workflow();
+            wf.paths.push_back(PathBuf::from("/test/bin"));
+
+            let result = wf.join_paths().unwrap();
+            assert!(result.is_some());
+
+            let joined = result.unwrap().to_string_lossy().to_string();
+            assert!(joined.starts_with("/test/bin"));
+        }
+    }
 }

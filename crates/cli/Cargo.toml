@@ -44,6 +44,7 @@ clap = { workspace = true, features = ["derive", "env"] }
 clap_complete = { workspace = true }
 clap_complete_nushell = "4.6.0"
 dirs = { workspace = true }
+futures = { workspace = true }
 indexmap = { workspace = true }
 iocraft = { workspace = true }
 miette = { workspace = true, features = ["fancy"] }
