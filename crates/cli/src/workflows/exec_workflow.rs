@@ -13,7 +13,6 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use starbase_args::parse as parse_args;
 use starbase_shell::BoxedShell;
 use starbase_utils::envx;
-use std::collections::VecDeque;
 use std::env;
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
@@ -64,7 +63,7 @@ pub struct ExecWorkflowParams {
 pub struct ExecWorkflow<'app> {
     pub args: Vec<String>,
     pub env: IndexMap<String, Option<String>>,
-    pub paths: VecDeque<PathBuf>,
+    pub paths: IndexSet<PathBuf>,
 
     config: &'app ProtoConfig,
     multiple: bool,
@@ -78,7 +77,7 @@ impl<'app> ExecWorkflow<'app> {
             tools,
             args: vec![],
             env: IndexMap::default(),
-            paths: VecDeque::default(),
+            paths: IndexSet::default(),
             config,
         }
     }
@@ -90,11 +89,8 @@ impl<'app> ExecWorkflow<'app> {
             self.env.insert(key, value);
         }
 
-        // Don't use a set as we need to persist the order!
         for path in item.paths {
-            if !self.paths.contains(&path) {
-                self.paths.push_back(path);
-            }
+            self.paths.insert(path);
         }
     }
 
@@ -216,7 +212,7 @@ impl<'app> ExecWorkflow<'app> {
 
     pub fn join_paths(&self) -> miette::Result<Option<OsString>> {
         if !self.paths.is_empty() {
-            let mut list = self.paths.clone().into_iter().collect::<Vec<_>>();
+            let mut list = self.paths.clone();
             list.extend(envx::paths());
 
             return Ok(Some(env::join_paths(list).into_diagnostic()?));

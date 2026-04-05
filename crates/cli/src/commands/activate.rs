@@ -108,7 +108,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
             .env
             .insert("PROTO_PROTO_VERSION".into(), Some(version.to_string()));
 
-        workflow.paths.push_back(
+        workflow.paths.insert(
             session
                 .env
                 .store
@@ -121,13 +121,11 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
     }
 
     if !args.no_shim {
-        workflow
-            .paths
-            .push_back(session.env.store.shims_dir.clone());
+        workflow.paths.insert(session.env.store.shims_dir.clone());
     }
 
     if !args.no_bin {
-        workflow.paths.push_back(session.env.store.bin_dir.clone());
+        workflow.paths.insert(session.env.store.bin_dir.clone());
     }
 
     // Output/export the information for the chosen shell
