@@ -1,6 +1,6 @@
 pub use super::locate_error::ProtoLocateError;
-use crate::helpers::is_executable;
 use crate::helpers::ENV_VAR;
+use crate::helpers::is_executable;
 use crate::layout::BinManager;
 use crate::tool::Tool;
 use crate::tool_spec::ToolSpec;
@@ -535,4 +535,3 @@ impl<'tool> Locator<'tool> {
         Ok(prefix)
     }
 }
-
