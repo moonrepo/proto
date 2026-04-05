@@ -62,13 +62,18 @@ api_struct!(
     #[serde(default)]
     pub struct ExecCommandInput {
         /// The command or script to execute. Accepts an executable
-        /// on `PATH` or a virtual path.
+        /// name available on `PATH` or a virtual path.
         #[setters(into)]
         pub command: String,
 
         /// Arguments to pass to the command.
         #[serde(skip_serializing_if = "Vec::is_empty")]
         pub args: Vec<String>,
+
+        /// Override the current working directory.
+        #[setters(strip_option)]
+        #[serde(alias = "working_dir", skip_serializing_if = "Option::is_none")]
+        pub cwd: Option<VirtualPath>,
 
         /// Environment variables to pass to the command. Variables
         /// can customize behavior by appending one of the following
@@ -81,24 +86,23 @@ api_struct!(
         #[serde(skip_serializing_if = "FxHashMap::is_empty")]
         pub env: FxHashMap<String, String>,
 
+        /// List of real or virtual paths to prepend to the `PATH`
+        /// environment variable when executing the command.
+        #[serde(skip_serializing_if = "Vec::is_empty")]
+        pub paths: Vec<VirtualPath>,
+
         /// Mark the command as executable before executing.
         #[setters(skip)]
         #[doc(hidden)]
         pub set_executable: bool,
 
         /// Set the shell to execute the command with, for example "bash".
-        /// If not defined, will be detected from the parent process.
         #[setters(into, strip_option)]
         pub shell: Option<String>,
 
         /// Stream the output instead of capturing it.
         #[setters(bool)]
         pub stream: bool,
-
-        /// Override the current working directory.
-        #[setters(strip_option)]
-        #[serde(alias = "working_dir", skip_serializing_if = "Option::is_none")]
-        pub cwd: Option<VirtualPath>,
     }
 );
 
@@ -148,6 +152,7 @@ api_struct!(
         pub exit_code: i32,
         pub stderr: String,
         pub stdout: String,
+        pub streamed: bool,
     }
 );
 
