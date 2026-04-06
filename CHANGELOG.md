@@ -36,6 +36,10 @@
   - Added `ExecCommandInput.paths` field, which allows plugins to specify a list of real or virtual paths to prepend to the `PATH` environment variable when executing a command.
   - Added `ExecCommandOutput.streamed` field, which indicates whether the command was executed with streaming output or not.
 
+#### 🐞 Fixes
+
+- Fixed `settings.url-rewrites` not applying to the `schema_tool` plugin.
+
 #### ⚙️ Internal
 
 - Updated quoting/escaping for many shells.
