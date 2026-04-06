@@ -1,4 +1,4 @@
-use crate::helpers::{from_virtual_path, to_virtual_path};
+use crate::helpers::{create_cache_key, from_virtual_path, sort_virtual_paths, to_virtual_path};
 use crate::plugin_error::WarpgatePluginError;
 use extism::{Error, Function, Manifest, Plugin};
 use serde::de::DeserializeOwned;
@@ -31,14 +31,6 @@ fn is_incompatible_runtime(error: &Error) -> bool {
     check(error.to_string())
 }
 
-// Compatibility with extism >= 1.6
-fn map_virtual_paths(paths_map: &BTreeMap<String, PathBuf>) -> BTreeMap<PathBuf, PathBuf> {
-    paths_map
-        .iter()
-        .map(|(key, value)| (PathBuf::from(key), value.to_owned()))
-        .collect()
-}
-
 /// Inject our default configuration into the provided plugin manifest.
 /// This will set `plugin_id` and `host_environment` for use within PDKs.
 #[instrument(skip(manifest))]
@@ -61,10 +53,11 @@ pub fn inject_default_manifest_config(
             ci: is_ci(),
             libc: SystemLibc::detect(os),
             os,
-            home_dir: to_virtual_path(
-                &map_virtual_paths(manifest.allowed_paths.as_ref().unwrap()),
-                home_dir,
-            ),
+            home_dir: VirtualPath::Virtual {
+                path: "/userhome".into(),
+                virtual_prefix: "/userhome".into(),
+                real_prefix: home_dir.into(),
+            },
         })
         .map_err(|error| WarpgatePluginError::InvalidInput {
             id: id.to_owned(),
@@ -88,6 +81,7 @@ pub type OnCallFn = Arc<dyn Fn(&str, Option<&str>, Option<&str>) + Send + Sync>;
 pub struct PluginContainer {
     pub id: Id,
     pub manifest: Manifest,
+    pub virtual_paths: Vec<(PathBuf, PathBuf)>,
 
     debug_call: bool,
     func_cache: Arc<scc::HashMap<String, Vec<u8>>>,
@@ -122,7 +116,18 @@ impl PluginContainer {
             "Created plugin container",
         );
 
+        let mut virtual_paths = manifest
+            .allowed_paths
+            .as_ref()
+            .unwrap_or(&BTreeMap::new())
+            .iter()
+            .map(|(key, value)| (PathBuf::from(key), value.to_owned()))
+            .collect::<Vec<_>>();
+
+        sort_virtual_paths(&mut virtual_paths);
+
         Ok(PluginContainer {
+            virtual_paths,
             manifest,
             plugin: Arc::new(RwLock::new(plugin)),
             id,
@@ -172,7 +177,7 @@ impl PluginContainer {
 
         let func = func.as_ref();
         let input = self.format_input(func, input)?;
-        let cache_key = format!("{func}-{input}");
+        let cache_key = format!("{func}-{}", create_cache_key(&input, None));
 
         match self.func_cache.entry_async(cache_key).await {
             // Check if cache exists already
@@ -239,25 +244,13 @@ impl PluginContainer {
 
     /// Convert the provided virtual guest path to an absolute host path.
     pub fn from_virtual_path(&self, path: impl AsRef<Path> + Debug) -> PathBuf {
-        let Some(virtual_paths) = self.manifest.allowed_paths.as_ref() else {
-            return path.as_ref().to_path_buf();
-        };
-
-        let paths = map_virtual_paths(virtual_paths);
-
-        from_virtual_path(&paths, path)
+        from_virtual_path(&self.virtual_paths, path)
     }
 
     /// Convert the provided absolute host path to a virtual guest path suitable
     /// for WASI sandboxed runtimes.
     pub fn to_virtual_path(&self, path: impl AsRef<Path> + Debug) -> VirtualPath {
-        let Some(virtual_paths) = self.manifest.allowed_paths.as_ref() else {
-            return VirtualPath::Real(path.as_ref().to_path_buf());
-        };
-
-        let paths = map_virtual_paths(virtual_paths);
-
-        to_virtual_path(&paths, path)
+        to_virtual_path(&self.virtual_paths, path)
     }
 
     /// Call a function on the plugin with the given raw input and return the raw output.

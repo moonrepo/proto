@@ -5,7 +5,6 @@ use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
 use starbase_shell::{ShellType, join_exe_args};
 use starbase_styles::{apply_style_tags, color};
 use starbase_utils::{envx, fs};
-use std::collections::BTreeMap;
 use std::env;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
@@ -25,7 +24,7 @@ use warpgate_api::{
 pub struct HostData {
     pub cache_dir: PathBuf,
     pub http_client: Arc<HttpClient>,
-    pub virtual_paths: BTreeMap<PathBuf, PathBuf>,
+    pub virtual_paths: Vec<(PathBuf, PathBuf)>,
     pub working_dir: PathBuf,
 }
 
@@ -209,7 +208,6 @@ fn exec_command(
         }
     };
 
-    command.envs(&input.env);
     command.current_dir(&cwd);
 
     for (key, value) in &input.env {
@@ -337,7 +335,7 @@ fn send_request(
         "Sending request from host machine"
     );
 
-    let response = Handle::current().block_on(async {
+    let (ok, status, bytes) = Handle::current().block_on(async {
         let mut client = data.http_client.get(&input.url);
 
         for (name, value) in input.headers {
@@ -348,23 +346,22 @@ fn send_request(
             client = client.timeout(timeout);
         }
 
-        client
+        let response = client
             .send()
             .await
-            .map_err(|error| HttpClient::map_error(input.url.clone(), error))
-    })?;
+            .map_err(|error| HttpClient::map_error(input.url.clone(), error))?;
 
-    let ok = response.status().is_success();
-    let status = response.status().as_u16();
-
-    let bytes = Handle::current().block_on(async {
-        response
+        let ok = response.status().is_success();
+        let status = response.status().as_u16();
+        let bytes = response
             .bytes()
             .await
             .map_err(|error| WarpgateHttpClientError::Http {
                 url: input.url.clone(),
                 error: Box::new(error),
-            })
+            })?;
+
+        Ok::<_, WarpgateHttpClientError>((ok, status, bytes))
     })?;
 
     // Create and return our intermediate shapes

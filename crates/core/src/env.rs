@@ -9,7 +9,6 @@ use once_cell::sync::OnceCell;
 use starbase_console::{Console, EmptyReporter};
 use starbase_utils::dirs::home_dir;
 use starbase_utils::envx;
-use std::collections::BTreeMap;
 use std::env;
 use std::fmt;
 use std::path::{Path, PathBuf};
@@ -17,7 +16,7 @@ use std::sync::{Arc, RwLockReadGuard, RwLockWriteGuard};
 use std::time::Duration;
 use system_env::{SystemArch, SystemOS};
 use tracing::debug;
-use warpgate::PluginLoader;
+use warpgate::{PluginLoader, sort_virtual_paths};
 
 pub type ProtoConsole = Console<EmptyReporter>;
 
@@ -112,26 +111,28 @@ impl ProtoEnvironment {
         })
     }
 
-    pub fn get_virtual_paths(&self) -> BTreeMap<PathBuf, PathBuf> {
-        let mut paths = BTreeMap::from_iter([
+    pub fn get_virtual_paths(&self) -> Vec<(PathBuf, PathBuf)> {
+        let mut paths = vec![
             (self.store.temp_dir.clone(), "/temp".into()),
             (self.store.dir.clone(), "/proto".into()),
             (self.home_dir.clone(), "/userhome".into()),
-        ]);
+        ];
 
-        if !paths.contains_key(&self.working_dir) {
+        if !paths.iter().any(|(path, _)| path == &self.working_dir) {
             // This is required for situtations where users are using proto
             // outside of the home directory, and the WASM plugin will need
             // access to it!
-            paths.insert(
+            paths.push((
                 self.working_dir.clone(),
                 if self.test_only {
                     "/sandbox".into()
                 } else {
                     "/cwd".into()
                 },
-            );
+            ));
         }
+
+        sort_virtual_paths(&mut paths);
 
         paths
     }

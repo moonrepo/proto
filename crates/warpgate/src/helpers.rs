@@ -3,7 +3,6 @@ use crate::loader_error::WarpgateLoaderError;
 use sha2::{Digest, Sha256};
 use starbase_archive::{Archiver, is_supported_archive_extension};
 use starbase_utils::{fs, glob, net, net::NetError};
-use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use tracing::instrument;
@@ -129,20 +128,18 @@ pub fn move_or_unpack_download(
 
 /// Sort virtual paths from longest to shortest host path,
 /// so that prefix replacing is deterministic and accurate.
-pub fn sort_virtual_paths(map: &BTreeMap<PathBuf, PathBuf>) -> Vec<(&PathBuf, &PathBuf)> {
-    let mut list = map.iter().collect::<Vec<_>>();
-    list.sort_by(|a, d| d.0.cmp(a.0).then(d.1.cmp(a.1)));
-    list
+pub fn sort_virtual_paths(paths_list: &mut Vec<(PathBuf, PathBuf)>) {
+    paths_list.sort_by(|a, d| d.0.cmp(&a.0).then(d.1.cmp(&a.1)));
 }
 
 /// Convert the provided virtual guest path to an absolute host path.
 pub fn from_virtual_path(
-    paths_map: &BTreeMap<PathBuf, PathBuf>,
+    paths_list: &[(PathBuf, PathBuf)],
     path: impl AsRef<Path> + Debug,
 ) -> PathBuf {
     let path = path.as_ref();
 
-    for (host_path, guest_path) in sort_virtual_paths(paths_map) {
+    for (host_path, guest_path) in paths_list {
         if let Ok(rel_path) = path.strip_prefix(guest_path) {
             let real_path = host_path.join(rel_path);
 
@@ -156,12 +153,12 @@ pub fn from_virtual_path(
 /// Convert the provided absolute host path to a virtual guest path suitable
 /// for WASI sandboxed runtimes.
 pub fn to_virtual_path(
-    paths_map: &BTreeMap<PathBuf, PathBuf>,
+    paths_list: &[(PathBuf, PathBuf)],
     path: impl AsRef<Path> + Debug,
 ) -> VirtualPath {
     let path = path.as_ref();
 
-    for (host_path, guest_path) in sort_virtual_paths(paths_map) {
+    for (host_path, guest_path) in paths_list {
         let virtual_path = if path.starts_with(guest_path) {
             path.to_owned()
         } else if let Ok(rel_path) = path.strip_prefix(host_path) {
