@@ -141,12 +141,30 @@ impl ProtoFileManager {
         })
     }
 
-    pub fn get_lock(&self) -> Option<RwLockReadGuard<'_, ProtoLock>> {
-        self.locked.then(|| self.lock.read().unwrap())
+    pub fn get_lock(&self) -> Result<Option<RwLockReadGuard<'_, ProtoLock>>, ProtoConfigError> {
+        if self.locked {
+            return Ok(Some(
+                self.lock
+                    .read()
+                    .map_err(|_| ProtoConfigError::FailedLockfileLock)?,
+            ));
+        }
+
+        Ok(None)
     }
 
-    pub fn get_lock_mut(&self) -> Option<RwLockWriteGuard<'_, ProtoLock>> {
-        self.locked.then(|| self.lock.write().unwrap())
+    pub fn get_lock_mut(
+        &self,
+    ) -> Result<Option<RwLockWriteGuard<'_, ProtoLock>>, ProtoConfigError> {
+        if self.locked {
+            return Ok(Some(
+                self.lock
+                    .write()
+                    .map_err(|_| ProtoConfigError::FailedLockfileLock)?,
+            ));
+        }
+
+        Ok(None)
     }
 
     pub fn get_config_files(&self) -> Vec<&ProtoConfigFile> {

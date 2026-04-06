@@ -175,13 +175,13 @@ impl ProtoEnvironment {
     }
 
     pub fn load_lock(&self) -> Result<Option<RwLockReadGuard<'_, ProtoLock>>, ProtoConfigError> {
-        Ok(self.load_file_manager()?.get_lock())
+        self.load_file_manager()?.get_lock()
     }
 
     pub fn load_lock_mut(
         &self,
     ) -> Result<Option<RwLockWriteGuard<'_, ProtoLock>>, ProtoConfigError> {
-        Ok(self.load_file_manager()?.get_lock_mut())
+        self.load_file_manager()?.get_lock_mut()
     }
 
     #[tracing::instrument(name = "load_all", skip_all)]
