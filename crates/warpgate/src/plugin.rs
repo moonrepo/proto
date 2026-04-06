@@ -5,7 +5,6 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use starbase_styles::{apply_style_tags, color};
 use starbase_utils::envx::{bool_var, is_ci};
-use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, OnceLock};
@@ -116,13 +115,13 @@ impl PluginContainer {
             "Created plugin container",
         );
 
-        let mut virtual_paths = manifest
-            .allowed_paths
-            .as_ref()
-            .unwrap_or(&BTreeMap::new())
-            .iter()
-            .map(|(key, value)| (PathBuf::from(key), value.to_owned()))
-            .collect::<Vec<_>>();
+        let mut virtual_paths = match manifest.allowed_paths.as_ref() {
+            Some(paths) => paths
+                .iter()
+                .map(|(host, guest)| (PathBuf::from(host), guest.to_owned()))
+                .collect(),
+            None => Vec::new(),
+        };
 
         sort_virtual_paths(&mut virtual_paths);
 

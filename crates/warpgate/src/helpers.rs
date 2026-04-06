@@ -5,6 +5,7 @@ use starbase_archive::{Archiver, is_supported_archive_extension};
 use starbase_utils::{fs, glob, net, net::NetError};
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
+use std::time::SystemTime;
 use tracing::instrument;
 use warpgate_api::{PluginLocator, UrlLocator, VirtualPath};
 
@@ -67,7 +68,13 @@ pub fn move_or_unpack_download(
 ) -> Result<(), WarpgateLoaderError> {
     // Archive supported file extensions
     if is_supported_archive_extension(temp_file) {
-        let out_dir = temp_file.parent().unwrap().join("out");
+        let out_dir = temp_file.parent().unwrap().join(format!(
+            "out-{}",
+            SystemTime::now()
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .unwrap()
+                .as_millis()
+        ));
 
         Archiver::new(&out_dir, temp_file).unpack_from_ext()?;
 
@@ -128,7 +135,7 @@ pub fn move_or_unpack_download(
 
 /// Sort virtual paths from longest to shortest host path,
 /// so that prefix replacing is deterministic and accurate.
-pub fn sort_virtual_paths(paths_list: &mut Vec<(PathBuf, PathBuf)>) {
+pub fn sort_virtual_paths(paths_list: &mut [(PathBuf, PathBuf)]) {
     paths_list.sort_by(|a, d| d.0.cmp(&a.0).then(d.1.cmp(&a.1)));
 }
 

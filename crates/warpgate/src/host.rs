@@ -223,17 +223,18 @@ fn exec_command(
     }
 
     if !input.paths.is_empty() {
-        let mut path_list = vec![];
+        let env_paths = envx::paths();
+        let mut paths = Vec::with_capacity(env_paths.len() + input.paths.len());
 
-        path_list.extend(
+        paths.extend(
             input
                 .paths
                 .iter()
                 .map(|virtual_path| helpers::from_virtual_path(&data.virtual_paths, virtual_path)),
         );
-        path_list.extend(envx::paths());
+        paths.extend(env_paths);
 
-        command.env("PATH", env::join_paths(path_list)?);
+        command.env("PATH", env::join_paths(paths)?);
     }
 
     command.stdin(Stdio::null());
