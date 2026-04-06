@@ -1,6 +1,7 @@
 use crate::helpers::{create_cache_key, from_virtual_path, sort_virtual_paths, to_virtual_path};
 use crate::plugin_error::WarpgatePluginError;
 use extism::{Error, Function, Manifest, Plugin};
+use scc::hash_map::Entry;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use starbase_styles::{apply_style_tags, color};
@@ -172,8 +173,6 @@ impl PluginContainer {
         I: Debug + Serialize,
         O: Debug + DeserializeOwned,
     {
-        use scc::hash_map::Entry;
-
         let func = func.as_ref();
         let input = self.format_input(func, input)?;
         let cache_key = format!("{func}-{}", create_cache_key(&input, None));
@@ -238,7 +237,16 @@ impl PluginContainer {
 
     /// Return true if the plugin has a function with the given id.
     pub async fn has_func(&self, func: impl AsRef<str>) -> bool {
-        self.plugin.read().await.function_exists(func.as_ref())
+        let func = func.as_ref();
+
+        match self.func_cache.entry_async(func.into()).await {
+            Entry::Occupied(entry) => entry.get()[0] == 1,
+            Entry::Vacant(entry) => {
+                let exists = self.plugin.read().await.function_exists(func);
+                entry.insert_entry(vec![exists as u8]);
+                exists
+            }
+        }
     }
 
     /// Convert the provided virtual guest path to an absolute host path.
