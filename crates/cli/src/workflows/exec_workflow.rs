@@ -221,10 +221,10 @@ impl<'app> ExecWorkflow<'app> {
 
     pub fn join_paths(&self) -> miette::Result<Option<OsString>> {
         if !self.paths.is_empty() {
-            let mut list = self.paths.clone();
-            list.extend(envx::paths());
+            let env_paths = envx::paths();
+            let joined = env::join_paths(self.paths.iter().chain(&env_paths)).into_diagnostic()?;
 
-            return Ok(Some(env::join_paths(list).into_diagnostic()?));
+            return Ok(Some(joined));
         }
 
         Ok(None)
@@ -236,16 +236,16 @@ impl<'app> ExecWorkflow<'app> {
 
         // Create a new `PATH` list with our activated tools. Use fake
         // marker paths to indicate a boundary.
-        let mut reset_paths = vec![];
+        let mut reset_paths = Vec::with_capacity(2 + self.paths.len());
         reset_paths.push(start_path.clone());
-        reset_paths.extend(self.paths.clone());
+        reset_paths.extend(self.paths.iter().cloned());
         reset_paths.push(stop_path.clone());
 
         // `PATH` may have already been activated, so we need to remove
         // paths that proto has injected, otherwise this paths list
         // will continue to grow and grow.
         let mut in_activate = false;
-        let mut dupe_paths = FxHashSet::from_iter(reset_paths.clone());
+        let mut dupe_paths: FxHashSet<PathBuf> = reset_paths.iter().cloned().collect();
 
         for path in envx::paths() {
             if path == start_path {
