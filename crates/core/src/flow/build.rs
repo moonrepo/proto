@@ -532,6 +532,21 @@ pub async fn install_system_dependencies(
 
 // STEP 2
 
+fn get_command_version_regex() -> &'static regex::Regex {
+    static VERSION_REGEX: OnceLock<regex::Regex> = OnceLock::new();
+
+    // Remove leading ^ and trailing $
+    VERSION_REGEX.get_or_init(|| {
+        regex::Regex::new(
+            get_semver_regex()
+                .as_str()
+                .trim_start_matches('^')
+                .trim_end_matches('$'),
+        )
+        .unwrap()
+    })
+}
+
 async fn get_command_version(
     cmd: &str,
     version_arg: &str,
@@ -541,11 +556,7 @@ async fn get_command_version(
         .exec_command(Command::new(cmd).arg(version_arg), true)
         .await?;
 
-    // Remove leading ^ and trailing $
-    let base_pattern = get_semver_regex().as_str();
-    let pattern = regex::Regex::new(&base_pattern[1..(base_pattern.len() - 1)]).unwrap();
-
-    let value = pattern
+    let value = get_command_version_regex()
         .find(&output.stdout)
         .map(|res| res.as_str())
         .unwrap_or(&output.stdout);
@@ -960,7 +971,7 @@ pub async fn execute_instructions(
 
                 builder.render_checkpoint(format!(
                     "{prefix} Running command <shell>{} {}</shell>",
-                    exe.file_name().unwrap().to_str().unwrap(),
+                    fs::file_name(&exe),
                     shell_words::join(&cmd.args)
                 ))?;
 

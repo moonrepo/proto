@@ -1,5 +1,5 @@
 use crate::config_error::ProtoConfigError;
-use crate::helpers::ENV_VAR_SUB;
+use crate::helpers::{ENV_VAR_SUB, fast_map_clone};
 use crate::tool_context::ToolContext;
 use crate::tool_spec::ToolSpec;
 use indexmap::IndexMap;
@@ -486,7 +486,7 @@ impl ProtoConfig {
         Self::save_to(path, document.to_string())
     }
 
-    pub fn get_env_files(&self, options: ProtoConfigEnvOptions) -> Vec<&PathBuf> {
+    pub fn get_env_files(&self, options: &ProtoConfigEnvOptions) -> Vec<&PathBuf> {
         let mut paths: Vec<&EnvFile> = vec![];
 
         if options.include_shared {
@@ -515,9 +515,9 @@ impl ProtoConfig {
     // and order of declaration can work correctly!
     pub fn get_env_vars(
         &self,
-        options: ProtoConfigEnvOptions,
+        options: &ProtoConfigEnvOptions,
     ) -> Result<IndexMap<String, Option<String>>, ProtoConfigError> {
-        let env_files = self.get_env_files(options.clone());
+        let env_files = self.get_env_files(options);
 
         let mut base_vars = IndexMap::new();
 
@@ -526,16 +526,16 @@ impl ProtoConfig {
         }
 
         if options.include_shared {
-            base_vars.extend(self.env.clone());
+            base_vars.extend(fast_map_clone(&self.env));
         }
 
         if let Some(context) = options.context {
             if let Some(backend_config) = self.get_backend_config(context) {
-                base_vars.extend(backend_config.env.clone())
+                base_vars.extend(fast_map_clone(&backend_config.env));
             }
 
             if let Some(tool_config) = self.get_tool_config(context) {
-                base_vars.extend(tool_config.env.clone())
+                base_vars.extend(fast_map_clone(&tool_config.env));
             }
         }
 

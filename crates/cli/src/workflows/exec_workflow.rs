@@ -119,7 +119,7 @@ impl<'app> ExecWorkflow<'app> {
 
         // Inherit shared environment variables
         self.env
-            .extend(self.config.get_env_vars(ProtoConfigEnvOptions {
+            .extend(self.config.get_env_vars(&ProtoConfigEnvOptions {
                 include_shared: true,
                 ..Default::default()
             })?);
@@ -130,7 +130,7 @@ impl<'app> ExecWorkflow<'app> {
             if item.active {
                 // Inherit tool environment variables
                 self.env
-                    .extend(self.config.get_env_vars(ProtoConfigEnvOptions {
+                    .extend(self.config.get_env_vars(&ProtoConfigEnvOptions {
                         context: Some(&item.context),
                         check_process: params.check_process_env,
                         ..Default::default()

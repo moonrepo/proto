@@ -25,6 +25,10 @@ pub enum ProtoChecksumError {
         error: Box<FsError>,
     },
 
+    #[diagnostic(code(proto::checksum::missing_hash))]
+    #[error("A hash is required for SHA based checksums.")]
+    MissingHash,
+
     #[diagnostic(code(proto::checksum::missing_public_key))]
     #[error(
         "A {} is required to verify this tool. This setting must be implemented in the plugin.", "checksum_public_key".style(Style::Property)

@@ -33,11 +33,11 @@ pub fn determine_cache_extension(value: &str) -> Option<&str> {
 /// which can be used for caching or temporary file creation.
 pub fn extract_file_name_from_url(base: &str) -> String {
     match url::Url::parse(base) {
-        Ok(url) => {
-            let mut segments = url.path_segments().unwrap();
-
-            segments.next_back().unwrap().to_owned()
-        }
+        Ok(url) => url
+            .path_segments()
+            .and_then(|mut segments| segments.next_back())
+            .unwrap_or("unknown")
+            .into(),
         Err(_) => if let Some(i) = base.rfind('/') {
             &base[i + 1..]
         } else {
@@ -90,7 +90,7 @@ pub fn move_or_unpack_download(
             "out-{}",
             SystemTime::now()
                 .duration_since(SystemTime::UNIX_EPOCH)
-                .unwrap()
+                .unwrap_or_default()
                 .as_millis()
         ));
 

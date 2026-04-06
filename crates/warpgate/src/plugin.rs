@@ -271,11 +271,12 @@ impl PluginContainer {
         let input_string = String::from_utf8_lossy(input);
         let uuid = instance.id.to_string(); // Copy
         let instant = Instant::now();
+        let truncate_size = 5000;
 
         trace!(
             id = self.id.as_str(),
             plugin = &uuid,
-            input = %(if input_string.len() > 5000 && !self.debug_call {
+            input = %(if input_string.len() > truncate_size && !self.debug_call {
                 "(truncated)"
             } else {
                 &input_string
@@ -328,7 +329,7 @@ impl PluginContainer {
         trace!(
             id = self.id.as_str(),
             plugin = &uuid,
-            output = %(if output_string.len() > 5000 && !self.debug_call {
+            output = %(if output_string.len() > truncate_size && !self.debug_call {
                 "(truncated)"
             } else {
                 &output_string

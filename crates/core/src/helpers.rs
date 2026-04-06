@@ -137,3 +137,29 @@ pub fn write_json_file_with_lock<T: Serialize>(
 
     Ok(())
 }
+
+/// Cloning an entire map, like `IndexMap`, is very costly as it clones the entire structure.
+/// This helper allows you to clone just the keys and values, which is much faster if you
+/// don't need the map features.
+pub fn fast_map_clone<'map, I, K, V>(items: I) -> Vec<(K, V)>
+where
+    I: IntoIterator<Item = (&'map K, &'map V)>,
+    K: Clone + 'map,
+    V: Clone + 'map,
+{
+    items
+        .into_iter()
+        .map(|(k, v)| (k.to_owned(), v.to_owned()))
+        .collect()
+}
+
+/// Cloning an entire list, like `Vec`, is very costly as it clones the entire structure.
+/// This helper allows you to clone just the values, which is much faster if you don't
+/// need the list features.
+pub fn fast_list_clone<'map, I, V>(items: I) -> Vec<V>
+where
+    I: IntoIterator<Item = &'map V>,
+    V: Clone + 'map,
+{
+    items.into_iter().map(|v| v.to_owned()).collect()
+}

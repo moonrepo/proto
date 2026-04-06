@@ -162,7 +162,7 @@ pub async fn exec_command_with_privileges_piped(
 }
 
 pub fn handle_exec(result: ProcessResult) -> Result<ProcessResult, ProtoProcessError> {
-    if result.exit_code > 0 {
+    if result.exit_code != 0 {
         return Err(ProtoProcessError::FailedCommandNonZeroExit {
             command: result.command.clone(),
             code: result.exit_code,
