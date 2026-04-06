@@ -2,7 +2,6 @@ use super::build_error::*;
 use super::install::{InstallPhase, OnPhaseFn};
 use crate::config::ProtoConfig;
 use crate::env::{ProtoConsole, ProtoEnvironment};
-use crate::helpers::extract_filename_from_url;
 use crate::id::Id;
 use crate::lockfile::LockRecord;
 use crate::utils::log::LogWriter;
@@ -33,7 +32,7 @@ use tokio::process::Command;
 use tokio::sync::{Mutex, OwnedMutexGuard};
 use tracing::{debug, error};
 use version_spec::{VersionSpec, get_semver_regex};
-use warpgate::HttpClient;
+use warpgate::{HttpClient, extract_file_name_from_url};
 
 static BUILD_LOCKS: OnceLock<scc::HashMap<String, Arc<Mutex<()>>>> = OnceLock::new();
 
@@ -736,7 +735,7 @@ pub async fn download_sources(
             lockfile.source = Some(archive.url.clone());
 
             if archive::should_unpack(&archive, builder.options.install_dir)? {
-                let filename = extract_filename_from_url(&archive.url);
+                let filename = extract_file_name_from_url(&archive.url);
 
                 // Download
                 builder.options.on_phase_change.as_ref().inspect(|func| {
@@ -933,7 +932,7 @@ pub async fn execute_instructions(
             }
             BuildInstruction::RequestScript(url) => {
                 let url = builder.options.config.rewrite_url(url);
-                let filename = extract_filename_from_url(&url);
+                let filename = extract_file_name_from_url(&url);
                 let download_file = builder.options.temp_dir.join(&filename);
 
                 builder

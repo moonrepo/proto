@@ -58,7 +58,7 @@ thiserror = { workspace = true }
 tokio = { workspace = true }
 toml_edit = { workspace = true }
 tracing = { workspace = true }
-url = { version = "2.5.8", features = ["serde"] }
+url = { workspace = true, features = ["serde"] }
 uuid = { workspace = true }
 
 [dev-dependencies]

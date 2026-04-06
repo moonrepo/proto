@@ -100,24 +100,6 @@ pub fn now() -> u128 {
         .unwrap_or(0)
 }
 
-pub fn extract_filename_from_url<U: AsRef<str>>(url: U) -> String {
-    let base = url.as_ref();
-
-    match url::Url::parse(base) {
-        Ok(url) => {
-            let mut segments = url.path_segments().unwrap();
-
-            segments.next_back().unwrap().to_owned()
-        }
-        Err(_) => if let Some(i) = base.rfind('/') {
-            &base[i + 1..]
-        } else {
-            "unknown"
-        }
-        .into(),
-    }
-}
-
 pub fn read_json_file_with_lock<T: DeserializeOwned>(
     path: impl AsRef<Path>,
 ) -> Result<T, JsonError> {

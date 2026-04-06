@@ -29,6 +29,24 @@ pub fn determine_cache_extension(value: &str) -> Option<&str> {
         .find(|ext| value.ends_with(ext))
 }
 
+/// Attempt to extract a file name from the provided URL,
+/// which can be used for caching or temporary file creation.
+pub fn extract_file_name_from_url(base: &str) -> String {
+    match url::Url::parse(base) {
+        Ok(url) => {
+            let mut segments = url.path_segments().unwrap();
+
+            segments.next_back().unwrap().to_owned()
+        }
+        Err(_) => if let Some(i) = base.rfind('/') {
+            &base[i + 1..]
+        } else {
+            "unknown"
+        }
+        .into(),
+    }
+}
+
 /// Download a file from the provided URL, with the provided HTTP(S)
 /// client, and save it to a destination location.
 #[instrument(skip(client))]
