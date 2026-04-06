@@ -50,7 +50,11 @@ impl CalVer {
             .name("year")
             .map(|cap| cap.as_str().trim_start_matches('0'))
             .unwrap_or("0");
-        let mut year_no: usize = year.parse().unwrap();
+        let mut year_no: usize = if year.is_empty() {
+            0
+        } else {
+            year.parse().map_err(|_| SpecError::InvalidYear)?
+        };
 
         if year.len() < 4 {
             year_no += 2000;

@@ -6,6 +6,9 @@ pub enum SpecError {
     #[error("Requirement operator found in an invalid position.")]
     InvalidParseRequirement,
 
+    #[error("Invalid calver year, must be a number.")]
+    InvalidYear,
+
     #[error("Missing major number for semantic versions, or year for calendar versions.")]
     MissingParseMajorPart,
 
