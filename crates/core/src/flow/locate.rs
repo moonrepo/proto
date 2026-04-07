@@ -376,16 +376,15 @@ impl<'tool> Locator<'tool> {
                 continue;
             }
 
-            let has_files = fs::read_dir(dir).is_ok_and(|list| {
-                !list
-                    .into_iter()
-                    .filter(|entry| entry.path().is_file())
-                    .collect::<Vec<_>>()
-                    .is_empty()
-            });
-
-            if has_files {
-                debug!(tool = self.tool.context.as_str(), dir = ?dir, "Found a usable globals directory");
+            // Don't use starbase as it collects all files
+            if std::fs::read_dir(dir).is_ok_and(|list| {
+                list.into_iter()
+                    .any(|entry| entry.is_ok_and(|en| en.path().is_file()))
+            }) {
+                debug!(
+                    tool = self.tool.context.as_str(), dir = ?dir,
+                    "Found a usable globals directory"
+                );
 
                 found_dir = Some(dir.to_owned());
                 break;

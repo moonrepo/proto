@@ -247,6 +247,7 @@ impl ProtoMcp {
             .into_iter()
             .map(|v| v.to_string())
             .collect::<Vec<_>>();
+        let versions_len = versions.len();
 
         Ok(CallToolResult::structured(
             serde_json::to_value(ListToolVersionsResponse {
@@ -266,7 +267,7 @@ impl ProtoMcp {
                 versions: if req.all {
                     versions
                 } else {
-                    versions[0..25].to_vec()
+                    versions[0..versions_len.min(25)].to_vec()
                 },
             })
             .unwrap(),

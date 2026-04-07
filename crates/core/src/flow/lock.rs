@@ -73,10 +73,9 @@ impl<'tool> Locker<'tool> {
             Some(existing) => {
                 // If the new record has a higher version,
                 // we should replace the existing record with it
-                if existing
-                    .version
-                    .as_ref()
-                    .is_none_or(|exv| record.version.as_ref().unwrap() >= exv)
+                if let (Some(record_version), Some(existing_version)) =
+                    (&record.version, &existing.version)
+                    && record_version >= existing_version
                 {
                     *existing = record;
                 }

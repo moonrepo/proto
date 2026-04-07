@@ -223,7 +223,7 @@ impl Builder<'_> {
         log.add_code("STDERR", &result.stderr);
         log.add_code("STDOUT", &result.stdout);
 
-        if result.exit_code > 0 {
+        if result.exit_code != 0 {
             return Err(ProtoProcessError::FailedCommandNonZeroExit {
                 command: result.command.clone(),
                 code: result.exit_code,

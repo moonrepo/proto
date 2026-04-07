@@ -178,8 +178,8 @@ impl<'tool> Installer<'tool> {
 
                 install_lock.unlock()?;
 
-                fs::remove_dir_all(&self.product_dir)?;
-                fs::remove_dir_all(&self.temp_dir)?;
+                let _ = fs::remove_dir_all(&self.product_dir);
+                let _ = fs::remove_dir_all(&self.temp_dir);
 
                 Err(error)
             }

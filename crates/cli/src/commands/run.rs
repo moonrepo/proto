@@ -18,10 +18,8 @@ use starbase::AppResult;
 use starbase_styles::color;
 use starbase_utils::{envx, path};
 use std::env;
-use std::ffi::OsStr;
 use std::path::PathBuf;
 use std::process::Command;
-use system_env::create_process_command;
 use tracing::debug;
 
 #[derive(Args, Clone, Debug)]
@@ -184,50 +182,6 @@ fn get_global_executable(env: &ProtoEnvironment, name: &str) -> Option<PathBuf> 
     None
 }
 
-fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
-    tool: &Tool,
-    exe_config: &ExecutableConfig,
-    args: I,
-) -> miette::Result<Command> {
-    let exe_path = exe_config
-        .exe_path
-        .as_ref()
-        .expect("Could not determine executable path.");
-    let base_args = args.into_iter().collect::<Vec<_>>();
-
-    let command = if let Some(parent_exe_path) = &exe_config.parent_exe_name {
-        let mut args = exe_config
-            .parent_exe_args
-            .iter()
-            .map(OsStr::new)
-            .collect::<Vec<_>>();
-        args.push(exe_path.as_os_str());
-        args.extend(base_args.iter().map(|arg| arg.as_ref()));
-
-        debug!(
-            exe = ?parent_exe_path,
-            args = ?args,
-            pid = std::process::id(),
-            "Running {}", tool.get_name(),
-        );
-
-        create_process_command(parent_exe_path, args)
-    } else {
-        let args = base_args.iter().map(|arg| arg.as_ref()).collect::<Vec<_>>();
-
-        debug!(
-            exe = ?exe_path,
-            args = ?args,
-            pid = std::process::id(),
-            "Running {}", tool.get_name(),
-        );
-
-        create_process_command(exe_path, args)
-    };
-
-    Ok(command)
-}
-
 // It is possible that we have a shim for the tool, but can not find the
 // plugin or version. However, this tool may exist on `PATH` outside
 // of proto, so try and fallback to it!
@@ -243,8 +197,10 @@ fn run_global_tool(
             color::shell(args.context.id),
         );
 
-        return exec_command_and_replace(create_process_command(global_exe, args.passthrough))
-            .into_diagnostic();
+        let mut command = Command::new(global_exe);
+        command.args(args.passthrough);
+
+        return exec_command_and_replace(command).into_diagnostic();
     }
 
     Err(error)
@@ -444,8 +400,6 @@ pub async fn run(session: ProtoSession, mut args: RunArgs) -> AppResult {
         get_tool_executable(&tool, &spec, args.exe.as_deref()).await?
     };
 
-    let mut command = create_command(&tool, &exe_config, &args.passthrough)?;
-
     // Prepare environment
     let config = session.load_config()?;
     let context = tool.context.clone();
@@ -457,7 +411,7 @@ pub async fn run(session: ProtoSession, mut args: RunArgs) -> AppResult {
             ExecWorkflowParams {
                 activate_environment: true,
                 check_process_env: true,
-                passthrough_args: args.passthrough,
+                passthrough_args: args.passthrough.clone(),
                 pre_run_hook: true,
                 version_env_vars: !use_global_proto,
                 ..Default::default()
@@ -465,10 +419,54 @@ pub async fn run(session: ProtoSession, mut args: RunArgs) -> AppResult {
         )
         .await?;
 
-    workflow.apply_to_command(&mut command, false)?;
+    // Create and run command
+    let command = create_command(workflow, exe_config, args.passthrough)?;
 
     // Must be the last line!
     exec_command_and_replace(command)
         .into_diagnostic()
         .map(|_| None)
+}
+
+fn create_command(
+    workflow: ExecWorkflow<'_>,
+    exe_config: ExecutableConfig,
+    passthrough_args: Vec<String>,
+) -> miette::Result<Command> {
+    let tool_name = workflow.tools[0].get_name();
+    let exe_path = exe_config
+        .exe_path
+        .as_ref()
+        .expect("Could not determine executable path.")
+        .to_string_lossy()
+        .to_string();
+
+    let (exe, args) = if let Some(parent_exe_path) = exe_config.parent_exe_name {
+        let mut args = vec![];
+        args.extend(exe_config.parent_exe_args);
+        args.push(exe_path);
+        args.extend(passthrough_args);
+
+        (parent_exe_path, args)
+    } else {
+        (exe_path, passthrough_args)
+    };
+
+    debug!(
+        exe = ?exe,
+        args = ?args,
+        pid = std::process::id(),
+        "Running {tool_name}",
+    );
+
+    let command = workflow.create_command(
+        {
+            let mut list = vec![exe];
+            list.extend(args);
+            list
+        },
+        None,
+    )?;
+
+    Ok(command)
 }
