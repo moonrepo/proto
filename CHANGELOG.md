@@ -33,6 +33,7 @@
 - Added support for base64 encoded `data://` locators for plugins. This is primarily for tools built around proto, like moon.
 - Added `dash` shell support.
 - Improved performance of environment variable collection, and virtual path conversions.
+- Improved shim creation error handling.
 - **WASM API**
   - Added `ExecCommandInput.paths` field, which allows plugins to specify a list of real or virtual paths to prepend to the `PATH` environment variable when executing a command.
   - Added `ExecCommandOutput.streamed` field, which indicates whether the command was executed with streaming output or not.
