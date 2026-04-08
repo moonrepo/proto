@@ -1,8 +1,6 @@
-mod utils;
-
 #[cfg(unix)]
 mod upgrade {
-    use super::utils::*;
+    use proto_core::test_utils::*;
     use proto_shim::get_exe_file_name;
 
     #[test]

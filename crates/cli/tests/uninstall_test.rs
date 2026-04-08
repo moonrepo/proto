@@ -1,7 +1,5 @@
-mod utils;
-
+use proto_core::test_utils::*;
 use starbase_sandbox::predicates::prelude::*;
-use utils::*;
 
 mod uninstall {
     use super::*;

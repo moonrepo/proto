@@ -267,7 +267,7 @@ impl NetrcMiddleware {
 impl RequestInitialiser for NetrcMiddleware {
     fn init(&self, req: RequestBuilder) -> RequestBuilder {
         match req.try_clone() {
-            Some(nr) => req
+            Some(nr) => nr
                 .try_clone()
                 .unwrap()
                 .build()

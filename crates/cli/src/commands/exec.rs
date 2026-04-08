@@ -26,7 +26,7 @@ pub struct ExecArgs {
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn exec(session: ProtoSession, mut args: ExecArgs) -> AppResult {
+pub async fn exec(session: ProtoSession, args: ExecArgs) -> AppResult {
     if args.command.is_empty() {
         return Err(ProtoCliError::ExecMissingCommand.into());
     }
@@ -94,13 +94,7 @@ pub async fn exec(session: ProtoSession, mut args: ExecArgs) -> AppResult {
         .await?;
 
     // Create and run command
-    let command = if args.shell.is_some() || workflow.requires_shell(&args.command) {
-        let command_line = workflow.wrap_command(&args.command);
-
-        workflow.create_command_with_shell(args.shell.unwrap_or_default().build(), command_line)?
-    } else {
-        workflow.create_command(args.command.remove(0), args.command)?
-    };
+    let command = workflow.create_command(args.command, args.shell)?;
 
     // Must be the last line!
     exec_command_and_replace(command)

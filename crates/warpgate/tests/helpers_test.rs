@@ -1,9 +1,9 @@
-use std::{collections::BTreeMap, path::PathBuf};
+use std::path::PathBuf;
 use warpgate::{from_virtual_path, sort_virtual_paths, to_virtual_path};
 
 #[test]
 fn sorts_virtual_paths() {
-    let paths = BTreeMap::from_iter([
+    let mut paths = vec![
         (PathBuf::from("/Users/warp"), PathBuf::from("/userhome")),
         (PathBuf::from("/Users/warp/.proto"), PathBuf::from("/proto")),
         (
@@ -19,11 +19,13 @@ fn sorts_virtual_paths() {
             PathBuf::from("/workdir"),
         ),
         (PathBuf::from("/Other/path"), PathBuf::from("/cwd")),
-    ]);
+    ];
+
+    sort_virtual_paths(&mut paths);
 
     assert_eq!(
-        sort_virtual_paths(&paths)
-            .into_iter()
+        paths
+            .iter()
             .map(|(h, g)| (h.to_str().unwrap(), g.to_str().unwrap()))
             .collect::<Vec<_>>(),
         [
@@ -40,7 +42,7 @@ fn sorts_virtual_paths() {
 #[cfg(not(windows))]
 #[test]
 fn converts_virtual_paths() {
-    let paths = BTreeMap::from_iter([(PathBuf::from("/Users/warp"), PathBuf::from("/userhome"))]);
+    let paths = vec![(PathBuf::from("/Users/warp"), PathBuf::from("/userhome"))];
 
     // Match
     let a1 = to_virtual_path(&paths, "/Users/warp/some/path");
@@ -60,8 +62,7 @@ fn converts_virtual_paths() {
 #[cfg(windows)]
 #[test]
 fn converts_virtual_paths() {
-    let paths =
-        BTreeMap::from_iter([(PathBuf::from("C:\\Users\\warp"), PathBuf::from("/userhome"))]);
+    let paths = vec![(PathBuf::from("C:\\Users\\warp"), PathBuf::from("/userhome"))];
 
     // Match
     let a1 = to_virtual_path(&paths, "C:\\Users\\warp\\some\\path");

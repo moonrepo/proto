@@ -102,16 +102,18 @@ impl Store {
     }
 
     #[instrument(skip(self))]
-    pub fn load_shim_binary(&self) -> Result<&Vec<u8>, ProtoLayoutError> {
-        self.shim_binary.get_or_try_init(|| {
-            Ok(fs::read_file_bytes(
+    pub fn load_shim_binary(&self) -> Result<&[u8], ProtoLayoutError> {
+        let value = self.shim_binary.get_or_try_init(|| {
+            Ok::<_, ProtoLayoutError>(fs::read_file_bytes(
                 locate_proto_exe("proto-shim").ok_or_else(|| {
                     ProtoLayoutError::MissingShimBinary {
                         bin_dir: self.bin_dir.clone(),
                     }
                 })?,
             )?)
-        })
+        })?;
+
+        Ok(value.as_ref())
     }
 
     #[instrument(skip(self))]

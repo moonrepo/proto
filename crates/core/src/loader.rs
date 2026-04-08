@@ -118,13 +118,17 @@ pub async fn load_schema_plugin_with_proto(
     proto: impl AsRef<ProtoEnvironment>,
 ) -> Result<PathBuf, ProtoLoaderError> {
     let proto = proto.as_ref();
+    let config = proto.load_config()?;
+    let mut locator = config.builtin_schema_plugin();
+
+    // Rewrite if a URL
+    if let PluginLocator::Url(inner) = &mut locator {
+        inner.url = config.rewrite_url(&inner.url);
+    }
 
     let path = proto
         .get_plugin_loader()?
-        .load_plugin(
-            Id::raw(SCHEMA_PLUGIN_KEY),
-            proto.load_config()?.builtin_schema_plugin(),
-        )
+        .load_plugin(Id::raw(SCHEMA_PLUGIN_KEY), locator)
         .await?;
 
     Ok(path)

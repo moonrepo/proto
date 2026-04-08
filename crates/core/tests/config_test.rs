@@ -467,7 +467,7 @@ file = ".env"
                 .unwrap()
                 .get_merged_config()
                 .unwrap()
-                .get_env_vars(new_env_options())
+                .get_env_vars(&new_env_options())
                 .unwrap();
         }
 
@@ -497,7 +497,7 @@ KEY2 = "value2"
                 .unwrap()
                 .to_owned();
 
-            assert_eq!(config.get_env_vars(new_env_options()).unwrap(), {
+            assert_eq!(config.get_env_vars(&new_env_options()).unwrap(), {
                 let mut map = IndexMap::<String, Option<String>>::default();
                 map.insert("KEY1".into(), Some("value1".into()));
                 map.insert("KEY2".into(), Some("value2".into()));
@@ -542,7 +542,7 @@ file = ".env"
                 .unwrap()
                 .to_owned();
 
-            assert_eq!(config.get_env_vars(new_env_options()).unwrap(), {
+            assert_eq!(config.get_env_vars(&new_env_options()).unwrap(), {
                 let mut map = IndexMap::<String, Option<String>>::default();
                 map.insert("KEY".into(), Some("child".into()));
                 map
@@ -573,7 +573,7 @@ file = ".env"
                 .unwrap()
                 .to_owned();
 
-            assert_eq!(config.get_env_vars(new_env_options()).unwrap(), {
+            assert_eq!(config.get_env_vars(&new_env_options()).unwrap(), {
                 let mut map = IndexMap::<String, Option<String>>::default();
                 map.insert("OTHER".into(), Some("abc".into()));
                 map.insert("KEY".into(), Some("other=abc".into()));
@@ -639,7 +639,7 @@ KEY = "from=${FILE}"
                 .unwrap()
                 .to_owned();
 
-            assert_eq!(config.get_env_vars(new_env_options()).unwrap(), {
+            assert_eq!(config.get_env_vars(&new_env_options()).unwrap(), {
                 let mut map = IndexMap::<String, Option<String>>::default();
                 map.insert("FILE".into(), Some("file".into()));
                 map.insert("KEY".into(), Some("from=file".into()));
@@ -929,7 +929,7 @@ file = ".env.tool"
             assert_eq!(config.env, IndexMap::<String, EnvVar>::default());
             assert_eq!(
                 config
-                    .get_env_files(ProtoConfigEnvOptions {
+                    .get_env_files(&ProtoConfigEnvOptions {
                         context: Some(&ToolContext::with_backend(
                             Id::raw("id"),
                             Id::raw("example"),
@@ -1230,7 +1230,7 @@ file = ".env.tool"
             assert_eq!(config.env, IndexMap::<String, EnvVar>::default());
             assert_eq!(
                 config
-                    .get_env_files(ProtoConfigEnvOptions {
+                    .get_env_files(&ProtoConfigEnvOptions {
                         context: Some(&ToolContext::new(Id::raw("node"))),
                         check_process: true,
                         include_shared: true,

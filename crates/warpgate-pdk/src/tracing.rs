@@ -122,5 +122,6 @@ pub fn initialize_tracing() {
 
 /// Initialize `tracing` events to be captured by Extism, with the provided options.
 pub fn initialize_tracing_with_options(options: WarpgateTracingOptions) {
-    set_global_default(Registry::default().with(WarpgateToExtismLayer { options })).unwrap()
+    set_global_default(Registry::default().with(WarpgateToExtismLayer { options }))
+        .expect("Global tracing subscriber has already been set!")
 }

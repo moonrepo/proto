@@ -1,8 +1,6 @@
-mod utils;
-
+use proto_core::test_utils::*;
 use proto_core::{PluginLocator, warpgate::UrlLocator};
 use starbase_sandbox::predicates::prelude::*;
-use utils::*;
 
 mod plugin_add {
     use super::*;

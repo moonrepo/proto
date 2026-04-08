@@ -180,10 +180,8 @@ pub fn resolve_version(
             );
         }
         UnresolvedVersionSpec::ReqAny(reqs) => {
-            let range = reqs.iter().map(|req| req.to_string()).collect::<Vec<_>>();
-
             trace!(
-                range = ?range,
+                range = ?reqs.iter().map(|req| req.to_string()).collect::<Vec<_>>(),
                 "Found a range, resolving further"
             );
 
@@ -214,7 +212,7 @@ pub fn resolve_version(
             }
 
             trace!(
-                range = ?range,
+                range = ?reqs.iter().map(|req| req.to_string()).collect::<Vec<_>>(),
                 "No match for range, trying others",
             );
         }

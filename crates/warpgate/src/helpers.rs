@@ -3,9 +3,9 @@ use crate::loader_error::WarpgateLoaderError;
 use sha2::{Digest, Sha256};
 use starbase_archive::{Archiver, is_supported_archive_extension};
 use starbase_utils::{fs, glob, net, net::NetError};
-use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
+use std::time::SystemTime;
 use tracing::instrument;
 use warpgate_api::{PluginLocator, UrlLocator, VirtualPath};
 
@@ -27,6 +27,24 @@ pub fn determine_cache_extension(value: &str) -> Option<&str> {
     [".toml", ".json", ".jsonc", ".yaml", ".yml", ".wasm", ".txt"]
         .into_iter()
         .find(|ext| value.ends_with(ext))
+}
+
+/// Attempt to extract a file name from the provided URL,
+/// which can be used for caching or temporary file creation.
+pub fn extract_file_name_from_url(base: &str) -> String {
+    match url::Url::parse(base) {
+        Ok(url) => url
+            .path_segments()
+            .and_then(|mut segments| segments.next_back())
+            .unwrap_or("unknown")
+            .into(),
+        Err(_) => if let Some(i) = base.rfind('/') {
+            &base[i + 1..]
+        } else {
+            "unknown"
+        }
+        .into(),
+    }
 }
 
 /// Download a file from the provided URL, with the provided HTTP(S)
@@ -68,7 +86,13 @@ pub fn move_or_unpack_download(
 ) -> Result<(), WarpgateLoaderError> {
     // Archive supported file extensions
     if is_supported_archive_extension(temp_file) {
-        let out_dir = temp_file.parent().unwrap().join("out");
+        let out_dir = temp_file.parent().unwrap().join(format!(
+            "out-{}",
+            SystemTime::now()
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_millis()
+        ));
 
         Archiver::new(&out_dir, temp_file).unpack_from_ext()?;
 
@@ -129,20 +153,18 @@ pub fn move_or_unpack_download(
 
 /// Sort virtual paths from longest to shortest host path,
 /// so that prefix replacing is deterministic and accurate.
-pub fn sort_virtual_paths(map: &BTreeMap<PathBuf, PathBuf>) -> Vec<(&PathBuf, &PathBuf)> {
-    let mut list = map.iter().collect::<Vec<_>>();
-    list.sort_by(|a, d| d.0.cmp(a.0).then(d.1.cmp(a.1)));
-    list
+pub fn sort_virtual_paths(paths_list: &mut [(PathBuf, PathBuf)]) {
+    paths_list.sort_by(|a, d| d.0.cmp(&a.0).then(d.1.cmp(&a.1)));
 }
 
 /// Convert the provided virtual guest path to an absolute host path.
 pub fn from_virtual_path(
-    paths_map: &BTreeMap<PathBuf, PathBuf>,
+    paths_list: &[(PathBuf, PathBuf)],
     path: impl AsRef<Path> + Debug,
 ) -> PathBuf {
     let path = path.as_ref();
 
-    for (host_path, guest_path) in sort_virtual_paths(paths_map) {
+    for (host_path, guest_path) in paths_list {
         if let Ok(rel_path) = path.strip_prefix(guest_path) {
             let real_path = host_path.join(rel_path);
 
@@ -156,12 +178,12 @@ pub fn from_virtual_path(
 /// Convert the provided absolute host path to a virtual guest path suitable
 /// for WASI sandboxed runtimes.
 pub fn to_virtual_path(
-    paths_map: &BTreeMap<PathBuf, PathBuf>,
+    paths_list: &[(PathBuf, PathBuf)],
     path: impl AsRef<Path> + Debug,
 ) -> VirtualPath {
     let path = path.as_ref();
 
-    for (host_path, guest_path) in sort_virtual_paths(paths_map) {
+    for (host_path, guest_path) in paths_list {
         let virtual_path = if path.starts_with(guest_path) {
             path.to_owned()
         } else if let Ok(rel_path) = path.strip_prefix(host_path) {

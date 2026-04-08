@@ -1,8 +1,6 @@
-mod utils;
-
+use proto_core::test_utils::*;
 use std::fs;
 use std::time::{Duration, SystemTime};
-use utils::*;
 
 mod clean {
     use super::*;

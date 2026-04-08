@@ -278,7 +278,7 @@ impl UnresolvedParser {
             let year = self.get_part(&self.major_year);
 
             if year.len() < 4 {
-                let mut year: usize = year.parse().unwrap();
+                let mut year: usize = year.parse().map_err(|_| SpecError::InvalidYear)?;
                 year += 2000;
 
                 output.push_str(&year.to_string());

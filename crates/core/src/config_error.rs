@@ -30,6 +30,10 @@ pub enum ProtoConfigError {
         parent_dir: PathBuf,
     },
 
+    #[diagnostic(code(proto::config::lockfile_lock_failed))]
+    #[error("Failed to acquire a lock on the lockfile.")]
+    FailedLockfileLock,
+
     #[diagnostic(code(proto::config::env_parse_failed))]
     #[error(
         "Failed to parse .env file {}.",
