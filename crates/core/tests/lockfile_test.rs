@@ -22,7 +22,7 @@ mod lockfile {
         ) -> LockRecord {
             LockRecord {
                 spec: spec.map(|s| UnresolvedVersionSpec::parse(s).unwrap()),
-                backend: backend.map(|b| Id::raw(b)),
+                backend: backend.map(Id::raw),
                 os,
                 arch,
                 ..Default::default()

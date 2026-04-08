@@ -402,12 +402,13 @@ pub async fn run(session: ProtoSession, mut args: RunArgs) -> AppResult {
 
     // Prepare environment
     let config = session.load_config()?;
-    let context = tool.context.clone();
+    let tool_name = tool.get_name().to_string();
+    let tool_context = tool.context.clone();
     let mut workflow = ExecWorkflow::new(vec![tool], config);
 
     workflow
         .prepare_environment(
-            FxHashMap::from_iter([(context, spec)]),
+            FxHashMap::from_iter([(tool_context, spec)]),
             ExecWorkflowParams {
                 activate_environment: true,
                 check_process_env: true,
@@ -420,7 +421,7 @@ pub async fn run(session: ProtoSession, mut args: RunArgs) -> AppResult {
         .await?;
 
     // Create and run command
-    let command = create_command(workflow, exe_config, args.passthrough)?;
+    let command = create_command(workflow, tool_name, exe_config, args.passthrough)?;
 
     // Must be the last line!
     exec_command_and_replace(command)
@@ -430,10 +431,10 @@ pub async fn run(session: ProtoSession, mut args: RunArgs) -> AppResult {
 
 fn create_command(
     workflow: ExecWorkflow<'_>,
+    tool_name: String,
     exe_config: ExecutableConfig,
     passthrough_args: Vec<String>,
 ) -> miette::Result<Command> {
-    let tool_name = workflow.tools[0].get_name();
     let exe_path = exe_config
         .exe_path
         .as_ref()
