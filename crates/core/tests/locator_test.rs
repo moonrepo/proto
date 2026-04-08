@@ -1,16 +1,16 @@
+use proto_core::test_utils::create_empty_proto_sandbox;
 use proto_core::{
     ProtoConfig, ProtoEnvironment, Tool, ToolContext, ToolSpec, flow::locate::Locator,
     load_tool_from_locator,
 };
-use starbase_sandbox::create_empty_sandbox;
 use starbase_utils::fs;
 use std::path::Path;
 use version_spec::VersionSpec;
 
-async fn create_node(_root: &Path) -> Tool {
+async fn create_node(root: &Path) -> Tool {
     load_tool_from_locator(
         ToolContext::parse("node").unwrap(),
-        ProtoEnvironment::new().unwrap(),
+        ProtoEnvironment::new_testing(root).unwrap(),
         ProtoConfig::default()
             .builtin_plugins()
             .tools
@@ -39,7 +39,7 @@ mod locator {
 
     #[tokio::test(flavor = "multi_thread")]
     async fn product_dir_contains_version() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         let tool = create_node(sandbox.path()).await;
 
         let spec = ToolSpec::new_resolved(VersionSpec::parse("20.0.0").unwrap());
@@ -52,7 +52,7 @@ mod locator {
 
     #[tokio::test(flavor = "multi_thread")]
     async fn product_dir_contains_tool_id() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         let tool = create_node(sandbox.path()).await;
 
         let spec = ToolSpec::new_resolved(VersionSpec::parse("20.0.0").unwrap());
@@ -65,7 +65,7 @@ mod locator {
 
     #[tokio::test(flavor = "multi_thread")]
     async fn locates_primary_exe() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         let tool = create_node(sandbox.path()).await;
 
         let spec = ToolSpec::new_resolved(VersionSpec::parse("20.0.0").unwrap());
@@ -83,7 +83,7 @@ mod locator {
 
     #[tokio::test(flavor = "multi_thread")]
     async fn locates_secondary_exes_without_error() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         let tool = create_node(sandbox.path()).await;
 
         let spec = ToolSpec::new_resolved(VersionSpec::parse("20.0.0").unwrap());
@@ -101,7 +101,7 @@ mod locator {
 
     #[tokio::test(flavor = "multi_thread")]
     async fn locates_shim_paths() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         let tool = create_node(sandbox.path()).await;
 
         let spec = ToolSpec::new_resolved(VersionSpec::parse("20.0.0").unwrap());
@@ -118,7 +118,7 @@ mod locator {
 
     #[tokio::test(flavor = "multi_thread")]
     async fn locate_exe_file_returns_path() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         let tool = create_node(sandbox.path()).await;
 
         create_fake_exes(sandbox.path());
@@ -135,7 +135,7 @@ mod locator {
 
     #[tokio::test(flavor = "multi_thread")]
     async fn locate_exes_dirs_returns_dirs() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         let tool = create_node(sandbox.path()).await;
 
         let spec = ToolSpec::new_resolved(VersionSpec::parse("20.0.0").unwrap());
@@ -148,7 +148,7 @@ mod locator {
 
     #[tokio::test(flavor = "multi_thread")]
     async fn locate_all_returns_complete_response() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         let tool = create_node(sandbox.path()).await;
 
         create_fake_exes(sandbox.path());
@@ -171,7 +171,7 @@ mod locator {
 
     #[tokio::test(flavor = "multi_thread")]
     async fn getters_return_none_before_locate() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         let tool = create_node(sandbox.path()).await;
 
         let spec = ToolSpec::new_resolved(VersionSpec::parse("20.0.0").unwrap());
@@ -188,7 +188,7 @@ mod locator {
 
     #[tokio::test(flavor = "multi_thread")]
     async fn getters_populated_after_locate() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         let tool = create_node(sandbox.path()).await;
 
         create_fake_exes(sandbox.path());
