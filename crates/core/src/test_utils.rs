@@ -57,28 +57,6 @@ pub fn create_empty_proto_sandbox() -> ProtoSandbox {
     ProtoSandbox::new(starbase_sandbox::create_empty_sandbox())
 }
 
-pub fn create_empty_proto_sandbox_with_tools(ext: &str) -> ProtoSandbox {
-    let sandbox = create_empty_proto_sandbox();
-    let schema_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("./tests/__fixtures__")
-        .join(format!("moon-schema.{ext}"));
-
-    sandbox.create_file(
-        ".prototools",
-        format!(
-            r#"
-moon-test = "1.0.0"
-
-[plugins.tools]
-moon-test = "file://{}"
-"#,
-            schema_path.to_string_lossy().replace("\\", "/")
-        ),
-    );
-
-    sandbox
-}
-
 pub fn create_proto_sandbox<N: AsRef<str>>(fixture: N) -> ProtoSandbox {
     ProtoSandbox::new(starbase_sandbox::create_sandbox(fixture))
 }
