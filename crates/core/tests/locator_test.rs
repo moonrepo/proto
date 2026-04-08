@@ -3,6 +3,7 @@ use proto_core::{
     load_tool_from_locator,
 };
 use starbase_sandbox::create_empty_sandbox;
+use starbase_utils::fs;
 use std::path::Path;
 use version_spec::VersionSpec;
 
@@ -20,6 +21,19 @@ async fn create_node(_root: &Path) -> Tool {
     .unwrap()
 }
 
+fn create_fake_exes(root: &Path) {
+    fs::write_file(
+        root.join(".proto/tools/node/20.0.0")
+            .join(if cfg!(windows) {
+                "node.exe"
+            } else {
+                "bin/node"
+            }),
+        "",
+    )
+    .unwrap();
+}
+
 mod locator {
     use super::*;
 
@@ -32,10 +46,8 @@ mod locator {
         let locator = Locator::new(&tool, &spec);
 
         let product_dir = locator.product_dir.to_string_lossy().to_string();
-        assert!(
-            product_dir.contains("20.0.0"),
-            "Product dir should contain version: {product_dir}"
-        );
+
+        assert!(product_dir.contains("20.0.0"));
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -47,10 +59,8 @@ mod locator {
         let locator = Locator::new(&tool, &spec);
 
         let product_dir = locator.product_dir.to_string_lossy().to_string();
-        assert!(
-            product_dir.contains("node"),
-            "Product dir should contain tool name: {product_dir}"
-        );
+
+        assert!(product_dir.contains("node"));
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -63,17 +73,12 @@ mod locator {
 
         let primary = locator.locate_primary_exe().await.unwrap();
 
-        assert!(primary.is_some(), "Node should have a primary executable");
+        assert!(primary.is_some());
+
         let exe_loc = primary.unwrap();
-        assert!(
-            exe_loc.name == "node",
-            "Primary exe name should be 'node', got '{}'",
-            exe_loc.name
-        );
-        assert!(
-            exe_loc.config.primary,
-            "Primary exe should be marked as primary"
-        );
+
+        assert!(exe_loc.name == "node");
+        assert!(exe_loc.config.primary);
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -90,11 +95,7 @@ mod locator {
 
         // All returned executables should not be primary
         for exe in &secondaries {
-            assert!(
-                !exe.config.primary,
-                "Secondary exe '{}' should not be primary",
-                exe.name
-            );
+            assert!(!exe.config.primary);
         }
     }
 
@@ -108,11 +109,11 @@ mod locator {
 
         let shims = locator.locate_shims().await.unwrap();
 
-        assert!(!shims.is_empty(), "Node should have shims");
+        assert!(!shims.is_empty());
 
         // Primary shim should be named "node"
         let has_node_shim = shims.iter().any(|s| s.name == "node");
-        assert!(has_node_shim, "Should have a node shim");
+        assert!(has_node_shim);
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -120,16 +121,16 @@ mod locator {
         let sandbox = create_empty_sandbox();
         let tool = create_node(sandbox.path()).await;
 
+        create_fake_exes(sandbox.path());
+
         let spec = ToolSpec::new_resolved(VersionSpec::parse("20.0.0").unwrap());
         let mut locator = Locator::new(&tool, &spec);
 
         let exe_file = locator.locate_exe_file().await.unwrap();
 
         let file_name = exe_file.file_name().unwrap().to_string_lossy().to_string();
-        assert!(
-            file_name.contains("node"),
-            "Exe file should contain 'node', got {file_name}"
-        );
+
+        assert!(file_name.contains("node"));
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -142,13 +143,15 @@ mod locator {
 
         let dirs = locator.locate_exes_dirs().await.unwrap();
 
-        assert!(!dirs.is_empty(), "Node should have executable directories");
+        assert!(!dirs.is_empty());
     }
 
     #[tokio::test(flavor = "multi_thread")]
     async fn locate_all_returns_complete_response() {
         let sandbox = create_empty_sandbox();
         let tool = create_node(sandbox.path()).await;
+
+        create_fake_exes(sandbox.path());
 
         let spec = ToolSpec::new_resolved(VersionSpec::parse("20.0.0").unwrap());
         let mut locator = Locator::new(&tool, &spec);
@@ -162,14 +165,8 @@ mod locator {
             .unwrap()
             .to_string_lossy()
             .to_string();
-        assert!(
-            file_name.contains("node"),
-            "Exe file should contain 'node', got {file_name}"
-        );
-        assert!(
-            !response.exes_dirs.is_empty(),
-            "Should have executable directories"
-        );
+        assert!(file_name.contains("node"));
+        assert!(!response.exes_dirs.is_empty());
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -193,6 +190,8 @@ mod locator {
     async fn getters_populated_after_locate() {
         let sandbox = create_empty_sandbox();
         let tool = create_node(sandbox.path()).await;
+
+        create_fake_exes(sandbox.path());
 
         let spec = ToolSpec::new_resolved(VersionSpec::parse("20.0.0").unwrap());
         let mut locator = Locator::new(&tool, &spec);
