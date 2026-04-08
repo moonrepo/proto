@@ -3,11 +3,13 @@
 mod backends;
 mod plugins;
 mod settings;
+mod shell;
 mod tools;
 
 pub use backends::*;
 pub use plugins::*;
 pub use settings::*;
+pub use shell::*;
 pub use tools::*;
 
 use schematic::{Config, ConfigEnum, MergeError, MergeResult, PartialConfig, derive_enum};

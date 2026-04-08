@@ -50,6 +50,9 @@ pub struct ProtoConfig {
     pub plugins: ProtoPluginsConfig,
 
     #[setting(nested)]
+    pub shell: ProtoShellConfig,
+
+    #[setting(nested)]
     pub settings: ProtoSettingsConfig,
 
     #[serde(flatten)]
