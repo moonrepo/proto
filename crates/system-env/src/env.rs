@@ -60,7 +60,21 @@ impl Default for SystemArch {
 
 impl fmt::Display for SystemArch {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", format!("{self:?}").to_lowercase())
+        f.write_str(match self {
+            Self::Arm => "arm",
+            Self::Arm64 => "arm64",
+            Self::LongArm64 => "longarm64",
+            Self::M68k => "m68k",
+            Self::Mips => "mips",
+            Self::Mips64 => "mips64",
+            Self::Powerpc => "powerpc",
+            Self::Powerpc64 => "powerpc64",
+            Self::Riscv64 => "riscv64",
+            Self::S390x => "s390x",
+            Self::Sparc64 => "sparc64",
+            Self::X64 => "x64",
+            Self::X86 => "x86",
+        })
     }
 }
 
@@ -169,7 +183,18 @@ impl Default for SystemOS {
 
 impl fmt::Display for SystemOS {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", format!("{self:?}").to_lowercase())
+        f.write_str(match self {
+            Self::Android => "android",
+            Self::Dragonfly => "dragonfly",
+            Self::FreeBSD => "freebsd",
+            Self::IOS => "ios",
+            Self::Linux => "linux",
+            Self::MacOS => "macos",
+            Self::NetBSD => "netbsd",
+            Self::OpenBSD => "openbsd",
+            Self::Solaris => "solaris",
+            Self::Windows => "windows",
+        })
     }
 }
 
@@ -231,6 +256,10 @@ impl SystemLibc {
 
 impl fmt::Display for SystemLibc {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", format!("{self:?}").to_lowercase())
+        f.write_str(match self {
+            Self::Gnu => "gnu",
+            Self::Musl => "musl",
+            Self::Unknown => "unknown",
+        })
     }
 }

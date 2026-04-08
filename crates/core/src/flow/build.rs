@@ -2,7 +2,6 @@ use super::build_error::*;
 use super::install::{InstallPhase, OnPhaseFn};
 use crate::config::ProtoConfig;
 use crate::env::{ProtoConsole, ProtoEnvironment};
-use crate::helpers::extract_filename_from_url;
 use crate::id::Id;
 use crate::lockfile::LockRecord;
 use crate::utils::log::LogWriter;
@@ -33,7 +32,7 @@ use tokio::process::Command;
 use tokio::sync::{Mutex, OwnedMutexGuard};
 use tracing::{debug, error};
 use version_spec::{VersionSpec, get_semver_regex};
-use warpgate::HttpClient;
+use warpgate::{HttpClient, extract_file_name_from_url};
 
 static BUILD_LOCKS: OnceLock<scc::HashMap<String, Arc<Mutex<()>>>> = OnceLock::new();
 
@@ -224,7 +223,7 @@ impl Builder<'_> {
         log.add_code("STDERR", &result.stderr);
         log.add_code("STDOUT", &result.stdout);
 
-        if result.exit_code > 0 {
+        if result.exit_code != 0 {
             return Err(ProtoProcessError::FailedCommandNonZeroExit {
                 command: result.command.clone(),
                 code: result.exit_code,
@@ -533,6 +532,21 @@ pub async fn install_system_dependencies(
 
 // STEP 2
 
+fn get_command_version_regex() -> &'static regex::Regex {
+    static VERSION_REGEX: OnceLock<regex::Regex> = OnceLock::new();
+
+    // Remove leading ^ and trailing $
+    VERSION_REGEX.get_or_init(|| {
+        regex::Regex::new(
+            get_semver_regex()
+                .as_str()
+                .trim_start_matches('^')
+                .trim_end_matches('$'),
+        )
+        .unwrap()
+    })
+}
+
 async fn get_command_version(
     cmd: &str,
     version_arg: &str,
@@ -542,11 +556,7 @@ async fn get_command_version(
         .exec_command(Command::new(cmd).arg(version_arg), true)
         .await?;
 
-    // Remove leading ^ and trailing $
-    let base_pattern = get_semver_regex().as_str();
-    let pattern = regex::Regex::new(&base_pattern[1..(base_pattern.len() - 1)]).unwrap();
-
-    let value = pattern
+    let value = get_command_version_regex()
         .find(&output.stdout)
         .map(|res| res.as_str())
         .unwrap_or(&output.stdout);
@@ -736,7 +746,7 @@ pub async fn download_sources(
             lockfile.source = Some(archive.url.clone());
 
             if archive::should_unpack(&archive, builder.options.install_dir)? {
-                let filename = extract_filename_from_url(&archive.url);
+                let filename = extract_file_name_from_url(&archive.url);
 
                 // Download
                 builder.options.on_phase_change.as_ref().inspect(|func| {
@@ -933,7 +943,7 @@ pub async fn execute_instructions(
             }
             BuildInstruction::RequestScript(url) => {
                 let url = builder.options.config.rewrite_url(url);
-                let filename = extract_filename_from_url(&url);
+                let filename = extract_file_name_from_url(&url);
                 let download_file = builder.options.temp_dir.join(&filename);
 
                 builder
@@ -961,7 +971,7 @@ pub async fn execute_instructions(
 
                 builder.render_checkpoint(format!(
                     "{prefix} Running command <shell>{} {}</shell>",
-                    exe.file_name().unwrap().to_str().unwrap(),
+                    fs::file_name(&exe),
                     shell_words::join(&cmd.args)
                 ))?;
 

@@ -84,6 +84,7 @@ wiggle = "~41.0.4"
 liblzma = { version = "0.4.6", features = ["static"] }
 
 [dev-dependencies]
+proto_core = { path = "../core", features = ["test"] }
 starbase_sandbox = { workspace = true }
 shared_child = "1.1.1"
 

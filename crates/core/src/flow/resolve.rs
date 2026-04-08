@@ -143,7 +143,7 @@ impl<'tool> Resolver<'tool> {
         // If we have a fully qualified semantic version,
         // exit early and assume the version is legitimate!
         // Also canary is a special type that we can simply just use.
-        if short_circuit && candidate.is_fully_qualified()
+        if (short_circuit && candidate.is_fully_qualified())
             || matches!(candidate, UnresolvedVersionSpec::Canary)
         {
             let version = candidate.to_resolved_spec();

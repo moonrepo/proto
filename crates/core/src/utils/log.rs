@@ -1,6 +1,6 @@
 use starbase_utils::fs::{self, FsError};
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 
 #[derive(Clone, Default)]
 pub struct LogWriter {
@@ -46,7 +46,7 @@ impl LogWriter {
     }
 
     pub fn add_error(&self, error: &dyn std::error::Error) {
-        let ansi = regex::Regex::new(r"\x1b\[([\x30-\x3f]*[\x20-\x2f]*[\x40-\x7e])").unwrap();
+        let ansi = get_ansi_regex();
 
         self.add_code("ERROR", ansi.replace_all(&error.to_string(), ""));
 
@@ -90,4 +90,11 @@ impl LogWriter {
 
         Ok(())
     }
+}
+
+fn get_ansi_regex() -> &'static regex::Regex {
+    static ANSI_REGEX: OnceLock<regex::Regex> = OnceLock::new();
+
+    ANSI_REGEX
+        .get_or_init(|| regex::Regex::new(r"\x1b\[([\x30-\x3f]*[\x20-\x2f]*[\x40-\x7e])").unwrap())
 }

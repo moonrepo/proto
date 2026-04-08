@@ -1,6 +1,4 @@
-#![allow(dead_code)]
-
-use proto_core::{ProtoConfig, ProtoFileManager};
+use crate::{ProtoConfig, ProtoFileManager};
 use proto_shim::get_exe_file_name;
 use starbase_sandbox::{Sandbox, assert_cmd};
 use std::collections::HashMap;
@@ -30,8 +28,8 @@ impl Deref for ProtoSandbox {
 
 fn apply_settings(sandbox: &mut Sandbox) {
     let root = sandbox.path().to_path_buf();
-    let home_dir = sandbox.path().join(".home");
-    let proto_dir = sandbox.path().join(".proto");
+    let home_dir = root.join(".home");
+    let proto_dir = root.join(".proto");
 
     // Folders must exist or tests fail!
     fs::create_dir_all(&home_dir).unwrap();
@@ -57,28 +55,6 @@ fn apply_settings(sandbox: &mut Sandbox) {
 
 pub fn create_empty_proto_sandbox() -> ProtoSandbox {
     ProtoSandbox::new(starbase_sandbox::create_empty_sandbox())
-}
-
-pub fn create_empty_proto_sandbox_with_tools(ext: &str) -> ProtoSandbox {
-    let sandbox = create_empty_proto_sandbox();
-    let schema_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("./tests/__fixtures__")
-        .join(format!("moon-schema.{ext}"));
-
-    sandbox.create_file(
-        ".prototools",
-        format!(
-            r#"
-moon-test = "1.0.0"
-
-[plugins.tools]
-moon-test = "file://{}"
-"#,
-            schema_path.to_string_lossy().replace("\\", "/")
-        ),
-    );
-
-    sandbox
 }
 
 pub fn create_proto_sandbox<N: AsRef<str>>(fixture: N) -> ProtoSandbox {

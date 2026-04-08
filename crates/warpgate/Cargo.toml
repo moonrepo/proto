@@ -39,6 +39,7 @@ starbase_utils = { workspace = true, features = ["glob", "net"] }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
+url = { workspace = true }
 
 # Enabling certs for extism!
 ureq = { version = "3.3.0", features = ["rustls", "platform-verifier"] }

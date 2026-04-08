@@ -1,9 +1,7 @@
-mod utils;
-
+use proto_core::test_utils::*;
 use starbase_sandbox::assert_debug_snapshot;
 use starbase_sandbox::predicates::prelude::*;
 use std::fs;
-use utils::*;
 
 mod outdated {
     use super::*;

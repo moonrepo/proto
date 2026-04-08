@@ -4,7 +4,7 @@ pub use super::install_error::ProtoInstallError;
 use crate::checksum::*;
 use crate::env::ProtoConsole;
 use crate::flow::lock::Locker;
-use crate::helpers::{extract_filename_from_url, is_archive_file, is_executable, is_offline};
+use crate::helpers::{is_archive_file, is_executable, is_offline};
 use crate::lockfile::*;
 use crate::tool::Tool;
 use crate::tool_spec::ToolSpec;
@@ -20,6 +20,7 @@ use std::sync::Arc;
 use system_env::System;
 use tokio::process::Command;
 use tracing::{debug, instrument, warn};
+use warpgate::extract_file_name_from_url;
 
 pub use starbase_utils::net::OnChunkFn;
 pub type OnPhaseFn = Arc<dyn Fn(InstallPhase) + Send + Sync>;
@@ -177,8 +178,8 @@ impl<'tool> Installer<'tool> {
 
                 install_lock.unlock()?;
 
-                fs::remove_dir_all(&self.product_dir)?;
-                fs::remove_dir_all(&self.temp_dir)?;
+                let _ = fs::remove_dir_all(&self.product_dir);
+                let _ = fs::remove_dir_all(&self.temp_dir);
 
                 Err(error)
             }
@@ -339,7 +340,7 @@ impl<'tool> Installer<'tool> {
         let download_url = config.rewrite_url(output.download_url);
         let download_filename = match output.download_name {
             Some(name) => name,
-            None => extract_filename_from_url(&download_url),
+            None => extract_file_name_from_url(&download_url),
         };
         let download_file = self.temp_dir.join(&download_filename);
 
@@ -371,7 +372,7 @@ impl<'tool> Installer<'tool> {
             let checksum_url = config.rewrite_url(checksum_url);
             let checksum_filename = match output.checksum_name {
                 Some(name) => name,
-                None => extract_filename_from_url(&checksum_url),
+                None => extract_file_name_from_url(&checksum_url),
             };
             let checksum_file = self.temp_dir.join(&checksum_filename);
 

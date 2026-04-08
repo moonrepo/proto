@@ -5406,6 +5406,7 @@ dependencies = [
  "tokio",
  "tracing",
  "ureq",
+ "url",
  "warpgate_api",
 ]
 

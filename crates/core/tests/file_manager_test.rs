@@ -385,7 +385,7 @@ bun = "1.2.3"
                 None,
             )
             .unwrap();
-            let lockfile = manager.get_lock().unwrap();
+            let lockfile = manager.get_lock().unwrap().unwrap();
 
             assert_eq!(
                 lockfile.tools,
@@ -427,7 +427,7 @@ spec = "7.8.9"
                 Some(&"production".to_owned()),
             )
             .unwrap();
-            let lockfile = manager.get_lock().unwrap();
+            let lockfile = manager.get_lock().unwrap().unwrap();
 
             assert_eq!(
                 lockfile.tools,
@@ -467,7 +467,7 @@ spec = "1.2.3"
             )
             .unwrap();
 
-            assert!(manager.get_lock().is_none());
+            assert!(manager.get_lock().unwrap().is_none());
 
             // Now testing false
             sandbox.create_file(
@@ -487,7 +487,7 @@ lockfile = false
             )
             .unwrap();
 
-            assert!(manager.get_lock().is_none());
+            assert!(manager.get_lock().unwrap().is_none());
         }
 
         #[test]
@@ -519,7 +519,7 @@ spec = "1.2.3"
             )
             .unwrap();
 
-            assert!(manager.get_lock().is_none());
+            assert!(manager.get_lock().unwrap().is_none());
         }
 
         #[test]
@@ -551,7 +551,7 @@ spec = "1.2.3"
             )
             .unwrap();
 
-            assert!(manager.get_lock().is_none());
+            assert!(manager.get_lock().unwrap().is_none());
         }
 
         #[test]
@@ -583,7 +583,7 @@ spec = "7.8.9"
             )
             .unwrap();
 
-            assert!(manager.get_lock().is_none());
+            assert!(manager.get_lock().unwrap().is_none());
             assert!(!sandbox.path().join(".protolock").exists());
         }
     }

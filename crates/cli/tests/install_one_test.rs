@@ -1,5 +1,4 @@
-mod utils;
-
+use proto_core::test_utils::*;
 use proto_core::{
     LockRecord, PinLocation, ProtoConfig, ToolContext, ToolManifest, UnresolvedVersionSpec,
     VersionSpec,
@@ -10,7 +9,6 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::time::SystemTime;
 use system_env::{SystemArch, SystemOS};
-use utils::*;
 
 mod install_one {
     use super::*;

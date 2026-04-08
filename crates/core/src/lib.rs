@@ -13,6 +13,8 @@ mod loader_error;
 mod lockfile;
 pub mod registry;
 mod settings;
+#[cfg(feature = "test")]
+pub mod test_utils;
 mod tool;
 mod tool_context;
 mod tool_error;

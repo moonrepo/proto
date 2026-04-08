@@ -1,6 +1,4 @@
-mod utils;
-
-use utils::*;
+use proto_core::test_utils::*;
 
 mod general {
     use super::*;

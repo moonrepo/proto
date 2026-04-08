@@ -1,5 +1,3 @@
-#![allow(clippy::from_over_into)]
-
 use crate::spec_error::SpecError;
 use crate::unresolved_parser::*;
 use crate::version_types::*;
@@ -210,9 +208,9 @@ impl TryFrom<String> for UnresolvedVersionSpec {
     }
 }
 
-impl Into<String> for UnresolvedVersionSpec {
-    fn into(self) -> String {
-        self.to_string()
+impl From<UnresolvedVersionSpec> for String {
+    fn from(value: UnresolvedVersionSpec) -> Self {
+        value.to_string()
     }
 }
 
@@ -268,6 +266,8 @@ impl Ord for UnresolvedVersionSpec {
             (Self::Alias(l), Self::Alias(r)) => l.cmp(r),
             (Self::Calendar(l), Self::Calendar(r)) => l.cmp(r),
             (Self::Semantic(l), Self::Semantic(r)) => l.cmp(r),
+
+            // Use human sorting for requirements/ranges
             _ => compare(&self.to_string(), &other.to_string()),
         }
     }

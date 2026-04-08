@@ -1,6 +1,7 @@
 use crate::clients::*;
 use crate::helpers::{
-    create_cache_key, determine_cache_extension, download_from_url_to_file, move_or_unpack_download,
+    create_cache_key, determine_cache_extension, download_from_url_to_file,
+    extract_file_name_from_url, move_or_unpack_download,
 };
 use crate::loader_error::WarpgateLoaderError;
 use crate::protocols::{
@@ -332,7 +333,7 @@ impl PluginLoader {
             "Downloading plugin from URL"
         );
 
-        let temp_file = self.temp_dir.join(fs::file_name(dest_file));
+        let temp_file = self.temp_dir.join(extract_file_name_from_url(source_url));
 
         download_from_url_to_file(source_url, &temp_file, self.get_http_client()?).await?;
         move_or_unpack_download(&temp_file, dest_file)?;

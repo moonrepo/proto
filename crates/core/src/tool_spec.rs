@@ -61,8 +61,8 @@ impl ToolSpec {
     }
 
     pub fn to_resolved_spec(&self) -> VersionSpec {
-        match self.version.clone() {
-            Some(res) => res,
+        match &self.version {
+            Some(res) => res.clone(),
             None => self.req.to_resolved_spec(),
         }
     }

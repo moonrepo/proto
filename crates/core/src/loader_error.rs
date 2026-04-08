@@ -8,6 +8,7 @@ use starbase_utils::json::JsonError;
 use starbase_utils::toml::TomlError;
 use starbase_utils::yaml::YamlError;
 use thiserror::Error;
+use tokio::task::JoinError;
 use warpgate::{WarpgateLoaderError, WarpgatePluginError};
 
 #[derive(Error, Debug, miette::Diagnostic)]
@@ -54,6 +55,13 @@ pub enum ProtoLoaderError {
         format!("proto plugin search {}", .id).style(Style::Shell),
     )]
     UnknownTool { id: Id },
+
+    #[diagnostic(code(proto::loader::failed_join))]
+    #[error("Failed to load a tool in the background.")]
+    FailedJoin {
+        #[source]
+        error: Box<JoinError>,
+    },
 }
 
 impl From<ProtoConfigError> for ProtoLoaderError {
