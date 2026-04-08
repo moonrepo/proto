@@ -10,7 +10,6 @@ use starbase::AppResult;
 use starbase_shell::{Hook, ShellType};
 use starbase_utils::json;
 use std::env;
-use tracing::warn;
 
 #[derive(Serialize)]
 struct ActivateResult {
@@ -37,9 +36,6 @@ pub struct ActivateArgs {
 
     #[arg(long, help = "Don't include ~/.proto/shims in path lookup")]
     no_shim: bool,
-
-    #[arg(long, help = "Run activate hook on initialization and export")]
-    on_init: bool,
 }
 
 #[tracing::instrument(skip_all)]
@@ -186,12 +182,6 @@ fn print_activation_hook(
         }
     };
 
-    if args.on_init {
-        warn!(
-            "The --on-init option is deprecated and can be removed. This functionality is now the default."
-        );
-    }
-
     session
         .console
         .out
@@ -213,6 +203,7 @@ fn print_activation_exports(
     workflow: ExecWorkflow,
 ) -> miette::Result<()> {
     let shell = shell_type.build();
+    let aliases = &session.load_config()?.shell.aliases;
     let mut env_being_set = vec![];
     let mut output = vec![];
 
@@ -221,6 +212,14 @@ fn print_activation_exports(
         for key in env_to_remove.split(',') {
             if !workflow.env.contains_key(key) {
                 output.push(shell.format_env_unset(key));
+            }
+        }
+    }
+
+    if let Ok(alias_to_remove) = env::var("_PROTO_ACTIVATED_ALIASES") {
+        for key in alias_to_remove.split(',') {
+            if !aliases.contains_key(key) {
+                output.push(shell.format_alias_unset(key));
             }
         }
     }
@@ -236,6 +235,24 @@ fn print_activation_exports(
 
     if !env_being_set.is_empty() {
         output.push(shell.format_env_set("_PROTO_ACTIVATED_ENV", &env_being_set.join(",")));
+    }
+
+    // Set/remove new aliases
+    if !aliases.is_empty() {
+        for (alias, command) in aliases {
+            output.push(shell.format_alias_set(alias, command));
+        }
+
+        output.push(
+            shell.format_env_set(
+                "_PROTO_ACTIVATED_ALIASES",
+                &aliases
+                    .keys()
+                    .map(|k| k.as_str())
+                    .collect::<Vec<_>>()
+                    .join(","),
+            ),
+        );
     }
 
     // Set new `PATH`

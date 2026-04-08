@@ -1,9 +1,7 @@
-use proto_core::test_utils::*;
-
 // Different snapshot output on Windows!
 #[cfg(unix)]
 mod activate {
-    use super::*;
+    use proto_core::test_utils::*;
     use starbase_sandbox::{Sandbox, SandboxAssert, assert_snapshot};
 
     fn get_activate_output(assert: &SandboxAssert, sandbox: &Sandbox) -> String {
@@ -137,6 +135,30 @@ KEY = "value"
 
             assert!(output.contains("export KEY=value;"));
             assert!(output.contains("export _PROTO_ACTIVATED_ENV=KEY;"));
+        }
+
+        #[test]
+        fn includes_shell_aliases_if_no_tools() {
+            let sandbox = create_empty_proto_sandbox();
+
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[shell.aliases]
+gs = "git status"
+".." = "cd .."
+"#,
+            );
+
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("activate").arg("bash").arg("--export");
+            });
+
+            let output = get_activate_output(&assert, &sandbox);
+
+            assert!(output.contains("alias gs=$'git status'"));
+            assert!(output.contains("alias ..=$'cd ..'"));
+            assert!(output.contains("export _PROTO_ACTIVATED_ALIASES=..,gs;"));
         }
 
         #[test]

@@ -25,6 +25,7 @@
     - Before: `proto exec node -- node -e "console.log('hello world')"`
     - After: `proto exec node -- 'node -e "console.log('hello world')"'`
 - Updated child processes executed from WASM plugins to not always run in a shell by default, as it adds too much overhead.
+- Removed the `--on-init` flag from `proto activate`, as the initialization hook now runs by default.
 
 #### 🚀 Updates
 
