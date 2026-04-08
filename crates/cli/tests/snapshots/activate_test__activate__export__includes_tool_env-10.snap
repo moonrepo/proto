@@ -1,0 +1,11 @@
+---
+source: crates/cli/tests/activate_test.rs
+expression: "get_activate_output(&assert, &sandbox)"
+---
+$env:KEY1 = value1;
+$env:KEY2 = value2;
+if (Test-Path "env:PROTO_VERSION") {
+  Remove-Item -LiteralPath "env:PROTO_VERSION";
+}
+$env:_PROTO_ACTIVATED_ENV = 'KEY1,KEY2';
+$env:_PROTO_ACTIVATED_PATH = "<WORKSPACE>/.proto/shims:<WORKSPACE>/.proto/bin";

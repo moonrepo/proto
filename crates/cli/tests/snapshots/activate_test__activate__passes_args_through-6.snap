@@ -4,5 +4,5 @@ expression: "get_activate_output(&assert, &sandbox)"
 ---
 Error: shell::no_hook_support
 
-  × Your shell, ash, does not support "on change directory" hooks. Please
+  × Your shell, ion, does not support "on change directory" hooks. Please
   │ remove the command from your shell that is triggering this hook.

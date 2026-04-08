@@ -1,0 +1,9 @@
+---
+source: crates/cli/tests/activate_test.rs
+expression: "get_activate_output(&assert, &sandbox)"
+---
+del $PROTO_VERSION
+aliases[".."] = 'cd ..'
+aliases["gs"] = 'git status'
+$_PROTO_ACTIVATED_ALIASES = '..,gs'
+$_PROTO_ACTIVATED_PATH = '<WORKSPACE>/.proto/shims:<WORKSPACE>/.proto/bin'

@@ -8,6 +8,7 @@ use rustc_hash::FxHashMap;
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_shell::{Hook, ShellType};
+use starbase_utils::envx::is_test;
 use starbase_utils::json;
 use std::env;
 
@@ -273,7 +274,7 @@ fn print_activation_exports(
             .map(|path| path.to_string_lossy().to_string())
             .collect::<Vec<_>>();
 
-        if !paths.is_empty() {
+        if !paths.is_empty() && !is_test() {
             output.push(shell.format_path_set(&paths));
         }
     }

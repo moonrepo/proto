@@ -1,46 +1,52 @@
-// Different snapshot output on Windows!
-#[cfg(unix)]
+use proto_core::test_utils::*;
+use starbase_sandbox::{Sandbox, SandboxAssert, assert_snapshot};
+use starbase_shell::ShellType;
+
+fn get_activate_output(assert: &SandboxAssert, sandbox: &Sandbox) -> String {
+    let root = sandbox.path().to_str().unwrap();
+
+    assert.output().replace(root, "/sandbox")
+}
+
 mod activate {
-    use proto_core::test_utils::*;
-    use starbase_sandbox::{Sandbox, SandboxAssert, assert_snapshot};
-
-    fn get_activate_output(assert: &SandboxAssert, sandbox: &Sandbox) -> String {
-        let root = sandbox.path().to_str().unwrap();
-
-        assert.output().replace(root, "/sandbox")
-    }
+    use super::*;
 
     #[test]
     fn empty_output_if_no_tools() {
         let sandbox = create_empty_proto_sandbox();
 
-        let assert = sandbox.run_bin(|cmd| {
-            cmd.arg("activate").arg("bash");
-        });
+        for shell in ShellType::variants() {
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("activate").arg(shell.to_string());
+            });
 
-        assert_snapshot!(get_activate_output(&assert, &sandbox));
+            assert_snapshot!(get_activate_output(&assert, &sandbox));
+        }
     }
 
     #[test]
     fn passes_args_through() {
         let sandbox = create_empty_proto_sandbox();
 
-        let assert = sandbox.run_bin(|cmd| {
-            cmd.arg("activate")
-                .arg("elvish")
-                .arg("--config-mode")
-                .arg("upwards-global")
-                .arg("--no-shim")
-                .arg("--no-bin");
-        });
+        for shell in ShellType::variants() {
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("activate")
+                    .arg(shell.to_string())
+                    .arg("--config-mode")
+                    .arg("upwards-global")
+                    .arg("--no-shim")
+                    .arg("--no-bin");
+            });
 
-        assert_snapshot!(get_activate_output(&assert, &sandbox));
+            assert_snapshot!(get_activate_output(&assert, &sandbox));
+        }
     }
 
     #[test]
     fn supports_json_exports() {
         let sandbox = create_empty_proto_sandbox();
 
+        // Only nushell supports JSON!
         let assert = sandbox.run_bin(|cmd| {
             cmd.arg("activate")
                 .arg("nu")
@@ -56,11 +62,13 @@ mod activate {
         let sandbox = create_empty_proto_sandbox();
         sandbox.create_file(".prototools", r#"protostar = "1.0.0""#);
 
-        let assert = sandbox.run_bin(|cmd| {
-            cmd.arg("activate").arg("zsh");
-        });
+        for shell in ShellType::variants() {
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("activate").arg(shell.to_string());
+            });
 
-        assert_snapshot!(get_activate_output(&assert, &sandbox));
+            assert_snapshot!(get_activate_output(&assert, &sandbox));
+        }
     }
 
     #[test]
@@ -74,11 +82,13 @@ moonstone = "2.0.0"
 "#,
         );
 
-        let assert = sandbox.run_bin(|cmd| {
-            cmd.arg("activate").arg("fish");
-        });
+        for shell in ShellType::variants() {
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("activate").arg(shell.to_string());
+            });
 
-        assert_snapshot!(get_activate_output(&assert, &sandbox));
+            assert_snapshot!(get_activate_output(&assert, &sandbox));
+        }
     }
 
     #[test]
@@ -87,17 +97,17 @@ moonstone = "2.0.0"
         sandbox.create_file(".proto/.prototools", r#"protostar = "1.0.0""#);
         sandbox.create_file(".prototools", r#"moonstone = "2.0.0""#);
 
-        let assert = sandbox.run_bin(|cmd| {
-            cmd.arg("activate")
-                .arg("elvish")
-                .arg("--export")
-                .arg("--config-mode")
-                .arg("all"); // upwards-global
-        });
+        for shell in ShellType::variants() {
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("activate")
+                    .arg(shell.to_string())
+                    .arg("--export")
+                    .arg("--config-mode")
+                    .arg("all"); // upwards-global
+            });
 
-        let output = get_activate_output(&assert, &sandbox);
-
-        assert!(output.contains("'<WORKSPACE>/.proto/activate-start' '<WORKSPACE>/.proto/shims' '<WORKSPACE>/.proto/bin' '<WORKSPACE>/.proto/activate-stop'"));
+            assert_snapshot!(get_activate_output(&assert, &sandbox));
+        }
     }
 
     #[test]
@@ -105,11 +115,13 @@ moonstone = "2.0.0"
         let sandbox = create_empty_proto_sandbox();
         sandbox.create_file(".prototools", r#"protostar = "1.0.0""#);
 
-        let assert = sandbox.run_bin(|cmd| {
-            cmd.arg("activate").arg("zsh").arg("--no-init");
-        });
+        for shell in ShellType::variants() {
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("activate").arg(shell.to_string()).arg("--no-init");
+            });
 
-        assert_snapshot!(get_activate_output(&assert, &sandbox));
+            assert_snapshot!(get_activate_output(&assert, &sandbox));
+        }
     }
 
     mod export {
@@ -127,14 +139,13 @@ KEY = "value"
 "#,
             );
 
-            let assert = sandbox.run_bin(|cmd| {
-                cmd.arg("activate").arg("bash").arg("--export");
-            });
+            for shell in ShellType::variants() {
+                let assert = sandbox.run_bin(|cmd| {
+                    cmd.arg("activate").arg(shell.to_string()).arg("--export");
+                });
 
-            let output = get_activate_output(&assert, &sandbox);
-
-            assert!(output.contains("export KEY=value;"));
-            assert!(output.contains("export _PROTO_ACTIVATED_ENV=KEY;"));
+                assert_snapshot!(get_activate_output(&assert, &sandbox));
+            }
         }
 
         #[test]
@@ -150,15 +161,13 @@ gs = "git status"
 "#,
             );
 
-            let assert = sandbox.run_bin(|cmd| {
-                cmd.arg("activate").arg("bash").arg("--export");
-            });
+            for shell in ShellType::variants() {
+                let assert = sandbox.run_bin(|cmd| {
+                    cmd.arg("activate").arg(shell.to_string()).arg("--export");
+                });
 
-            let output = get_activate_output(&assert, &sandbox);
-
-            assert!(output.contains("alias gs=$'git status'"));
-            assert!(output.contains("alias ..=$'cd ..'"));
-            assert!(output.contains("export _PROTO_ACTIVATED_ALIASES=..,gs;"));
+                assert_snapshot!(get_activate_output(&assert, &sandbox));
+            }
         }
 
         #[test]
@@ -178,15 +187,13 @@ KEY2 = "value2"
 "#,
             );
 
-            let assert = sandbox.run_bin(|cmd| {
-                cmd.arg("activate").arg("bash").arg("--export");
-            });
+            for shell in ShellType::variants() {
+                let assert = sandbox.run_bin(|cmd| {
+                    cmd.arg("activate").arg(shell.to_string()).arg("--export");
+                });
 
-            let output = get_activate_output(&assert, &sandbox);
-
-            assert!(output.contains("export KEY1=value1;"));
-            assert!(output.contains("export KEY2=value2;"));
-            assert!(output.contains("export _PROTO_ACTIVATED_ENV=KEY1,KEY2;"));
+                assert_snapshot!(get_activate_output(&assert, &sandbox));
+            }
         }
 
         #[test]
@@ -195,17 +202,17 @@ KEY2 = "value2"
             sandbox.create_file(".proto/.prototools", r#"protostar = "1.0.0""#);
             sandbox.create_file(".prototools", r#"moonstone = "2.0.0""#);
 
-            let assert = sandbox.run_bin(|cmd| {
-                cmd.arg("activate")
-                    .arg("elvish")
-                    .arg("--export")
-                    .arg("--config-mode")
-                    .arg("all"); // upwards-global
-            });
+            for shell in ShellType::variants() {
+                let assert = sandbox.run_bin(|cmd| {
+                    cmd.arg("activate")
+                        .arg(shell.to_string())
+                        .arg("--export")
+                        .arg("--config-mode")
+                        .arg("all"); // upwards-global
+                });
 
-            let output = get_activate_output(&assert, &sandbox);
-
-            assert!(output.contains("'<WORKSPACE>/.proto/activate-start' '<WORKSPACE>/.proto/shims' '<WORKSPACE>/.proto/bin' '<WORKSPACE>/.proto/activate-stop'"));
+                assert_snapshot!(get_activate_output(&assert, &sandbox));
+            }
         }
 
         #[test]

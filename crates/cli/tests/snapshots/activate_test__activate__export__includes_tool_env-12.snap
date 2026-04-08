@@ -1,0 +1,9 @@
+---
+source: crates/cli/tests/activate_test.rs
+expression: "get_activate_output(&assert, &sandbox)"
+---
+$KEY1 = value1
+$KEY2 = value2
+del $PROTO_VERSION
+$_PROTO_ACTIVATED_ENV = 'KEY1,KEY2'
+$_PROTO_ACTIVATED_PATH = '<WORKSPACE>/.proto/shims:<WORKSPACE>/.proto/bin'

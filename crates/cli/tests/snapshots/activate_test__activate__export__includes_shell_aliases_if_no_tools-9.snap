@@ -1,0 +1,11 @@
+---
+source: crates/cli/tests/activate_test.rs
+expression: "get_activate_output(&assert, &sandbox)"
+---
+if (Test-Path "env:PROTO_VERSION") {
+  Remove-Item -LiteralPath "env:PROTO_VERSION";
+}
+Set-Alias -Name '..' -Value 'cd ..';
+Set-Alias -Name gs -Value 'git status';
+$env:_PROTO_ACTIVATED_ALIASES = '..,gs';
+$env:_PROTO_ACTIVATED_PATH = "<WORKSPACE>/.proto/shims:<WORKSPACE>/.proto/bin";
