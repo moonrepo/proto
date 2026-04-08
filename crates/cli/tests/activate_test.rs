@@ -1,9 +1,9 @@
-mod utils;
+use proto_core::test_utils::*;
 
 // Different snapshot output on Windows!
 #[cfg(unix)]
 mod activate {
-    use crate::utils::*;
+    use super::*;
     use starbase_sandbox::{Sandbox, SandboxAssert, assert_snapshot};
 
     fn get_activate_output(assert: &SandboxAssert, sandbox: &Sandbox) -> String {

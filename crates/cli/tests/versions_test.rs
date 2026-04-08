@@ -1,8 +1,6 @@
-mod utils;
-
+use proto_core::test_utils::*;
 use proto_core::{ToolManifest, ToolManifestVersion, VersionSpec};
 use starbase_sandbox::output_to_string;
-use utils::*;
 
 mod versions {
     use super::*;

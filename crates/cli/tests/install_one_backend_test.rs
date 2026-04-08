@@ -1,8 +1,8 @@
-mod utils;
+use proto_core::test_utils::*;
 
 #[cfg(not(windows))]
 mod install_one_backend {
-    use super::utils::*;
+    use super::*;
     use proto_core::{ToolContext, ToolSpec, UnresolvedVersionSpec};
     use starbase_sandbox::predicates::prelude::*;
 

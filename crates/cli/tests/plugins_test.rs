@@ -1,7 +1,6 @@
-mod utils;
-
 use proto_core::flow::locate::Locator;
 use proto_core::flow::manage::Manager;
+use proto_core::test_utils::*;
 use proto_core::{
     PluginLocator, ProtoEnvironment, ProtoLoaderError, Tool, ToolContext, ToolSpec,
     UnresolvedVersionSpec, flow::install::InstallOptions, load_tool_from_locator,
@@ -13,7 +12,6 @@ use starbase_utils::envx;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
-use utils::*;
 
 async fn run_tests<F, Fut>(factory: F)
 where

@@ -51,6 +51,7 @@ sha2 = { workspace = true }
 shell-words = { workspace = true }
 starbase_archive = { workspace = true }
 starbase_console = { workspace = true, features = ["ui"] }
+starbase_sandbox = { workspace = true, optional = true }
 starbase_shell = { workspace = true }
 starbase_styles = { workspace = true }
 starbase_utils = { workspace = true, features = ["fs-lock", "yaml"] }
@@ -63,7 +64,6 @@ uuid = { workspace = true }
 
 [dev-dependencies]
 proto_core = { path = ".", features = ["test-plugins"] }
-starbase_sandbox = { workspace = true }
 tokio = { workspace = true }
 
 [features]
@@ -71,4 +71,5 @@ default = []
 clap = ["dep:clap"]
 
 # Internal only!
-test-plugins = []
+test = ["dep:starbase_sandbox"]
+test-plugins = ["test"]

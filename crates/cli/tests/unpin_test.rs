@@ -1,10 +1,8 @@
-mod utils;
-
+use proto_core::test_utils::*;
 use proto_core::{ProtoConfig, ToolContext, UnresolvedVersionSpec};
 use starbase_sandbox::predicates::prelude::*;
 use std::collections::BTreeMap;
 use std::fs;
-use utils::*;
 
 mod unpin_local {
     use super::*;

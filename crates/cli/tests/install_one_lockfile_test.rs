@@ -1,10 +1,8 @@
-mod utils;
-
+use proto_core::test_utils::*;
 use proto_core::{ProtoLock, UnresolvedVersionSpec, VersionSpec};
 use proto_pdk_api::ChecksumAlgorithm;
 use starbase_sandbox::predicates::prelude::*;
 use system_env::{SystemArch, SystemOS};
-use utils::*;
 
 macro_rules! assert_record {
     ($var:expr, $spec:literal) => {

@@ -1,9 +1,7 @@
-mod utils;
-
+use proto_core::test_utils::*;
 use proto_core::{ToolContext, UnresolvedVersionSpec};
 use starbase_sandbox::predicates::prelude::*;
 use std::fs;
-use utils::*;
 
 mod pin_local {
     use super::*;

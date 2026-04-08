@@ -1,6 +1,4 @@
-#![allow(dead_code)]
-
-use proto_core::{ProtoConfig, ProtoFileManager};
+use crate::{ProtoConfig, ProtoFileManager};
 use proto_shim::get_exe_file_name;
 use starbase_sandbox::{Sandbox, assert_cmd};
 use std::collections::HashMap;
@@ -30,8 +28,8 @@ impl Deref for ProtoSandbox {
 
 fn apply_settings(sandbox: &mut Sandbox) {
     let root = sandbox.path().to_path_buf();
-    let home_dir = sandbox.path().join(".home");
-    let proto_dir = sandbox.path().join(".proto");
+    let home_dir = root.join(".home");
+    let proto_dir = root.join(".proto");
 
     // Folders must exist or tests fail!
     fs::create_dir_all(&home_dir).unwrap();

@@ -1,9 +1,7 @@
-mod utils;
-
+use proto_core::test_utils::*;
 use proto_core::{PartialProtoToolConfig, ProtoConfig, UnresolvedVersionSpec};
 use starbase_sandbox::predicates::prelude::*;
 use std::collections::BTreeMap;
-use utils::*;
 
 mod alias_local {
     use super::*;
