@@ -106,8 +106,8 @@ impl ProtoMcp {
             working_dir: env.working_dir.clone(),
             store_dir: env.store.dir.clone(),
             env_mode: env.env_mode.clone(),
-            env_files: config.get_env_files(options.clone()),
-            env_vars: config.get_env_vars(options)?,
+            env_files: config.get_env_files(&options),
+            env_vars: config.get_env_vars(&options)?,
             proto_version: get_proto_version().to_string(),
             system_arch: env.arch,
             system_os: env.os,
@@ -247,6 +247,7 @@ impl ProtoMcp {
             .into_iter()
             .map(|v| v.to_string())
             .collect::<Vec<_>>();
+        let versions_len = versions.len();
 
         Ok(CallToolResult::structured(
             serde_json::to_value(ListToolVersionsResponse {
@@ -266,7 +267,7 @@ impl ProtoMcp {
                 versions: if req.all {
                     versions
                 } else {
-                    versions[0..25].to_vec()
+                    versions[0..versions_len.min(25)].to_vec()
                 },
             })
             .unwrap(),

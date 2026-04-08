@@ -1,8 +1,6 @@
-mod utils;
-
+use proto_core::test_utils::*;
 use starbase_sandbox::{Sandbox, assert_snapshot, predicates::prelude::*};
 use std::{env, fs};
-use utils::*;
 
 fn install_node(sandbox: &Sandbox) {
     sandbox

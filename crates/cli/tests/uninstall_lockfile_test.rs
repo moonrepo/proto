@@ -1,10 +1,8 @@
-mod utils;
-
 use proto_core::ProtoLock;
+use proto_core::test_utils::*;
 use std::fs;
 use std::path::Path;
 use system_env::{SystemArch, SystemOS};
-use utils::*;
 
 mod uninstall_lockfile {
     use super::*;

@@ -22,7 +22,7 @@ pub fn verify_checksum(
             checksum
                 .key
                 .as_deref()
-                .expect("Expected a public key for minisign checksum"),
+                .ok_or(ProtoChecksumError::MissingPublicKey)?,
         ),
         ChecksumAlgorithm::Sha256 | ChecksumAlgorithm::Sha512 => sha::verify_checksum(
             download_file,
@@ -30,7 +30,7 @@ pub fn verify_checksum(
             checksum
                 .hash
                 .as_deref()
-                .expect("Expected a hash for SHA checksum"),
+                .ok_or(ProtoChecksumError::MissingHash)?,
         ),
     }
 }

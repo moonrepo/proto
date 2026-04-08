@@ -1,8 +1,6 @@
-mod utils;
-
+use proto_core::test_utils::*;
 use starbase_sandbox::{assert_snapshot, get_assert_output, locate_fixture};
 use std::path::PathBuf;
-use utils::*;
 
 mod shim_bin {
     use super::*;

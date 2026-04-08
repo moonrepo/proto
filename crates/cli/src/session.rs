@@ -198,7 +198,10 @@ impl ProtoSession {
         }
 
         while let Some(result) = set.join_next().await {
-            let mut record: ToolRecord = result.unwrap()?;
+            let mut record: ToolRecord =
+                result.map_err(|error| ProtoLoaderError::FailedJoin {
+                    error: Box::new(error),
+                })??;
 
             if options.inherit_local {
                 record.inherit_from_local(config);

@@ -26,7 +26,7 @@ pub fn fetch(input: SendRequestInput) -> AnyResult<SendRequestOutput> {
     let response = send_request!(input, input);
     let status = response.status;
 
-    if status != 200 {
+    if !(200..300).contains(&status) {
         let body = response.text()?;
 
         debug!(

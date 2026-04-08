@@ -72,14 +72,14 @@ impl LoaderProtocol<GitHubLocator> for GitHubLoader {
         if let Some(tag) = &locator.tag {
             found_tag = Some(tag.to_owned())
         } else if let Some(tag_prefix) = &locator.project_name {
+            let prefix_at = format!("{tag_prefix}@");
+            let prefix_dash = format!("{tag_prefix}-");
+
             found_tag = self
                 .request_api::<Vec<GitHubApiTag>>(&tags_url)
                 .await?
                 .into_iter()
-                .find(|row| {
-                    row.name.starts_with(format!("{tag_prefix}@").as_str())
-                        || row.name.starts_with(format!("{tag_prefix}-").as_str())
-                })
+                .find(|row| row.name.starts_with(&prefix_at) || row.name.starts_with(&prefix_dash))
                 .map(|row| row.name);
         } else {
             found_tag = Some("latest".into());

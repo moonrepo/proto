@@ -31,7 +31,7 @@ struct EnvironmentInfo {
     os: HostOS,
     proto_version: String,
     vars: BTreeMap<String, String>,
-    virtual_paths: BTreeMap<PathBuf, PathBuf>,
+    virtual_paths: Vec<(PathBuf, PathBuf)>,
 }
 
 #[tracing::instrument(skip_all)]

@@ -13,7 +13,7 @@ use proto_pdk_api::{
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use starbase_args::parse as parse_args;
-use starbase_shell::BoxedShell;
+use starbase_shell::{BoxedShell, ShellType};
 use starbase_utils::envx;
 use std::collections::VecDeque;
 use std::env;
@@ -62,10 +62,10 @@ pub struct ExecWorkflow<'app> {
     pub args: Vec<String>,
     pub env: IndexMap<String, Option<String>>,
     pub paths: VecDeque<PathBuf>,
+    pub tools: Vec<ToolRecord>,
 
     config: &'app ProtoConfig,
     multiple: bool,
-    tools: Vec<ToolRecord>,
 }
 
 impl<'app> ExecWorkflow<'app> {
@@ -119,7 +119,7 @@ impl<'app> ExecWorkflow<'app> {
 
         // Inherit shared environment variables
         self.env
-            .extend(self.config.get_env_vars(ProtoConfigEnvOptions {
+            .extend(self.config.get_env_vars(&ProtoConfigEnvOptions {
                 include_shared: true,
                 ..Default::default()
             })?);
@@ -130,7 +130,7 @@ impl<'app> ExecWorkflow<'app> {
             if item.active {
                 // Inherit tool environment variables
                 self.env
-                    .extend(self.config.get_env_vars(ProtoConfigEnvOptions {
+                    .extend(self.config.get_env_vars(&ProtoConfigEnvOptions {
                         context: Some(&item.context),
                         check_process: params.check_process_env,
                         ..Default::default()
@@ -168,7 +168,21 @@ impl<'app> ExecWorkflow<'app> {
         out
     }
 
-    pub fn create_command<E, I, A>(self, exe: E, args: I) -> miette::Result<Command>
+    pub fn create_command(
+        self,
+        mut args: Vec<String>,
+        shell: Option<ShellType>,
+    ) -> miette::Result<Command> {
+        let command = if shell.is_some() || self.requires_shell(&args) {
+            self.create_command_with_shell(shell.unwrap_or_default().build(), args)?
+        } else {
+            self.create_command_without_shell(args.remove(0), args)?
+        };
+
+        Ok(command)
+    }
+
+    pub fn create_command_without_shell<E, I, A>(self, exe: E, args: I) -> miette::Result<Command>
     where
         E: AsRef<OsStr>,
         I: IntoIterator<Item = A>,
@@ -182,12 +196,16 @@ impl<'app> ExecWorkflow<'app> {
         Ok(command)
     }
 
-    pub fn create_command_with_shell(
+    pub fn create_command_with_shell<I, A>(
         self,
         shell: BoxedShell,
-        command_line: OsString,
-    ) -> miette::Result<Command> {
-        let mut command = shell.create_wrapped_command_with(command_line);
+        args: I,
+    ) -> miette::Result<Command>
+    where
+        I: IntoIterator<Item = A>,
+        A: AsRef<OsStr>,
+    {
+        let mut command = shell.create_wrapped_command_with(self.wrap_command(args));
 
         self.apply_to_command(&mut command, true)?;
 
@@ -221,10 +239,10 @@ impl<'app> ExecWorkflow<'app> {
 
     pub fn join_paths(&self) -> miette::Result<Option<OsString>> {
         if !self.paths.is_empty() {
-            let mut list = self.paths.clone();
-            list.extend(envx::paths());
+            let env_paths = envx::paths();
+            let joined = env::join_paths(self.paths.iter().chain(&env_paths)).into_diagnostic()?;
 
-            return Ok(Some(env::join_paths(list).into_diagnostic()?));
+            return Ok(Some(joined));
         }
 
         Ok(None)
@@ -236,16 +254,16 @@ impl<'app> ExecWorkflow<'app> {
 
         // Create a new `PATH` list with our activated tools. Use fake
         // marker paths to indicate a boundary.
-        let mut reset_paths = vec![];
+        let mut reset_paths = Vec::with_capacity(2 + self.paths.len());
         reset_paths.push(start_path.clone());
-        reset_paths.extend(self.paths.clone());
+        reset_paths.extend(self.paths.iter().cloned());
         reset_paths.push(stop_path.clone());
 
         // `PATH` may have already been activated, so we need to remove
         // paths that proto has injected, otherwise this paths list
         // will continue to grow and grow.
         let mut in_activate = false;
-        let mut dupe_paths = FxHashSet::from_iter(reset_paths.clone());
+        let mut dupe_paths: FxHashSet<PathBuf> = reset_paths.iter().cloned().collect();
 
         for path in envx::paths() {
             if path == start_path {
@@ -270,6 +288,13 @@ impl<'app> ExecWorkflow<'app> {
     }
 
     pub fn requires_shell(&self, args: &[String]) -> bool {
+        // If a Windows script, we must execute the command through PowerShell
+        if let Some(exe) = args.first()
+            && (exe.ends_with(".ps1") || exe.ends_with(".cmd") || exe.ends_with(".bat"))
+        {
+            return true;
+        }
+
         match parse_args(args.join(" ")) {
             Ok(command_line) => command_line.is_complex_command(),
             Err(_) => true,

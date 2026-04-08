@@ -73,4 +73,5 @@ tokio = { version = "1.51.0", features = ["full", "tracing"] }
 toml_edit = "0.25"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", default-features = false }
+url = "2.5.8"
 uuid = { version = "1.23.0", features = ["v4"] }
