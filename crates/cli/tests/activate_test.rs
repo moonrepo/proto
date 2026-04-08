@@ -1,15 +1,15 @@
-use proto_core::test_utils::*;
-use starbase_sandbox::{Sandbox, SandboxAssert, assert_snapshot};
-use starbase_shell::ShellType;
-
-fn get_activate_output(assert: &SandboxAssert, sandbox: &Sandbox) -> String {
-    let root = sandbox.path().to_str().unwrap();
-
-    assert.output().replace(root, "/sandbox")
-}
-
+// Different snapshot output on Windows!
+#[cfg(unix)]
 mod activate {
-    use super::*;
+    use proto_core::test_utils::*;
+    use starbase_sandbox::{Sandbox, SandboxAssert, assert_snapshot};
+    use starbase_shell::ShellType;
+
+    fn get_activate_output(assert: &SandboxAssert, sandbox: &Sandbox) -> String {
+        let root = sandbox.path().to_str().unwrap();
+
+        assert.output().replace(root, "/sandbox")
+    }
 
     #[test]
     fn empty_output_if_no_tools() {
