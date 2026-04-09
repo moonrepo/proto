@@ -1,0 +1,8 @@
+---
+source: crates/cli/tests/activate_test.rs
+expression: "get_activate_output(&assert, &sandbox)"
+---
+export KEY=value;
+unset PROTO_VERSION;
+export _PROTO_ACTIVATED_ENV=KEY;
+export _PROTO_ACTIVATED_PATH=<WORKSPACE>/.proto/shims':<WORKSPACE>/.proto/bin';

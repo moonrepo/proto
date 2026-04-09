@@ -25,11 +25,14 @@
     - Before: `proto exec node -- node -e "console.log('hello world')"`
     - After: `proto exec node -- 'node -e "console.log('hello world')"'`
 - Updated child processes executed from WASM plugins to not always run in a shell by default, as it adds too much overhead.
+- Removed the `--on-init` flag from `proto activate`, as the initialization hook now runs by default.
 
 #### 🚀 Updates
 
 - Updated `proto activate` and `proto exec` to resolve and execute tools in dependency chain order, ensuring environment variables and PATH entries are set in the correct order.
   - This allows tools that depend on other tools to work correctly in these workflows. For example, `npm` depends on `node`, but `npm` should take precedence.
+- Added support for shell aliases, that will be injected into the environment during `proto activate`.
+  - Aliases can be configured with the new `shell.aliases` setting.
 - Added support for base64 encoded `data://` locators for plugins. This is primarily for tools built around proto, like moon.
 - Added `dash` shell support.
 - Improved performance of environment variable collection, and virtual path conversions.

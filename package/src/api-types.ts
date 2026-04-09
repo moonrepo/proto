@@ -37,7 +37,7 @@ export interface ExecCommandInput {
 	args?: string[];
 	/**
 	 * The command or script to execute. Accepts an executable
-	 * on `PATH` or a virtual path.
+	 * name available on `PATH` or a virtual path.
 	 */
 	command?: string;
 	/** Override the current working directory. */
@@ -55,12 +55,14 @@ export interface ExecCommandInput {
 	 * by the child process.
 	 */
 	env?: Record<string, string>;
+	/**
+	 * List of real or virtual paths to prepend to the `PATH`
+	 * environment variable when executing the command.
+	 */
+	paths?: VirtualPath[];
 	/** Mark the command as executable before executing. */
 	setExecutable?: boolean;
-	/**
-	 * Set the shell to execute the command with, for example "bash".
-	 * If not defined, will be detected from the parent process.
-	 */
+	/** Set the shell to execute the command with, for example "bash". */
 	shell?: string | null;
 	/** Stream the output instead of capturing it. */
 	stream?: boolean;
@@ -72,6 +74,7 @@ export interface ExecCommandOutput {
 	exitCode?: number;
 	stderr?: string;
 	stdout?: string;
+	streamed?: boolean;
 }
 
 /** Information about the host environment (the current runtime). */

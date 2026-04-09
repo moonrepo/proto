@@ -1,0 +1,33 @@
+---
+source: crates/cli/tests/activate_test.rs
+expression: "get_activate_output(&assert, &sandbox)"
+---
+using namespace System;
+using namespace System.Management.Automation;
+
+$origPath = [Environment]::GetEnvironmentVariable('PATH')
+[Environment]::SetEnvironmentVariable('__ORIG_PATH', "$origPath");
+
+function _proto_activate_hook {
+  $exports = proto activate pwsh --export;
+  if ($exports) {
+    $exports | Out-String | Invoke-Expression;
+  }
+}
+
+$hook = [EventHandler[LocationChangedEventArgs]] {
+  param([object] $source, [LocationChangedEventArgs] $changedArgs)
+  end {
+    _proto_activate_hook
+  }
+};
+
+$currentAction = $ExecutionContext.SessionState.InvokeCommand.LocationChangedAction;
+
+if ($currentAction) {
+  $ExecutionContext.SessionState.InvokeCommand.LocationChangedAction = [Delegate]::Combine($currentAction, $hook);
+} else {
+  $ExecutionContext.SessionState.InvokeCommand.LocationChangedAction = $hook;
+};
+
+_proto_activate_hook

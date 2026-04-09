@@ -1,0 +1,42 @@
+---
+source: crates/cli/tests/activate_test.rs
+expression: "get_activate_output(&assert, &sandbox)"
+---
+export def _proto_activate_hook [] {
+    let data = proto activate nu --config-mode upwards-global --no-bin --no-shim --json | from json
+
+    $data | get -i env | items { |k, v|
+        if $v == null {
+            if $k in $env {
+                hide-env $k
+            }
+        } else {
+            load-env { ($k): $v }
+        }
+    }
+
+    let path_list = $data | get -i paths | default []
+    let path_string = $data | get -i path | default ''
+
+    if ($path_list | is-not-empty) {
+        $env.PATH = $path_list
+    }
+
+    if ($path_string | is-not-empty) {
+        $env.PATH = $path_string
+    }
+}
+
+export-env {
+    $env.__ORIG_PATH = $env.PATH
+
+    $env.config = ($env.config | upsert hooks.env_change.PWD { |config|
+        let list = ($config | get -i hooks.env_change.PWD) | default []
+
+        $list | append { |before, after|
+            _proto_activate_hook
+        }
+    })
+}
+
+_proto_activate_hook

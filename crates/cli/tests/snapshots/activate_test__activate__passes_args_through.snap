@@ -2,14 +2,7 @@
 source: crates/cli/tests/activate_test.rs
 expression: "get_activate_output(&assert, &sandbox)"
 ---
-set-env __ORIG_PATH $E:PATH
+Error: shell::no_hook_support
 
-fn _proto_activate_hook {
-  eval (proto activate elvish --config-mode upwards-global --no-bin --no-shim --export);
-}
-
-set @edit:before-readline = $@edit:before-readline {
-  _proto_activate_hook
-}
-
-_proto_activate_hook
+  × Your shell, ash, does not support "on change directory" hooks. Please
+  │ remove the command from your shell that is triggering this hook.
