@@ -2,10 +2,7 @@
 source: crates/cli/tests/activate_test.rs
 expression: "get_activate_output(&assert, &sandbox)"
 ---
-set -gx __ORIG_PATH $PATH
+Error: shell::no_hook_support
 
-function _proto_activate_hook --on-variable PWD;
-  proto activate fish --export | source
-end;
-
-_proto_activate_hook
+  × Your shell, ash, does not support "on change directory" hooks. Please
+  │ remove the command from your shell that is triggering this hook.

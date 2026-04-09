@@ -50,7 +50,7 @@
       "name": "Archgate",
       "description": "Enforce Architecture Decision Records as executable rules.",
       "author": "archgate",
-      "homepageUrl": "https://cli.archgate.dev",
+      "homepageUrl": "https://cli.archgate.dev/",
       "repositoryUrl": "https://github.com/archgate/proto-plugin",
       "bins": [
         "archgate"

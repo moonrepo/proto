@@ -1,0 +1,9 @@
+---
+source: crates/cli/tests/activate_test.rs
+expression: "get_activate_output(&assert, &sandbox)"
+---
+unset-env PROTO_VERSION;
+fn .. { cd .. }
+fn gs { git status }
+set-env _PROTO_ACTIVATED_ALIASES '..,gs';
+set-env _PROTO_ACTIVATED_PATH '<WORKSPACE>/.proto/shims:<WORKSPACE>/.proto/bin';

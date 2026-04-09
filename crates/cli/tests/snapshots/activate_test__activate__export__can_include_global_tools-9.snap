@@ -1,0 +1,8 @@
+---
+source: crates/cli/tests/activate_test.rs
+expression: "get_activate_output(&assert, &sandbox)"
+---
+if (Test-Path "env:PROTO_VERSION") {
+  Remove-Item -LiteralPath "env:PROTO_VERSION";
+}
+$env:_PROTO_ACTIVATED_PATH = "<WORKSPACE>/.proto/shims:<WORKSPACE>/.proto/bin";

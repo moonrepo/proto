@@ -1,0 +1,15 @@
+---
+source: crates/cli/tests/activate_test.rs
+expression: "get_activate_output(&assert, &sandbox)"
+---
+$ENV.__ORIG_PATH="$ENV.PATH"
+
+function _proto_activate_hook {
+  proto activate murex --export -> source
+}
+
+event onPrompt _proto_activate_hook_hook=before {
+  _proto_activate_hook
+}
+
+_proto_activate_hook
