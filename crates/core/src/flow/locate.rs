@@ -111,7 +111,7 @@ impl<'tool> Locator<'tool> {
 
             let path = self.product_dir.join(path::normalize_separators(exe_path));
 
-            if config.update_perms && path.exists() {
+            if config.update_perms && path.exists() && !fs::is_executable(&path) {
                 fs::update_perms(&path, None)?;
             }
 

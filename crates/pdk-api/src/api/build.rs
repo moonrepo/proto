@@ -149,6 +149,11 @@ api_struct!(
         #[serde(skip_serializing_if = "Option::is_none")]
         pub help_url: Option<String>,
 
+        /// A map of HTTP headers to include in all requests
+        /// during the download phase.
+        #[serde(default, skip_serializing_if = "FxHashMap::is_empty")]
+        pub http_headers: FxHashMap<String, String>,
+
         /// List of instructions to execute to build the tool, after system
         /// dependencies have been installed.
         #[serde(skip_serializing_if = "Vec::is_empty")]

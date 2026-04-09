@@ -4,6 +4,7 @@ use core::ops::Deref;
 use netrc::Netrc;
 use reqwest::{Client, Response, Url};
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware, RequestBuilder, RequestInitialiser};
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use starbase_utils::{
     envx, fs,
@@ -16,6 +17,7 @@ use tracing::{debug, trace, warn};
 /// A downloader that uses our internal HTTP(S) client.
 pub struct HttpDownloader {
     client: HttpClient,
+    headers: FxHashMap<String, String>,
 }
 
 #[async_trait]
@@ -23,20 +25,24 @@ impl Downloader for HttpDownloader {
     async fn download(&self, url: Url) -> Result<Response, NetError> {
         let url_string = url.to_string();
 
-        self.client
-            .get(url)
-            .send()
-            .await
-            .map_err(|error| match error {
-                reqwest_middleware::Error::Middleware(inner) => NetError::HttpUnknown {
-                    error: format!("{inner}"),
-                    url: url_string,
-                },
-                reqwest_middleware::Error::Reqwest(inner) => NetError::Http {
-                    error: Box::new(inner),
-                    url: url_string,
-                },
-            })
+        let mut request = self.client.get(url.clone());
+
+        if !self.headers.is_empty() {
+            for (key, value) in &self.headers {
+                request = request.header(key, value);
+            }
+        }
+
+        request.send().await.map_err(|error| match error {
+            reqwest_middleware::Error::Middleware(inner) => NetError::HttpUnknown {
+                error: format!("{inner}"),
+                url: url_string,
+            },
+            reqwest_middleware::Error::Reqwest(inner) => NetError::Http {
+                error: Box::new(inner),
+                url: url_string,
+            },
+        })
     }
 }
 
@@ -55,6 +61,17 @@ impl HttpClient {
     pub fn create_downloader(&self) -> HttpDownloader {
         HttpDownloader {
             client: self.clone(),
+            headers: FxHashMap::default(),
+        }
+    }
+
+    pub fn create_downloader_with_headers(
+        &self,
+        headers: FxHashMap<String, String>,
+    ) -> HttpDownloader {
+        HttpDownloader {
+            client: self.clone(),
+            headers,
         }
     }
 

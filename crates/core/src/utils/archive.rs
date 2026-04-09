@@ -1,7 +1,7 @@
 use proto_pdk_api::ArchiveSource;
 use starbase_archive::{ArchiveError, Archiver};
 use starbase_utils::fs::FsError;
-use starbase_utils::net::NetError;
+use starbase_utils::net::{DownloadOptions, NetError};
 use starbase_utils::{fs, net};
 use std::path::{Path, PathBuf};
 use thiserror::Error;
@@ -64,12 +64,12 @@ pub fn should_unpack(src: &ArchiveSource, target_dir: &Path) -> Result<bool, Pro
 pub async fn download(
     src: &ArchiveSource,
     temp_dir: &Path,
-    client: &reqwest::Client,
+    options: DownloadOptions,
 ) -> Result<PathBuf, ProtoArchiveError> {
     let filename = extract_file_name_from_url(&src.url);
     let archive_file = temp_dir.join(&filename);
 
-    net::download_from_url_with_client(&src.url, &archive_file, client).await?;
+    net::download_from_url_with_options(&src.url, &archive_file, options).await?;
 
     Ok(archive_file)
 }
@@ -104,10 +104,10 @@ pub async fn download_and_unpack(
     src: &ArchiveSource,
     target_dir: &Path,
     temp_dir: &Path,
-    client: &reqwest::Client,
+    options: DownloadOptions,
 ) -> Result<(), ProtoArchiveError> {
     if should_unpack(src, target_dir)? {
-        let archive_file = download(src, temp_dir, client).await?;
+        let archive_file = download(src, temp_dir, options).await?;
 
         unpack(src, target_dir, &archive_file)?;
     }
