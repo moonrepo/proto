@@ -58,10 +58,7 @@ pub async fn download_from_url_to_file(
     if let Err(error) = net::download_from_url_with_options(
         source_url,
         dest_file,
-        net::DownloadOptions {
-            downloader: Some(Box::new(client.create_downloader())),
-            ..Default::default()
-        },
+        net::DownloadOptions::new(client.create_downloader()),
     )
     .await
     {

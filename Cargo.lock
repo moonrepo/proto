@@ -4568,9 +4568,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_utils"
-version = "0.12.6"
+version = "0.12.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ff32ea225eeb9288d1874ca2cdbc406eb2c6ca7b18d1b1c260236c7cd0eca45"
+checksum = "7ef9bf7e986c862fc93e506efa1e6bbc5c76798e66c19e853516930e7a41e4c9"
 dependencies = [
  "async-trait",
  "dirs",
@@ -5391,6 +5391,7 @@ dependencies = [
  "reqwest",
  "reqwest-middleware",
  "rust-netrc",
+ "rustc-hash",
  "scc",
  "schematic",
  "serde",
