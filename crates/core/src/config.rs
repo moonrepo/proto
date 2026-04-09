@@ -195,7 +195,7 @@ impl ProtoConfig {
             if !tools.contains_key(depman) && is_allowed(depman) {
                 tools.insert(
                     Id::raw(depman),
-                    find_debug_locator_with_url_fallback("node_depman_tool", "0.17.6"),
+                    find_debug_locator_with_url_fallback("node_depman_tool", "0.18.0"),
                 );
             }
         }

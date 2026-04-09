@@ -42,6 +42,12 @@
   - Added `ExecCommandOutput.streamed` field, which indicates whether the command was executed with streaming output or not.
   - Added `PluginContext.working_dir` and `PluginUnresolvedContext.working_dir` fields, which provide the current working directory as a virtual path.
 
+#### 🧩 Plugins
+
+- **npm, pnpm, yarn**
+  - Added `.npmrc` and `.yarnrc.yml` support. Will parse local and user rc files to extract auth token information.
+  - Will pass authorization HTTP headers when making requests for downloading prebuilts.
+
 #### 🐞 Fixes
 
 - Fixed `settings.url-rewrites` not applying to the `schema_tool` plugin.
