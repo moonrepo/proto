@@ -47,6 +47,8 @@
 - **npm, pnpm, yarn**
   - Added `.npmrc` and `.yarnrc.yml` support. Will parse local and user rc files to extract auth token information.
   - Will pass authorization HTTP headers when making requests for downloading prebuilts.
+- **Python, Ruby**
+  - Updated build from source system dependencies and added `apk` (Alpine) support.
 
 #### 🐞 Fixes
 
