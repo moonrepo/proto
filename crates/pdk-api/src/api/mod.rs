@@ -229,6 +229,9 @@ api_struct!(
 
         /// Current version. Will be a "latest" alias if not resolved.
         pub version: VersionSpec,
+
+        /// Virtual path to the current working directory.
+        pub working_dir: VirtualPath,
     }
 );
 
@@ -253,6 +256,9 @@ api_struct!(
         #[deprecated]
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub version: Option<VersionSpec>,
+
+        /// Virtual path to the current working directory.
+        pub working_dir: VirtualPath,
     }
 );
 

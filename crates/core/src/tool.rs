@@ -254,6 +254,7 @@ impl Tool {
             temp_dir: self.to_virtual_path(self.get_temp_dir()),
             tool_dir: self.to_virtual_path(self.get_product_dir(spec)),
             version: spec.get_resolved_version(),
+            working_dir: self.to_virtual_path(&self.proto.working_dir),
         }
     }
 
@@ -268,6 +269,7 @@ impl Tool {
             // TODO: temporary until 3rd-party plugins update their PDKs
             tool_dir: self.to_virtual_path(&self.proto.store.inventory_dir),
             version: Some(VersionSpec::default()),
+            working_dir: self.to_virtual_path(&self.proto.working_dir),
         }
     }
 

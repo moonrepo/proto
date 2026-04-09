@@ -4,6 +4,7 @@ use rustc_hash::FxHashMap;
 use schematic::Config;
 use serde::Serialize;
 
+// `[shell]`
 #[derive(Clone, Config, Debug, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct ProtoShellConfig {
