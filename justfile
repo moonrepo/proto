@@ -34,11 +34,11 @@ lint-wasm:
 mcp:
 	PROTO_NPM_VERSION=* npx @modelcontextprotocol/inspector -- cargo run -- mcp
 
-test name="":
+test $PROTO_TEST="true" $STARBASE_TEST="true" name="":
 	just build
 	cargo nextest run --workspace {{name}}
 
-test-ci:
+test-ci $PROTO_TEST="true" $STARBASE_TEST="true" :
 	cargo nextest run --workspace --exclude proto_pdk --profile ci --config-file ./.cargo/nextest.toml
 
 setup-shims:
