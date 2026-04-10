@@ -3293,7 +3293,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.32.7"
+version = "0.32.8"
 dependencies = [
  "extism-pdk",
  "proto_pdk",
@@ -3305,7 +3305,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.31.10"
+version = "0.31.11"
 dependencies = [
  "derive_setters",
  "proto_pdk_api",
@@ -3322,7 +3322,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.43.7"
+version = "0.43.8"
 dependencies = [
  "extism",
  "proto_core",
@@ -3335,7 +3335,7 @@ dependencies = [
 
 [[package]]
 name = "proto_shim"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "dirs",
  "windows-sys 0.61.2",
@@ -5335,7 +5335,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "version_spec"
-version = "0.10.2"
+version = "0.10.3"
 dependencies = [
  "compact_str 0.9.0",
  "human-sort",
@@ -5413,7 +5413,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_api"
-version = "0.17.3"
+version = "0.17.4"
 dependencies = [
  "anyhow",
  "derive_setters",
@@ -5428,7 +5428,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_pdk"
-version = "0.16.2"
+version = "0.16.3"
 dependencies = [
  "extism-pdk",
  "serde",
