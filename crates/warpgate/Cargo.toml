@@ -8,7 +8,7 @@ repository = "https://github.com/moonrepo/proto"
 rust-version = "1.89.0"
 
 [dependencies]
-system_env = { version = "0.9.1", path = "../system-env" }
+system_env = { version = "0.10.0", path = "../system-env" }
 warpgate_api = { version = "0.17.3", path = "../warpgate-api" }
 async-trait = { workspace = true }
 base64 = "0.22.1"
