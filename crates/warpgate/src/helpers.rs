@@ -1,5 +1,6 @@
 use crate::clients::HttpClient;
 use crate::loader_error::WarpgateLoaderError;
+use base64::prelude::*;
 use sha2::{Digest, Sha256};
 use starbase_archive::{Archiver, is_supported_archive_extension};
 use starbase_utils::{fs, glob, net, net::NetError};
@@ -9,14 +10,15 @@ use std::time::SystemTime;
 use tracing::instrument;
 use warpgate_api::{PluginLocator, UrlLocator, VirtualPath};
 
-/// Create a SHA256 hash key based on the provided value and seed.
-pub fn create_cache_key(value: &str, seed: Option<&str>) -> String {
+/// Create a base64 encoded hash based on the provided value.
+pub fn hash_base64<T: AsRef<[u8]>>(value: T) -> String {
+    BASE64_STANDARD.encode(value)
+}
+
+/// Create a SHA256 hash based on the provided value.
+pub fn hash_sha256<T: AsRef<[u8]>>(value: T) -> String {
     let mut sha = Sha256::new();
     sha.update(value);
-
-    if let Some(seed) = seed {
-        sha.update(seed);
-    }
 
     format!("{:x}", sha.finalize())
 }
@@ -105,11 +107,11 @@ pub fn move_or_unpack_download(
             .iter()
             .find(|file| file.to_string_lossy().contains("release"))
         {
-            fs::rename(release_wasm, dest_file)?;
+            fs::copy_file(release_wasm, dest_file)?;
         }
         // Otherwise, move the first wasm file available
         else {
-            fs::rename(&wasm_files[0], dest_file)?;
+            fs::copy_file(&wasm_files[0], dest_file)?;
         }
 
         fs::remove_file(temp_file)?;
@@ -125,10 +127,8 @@ pub fn move_or_unpack_download(
             // that this temp file can also be moved by another process.
             // Because of this, proto constantly runs into "Failed to rename"
             // errors when hitting this block, so let's avoid the failure
-            // if the condition is met and assume all is good!
-            if temp_file.exists() && !dest_file.exists() {
-                fs::rename(temp_file, dest_file)?;
-            }
+            // by copying instead of moving!
+            fs::copy_file(temp_file, dest_file)?;
         }
 
         Some(ext) => {

@@ -1,7 +1,7 @@
 use crate::clients::*;
 use crate::helpers::{
-    create_cache_key, determine_cache_extension, download_from_url_to_file,
-    extract_file_name_from_url, move_or_unpack_download,
+    determine_cache_extension, download_from_url_to_file, extract_file_name_from_url, hash_base64,
+    hash_sha256, move_or_unpack_download,
 };
 use crate::loader_error::WarpgateLoaderError;
 use crate::protocols::{
@@ -57,9 +57,6 @@ pub struct PluginLoader {
     /// Plugin registry locations
     registries: Vec<RegistryConfig>,
 
-    /// A unique seed for generating hashes.
-    seed: Option<String>,
-
     /// OCI client instance.
     oci_client: OnceCell<Arc<OciClient>>,
 
@@ -87,7 +84,6 @@ impl PluginLoader {
             offline_checker: None,
             plugins_dir: plugins_dir.to_owned(),
             registries: vec![],
-            seed: None,
             temp_dir: temp_dir.as_ref().to_owned(),
         }
     }
@@ -202,34 +198,33 @@ impl PluginLoader {
             }
         };
 
-        // Check if destination already exists
-        let cache_path = match &source {
-            LoadFrom::Blob { ext, hash, .. } => self.create_cache_path(id, hash, ext, is_latest),
-            LoadFrom::File(path) => {
-                // Files ignore caching rules
-                return Ok(path.to_path_buf());
-            }
-            LoadFrom::Url(url) => self.create_cache_path(
-                id,
-                create_cache_key(url, self.seed.as_deref()).as_str(),
-                determine_cache_extension(url).unwrap_or(".wasm"),
-                is_latest,
-            ),
-        };
+        let cache_path = match source {
+            LoadFrom::Blob {
+                data, ext, hash, ..
+            } => {
+                let cache_path = self.create_cache_path(id, &hash, &ext, is_latest);
 
-        if self.is_cached(id, &cache_path)? {
-            return Ok(cache_path);
-        }
+                if !self.is_cached(id, &cache_path)? {
+                    fs::write_file(&cache_path, data)?;
+                }
 
-        // Acquire the source and write to the destination
-        match source {
-            LoadFrom::Blob { data, .. } => {
-                fs::write_file(&cache_path, data)?;
+                cache_path
             }
+            LoadFrom::File(path) => path.to_path_buf(),
             LoadFrom::Url(url) => {
-                self.download_plugin(id, &url, &cache_path).await?;
+                let cache_path = self.create_cache_path(
+                    id,
+                    hash_sha256(&url).as_str(),
+                    determine_cache_extension(&url).unwrap_or(".wasm"),
+                    is_latest,
+                );
+
+                if !self.is_cached(id, &cache_path)? {
+                    self.download_plugin(id, &url, &cache_path).await?;
+                }
+
+                cache_path
             }
-            _ => {}
         };
 
         Ok(cache_path)
@@ -239,9 +234,11 @@ impl PluginLoader {
     /// located in the cached plugins directory.
     pub fn create_cache_path(&self, id: &Id, hash: &str, ext: &str, is_latest: bool) -> PathBuf {
         self.plugins_dir.join(format!(
-            "{}{}{hash}{ext}",
+            "{}-{}{}.{}",
             path::encode_component(id.as_str()),
-            if is_latest { "-latest-" } else { "-" },
+            if is_latest { "latest-" } else { "" },
+            hash,
+            ext.trim_start_matches('.')
         ))
     }
 
@@ -307,11 +304,6 @@ impl PluginLoader {
         self.offline_checker = Some(Arc::new(op));
     }
 
-    /// Set the provided value as a seed for generating hashes.
-    pub fn set_seed(&mut self, value: &str) {
-        self.seed = Some(value.to_owned());
-    }
-
     #[instrument(skip(self))]
     async fn download_plugin(
         &self,
@@ -333,10 +325,16 @@ impl PluginLoader {
             "Downloading plugin from URL"
         );
 
-        let temp_file = self.temp_dir.join(extract_file_name_from_url(source_url));
+        let temp_file = self.temp_dir.join(format!(
+            "{}-{}",
+            hash_base64(dest_file.to_str().unwrap_or(source_url)),
+            extract_file_name_from_url(source_url)
+        ));
 
         download_from_url_to_file(source_url, &temp_file, self.get_http_client()?).await?;
         move_or_unpack_download(&temp_file, dest_file)?;
+
+        fs::remove(temp_file)?;
 
         Ok(())
     }

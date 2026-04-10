@@ -3009,7 +3009,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.31.8"
+version = "0.31.10"
 dependencies = [
  "derive_setters",
  "rustc-hash",
@@ -4060,9 +4060,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_shell"
-version = "0.11.7"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b52de73e4ba6d649e269bf9e0a941be4823c1e6fa661cabae41c8a3fd03d23de"
+checksum = "0bf785eeca48faf2326b0799b611a21b0a6dfae3b9a4eb641ef59562b1b69efa"
 dependencies = [
  "miette 7.6.0",
  "regex",
@@ -4085,9 +4085,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_utils"
-version = "0.12.6"
+version = "0.12.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ff32ea225eeb9288d1874ca2cdbc406eb2c6ca7b18d1b1c260236c7cd0eca45"
+checksum = "7ef9bf7e986c862fc93e506efa1e6bbc5c76798e66c19e853516930e7a41e4c9"
 dependencies = [
  "async-trait",
  "dirs",
@@ -4379,9 +4379,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.51.0"
+version = "1.51.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2bd1c4c0fc4a7ab90fc15ef6daaa3ec3b893f004f915f2392557ed23237820cd"
+checksum = "f66bf9585cda4b724d3e78ab34b73fb2bbaba9011b9bfdf69dc836382ea13b8c"
 dependencies = [
  "bytes",
  "libc",
@@ -4888,6 +4888,7 @@ dependencies = [
  "reqwest",
  "reqwest-middleware",
  "rust-netrc",
+ "rustc-hash",
  "scc",
  "schematic",
  "serde",
