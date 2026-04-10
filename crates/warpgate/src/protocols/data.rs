@@ -1,5 +1,5 @@
 use super::{LoadFrom, LoaderProtocol};
-use crate::helpers::create_cache_key;
+use crate::helpers::hash_sha256;
 use crate::loader_error::WarpgateLoaderError;
 use base64::prelude::*;
 use tracing::trace;
@@ -38,7 +38,7 @@ impl LoaderProtocol<DataLocator> for DataLoader {
         };
 
         Ok(LoadFrom::Blob {
-            hash: create_cache_key(encoded_data, None),
+            hash: hash_sha256(&data),
             ext: ".wasm".into(),
             data,
         })

@@ -229,6 +229,9 @@ api_struct!(
 
         /// Current version. Will be a "latest" alias if not resolved.
         pub version: VersionSpec,
+
+        /// Virtual path to the current working directory.
+        pub working_dir: VirtualPath,
     }
 );
 
@@ -253,6 +256,9 @@ api_struct!(
         #[deprecated]
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub version: Option<VersionSpec>,
+
+        /// Virtual path to the current working directory.
+        pub working_dir: VirtualPath,
     }
 );
 
@@ -654,6 +660,11 @@ api_struct!(
 
         /// A secure URL to download the tool/archive.
         pub download_url: String,
+
+        /// A map of HTTP headers to include in all requests
+        /// during the download phase.
+        #[serde(default, skip_serializing_if = "FxHashMap::is_empty")]
+        pub http_headers: FxHashMap<String, String>,
 
         /// A script, relative from the install directory, to execute after
         /// the prebuilt has been installed.

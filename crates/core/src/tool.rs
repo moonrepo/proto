@@ -14,6 +14,7 @@ use proto_pdk_api::{
 };
 use rustc_hash::FxHashMap;
 use starbase_styles::color;
+use starbase_utils::net::DownloadOptions;
 use starbase_utils::{fs, path};
 use std::fmt::{self, Debug};
 use std::path::{Path, PathBuf};
@@ -253,6 +254,7 @@ impl Tool {
             temp_dir: self.to_virtual_path(self.get_temp_dir()),
             tool_dir: self.to_virtual_path(self.get_product_dir(spec)),
             version: spec.get_resolved_version(),
+            working_dir: self.to_virtual_path(&self.proto.working_dir),
         }
     }
 
@@ -267,6 +269,7 @@ impl Tool {
             // TODO: temporary until 3rd-party plugins update their PDKs
             tool_dir: self.to_virtual_path(&self.proto.store.inventory_dir),
             version: Some(VersionSpec::default()),
+            working_dir: self.to_virtual_path(&self.proto.working_dir),
         }
     }
 
@@ -412,10 +415,12 @@ impl Tool {
                         &src,
                         &backend_dir,
                         &self.proto.store.temp_dir,
-                        self.proto
-                            .get_plugin_loader()?
-                            .get_http_client()?
-                            .to_inner(),
+                        DownloadOptions::new(
+                            self.proto
+                                .get_plugin_loader()?
+                                .get_http_client()?
+                                .create_downloader(),
+                        ),
                     )
                     .await?;
                 }
@@ -435,7 +440,7 @@ impl Tool {
             for exe in metadata.exes {
                 let exe_path = backend_dir.join(path::normalize_separators(exe));
 
-                if exe_path.exists() {
+                if exe_path.exists() && !fs::is_executable(&exe_path) {
                     fs::update_perms(exe_path, None)?;
                 }
             }

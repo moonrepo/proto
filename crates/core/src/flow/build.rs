@@ -20,6 +20,7 @@ use starbase_console::ui::{
 };
 use starbase_styles::{apply_style_tags, remove_style_tags};
 use starbase_utils::fs::LOCK_FILE;
+use starbase_utils::net::DownloadOptions;
 use starbase_utils::{envx::is_ci, fs, net, path};
 use std::env;
 use std::path::{Path, PathBuf};
@@ -764,7 +765,12 @@ pub async fn download_sources(
                 let download_file = archive::download(
                     &archive,
                     builder.options.temp_dir,
-                    builder.options.http_client.to_inner(),
+                    DownloadOptions::new(
+                        builder
+                            .options
+                            .http_client
+                            .create_downloader_with_headers(build.http_headers.clone()),
+                    ),
                 )
                 .await?;
 
@@ -866,7 +872,9 @@ pub async fn execute_instructions(
                         });
                     }
 
-                    fs::update_perms(&exe_abs_path, None)?;
+                    if !fs::is_executable(&exe_abs_path) {
+                        fs::update_perms(&exe_abs_path, None)?;
+                    }
 
                     builder_exes.insert(
                         if exe_name.is_empty() {
@@ -949,10 +957,15 @@ pub async fn execute_instructions(
                 builder
                     .render_checkpoint(format!("{prefix} Requesting script <url>{url}</url>"))?;
 
-                net::download_from_url_with_client(
+                net::download_from_url_with_options(
                     &url,
                     &download_file,
-                    builder.options.http_client.to_inner(),
+                    DownloadOptions::new(
+                        builder
+                            .options
+                            .http_client
+                            .create_downloader_with_headers(build.http_headers.clone()),
+                    ),
                 )
                 .await?;
 
