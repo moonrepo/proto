@@ -1,4 +1,4 @@
-use crate::helpers::{create_cache_key, from_virtual_path, sort_virtual_paths, to_virtual_path};
+use crate::helpers::{from_virtual_path, hash_base64, sort_virtual_paths, to_virtual_path};
 use crate::plugin_error::WarpgatePluginError;
 use extism::{Error, Function, Manifest, Plugin};
 use scc::hash_map::Entry;
@@ -175,7 +175,7 @@ impl PluginContainer {
     {
         let func = func.as_ref();
         let input = self.format_input(func, input)?;
-        let cache_key = format!("{func}-{}", create_cache_key(&input, None));
+        let cache_key = format!("{func}-{}", hash_base64(&input));
 
         match self.func_cache.entry_async(cache_key).await {
             // Check if cache exists already

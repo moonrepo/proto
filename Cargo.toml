@@ -16,7 +16,7 @@ dirs = "6.0.0"
 extism = ">=1.6.0" # Lower for consumers
 extism-pdk = "1.4.1"
 futures = "0.3.31"
-http-cache-reqwest = "1.0.0-alpha.4"
+http-cache-reqwest = "1.0.0-alpha.5"
 human-sort = "0.2.2"
 indexmap = "2.13.1"
 iocraft = "0.8.0"
@@ -62,7 +62,7 @@ starbase_id = { version = "0.3.2", features = ["miette", "schematic"] }
 starbase_sandbox = { version = "0.10.6" }
 starbase_shell = { version = "0.12.0", features = ["miette"] }
 starbase_styles = { version = "0.6.7" }
-starbase_utils = { version = "0.12.6", default-features = false, features = [
+starbase_utils = { version = "0.12.8", default-features = false, features = [
     "json",
     "miette",
     "net",

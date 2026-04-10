@@ -164,7 +164,7 @@ fn exec_command(
 
         if path.exists() {
             // This is temporary since WASI does not support updating file permissions yet!
-            if input.set_executable {
+            if input.set_executable && !fs::is_executable(&path) {
                 fs::update_perms(&path, None)?;
             }
 

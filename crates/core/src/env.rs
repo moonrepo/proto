@@ -118,10 +118,13 @@ impl ProtoEnvironment {
             (self.home_dir.clone(), "/userhome".into()),
         ];
 
-        if !paths.iter().any(|(path, _)| path == &self.working_dir) {
-            // This is required for situtations where users are using proto
-            // outside of the home directory, and the WASM plugin will need
-            // access to it!
+        // This is required for situtations where users are using proto
+        // outside of the home directory, and the WASM plugin will need
+        // access to it!
+        if self.test_only
+            || (!self.working_dir.starts_with(&self.home_dir)
+                && !paths.iter().any(|(path, _)| path == &self.working_dir))
+        {
             paths.push((
                 self.working_dir.clone(),
                 if self.test_only {
