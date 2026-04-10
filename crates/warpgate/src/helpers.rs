@@ -102,10 +102,11 @@ pub fn move_or_unpack_download(
                 path: temp_file.to_path_buf(),
             });
         }
+
         // Find a release file first, as some archives include the target folder
-        else if let Some(release_wasm) = wasm_files
+        if let Some(release_wasm) = wasm_files
             .iter()
-            .find(|file| file.to_string_lossy().contains("release"))
+            .find(|file| file.iter().any(|comp| comp == "release"))
         {
             fs::copy_file(release_wasm, dest_file)?;
         }
@@ -114,7 +115,6 @@ pub fn move_or_unpack_download(
             fs::copy_file(&wasm_files[0], dest_file)?;
         }
 
-        fs::remove_file(temp_file)?;
         fs::remove_dir_all(out_dir)?;
 
         return Ok(());
