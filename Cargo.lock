@@ -3189,7 +3189,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.55.4"
+version = "0.56.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3239,7 +3239,7 @@ dependencies = [
 
 [[package]]
 name = "proto_codegen"
-version = "0.10.1"
+version = "0.11.0"
 dependencies = [
  "proto_core",
  "proto_pdk_api",
@@ -3249,7 +3249,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.55.5"
+version = "0.56.0"
 dependencies = [
  "clap",
  "convert_case 0.11.0",
@@ -3322,7 +3322,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.43.8"
+version = "0.44.0"
 dependencies = [
  "extism",
  "proto_core",
@@ -5376,7 +5376,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.29.3"
+version = "0.30.0"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
