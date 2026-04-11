@@ -391,14 +391,14 @@
       "homepageUrl": "https://dotnet.microsoft.com/",
       "repositoryUrl": "https://github.com/RemiKalbe/proto-dotnet-plugin",
       "devicon": "dot-net",
+      "bins": [
+        "dotnet"
+      ],
       "detectionSources": [
         {
           "file": "global.json",
           "url": "https://learn.microsoft.com/en-us/dotnet/core/tools/global-json"
         }
-      ],
-      "bins": [
-        "dotnet"
       ]
     },
     {
