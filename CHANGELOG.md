@@ -15,6 +15,13 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Fixed an issue where commands with `--` would be considered a complex command and force run within a shell.
+- Fixed some PowerShell quoting issues.
+
 ## 0.56.0
 
 #### 💥 Breaking

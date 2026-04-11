@@ -110,6 +110,8 @@ export interface PluginContext {
 	toolDir: VirtualPath;
 	/** Current version. Will be a "latest" alias if not resolved. */
 	version: VersionSpec;
+	/** Virtual path to the current working directory. */
+	workingDir: VirtualPath;
 }
 
 /**
@@ -125,6 +127,8 @@ export interface PluginUnresolvedContext {
 	toolDir: VirtualPath;
 	/** @deprecated */
 	version?: VersionSpec | null;
+	/** Virtual path to the current working directory. */
+	workingDir: VirtualPath;
 }
 
 /** Supported types of plugins. */
@@ -376,6 +380,11 @@ export interface DownloadPrebuiltOutput {
 	downloadName?: string | null;
 	/** A secure URL to download the tool/archive. */
 	downloadUrl: string;
+	/**
+	 * A map of HTTP headers to include in all requests
+	 * during the download phase.
+	 */
+	httpHeaders?: Record<string, string>;
 	/**
 	 * A script, relative from the install directory, to execute after
 	 * the prebuilt has been installed.
@@ -721,6 +730,11 @@ export type SystemDependency = string | Record<SystemPackageManager, string> | s
 export interface BuildInstructionsOutput {
 	/** Link to the documentation/help. */
 	helpUrl?: string | null;
+	/**
+	 * A map of HTTP headers to include in all requests
+	 * during the download phase.
+	 */
+	httpHeaders?: Record<string, string>;
 	/**
 	 * List of instructions to execute to build the tool, after system
 	 * dependencies have been installed.
