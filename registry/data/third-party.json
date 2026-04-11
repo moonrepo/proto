@@ -373,7 +373,7 @@
       "locator": "https://gist.githubusercontent.com/alexbepple/9740643dbe1b2d423490b1fee21af807/raw/e2d85b647da191d339dfbf3e3e1cefb21616e7c7/dotenvx.toml",
       "format": "toml",
       "name": "dotenvx",
-      "description": "Inject your env at runtime. A better dotenv – from the creator of dotenv.",
+      "description": "Inject your env at runtime. A better dotenv \u2013 from the creator of dotenv.",
       "author": "alexbepple",
       "homepageUrl": "https://dotenvx.com/",
       "repositoryUrl": "https://gist.github.com/alexbepple/9740643dbe1b2d423490b1fee21af807",
@@ -538,7 +538,7 @@
       "locator": "https://raw.githubusercontent.com/remenoscodes/git-native-issue/main/proto/plugin.toml",
       "format": "toml",
       "name": "git-native-issue",
-      "description": "Distributed issue tracking embedded in Git — track issues locally, sync anywhere.",
+      "description": "Distributed issue tracking embedded in Git \u2014 track issues locally, sync anywhere.",
       "author": "remenoscodes",
       "homepageUrl": "https://github.com/remenoscodes/git-native-issue",
       "repositoryUrl": "https://github.com/remenoscodes/git-native-issue",
@@ -1736,6 +1736,750 @@
       "devicon": "zig",
       "bins": [
         "zls"
+      ]
+    },
+    {
+      "id": "argocd-image-updater",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/argocd-image-updater/plugin.toml",
+      "format": "toml",
+      "name": "Argocd Image Updater",
+      "description": "argocd-image-updater CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "argocd-image-updater"
+      ]
+    },
+    {
+      "id": "ast-grep",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/ast-grep/plugin.toml",
+      "format": "toml",
+      "name": "Ast Grep",
+      "description": "ast-grep CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "ast-grep"
+      ]
+    },
+    {
+      "id": "bandwhich",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/bandwhich/plugin.toml",
+      "format": "toml",
+      "name": "Bandwhich",
+      "description": "bandwhich CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "bandwhich"
+      ]
+    },
+    {
+      "id": "bat",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/bat/plugin.toml",
+      "format": "toml",
+      "name": "Bat",
+      "description": "bat CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "bat"
+      ]
+    },
+    {
+      "id": "cargo-machete",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/cargo-machete/plugin.toml",
+      "format": "toml",
+      "name": "Cargo Machete",
+      "description": "cargo-machete CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "cargo-machete"
+      ]
+    },
+    {
+      "id": "cargo-watch",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/cargo-watch/plugin.toml",
+      "format": "toml",
+      "name": "Cargo Watch",
+      "description": "cargo-watch CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "cargo-watch"
+      ]
+    },
+    {
+      "id": "choose",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/choose/plugin.toml",
+      "format": "toml",
+      "name": "Choose",
+      "description": "choose CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "choose"
+      ]
+    },
+    {
+      "id": "cntb",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/cntb/plugin.toml",
+      "format": "toml",
+      "name": "Cntb",
+      "description": "cntb CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "cntb"
+      ]
+    },
+    {
+      "id": "crane",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/crane/plugin.toml",
+      "format": "toml",
+      "name": "Crane",
+      "description": "crane CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "crane"
+      ]
+    },
+    {
+      "id": "ctop",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/ctop/plugin.toml",
+      "format": "toml",
+      "name": "Ctop",
+      "description": "ctop CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "ctop"
+      ]
+    },
+    {
+      "id": "dasel",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/dasel/plugin.toml",
+      "format": "toml",
+      "name": "Dasel",
+      "description": "dasel CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "dasel"
+      ]
+    },
+    {
+      "id": "difftastic",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/difftastic/plugin.toml",
+      "format": "toml",
+      "name": "Difftastic",
+      "description": "difftastic CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "difftastic"
+      ]
+    },
+    {
+      "id": "dive",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/dive/plugin.toml",
+      "format": "toml",
+      "name": "Dive",
+      "description": "dive CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "dive"
+      ]
+    },
+    {
+      "id": "doctl",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/doctl/plugin.toml",
+      "format": "toml",
+      "name": "Doctl",
+      "description": "doctl CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "doctl"
+      ]
+    },
+    {
+      "id": "dust",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/dust/plugin.toml",
+      "format": "toml",
+      "name": "Dust",
+      "description": "dust CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "dust"
+      ]
+    },
+    {
+      "id": "eza",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/eza/plugin.toml",
+      "format": "toml",
+      "name": "Eza",
+      "description": "eza CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "eza"
+      ]
+    },
+    {
+      "id": "fd",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/fd/plugin.toml",
+      "format": "toml",
+      "name": "Fd",
+      "description": "fd CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "fd"
+      ]
+    },
+    {
+      "id": "feroxbuster",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/feroxbuster/plugin.toml",
+      "format": "toml",
+      "name": "Feroxbuster",
+      "description": "feroxbuster CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "feroxbuster"
+      ]
+    },
+    {
+      "id": "ffuf",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/ffuf/plugin.toml",
+      "format": "toml",
+      "name": "Ffuf",
+      "description": "ffuf CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "ffuf"
+      ]
+    },
+    {
+      "id": "git-cliff",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/git-cliff/plugin.toml",
+      "format": "toml",
+      "name": "Git Cliff",
+      "description": "git-cliff CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "git-cliff"
+      ]
+    },
+    {
+      "id": "git-delta",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/git-delta/plugin.toml",
+      "format": "toml",
+      "name": "Git Delta",
+      "description": "git-delta CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "git-delta"
+      ]
+    },
+    {
+      "id": "glow",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/glow/plugin.toml",
+      "format": "toml",
+      "name": "Glow",
+      "description": "glow CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "glow"
+      ]
+    },
+    {
+      "id": "gobuster",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/gobuster/plugin.toml",
+      "format": "toml",
+      "name": "Gobuster",
+      "description": "gobuster CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "gobuster"
+      ]
+    },
+    {
+      "id": "grex",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/grex/plugin.toml",
+      "format": "toml",
+      "name": "Grex",
+      "description": "grex CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "grex"
+      ]
+    },
+    {
+      "id": "gron",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/gron/plugin.toml",
+      "format": "toml",
+      "name": "Gron",
+      "description": "gron CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "gron"
+      ]
+    },
+    {
+      "id": "grpcurl",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/grpcurl/plugin.toml",
+      "format": "toml",
+      "name": "Grpcurl",
+      "description": "grpcurl CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "grpcurl"
+      ]
+    },
+    {
+      "id": "hadolint",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/hadolint/plugin.toml",
+      "format": "toml",
+      "name": "Hadolint",
+      "description": "hadolint CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "hadolint"
+      ]
+    },
+    {
+      "id": "harbor",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/harbor/plugin.toml",
+      "format": "toml",
+      "name": "Harbor",
+      "description": "harbor CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "harbor"
+      ]
+    },
+    {
+      "id": "hcloud",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/hcloud/plugin.toml",
+      "format": "toml",
+      "name": "Hcloud",
+      "description": "hcloud CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "hcloud"
+      ]
+    },
+    {
+      "id": "hey",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/hey/plugin.toml",
+      "format": "toml",
+      "name": "Hey",
+      "description": "hey CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "hey"
+      ]
+    },
+    {
+      "id": "htmlq",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/htmlq/plugin.toml",
+      "format": "toml",
+      "name": "Htmlq",
+      "description": "htmlq CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "htmlq"
+      ]
+    },
+    {
+      "id": "httpx",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/httpx/plugin.toml",
+      "format": "toml",
+      "name": "Httpx",
+      "description": "httpx CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "httpx"
+      ]
+    },
+    {
+      "id": "jcli",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/jcli/plugin.toml",
+      "format": "toml",
+      "name": "Jcli",
+      "description": "jcli CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "jcli"
+      ]
+    },
+    {
+      "id": "kargo",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/kargo/plugin.toml",
+      "format": "toml",
+      "name": "Kargo",
+      "description": "kargo CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "kargo"
+      ]
+    },
+    {
+      "id": "kubectl-argo-rollouts",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/kubectl-argo-rollouts/plugin.toml",
+      "format": "toml",
+      "name": "Kubectl Argo Rollouts",
+      "description": "kubectl-argo-rollouts CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "kubectl-argo-rollouts"
+      ]
+    },
+    {
+      "id": "lazydocker",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/lazydocker/plugin.toml",
+      "format": "toml",
+      "name": "Lazydocker",
+      "description": "lazydocker CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "lazydocker"
+      ]
+    },
+    {
+      "id": "lazygit",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/lazygit/plugin.toml",
+      "format": "toml",
+      "name": "Lazygit",
+      "description": "lazygit CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "lazygit"
+      ]
+    },
+    {
+      "id": "longhornctl",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/longhornctl/plugin.toml",
+      "format": "toml",
+      "name": "Longhornctl",
+      "description": "longhornctl CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "longhornctl"
+      ]
+    },
+    {
+      "id": "miniserve",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/miniserve/plugin.toml",
+      "format": "toml",
+      "name": "Miniserve",
+      "description": "miniserve CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "miniserve"
+      ]
+    },
+    {
+      "id": "newrelic",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/newrelic/plugin.toml",
+      "format": "toml",
+      "name": "Newrelic",
+      "description": "newrelic CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "newrelic"
+      ]
+    },
+    {
+      "id": "niclei",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/niclei/plugin.toml",
+      "format": "toml",
+      "name": "Niclei",
+      "description": "niclei CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "niclei"
+      ]
+    },
+    {
+      "id": "ouch",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/ouch/plugin.toml",
+      "format": "toml",
+      "name": "Ouch",
+      "description": "ouch CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "ouch"
+      ]
+    },
+    {
+      "id": "pastel",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/pastel/plugin.toml",
+      "format": "toml",
+      "name": "Pastel",
+      "description": "pastel CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "pastel"
+      ]
+    },
+    {
+      "id": "procs",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/procs/plugin.toml",
+      "format": "toml",
+      "name": "Procs",
+      "description": "procs CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "procs"
+      ]
+    },
+    {
+      "id": "pulumi",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/pulumi/plugin.toml",
+      "format": "toml",
+      "name": "Pulumi",
+      "description": "pulumi CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "pulumi"
+      ]
+    },
+    {
+      "id": "qsv",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/qsv/plugin.toml",
+      "format": "toml",
+      "name": "Qsv",
+      "description": "qsv CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "qsv"
+      ]
+    },
+    {
+      "id": "rancher",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/rancher/plugin.toml",
+      "format": "toml",
+      "name": "Rancher",
+      "description": "rancher CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "rancher"
+      ]
+    },
+    {
+      "id": "ripgrep-all",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/ripgrep-all/plugin.toml",
+      "format": "toml",
+      "name": "Ripgrep All",
+      "description": "ripgrep-all CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "ripgrep-all"
+      ]
+    },
+    {
+      "id": "ripgrep",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/ripgrep/plugin.toml",
+      "format": "toml",
+      "name": "Ripgrep",
+      "description": "ripgrep CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "ripgrep"
+      ]
+    },
+    {
+      "id": "sd",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/sd/plugin.toml",
+      "format": "toml",
+      "name": "Sd",
+      "description": "sd CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "sd"
+      ]
+    },
+    {
+      "id": "sentry-cli",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/sentry-cli/plugin.toml",
+      "format": "toml",
+      "name": "Sentry Cli",
+      "description": "sentry-cli CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "sentry-cli"
+      ]
+    },
+    {
+      "id": "snyk",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/snyk/plugin.toml",
+      "format": "toml",
+      "name": "Snyk",
+      "description": "snyk CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "snyk"
+      ]
+    },
+    {
+      "id": "subfinder",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/subfinder/plugin.toml",
+      "format": "toml",
+      "name": "Subfinder",
+      "description": "subfinder CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "subfinder"
+      ]
+    },
+    {
+      "id": "syft",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/syft/plugin.toml",
+      "format": "toml",
+      "name": "Syft",
+      "description": "syft CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "syft"
+      ]
+    },
+    {
+      "id": "telnyx",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/telnyx/plugin.toml",
+      "format": "toml",
+      "name": "Telnyx",
+      "description": "telnyx CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "telnyx"
+      ]
+    },
+    {
+      "id": "ubi",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/ubi/plugin.toml",
+      "format": "toml",
+      "name": "Ubi",
+      "description": "ubi CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "ubi"
+      ]
+    },
+    {
+      "id": "usql",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/usql/plugin.toml",
+      "format": "toml",
+      "name": "Usql",
+      "description": "usql CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "usql"
+      ]
+    },
+    {
+      "id": "vhs",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/vhs/plugin.toml",
+      "format": "toml",
+      "name": "Vhs",
+      "description": "vhs CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "vhs"
+      ]
+    },
+    {
+      "id": "vt-cli",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/vt-cli/plugin.toml",
+      "format": "toml",
+      "name": "Vt Cli",
+      "description": "vt-cli CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "vt-cli"
+      ]
+    },
+    {
+      "id": "vultr-cli",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/vultr-cli/plugin.toml",
+      "format": "toml",
+      "name": "Vultr Cli",
+      "description": "vultr-cli CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "vultr-cli"
+      ]
+    },
+    {
+      "id": "webanalyze",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/webanalyze/plugin.toml",
+      "format": "toml",
+      "name": "Webanalyze",
+      "description": "webanalyze CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "webanalyze"
+      ]
+    },
+    {
+      "id": "xh",
+      "locator": "https://raw.githubusercontent.com/binary64/proto-toml-plugins/main/xh/plugin.toml",
+      "format": "toml",
+      "name": "Xh",
+      "description": "xh CLI",
+      "author": "binary64",
+      "repositoryUrl": "https://github.com/binary64/proto-toml-plugins",
+      "bins": [
+        "xh"
       ]
     }
   ]
