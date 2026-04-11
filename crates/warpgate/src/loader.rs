@@ -325,9 +325,13 @@ impl PluginLoader {
             "Downloading plugin from URL"
         );
 
+        let temp_hash = hash_base64(dest_file.to_str().unwrap_or(source_url));
+
         let temp_file = self.temp_dir.join(format!(
             "{}-{}",
-            hash_base64(dest_file.to_str().unwrap_or(source_url)),
+            // Only use the first 32 characters of the hash to avoid
+            // file path limits on some platforms
+            &temp_hash[0..temp_hash.len().min(32)],
             extract_file_name_from_url(source_url)
         ));
 
