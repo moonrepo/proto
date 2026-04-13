@@ -243,9 +243,16 @@ impl WasmTestWrapper {
             context.temp_dir.any_path()
         };
 
+        let working_dir = if context.working_dir.any_path().components().count() == 0 {
+            &self.tool.proto.working_dir
+        } else {
+            context.working_dir.any_path()
+        };
+
         PluginContext {
             temp_dir: self.tool.to_virtual_path(temp_dir),
             tool_dir: self.tool.to_virtual_path(tool_dir),
+            working_dir: self.tool.to_virtual_path(working_dir),
             ..context
         }
     }

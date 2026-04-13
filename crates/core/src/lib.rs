@@ -45,7 +45,8 @@ pub use version_spec::*;
 pub use semver::{Version, VersionReq};
 pub use warpgate;
 pub use warpgate::{
-    FileLocator, GitHubLocator, PluginLocator, RegistryConfig, RegistryLocator, UrlLocator,
+    DataLocator, FileLocator, GitHubLocator, PluginLocator, RegistryConfig, RegistryLocator,
+    UrlLocator,
 };
 
 // For document editing
