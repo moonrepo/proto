@@ -17,9 +17,9 @@
 
 ## Unreleased
 
-#### 🛡️ Security
+#### 🚀 Updates
 
-- Fixed a zip slip vulnerability in the tar archive extraction logic.
+- Added request retry support, that will retry up to 3 times with exponential backoff for transient errors (network issues, rate limits, etc).
 
 #### 🐞 Fixes
 
@@ -29,6 +29,10 @@
 
 - **pnpm**
   - Added support for pnpm v11 `pn` and `pnx` shims.
+
+#### 🛡️ Security
+
+- Fixed a zip slip vulnerability in the tar archive extraction logic.
 
 #### ⚙️ Internal
 
