@@ -41,7 +41,7 @@ rmcp = { version = "1.3.0", default-features = false, features = [
     "macros",
 ] }
 rustc-hash = "2.1.2"
-scc = "3.6.12"
+scc = "3.7.0"
 schemars = "1.2.1"
 schematic = { version = "0.19.7", default-features = false }
 semver = { version = "1.0.28", features = ["serde"] }
@@ -50,7 +50,7 @@ serde_json = { version = "1.0.49", features = ["preserve_order"] }
 sha2 = "0.10.9"
 shell-words = "1.1.1"
 starbase = { version = "0.10.10" }
-starbase_archive = { version = "0.12.6", features = [
+starbase_archive = { version = "0.12.7", features = [
     "gz",
     "miette",
     "tar-all",

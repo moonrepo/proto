@@ -15,6 +15,16 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🛡️ Security
+
+- Fixed a zip slip vulnerability in the tar archive extraction logic.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.56.1
 
 #### 🐞 Fixes
