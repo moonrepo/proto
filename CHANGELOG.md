@@ -21,6 +21,15 @@
 
 - Fixed a zip slip vulnerability in the tar archive extraction logic.
 
+#### 🐞 Fixes
+
+- Fixed an issue where file paths may be too long when downloading plugins, triggering an OS error.
+
+#### 🧰 Tools
+
+- **pnpm**
+  - Added support for pnpm v11 `pn` and `pnx` shims.
+
 #### ⚙️ Internal
 
 - Updated dependencies.
