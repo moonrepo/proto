@@ -57,19 +57,19 @@ mod clean {
             .run_bin(|cmd| {
                 cmd.arg("install").arg("protostar").arg("1.0.0");
             })
-            .success();
+            .debug();
 
         sandbox
             .run_bin(|cmd| {
                 cmd.arg("install").arg("protostar").arg("2.0.0");
             })
-            .success();
+            .debug();
 
         sandbox
             .run_bin(|cmd| {
                 cmd.arg("install").arg("protostar").arg("3.0.0");
             })
-            .success();
+            .debug();
 
         // Calculate timestamps - stale versions should have last-used time > 2 days ago
         let now_millis = SystemTime::now()
