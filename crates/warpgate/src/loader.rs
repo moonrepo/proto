@@ -338,7 +338,8 @@ impl PluginLoader {
         download_from_url_to_file(source_url, &temp_file, self.get_http_client()?).await?;
         move_or_unpack_download(&temp_file, dest_file)?;
 
-        fs::remove_file(temp_file)?;
+        // TODO: Revisit with file locking!
+        // fs::remove_file(temp_file)?;
 
         Ok(())
     }
