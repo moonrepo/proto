@@ -60,7 +60,7 @@ starbase_args = { version = "0.1.10" }
 starbase_console = { version = "0.6.25", features = ["miette", "ui"] }
 starbase_id = { version = "0.3.2", features = ["miette", "schematic"] }
 starbase_sandbox = { version = "0.10.7" }
-starbase_shell = { version = "0.12.2", features = ["miette"] }
+starbase_shell = { version = "0.12.3", features = ["miette"] }
 starbase_styles = { version = "0.6.7" }
 starbase_utils = { version = "0.12.9", default-features = false, features = [
     "json",
@@ -69,7 +69,7 @@ starbase_utils = { version = "0.12.9", default-features = false, features = [
     "toml",
 ] }
 thiserror = "2.0.18"
-tokio = { version = "1.51.1", features = ["full", "tracing"] }
+tokio = { version = "1.52.0", features = ["full", "tracing"] }
 toml_edit = "0.25"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", default-features = false }
