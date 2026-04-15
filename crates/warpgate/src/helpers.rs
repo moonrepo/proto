@@ -127,8 +127,10 @@ pub fn move_or_unpack_download(
             // that this temp file can also be moved by another process.
             // Because of this, proto constantly runs into "Failed to rename"
             // errors when hitting this block, so let's avoid the failure
-            // by copying instead of moving!
-            fs::copy_file(temp_file, dest_file)?;
+            // if the condition is met and assume all is good!
+            if temp_file.exists() && !dest_file.exists() {
+                fs::copy_file(temp_file, dest_file)?;
+            }
         }
 
         Some(ext) => {

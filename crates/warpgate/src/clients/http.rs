@@ -4,6 +4,7 @@ use core::ops::Deref;
 use netrc::Netrc;
 use reqwest::{Client, Response, Url};
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware, RequestBuilder, RequestInitialiser};
+use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use starbase_utils::{
@@ -118,6 +119,9 @@ pub struct HttpOptions {
     /// `http:` will handle insecure requests, while `https:` will handle secure requests.
     pub proxies: Vec<String>,
 
+    /// Maximum number of times to retry a request if it fails due to a transient error.
+    pub retry_count: Option<u32>,
+
     /// A list of proxy URLs that all `https:` requests should pass through.
     pub secure_proxies: Vec<String>,
 
@@ -230,6 +234,12 @@ pub fn create_http_client_with_options(
     trace!("Applying middleware to client");
 
     let mut middleware_builder = ClientBuilder::new(client.clone());
+
+    trace!("Adding retry support");
+
+    middleware_builder = middleware_builder.with(RetryTransientMiddleware::new_with_policy(
+        ExponentialBackoff::builder().build_with_max_retries(options.retry_count.unwrap_or(3)),
+    ));
 
     if let Ok(netrc) = NetrcMiddleware::new() {
         trace!("Adding .netrc support");

@@ -15,6 +15,30 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added request retry support, that will retry up to 3 times with exponential backoff for transient errors (network issues, rate limits, etc).
+- Updated PowerShell commands to use `-EncodedCommand` instead of `-Command` to avoid quoting/escaping issues. Let us know if you run into any issues with this change.
+
+#### 🐞 Fixes
+
+- Fixed an issue where file paths may be too long when downloading plugins, triggering an OS error.
+
+#### 🧰 Tools
+
+- **pnpm**
+  - Added support for pnpm v11 `pn` and `pnx` shims.
+
+#### 🛡️ Security
+
+- Fixed a zip slip vulnerability in the tar archive extraction logic.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.56.1
 
 #### 🐞 Fixes
