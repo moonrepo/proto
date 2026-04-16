@@ -4506,9 +4506,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_archive"
-version = "0.12.7"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3af6db78bb28427edbaa0f538f152da53e352338608459b5b9c9a798b2f7e0c0"
+checksum = "1bfe3d9c45b8b09ca135378de4c4f87c24c96feb270f620c1335f8e223dc8d63"
 dependencies = [
  "binstall-tar",
  "bzip2",
@@ -4566,9 +4566,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_sandbox"
-version = "0.10.7"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfc48e15d92211d3e2b2ace7a1d8a8bd448f38128711d41550d7d32a0a7a4e23"
+checksum = "57b2695cf7880f3005dc73b8787534258fb3645eb8cb3e14bf37d94019dbe0d4"
 dependencies = [
  "assert_cmd",
  "assert_fs",
@@ -4607,9 +4607,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_utils"
-version = "0.12.10"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "34fea0f809a215e4ee5ef128fc8874d97b1f359bca71d6d11e76d47cb137153a"
+checksum = "3d28f05d49ec878544df9a30394d9f0de4d0a59cade954fb9533ff0e55502156"
 dependencies = [
  "async-trait",
  "dirs",
@@ -4933,9 +4933,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.52.0"
+version = "1.52.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a91135f59b1cbf38c91e73cf3386fca9bb77915c45ce2771460c9d92f0f3d776"
+checksum = "b67dee974fe86fd92cc45b7a95fdd2f99a36a6d7b0d431a231178d3d670bbcc6"
 dependencies = [
  "bytes",
  "libc",

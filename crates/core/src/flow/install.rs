@@ -364,6 +364,7 @@ impl<'tool> Installer<'tool> {
                     client.create_downloader_with_headers(output.http_headers.clone()),
                 )),
                 on_chunk: options.on_download_chunk.clone(),
+                ..Default::default()
             },
         )
         .await?;
