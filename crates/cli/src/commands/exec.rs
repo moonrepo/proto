@@ -42,7 +42,8 @@ pub async fn exec(session: ProtoSession, args: ExecArgs) -> AppResult {
         //  - npm:@scope/org@version
         //  - tool
         //  - tool@version
-        let has_version = value.chars().filter(|c| *c == '@').count() >= 1 && !value.contains(":@");
+        let at_threshold = if value.contains(":@") { 2 } else { 1 };
+        let has_version = value.chars().filter(|c| *c == '@').count() == at_threshold;
 
         if has_version && let Some(index) = value.rfind('@') {
             specs.insert(

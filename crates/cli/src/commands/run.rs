@@ -86,7 +86,7 @@ fn is_trying_to_self_upgrade(tool: &Tool, args: &[String]) -> bool {
     // Then match the args in sequence
     'outer: for match_list in match_groups {
         for (index, match_arg) in match_list.into_iter().enumerate() {
-            if args.get(index).is_some_and(|arg| arg != &match_arg) {
+            if args.get(index).is_none_or(|arg| arg != &match_arg) {
                 continue 'outer;
             }
         }

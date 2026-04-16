@@ -173,7 +173,7 @@ impl<'app> ExecWorkflow<'app> {
             command.args(&self.args);
         }
 
-        self.apply_to_command(&mut command, false)?;
+        self.apply_to_command(&mut command)?;
 
         Ok(command)
     }
@@ -198,12 +198,12 @@ impl<'app> ExecWorkflow<'app> {
             script
         });
 
-        self.apply_to_command(&mut command, true)?;
+        self.apply_to_command(&mut command)?;
 
         Ok(command)
     }
 
-    pub fn apply_to_command(self, command: &mut Command, with_shell: bool) -> miette::Result<()> {
+    pub fn apply_to_command(self, command: &mut Command) -> miette::Result<()> {
         if let Some(path) = self.join_paths()? {
             command.env("PATH", path);
         }
@@ -213,10 +213,6 @@ impl<'app> ExecWorkflow<'app> {
                 Some(value) => command.env(key, value),
                 None => command.env_remove(key),
             };
-        }
-
-        if !with_shell && !self.multiple && !self.args.is_empty() {
-            command.args(self.args);
         }
 
         trace!(
