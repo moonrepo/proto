@@ -1,7 +1,7 @@
 use crate::commands::install::{InstallArgs, install_one};
 use crate::error::ProtoCliError;
 use crate::session::ProtoSession;
-use crate::workflows::{ExecWorkflow, ExecWorkflowParams};
+use crate::workflows::{ExecCommandOptions, ExecWorkflow, ExecWorkflowParams};
 use clap::Args;
 use miette::IntoDiagnostic;
 use proto_core::flow::detect::{Detector, ProtoDetectError};
@@ -467,6 +467,7 @@ fn create_command(
             list
         },
         None,
+        ExecCommandOptions::default(),
     )?;
 
     Ok(command)
