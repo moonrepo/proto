@@ -21,8 +21,6 @@ impl LoaderProtocol<DataLocator> for DataLoader {
         locator: &DataLocator,
         _: &Self::Data,
     ) -> Result<LoadFrom, WarpgateLoaderError> {
-        trace!(id = id.as_str(), "Linking plugin from explicit byte stream");
-
         let encoded_data = locator
             .data
             .strip_prefix("data://")
@@ -36,6 +34,12 @@ impl LoaderProtocol<DataLocator> for DataLoader {
                 }
             })?,
         };
+
+        trace!(
+            id = id.as_str(),
+            size = data.len(),
+            "Linking plugin from explicit byte stream"
+        );
 
         Ok(LoadFrom::Blob {
             hash: hash_sha256(&data),

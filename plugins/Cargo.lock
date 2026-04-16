@@ -2944,7 +2944,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.56.1"
+version = "0.56.2"
 dependencies = [
  "convert_case 0.11.0",
  "docker_credential",
@@ -4092,10 +4092,11 @@ dependencies = [
 
 [[package]]
 name = "starbase_shell"
-version = "0.12.2"
+version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30265932d46e4f0e73418ccfcb8792c10601e6108f6384965bca2ef59eedd456"
+checksum = "87821dbb9f0743e9aab41c3b3b3af5422fa7e2ff28132b7028c3c268800df4e5"
 dependencies = [
+ "base64 0.22.1",
  "miette 7.6.0",
  "regex",
  "shell-quote",
@@ -4117,9 +4118,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_utils"
-version = "0.12.9"
+version = "0.12.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e939a50874d4a6ffca941be181f73a75b4efbc31b6305f29ab27dd34863e1e2f"
+checksum = "34fea0f809a215e4ee5ef128fc8874d97b1f359bca71d6d11e76d47cb137153a"
 dependencies = [
  "async-trait",
  "dirs",
@@ -4411,9 +4412,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.51.1"
+version = "1.52.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f66bf9585cda4b724d3e78ab34b73fb2bbaba9011b9bfdf69dc836382ea13b8c"
+checksum = "a91135f59b1cbf38c91e73cf3386fca9bb77915c45ce2771460c9d92f0f3d776"
 dependencies = [
  "bytes",
  "libc",
@@ -4850,9 +4851,9 @@ checksum = "b6c140620e7ffbb22c2dee59cafe6084a59b5ffc27a8859a5f0d494b5d52b6be"
 
 [[package]]
 name = "uuid"
-version = "1.23.0"
+version = "1.23.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ac8b6f42ead25368cf5b098aeb3dc8a1a2c05a3eee8a9a1a68c640edbfc79d9"
+checksum = "ddd74a9687298c6858e9b88ec8935ec45d22e8fd5e6394fa1bd4e99a87789c76"
 dependencies = [
  "getrandom 0.4.2",
  "js-sys",
@@ -4920,7 +4921,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.30.2"
+version = "0.30.3"
 dependencies = [
  "async-trait",
  "base64 0.22.1",

@@ -1,6 +1,6 @@
 use crate::error::ProtoCliError;
 use crate::session::{LoadToolOptions, ProtoSession};
-use crate::workflows::{ExecWorkflow, ExecWorkflowParams};
+use crate::workflows::{ExecCommandOptions, ExecWorkflow, ExecWorkflowParams};
 use clap::Args;
 use miette::IntoDiagnostic;
 use proto_core::{ToolContext, ToolSpec};
@@ -16,6 +16,9 @@ pub struct ExecArgs {
 
     #[arg(long, help = "Inherit tools to initialize from .prototools configs")]
     pub tools_from_config: bool,
+
+    #[arg(long, help = "Execute the command as-is without quoting or escaping")]
+    pub raw: bool,
 
     #[arg(long, help = "Shell to execute the command with")]
     pub shell: Option<ShellType>,
@@ -42,7 +45,8 @@ pub async fn exec(session: ProtoSession, args: ExecArgs) -> AppResult {
         //  - npm:@scope/org@version
         //  - tool
         //  - tool@version
-        let has_version = value.chars().filter(|c| *c == '@').count() >= 1 && !value.contains(":@");
+        let at_threshold = if value.contains(":@") { 2 } else { 1 };
+        let has_version = value.chars().filter(|c| *c == '@').count() == at_threshold;
 
         if has_version && let Some(index) = value.rfind('@') {
             specs.insert(
@@ -94,7 +98,14 @@ pub async fn exec(session: ProtoSession, args: ExecArgs) -> AppResult {
         .await?;
 
     // Create and run command
-    let command = workflow.create_command(args.command, args.shell)?;
+    let command = workflow.create_command(
+        args.command,
+        args.shell,
+        ExecCommandOptions {
+            check_shell: true,
+            raw_args: args.raw,
+        },
+    )?;
 
     // Must be the last line!
     exec_command_and_replace(command)

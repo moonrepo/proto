@@ -508,7 +508,7 @@ impl ProtoConfig {
 
         // Sort by weight so that we persist the order of env files
         // when layers across directories exist!
-        paths.sort_by(|a, d| a.weight.cmp(&d.weight));
+        paths.sort_by_key(|a| a.weight);
 
         // Then only return the paths
         paths.into_iter().map(|file| &file.path).collect()

@@ -13,7 +13,7 @@ use proto_pdk_api::{
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use starbase_args::parse as parse_args;
-use starbase_shell::{BoxedShell, ShellType};
+use starbase_shell::{BoxedShell, ShellType, join_args};
 use starbase_utils::envx;
 use std::collections::VecDeque;
 use std::env;
@@ -21,6 +21,12 @@ use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use tracing::trace;
+
+#[derive(Default)]
+pub struct ExecCommandOptions {
+    pub check_shell: bool,
+    pub raw_args: bool,
+}
 
 #[derive(Default)]
 pub struct ExecItem {
@@ -143,26 +149,29 @@ impl<'app> ExecWorkflow<'app> {
         Ok(())
     }
 
-    pub fn wrap_command<I, A>(&self, args: I) -> OsString
+    pub fn create_command_line<I, A>(&self, shell: &BoxedShell, args: I, raw: bool) -> OsString
     where
         I: IntoIterator<Item = A>,
         A: AsRef<OsStr>,
     {
         let mut out = OsString::new();
 
-        for arg in args {
-            if !out.is_empty() {
-                out.push(OsStr::new(" "));
-            }
+        if raw {
+            for arg in args {
+                if !out.is_empty() {
+                    out.push(OsStr::new(" "));
+                }
 
-            out.push(arg.as_ref());
+                out.push(arg.as_ref());
+            }
+        } else {
+            out.push(join_args(shell, args, false));
         }
 
+        // These args are passed from plugins and should always be quoted
         if !self.multiple && !self.args.is_empty() {
-            for arg in &self.args {
-                out.push(OsStr::new(" "));
-                out.push(arg);
-            }
+            out.push(OsStr::new(" "));
+            out.push(join_args(shell, &self.args, true));
         }
 
         out
@@ -171,10 +180,16 @@ impl<'app> ExecWorkflow<'app> {
     pub fn create_command(
         self,
         mut args: Vec<String>,
-        shell: Option<ShellType>,
+        shell_type: Option<ShellType>,
+        options: ExecCommandOptions,
     ) -> miette::Result<Command> {
-        let command = if shell.is_some() || self.requires_shell(&args) {
-            self.create_command_with_shell(shell.unwrap_or_default().build(), args)?
+        // We unfortunately need a shell to determine if the args must run in a shell!
+        let shell = shell_type.unwrap_or_default().build();
+
+        let command = if shell_type.is_some()
+            || (options.check_shell && self.requires_shell(&shell, &args, options.raw_args))
+        {
+            self.create_command_with_shell(shell, args, options.raw_args)?
         } else {
             self.create_command_without_shell(args.remove(0), args)?
         };
@@ -191,7 +206,11 @@ impl<'app> ExecWorkflow<'app> {
         let mut command = Command::new(exe);
         command.args(args);
 
-        self.apply_to_command(&mut command, false)?;
+        if !self.multiple && !self.args.is_empty() {
+            command.args(&self.args);
+        }
+
+        self.apply_to_command(&mut command)?;
 
         Ok(command)
     }
@@ -200,19 +219,21 @@ impl<'app> ExecWorkflow<'app> {
         self,
         shell: BoxedShell,
         args: I,
+        raw: bool,
     ) -> miette::Result<Command>
     where
         I: IntoIterator<Item = A>,
         A: AsRef<OsStr>,
     {
-        let mut command = shell.create_wrapped_command_with(self.wrap_command(args));
+        let mut command =
+            shell.create_wrapped_command_with(self.create_command_line(&shell, args, raw));
 
-        self.apply_to_command(&mut command, true)?;
+        self.apply_to_command(&mut command)?;
 
         Ok(command)
     }
 
-    pub fn apply_to_command(self, command: &mut Command, with_shell: bool) -> miette::Result<()> {
+    pub fn apply_to_command(self, command: &mut Command) -> miette::Result<()> {
         if let Some(path) = self.join_paths()? {
             command.env("PATH", path);
         }
@@ -222,10 +243,6 @@ impl<'app> ExecWorkflow<'app> {
                 Some(value) => command.env(key, value),
                 None => command.env_remove(key),
             };
-        }
-
-        if !with_shell && !self.multiple && !self.args.is_empty() {
-            command.args(self.args);
         }
 
         trace!(
@@ -287,15 +304,21 @@ impl<'app> ExecWorkflow<'app> {
         env::join_paths(self.reset_paths(store_dir)).into_diagnostic()
     }
 
-    pub fn requires_shell(&self, args: &[String]) -> bool {
+    pub fn requires_shell(&self, shell: &BoxedShell, args: &[String], raw: bool) -> bool {
         // If a Windows script, we must execute the command through PowerShell
-        if let Some(exe) = args.first()
+        if let Some(exe) = args.first().map(|exe| exe.trim_end_matches(['"', '\'']))
             && (exe.ends_with(".ps1") || exe.ends_with(".cmd") || exe.ends_with(".bat"))
         {
             return true;
         }
 
-        match parse_args(args.join(" ")) {
+        // We need to join the args and properly quote them for `parse_args` to
+        // parse the syntax correctly. Additionally, the arguments passed in are
+        // directly taken from `argv` and may be unquoted, so any arguments with
+        // spaces will be considered multiple arguments, which is not correct!
+        let script = self.create_command_line(shell, args, raw);
+
+        match parse_args(script.to_string_lossy()) {
             Ok(command_line) => command_line.is_complex_command(),
             Err(_) => true,
         }

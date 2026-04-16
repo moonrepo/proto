@@ -20,6 +20,9 @@ pub fn hash_sha256<T: AsRef<[u8]>>(value: T) -> String {
     let mut sha = Sha256::new();
     sha.update(value);
 
+    // Internally bust the cache of plugins
+    sha.update("v2");
+
     format!("{:x}", sha.finalize())
 }
 

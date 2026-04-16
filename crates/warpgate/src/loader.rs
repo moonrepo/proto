@@ -1,7 +1,7 @@
 use crate::clients::*;
 use crate::helpers::{
-    determine_cache_extension, download_from_url_to_file, extract_file_name_from_url, hash_base64,
-    hash_sha256, move_or_unpack_download,
+    determine_cache_extension, download_from_url_to_file, extract_file_name_from_url, hash_sha256,
+    move_or_unpack_download,
 };
 use crate::loader_error::WarpgateLoaderError;
 use crate::protocols::{
@@ -15,6 +15,7 @@ use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::Mutex;
 use tracing::{instrument, trace, warn};
 use warpgate_api::{Id, PluginLocator};
 
@@ -22,13 +23,16 @@ pub type OfflineChecker = Arc<fn() -> bool>;
 
 /// A system for loading plugins from a locator strategy,
 /// and caching the plugin file (`.wasm`) to the host's file system.
-#[derive(Clone)]
 pub struct PluginLoader {
     /// Duration in seconds in which to cache downloaded plugins.
     cache_duration: Duration,
 
     /// Loader for referencing local plugins using byte streams.
     data_loader: OnceCell<DataLoader>,
+
+    /// In-process locks for plugins currently being downloaded,
+    /// to prevent multiple simultaneous downloads of the same plugin.
+    download_locks: scc::HashMap<String, Arc<Mutex<()>>>,
 
     /// Loader for referencing local plugins using file paths.
     file_loader: OnceCell<FileLoader>,
@@ -74,6 +78,7 @@ impl PluginLoader {
         Self {
             cache_duration: Duration::from_secs(86400 * 30), // 30 days
             data_loader: OnceCell::new(),
+            download_locks: scc::HashMap::new(),
             file_loader: OnceCell::new(),
             github_loader: OnceCell::new(),
             http_client: OnceCell::new(),
@@ -212,6 +217,16 @@ impl PluginLoader {
             }
             LoadFrom::File(path) => path.to_path_buf(),
             LoadFrom::Url(url) => {
+                // Create a lock before checking the cache, so that subsequent requests for
+                // the same URL will wait for the first one to finish downloading, and will
+                // then hit the cache instead of downloading again
+                let entry = self
+                    .download_locks
+                    .entry_async(url.to_owned())
+                    .await
+                    .or_default();
+                let _lock = entry.lock().await;
+
                 let cache_path = self.create_cache_path(
                     id,
                     hash_sha256(&url).as_str(),
@@ -268,10 +283,6 @@ impl PluginLoader {
             cached = true;
         }
 
-        if !cached && path.exists() {
-            fs::remove_file(path)?;
-        }
-
         if cached {
             trace!(id = id.as_str(), path = ?path, "Plugin already acquired and cached");
         } else {
@@ -325,21 +336,12 @@ impl PluginLoader {
             "Downloading plugin from URL"
         );
 
-        let temp_hash = hash_base64(dest_file.to_str().unwrap_or(source_url));
-
-        let temp_file = self.temp_dir.join(format!(
-            "{}-{}",
-            // Only use the first 32 characters of the hash to avoid
-            // file path limits on some platforms
-            &temp_hash[0..temp_hash.len().min(32)],
-            extract_file_name_from_url(source_url)
-        ));
+        let temp_file = self.temp_dir.join(extract_file_name_from_url(source_url));
 
         download_from_url_to_file(source_url, &temp_file, self.get_http_client()?).await?;
         move_or_unpack_download(&temp_file, dest_file)?;
 
-        // TODO: Revisit with file locking!
-        // fs::remove_file(temp_file)?;
+        fs::remove_file(temp_file)?;
 
         Ok(())
     }
