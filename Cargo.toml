@@ -6,7 +6,7 @@ default-members = ["crates/cli"]
 [workspace.dependencies]
 anyhow = "1.0.102"
 async-trait = "0.1.89"
-clap = "4.6.0"
+clap = "4.6.1"
 clap_complete = "4.6.1"
 compact_str = { version = "0.9.0", default-features = false, features = [
     "serde",
@@ -62,7 +62,7 @@ starbase_id = { version = "0.3.2", features = ["miette", "schematic"] }
 starbase_sandbox = { version = "0.10.7" }
 starbase_shell = { version = "0.12.3", features = ["miette"] }
 starbase_styles = { version = "0.6.7" }
-starbase_utils = { version = "0.12.9", default-features = false, features = [
+starbase_utils = { version = "0.12.10", default-features = false, features = [
     "json",
     "miette",
     "net",
@@ -74,4 +74,4 @@ toml_edit = "0.25"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", default-features = false }
 url = "2.5.8"
-uuid = { version = "1.23.0", features = ["v4"] }
+uuid = { version = "1.23.1", features = ["v4"] }

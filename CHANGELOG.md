@@ -15,6 +15,12 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added in-memory locking for plugin downloads with the same URL, to avoid race conditions where multiple threads attempt to download/rename/copy files at the same time. This primarily applies to the `npm`, `pnpm`, and `yarn` plugins, as they all utilize the same underlying WASM plugin.
+
 ## 0.56.2
 
 #### 🚀 Updates

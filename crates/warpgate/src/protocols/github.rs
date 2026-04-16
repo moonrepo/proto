@@ -24,6 +24,8 @@ impl GitHubLoader {
 
         if let Ok(auth_token) = env::var("GITHUB_TOKEN") {
             request = request.bearer_auth(auth_token);
+        } else if let Ok(auth_token) = env::var("GH_TOKEN") {
+            request = request.bearer_auth(auth_token);
         }
 
         let response = request
@@ -59,7 +61,6 @@ impl LoaderProtocol<GitHubLocator> for GitHubLoader {
     ) -> Result<LoadFrom, WarpgateLoaderError> {
         // Fetch all tags to find a matching tag + release
         let tags_url = format!("https://api.github.com/repos/{}/tags", locator.repo_slug);
-        let found_tag;
 
         trace!(
             id = id.as_str(),
@@ -69,21 +70,20 @@ impl LoaderProtocol<GitHubLocator> for GitHubLoader {
             "Attempting to find a matching Git tag",
         );
 
-        if let Some(tag) = &locator.tag {
-            found_tag = Some(tag.to_owned())
+        let found_tag = if let Some(tag) = &locator.tag {
+            Some(tag.to_owned())
         } else if let Some(tag_prefix) = &locator.project_name {
             let prefix_at = format!("{tag_prefix}@");
             let prefix_dash = format!("{tag_prefix}-");
 
-            found_tag = self
-                .request_api::<Vec<GitHubApiTag>>(&tags_url)
+            self.request_api::<Vec<GitHubApiTag>>(&tags_url)
                 .await?
                 .into_iter()
                 .find(|row| row.name.starts_with(&prefix_at) || row.name.starts_with(&prefix_dash))
-                .map(|row| row.name);
+                .map(|row| row.name)
         } else {
-            found_tag = Some("latest".into());
-        }
+            Some("latest".into())
+        };
 
         let Some(release_tag) = found_tag else {
             return Err(WarpgateLoaderError::MissingGitHubTag {
