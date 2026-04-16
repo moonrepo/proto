@@ -30,6 +30,11 @@
 - Fixed an issue where arguments with spaces or special characters were not quoted correctly when running in a shell, resulting in a syntax parse error.
 - Potential fix for the "Failed to load and create plugin: expected at least one module field" error.
 
+#### ⚙️ Internal
+
+- Updated Rust to v1.95.0.
+- Updated dependencies.
+
 ## 0.56.2
 
 #### 🚀 Updates

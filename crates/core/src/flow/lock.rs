@@ -229,10 +229,8 @@ impl<'tool> Locker<'tool> {
             // If the sources are the same, something wrong is happening,
             // but if they are different, then it may be a different install
             // strategy, so let it happen
-            (None, Some(lr)) => {
-                if install_record.source == locked_record.source {
-                    return Err(make_error("(missing)".into(), lr.to_string()));
-                }
+            (None, Some(lr)) if install_record.source == locked_record.source => {
+                return Err(make_error("(missing)".into(), lr.to_string()));
             }
             _ => {}
         };

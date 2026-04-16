@@ -165,13 +165,13 @@ impl<'app> ExecWorkflow<'app> {
                 out.push(arg.as_ref());
             }
         } else {
-            out.push(join_args(&shell, args, false));
+            out.push(join_args(shell, args, false));
         }
 
         // These args are passed from plugins and should always be quoted
         if !self.multiple && !self.args.is_empty() {
             out.push(OsStr::new(" "));
-            out.push(join_args(&shell, &self.args, true));
+            out.push(join_args(shell, &self.args, true));
         }
 
         out
