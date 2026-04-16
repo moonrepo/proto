@@ -21,6 +21,10 @@
 
 - Added in-memory locking for plugin downloads with the same URL, to avoid race conditions where multiple threads attempt to download/rename/copy files at the same time. This primarily applies to the `npm`, `pnpm`, and `yarn` plugins, as they all utilize the same underlying WASM plugin.
 
+#### 🐞 Fixes
+
+- Fixed an issue where arguments with spaces or special characters were not quoted correctly when running in a shell, resulting in a syntax parse error.
+
 ## 0.56.2
 
 #### 🚀 Updates

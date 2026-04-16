@@ -13,7 +13,7 @@ use proto_pdk_api::{
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use starbase_args::parse as parse_args;
-use starbase_shell::{BoxedShell, ShellType};
+use starbase_shell::{BoxedShell, ShellType, join_args};
 use starbase_utils::envx;
 use std::collections::VecDeque;
 use std::env;
@@ -143,38 +143,16 @@ impl<'app> ExecWorkflow<'app> {
         Ok(())
     }
 
-    pub fn wrap_command<I, A>(&self, args: I) -> OsString
-    where
-        I: IntoIterator<Item = A>,
-        A: AsRef<OsStr>,
-    {
-        let mut out = OsString::new();
-
-        for arg in args {
-            if !out.is_empty() {
-                out.push(OsStr::new(" "));
-            }
-
-            out.push(arg.as_ref());
-        }
-
-        if !self.multiple && !self.args.is_empty() {
-            for arg in &self.args {
-                out.push(OsStr::new(" "));
-                out.push(arg);
-            }
-        }
-
-        out
-    }
-
     pub fn create_command(
         self,
         mut args: Vec<String>,
-        shell: Option<ShellType>,
+        shell_type: Option<ShellType>,
     ) -> miette::Result<Command> {
-        let command = if shell.is_some() || self.requires_shell(&args) {
-            self.create_command_with_shell(shell.unwrap_or_default().build(), args)?
+        // We unfortunately need a shell to determine if the args must run in the shell!
+        let shell = shell_type.unwrap_or_default().build();
+
+        let command = if shell_type.is_some() || self.requires_shell(&shell, &args) {
+            self.create_command_with_shell(shell, args)?
         } else {
             self.create_command_without_shell(args.remove(0), args)?
         };
@@ -191,6 +169,10 @@ impl<'app> ExecWorkflow<'app> {
         let mut command = Command::new(exe);
         command.args(args);
 
+        if !self.multiple && !self.args.is_empty() {
+            command.args(&self.args);
+        }
+
         self.apply_to_command(&mut command, false)?;
 
         Ok(command)
@@ -205,7 +187,16 @@ impl<'app> ExecWorkflow<'app> {
         I: IntoIterator<Item = A>,
         A: AsRef<OsStr>,
     {
-        let mut command = shell.create_wrapped_command_with(self.wrap_command(args));
+        let mut command = shell.create_wrapped_command_with({
+            let mut script = join_args(&shell, args, false);
+
+            if !self.multiple && !self.args.is_empty() {
+                script.push(OsStr::new(" "));
+                script.push(join_args(&shell, &self.args, false));
+            }
+
+            script
+        });
 
         self.apply_to_command(&mut command, true)?;
 
@@ -287,15 +278,21 @@ impl<'app> ExecWorkflow<'app> {
         env::join_paths(self.reset_paths(store_dir)).into_diagnostic()
     }
 
-    pub fn requires_shell(&self, args: &[String]) -> bool {
+    pub fn requires_shell(&self, shell: &BoxedShell, args: &[String]) -> bool {
         // If a Windows script, we must execute the command through PowerShell
-        if let Some(exe) = args.first()
+        if let Some(exe) = args.first().map(|exe| exe.trim_end_matches(['"', '\'']))
             && (exe.ends_with(".ps1") || exe.ends_with(".cmd") || exe.ends_with(".bat"))
         {
             return true;
         }
 
-        match parse_args(args.join(" ")) {
+        // We need to join the args and properly quote them for `parse_args` to
+        // parse the syntax correctly. Additionally, the arguments passed in are
+        // directly taken from `argv` and may be unquoted, so any arguments with
+        // spaces will be considered multiple arguments, which is not correct!
+        let script = join_args(shell, args, false);
+
+        match parse_args(script.to_string_lossy()) {
             Ok(command_line) => command_line.is_complex_command(),
             Err(_) => true,
         }
