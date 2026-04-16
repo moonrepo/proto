@@ -37,7 +37,7 @@ mod loader {
                 .await
                 .unwrap();
 
-            assert_eq!(path, sandbox.path().join("plugins/test-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.wasm"));
+            assert_eq!(path, sandbox.path().join("plugins/test-fb04dcb6970e4c3d1873de51fd5a50d7bb46b3383113602665c350ec40b5f990.wasm"));
         }
     }
 
@@ -110,7 +110,7 @@ mod loader {
                 .await
                 .unwrap();
 
-            assert_eq!(path, sandbox.path().join("plugins/test-1cab19a12ec96a1036dc5d51011634dddfa2911941f31e4957d7780bb70f88f0.wasm"));
+            assert_eq!(path, sandbox.path().join("plugins/test-bf1e7cdc7ca22a4b75e10560bfce659bd51125f2e64bad2143633d20e30e9e01.wasm"));
         }
 
         #[tokio::test]
@@ -125,7 +125,7 @@ mod loader {
                 .await
                 .unwrap();
 
-            assert_eq!(path, sandbox.path().join("plugins/test-latest-db3f668c2fe22a7f9a6ce86b6fa8feeffbfd8e7874bdb854e82b154319675269.wasm"));
+            assert_eq!(path, sandbox.path().join("plugins/test-latest-07bced931a4b253ba3da8836c0510275512ce09436c63ed44b77b3683effae91.wasm"));
         }
     }
 
@@ -166,7 +166,7 @@ mod loader {
                 .await
                 .unwrap();
 
-            assert_eq!(path, sandbox.path().join("plugins/test-b57997637137a9df50b7fb5db6385cd04d0d2b720d4f3089b25bd0cd4f572aa3.wasm"));
+            assert_eq!(path, sandbox.path().join("plugins/test-d38b431dfda1d53f9d1bc97ea409a97dcaa03efa11a508d73f1f9497b9bcaa3a.wasm"));
         }
 
         #[tokio::test]
@@ -185,7 +185,7 @@ mod loader {
                 .await
                 .unwrap();
 
-            assert_eq!(path, sandbox.path().join("plugins/test-latest-7ff27e4fe8d756bc40f1156a15fa26cd46c1650940fb0007802e7c7ea99cf0db.wasm"));
+            assert_eq!(path, sandbox.path().join("plugins/test-latest-171d1fba97b9fe0489125b9253b8fdb8a85d37837f966aaacd06df662292f507.wasm"));
         }
     }
 }
