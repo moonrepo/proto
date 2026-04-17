@@ -155,7 +155,7 @@ pub fn create_http_client_with_options(
         trace!(root_cert = ?root_cert, "Adding user provided root certificate");
 
         match root_cert.extension().and_then(|ext| ext.to_str()) {
-            Some("der") => {
+            Some("der" | "DER") => {
                 client_builder = client_builder.add_root_certificate(
                     reqwest::Certificate::from_der(&fs::read_file_bytes(root_cert)?).map_err(
                         |error| WarpgateHttpClientError::InvalidCert {
@@ -165,7 +165,7 @@ pub fn create_http_client_with_options(
                     )?,
                 )
             }
-            Some("pem") => {
+            Some("pem" | "PEM") => {
                 client_builder = client_builder.add_root_certificate(
                     reqwest::Certificate::from_pem(&fs::read_file_bytes(root_cert)?).map_err(
                         |error| WarpgateHttpClientError::InvalidCert {

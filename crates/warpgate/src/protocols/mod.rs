@@ -11,6 +11,7 @@ pub use http::*;
 pub use oci::*;
 
 use crate::loader_error::WarpgateLoaderError;
+use std::borrow::Cow;
 use std::path::PathBuf;
 use warpgate_api::Id;
 
@@ -19,20 +20,20 @@ pub trait LoaderProtocol<T> {
 
     fn is_latest(&self, locator: &T) -> bool;
 
-    async fn load(
+    async fn load<'a>(
         &self,
-        id: &Id,
-        locator: &T,
+        id: &'a Id,
+        locator: &'a T,
         data: &Self::Data,
-    ) -> Result<LoadFrom, WarpgateLoaderError>;
+    ) -> Result<LoadFrom<'a>, WarpgateLoaderError>;
 }
 
-pub enum LoadFrom {
+pub enum LoadFrom<'a> {
     Blob {
-        data: Vec<u8>,
+        data: Cow<'a, Vec<u8>>,
         ext: String,
-        hash: String,
+        hash: Cow<'a, str>,
     },
     File(PathBuf),
-    Url(String),
+    Url(Cow<'a, str>),
 }

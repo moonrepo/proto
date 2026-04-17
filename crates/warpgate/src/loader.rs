@@ -212,25 +212,25 @@ impl PluginLoader {
             LoadFrom::Blob {
                 data, ext, hash, ..
             } => {
-                let entry = self.locks.entry_async(hash.clone()).await.or_default();
+                let entry = self.locks.entry_async(hash.to_string()).await.or_default();
                 let _lock = entry.lock().await;
 
                 let cache_path = self.create_cache_path(id, &hash, &ext, is_latest);
 
                 if !self.is_cached(id, &cache_path)? {
-                    fs::write_file_with_lock(&cache_path, data)?;
+                    fs::write_file_with_lock(&cache_path, &*data)?;
                 }
 
                 cache_path
             }
             LoadFrom::File(path) => path.to_path_buf(),
             LoadFrom::Url(url) => {
-                let entry = self.locks.entry_async(url.clone()).await.or_default();
+                let entry = self.locks.entry_async(url.to_string()).await.or_default();
                 let _lock = entry.lock().await;
 
                 let cache_path = self.create_cache_path(
                     id,
-                    hash_sha256(&url).as_str(),
+                    hash_sha256(&*url).as_str(),
                     determine_cache_extension(&url).unwrap_or(".wasm"),
                     is_latest,
                 );

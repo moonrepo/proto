@@ -2,6 +2,7 @@ use super::{LoadFrom, LoaderProtocol};
 use crate::helpers::hash_sha256;
 use crate::loader_error::WarpgateLoaderError;
 use base64::prelude::*;
+use std::borrow::Cow;
 use tracing::trace;
 use warpgate_api::{DataLocator, Id};
 
@@ -15,24 +16,24 @@ impl LoaderProtocol<DataLocator> for DataLoader {
         false
     }
 
-    async fn load(
+    async fn load<'a>(
         &self,
-        id: &Id,
-        locator: &DataLocator,
+        id: &'a Id,
+        locator: &'a DataLocator,
         _: &Self::Data,
-    ) -> Result<LoadFrom, WarpgateLoaderError> {
+    ) -> Result<LoadFrom<'a>, WarpgateLoaderError> {
         let encoded_data = locator
             .data
             .strip_prefix("data://")
             .unwrap_or(&locator.data);
 
         let data = match &locator.bytes {
-            Some(bytes) => bytes.clone(),
-            None => BASE64_STANDARD.decode(encoded_data).map_err(|error| {
+            Some(bytes) => Cow::Borrowed(bytes),
+            None => Cow::Owned(BASE64_STANDARD.decode(encoded_data).map_err(|error| {
                 WarpgateLoaderError::Base64DecodeError {
                     error: Box::new(error),
                 }
-            })?,
+            })?),
         };
 
         trace!(
@@ -42,7 +43,7 @@ impl LoaderProtocol<DataLocator> for DataLoader {
         );
 
         Ok(LoadFrom::Blob {
-            hash: hash_sha256(&data),
+            hash: Cow::Owned(hash_sha256(data.as_ref())),
             ext: ".wasm".into(),
             data,
         })

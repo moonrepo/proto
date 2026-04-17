@@ -1,5 +1,6 @@
 use super::{LoadFrom, LoaderProtocol};
 use crate::loader_error::WarpgateLoaderError;
+use std::borrow::Cow;
 use tracing::trace;
 use warpgate_api::{Id, UrlLocator};
 
@@ -13,16 +14,16 @@ impl LoaderProtocol<UrlLocator> for HttpLoader {
         locator.url.contains("latest")
     }
 
-    async fn load(
+    async fn load<'a>(
         &self,
-        id: &Id,
-        locator: &UrlLocator,
+        id: &'a Id,
+        locator: &'a UrlLocator,
         _: &Self::Data,
-    ) -> Result<LoadFrom, WarpgateLoaderError> {
-        let url = locator.url.clone();
+    ) -> Result<LoadFrom<'a>, WarpgateLoaderError> {
+        let url = &locator.url;
 
-        trace!(id = id.as_str(), from = &url, "Downloading plugin from URL");
+        trace!(id = id.as_str(), from = url, "Downloading plugin from URL");
 
-        Ok(LoadFrom::Url(url))
+        Ok(LoadFrom::Url(Cow::Borrowed(url)))
     }
 }
