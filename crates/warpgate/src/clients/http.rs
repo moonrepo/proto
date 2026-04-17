@@ -250,7 +250,9 @@ pub fn create_http_client_with_options(
             middleware_builder = middleware_builder.with_init(netrc);
         }
         Err(error) => {
-            warn!("Failed to initialize .netrc support: {error}");
+            if matches!(error, netrc::Error::Parsing { .. }) {
+                warn!("Failed to initialize .netrc support: {error}");
+            }
         }
     };
 
