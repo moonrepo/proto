@@ -339,7 +339,7 @@ impl PluginLoader {
 
         // Ensure different URLs with the same file name don't conflict in
         // the temp directory by hashing the URL into the path
-        let temp_path = self
+        let temp_file = self
             .temp_dir
             .join(hash_sha256(source_url))
             .join(extract_file_name_from_url(source_url));
@@ -348,7 +348,7 @@ impl PluginLoader {
         // instead create if missing and then acquire an exclusive lock.
         // Hold until after archive extraction and the temp file is moved/copied
         // to the destination.
-        let mut lock = FileLock::new_async(temp_path).await?;
+        let mut lock = FileLock::new_async(temp_file).await?;
 
         // Remove the temp file when unlocking or dropping the reference,
         // which happens on success or failure!
