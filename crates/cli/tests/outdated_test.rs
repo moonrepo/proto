@@ -32,8 +32,6 @@ mod outdated {
                 .current_dir(sandbox.path().join("a/b/c"));
         });
 
-        assert.debug();
-
         let output = assert.output();
 
         assert!(predicate::str::contains("protostar").eval(&output));

@@ -13,7 +13,7 @@ mod clean {
             .run_bin(|cmd| {
                 cmd.arg("clean")
                     .arg("--yes")
-                    .timeout(Duration::from_mins(5));
+                    .timeout(Duration::from_mins(3));
             })
             .success();
     }
@@ -62,7 +62,7 @@ mod clean {
                     .arg("1.0.0")
                     .timeout(Duration::from_mins(3));
             })
-            .debug();
+            .success();
 
         sandbox
             .run_bin(|cmd| {
@@ -71,7 +71,7 @@ mod clean {
                     .arg("2.0.0")
                     .timeout(Duration::from_mins(3));
             })
-            .debug();
+            .success();
 
         sandbox
             .run_bin(|cmd| {
@@ -80,7 +80,7 @@ mod clean {
                     .arg("3.0.0")
                     .timeout(Duration::from_mins(3));
             })
-            .debug();
+            .success();
 
         // Calculate timestamps - stale versions should have last-used time > 2 days ago
         let now_millis = SystemTime::now()
@@ -110,7 +110,8 @@ mod clean {
                     .arg("--yes")
                     .arg("tools")
                     .arg("--days")
-                    .arg("1");
+                    .arg("1")
+                    .timeout(Duration::from_mins(3));
             })
             .success();
 
