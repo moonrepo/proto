@@ -23,9 +23,9 @@ impl GitHubLoader {
     ) -> Result<T, WarpgateHttpClientError> {
         let mut request = self.client.get(url).query(&[("per_page", "100")]);
 
-        if let Ok(auth_token) = env::var("GITHUB_TOKEN") {
+        if let Ok(auth_token) = env::var("GH_TOKEN") {
             request = request.bearer_auth(auth_token);
-        } else if let Ok(auth_token) = env::var("GH_TOKEN") {
+        } else if let Ok(auth_token) = env::var("GITHUB_TOKEN") {
             request = request.bearer_auth(auth_token);
         }
 

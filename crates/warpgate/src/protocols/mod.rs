@@ -30,7 +30,7 @@ pub trait LoaderProtocol<T> {
 
 pub enum LoadFrom<'a> {
     Blob {
-        data: Cow<'a, Vec<u8>>,
+        data: Cow<'a, [u8]>,
         ext: String,
         hash: Cow<'a, str>,
     },

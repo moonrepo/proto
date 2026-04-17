@@ -27,7 +27,7 @@ impl LoaderProtocol<DataLocator> for DataLoader {
             .strip_prefix("data://")
             .unwrap_or(&locator.data);
 
-        let data = match &locator.bytes {
+        let data: Cow<'_, [u8]> = match &locator.bytes {
             Some(bytes) => Cow::Borrowed(bytes),
             None => Cow::Owned(BASE64_STANDARD.decode(encoded_data).map_err(|error| {
                 WarpgateLoaderError::Base64DecodeError {

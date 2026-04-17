@@ -20,7 +20,7 @@ use warpgate_api::{
 };
 
 /// Data passed to each host function.
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct HostData {
     pub cache_dir: PathBuf,
     pub http_client: Arc<HttpClient>,

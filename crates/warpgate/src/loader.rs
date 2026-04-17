@@ -149,7 +149,7 @@ impl PluginLoader {
     /// Return an OCI client, or create it if it does not exist.
     pub fn get_oci_client(&self) -> Result<&Arc<OciClient>, WarpgateHttpClientError> {
         self.oci_client
-            .get_or_try_init(|| Ok(Arc::new(OciClient::default())))
+            .get_or_try_init(|| create_oci_client_with_options(&self.http_options).map(Arc::new))
     }
 
     /// Load a plugin using the provided locator. File system plugins are loaded directly,

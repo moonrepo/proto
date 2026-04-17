@@ -20,6 +20,7 @@
 #### 🚀 Updates
 
 - Added file system locking to temporary files while downloading plugins. This should mitigate issues where multiple processes are attempting to download the same plugin at the same time.
+- Updated the OCI client to inherit settings from `settings.http` when applicable.
 
 #### 🐞 Fixes
 
