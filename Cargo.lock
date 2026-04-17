@@ -4607,9 +4607,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_utils"
-version = "0.13.0"
+version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d28f05d49ec878544df9a30394d9f0de4d0a59cade954fb9533ff0e55502156"
+checksum = "67c3befdc1a11a0490b44ad7095e05bc7a9752faccb18f7e019d25acd4ef3557"
 dependencies = [
  "async-trait",
  "dirs",
@@ -4623,6 +4623,7 @@ dependencies = [
  "serde_norway",
  "starbase_styles",
  "thiserror 2.0.18",
+ "tokio",
  "toml 1.1.2+spec-1.1.0",
  "tracing",
  "url",

@@ -10,7 +10,7 @@ use crate::protocols::{
 use crate::registry::RegistryConfig;
 use once_cell::sync::OnceCell;
 use starbase_styles::color;
-use starbase_utils::fs::FsError;
+use starbase_utils::fs::{FileLock, FsError};
 use starbase_utils::net::DownloadOptions;
 use starbase_utils::{fs, path};
 use std::fmt::Debug;
@@ -345,21 +345,14 @@ impl PluginLoader {
             .join(extract_file_name_from_url(source_url));
 
         // Do not truncate the file as another process may be writing to it,
-        // instead create if missing and then acquire an exclusive lock
-        let file = fs::create_file_if_missing(&temp_path)?;
+        // instead create if missing and then acquire an exclusive lock.
+        // Hold until after archive extraction and the temp file is moved/copied
+        // to the destination.
+        let mut lock = FileLock::new_async(temp_path).await?;
 
-        let cleanup = || {
-            // Don't fail and avoid unlocking!
-            let _ = fs::remove_file(&temp_path);
-
-            fs::release_lock(&temp_path, &file)?;
-
-            Ok::<_, WarpgateLoaderError>(())
-        };
-
-        // Acquire lock before downloading and hold until after archive extraction,
-        // and the temp file is moved/copied to the destination
-        fs::acquire_exclusive_lock(&temp_path, &file)?;
+        // Remove the temp file when unlocking or dropping the reference,
+        // which happens on success or failure!
+        lock.remove_on_unlock();
 
         if dest_file.exists() {
             trace!(
@@ -368,18 +361,16 @@ impl PluginLoader {
                 "Plugin downloaded by another process while waiting for lock, skipping download",
             );
 
-            cleanup()?;
-
             return Ok(());
         }
 
-        if let Err(error) = download_from_url_to_file(
+        download_from_url_to_file(
             source_url,
-            &temp_path,
+            &lock.path,
             DownloadOptions {
                 downloader: Some(Box::new(self.get_http_client()?.create_downloader())),
-                file: Some(file.try_clone().map_err(|error| FsError::Create {
-                    path: temp_path.to_path_buf(),
+                file: Some(lock.file.try_clone().map_err(|error| FsError::Create {
+                    path: lock.path.clone(),
                     error: Box::new(error),
                 })?),
                 // Don't lock within this function as we locked it above!
@@ -387,23 +378,9 @@ impl PluginLoader {
                 ..Default::default()
             },
         )
-        .await
-        {
-            // Don't swallow the download error
-            let _ = cleanup();
+        .await?;
 
-            return Err(error);
-        }
-
-        if let Err(error) = move_or_unpack_download(&temp_path, dest_file) {
-            // Don't swallow the move/unpack error
-            let _ = cleanup();
-
-            return Err(error);
-        }
-
-        cleanup()?;
-        drop(file);
+        move_or_unpack_download(&lock.path, dest_file)?;
 
         Ok(())
     }
