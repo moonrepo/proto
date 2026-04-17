@@ -1,8 +1,8 @@
-use crate::clients::HttpClient;
 use crate::loader_error::WarpgateLoaderError;
 use base64::prelude::*;
 use sha2::{Digest, Sha256};
 use starbase_archive::{Archiver, is_supported_archive_extension};
+use starbase_utils::net::DownloadOptions;
 use starbase_utils::{fs, glob, net, net::NetError};
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
@@ -54,19 +54,13 @@ pub fn extract_file_name_from_url(base: &str) -> String {
 
 /// Download a file from the provided URL, with the provided HTTP(S)
 /// client, and save it to a destination location.
-#[instrument(skip(client))]
+#[instrument(skip(options))]
 pub async fn download_from_url_to_file(
     source_url: &str,
     dest_file: &Path,
-    client: &HttpClient,
+    options: DownloadOptions,
 ) -> Result<(), WarpgateLoaderError> {
-    if let Err(error) = net::download_from_url_with_options(
-        source_url,
-        dest_file,
-        net::DownloadOptions::new(client.create_downloader()),
-    )
-    .await
-    {
+    if let Err(error) = net::download_from_url_with_options(source_url, dest_file, options).await {
         return Err(match error {
             NetError::UrlNotFound { url } => WarpgateLoaderError::NotFound { url },
             e => WarpgateLoaderError::FailedDownload {
