@@ -11,7 +11,9 @@ mod clean {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("clean").arg("--yes");
+                cmd.arg("clean")
+                    .arg("--yes")
+                    .timeout(Duration::from_mins(3));
             })
             .success();
     }
@@ -55,21 +57,30 @@ mod clean {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("install").arg("protostar").arg("1.0.0");
+                cmd.arg("install")
+                    .arg("protostar")
+                    .arg("1.0.0")
+                    .timeout(Duration::from_mins(3));
             })
-            .debug();
+            .success();
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("install").arg("protostar").arg("2.0.0");
+                cmd.arg("install")
+                    .arg("protostar")
+                    .arg("2.0.0")
+                    .timeout(Duration::from_mins(3));
             })
-            .debug();
+            .success();
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("install").arg("protostar").arg("3.0.0");
+                cmd.arg("install")
+                    .arg("protostar")
+                    .arg("3.0.0")
+                    .timeout(Duration::from_mins(3));
             })
-            .debug();
+            .success();
 
         // Calculate timestamps - stale versions should have last-used time > 2 days ago
         let now_millis = SystemTime::now()
@@ -99,7 +110,8 @@ mod clean {
                     .arg("--yes")
                     .arg("tools")
                     .arg("--days")
-                    .arg("1");
+                    .arg("1")
+                    .timeout(Duration::from_mins(3));
             })
             .success();
 

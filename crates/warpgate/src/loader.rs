@@ -10,6 +10,8 @@ use crate::protocols::{
 use crate::registry::RegistryConfig;
 use once_cell::sync::OnceCell;
 use starbase_styles::color;
+use starbase_utils::fs::{FileLock, FsError};
+use starbase_utils::net::DownloadOptions;
 use starbase_utils::{fs, path};
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
@@ -30,10 +32,6 @@ pub struct PluginLoader {
     /// Loader for referencing local plugins using byte streams.
     data_loader: OnceCell<DataLoader>,
 
-    /// In-process locks for plugins currently being downloaded,
-    /// to prevent multiple simultaneous downloads of the same plugin.
-    download_locks: scc::HashMap<String, Arc<Mutex<()>>>,
-
     /// Loader for referencing local plugins using file paths.
     file_loader: OnceCell<FileLoader>,
 
@@ -48,6 +46,10 @@ pub struct PluginLoader {
 
     /// Options to pass to the HTTP client.
     http_options: HttpOptions,
+
+    /// In-process locks for plugins currently being downloaded,
+    /// to prevent multiple simultaneous downloads of the same plugin.
+    locks: scc::HashMap<String, Arc<Mutex<()>>>,
 
     /// Checks whether there's an internet connection or not.
     offline_checker: Option<OfflineChecker>,
@@ -78,12 +80,12 @@ impl PluginLoader {
         Self {
             cache_duration: Duration::from_secs(86400 * 30), // 30 days
             data_loader: OnceCell::new(),
-            download_locks: scc::HashMap::new(),
             file_loader: OnceCell::new(),
             github_loader: OnceCell::new(),
             http_client: OnceCell::new(),
             http_loader: OnceCell::new(),
             http_options: HttpOptions::default(),
+            locks: scc::HashMap::new(),
             oci_client: OnceCell::new(),
             oci_loader: OnceCell::new(),
             offline_checker: None,
@@ -147,7 +149,7 @@ impl PluginLoader {
     /// Return an OCI client, or create it if it does not exist.
     pub fn get_oci_client(&self) -> Result<&Arc<OciClient>, WarpgateHttpClientError> {
         self.oci_client
-            .get_or_try_init(|| Ok(Arc::new(OciClient::default())))
+            .get_or_try_init(|| create_oci_client_with_options(&self.http_options).map(Arc::new))
     }
 
     /// Load a plugin using the provided locator. File system plugins are loaded directly,
@@ -203,33 +205,32 @@ impl PluginLoader {
             }
         };
 
+        // Create a lock before checking the cache, so that subsequent requests for
+        // the same plugin will wait for the first one to finish downloading, and will
+        // then hit the cache instead of downloading again
         let cache_path = match source {
             LoadFrom::Blob {
                 data, ext, hash, ..
             } => {
+                let entry = self.locks.entry_async(hash.to_string()).await.or_default();
+                let _lock = entry.lock().await;
+
                 let cache_path = self.create_cache_path(id, &hash, &ext, is_latest);
 
                 if !self.is_cached(id, &cache_path)? {
-                    fs::write_file(&cache_path, data)?;
+                    fs::write_file_with_lock(&cache_path, &*data)?;
                 }
 
                 cache_path
             }
             LoadFrom::File(path) => path.to_path_buf(),
             LoadFrom::Url(url) => {
-                // Create a lock before checking the cache, so that subsequent requests for
-                // the same URL will wait for the first one to finish downloading, and will
-                // then hit the cache instead of downloading again
-                let entry = self
-                    .download_locks
-                    .entry_async(url.to_owned())
-                    .await
-                    .or_default();
+                let entry = self.locks.entry_async(url.to_string()).await.or_default();
                 let _lock = entry.lock().await;
 
                 let cache_path = self.create_cache_path(
                     id,
-                    hash_sha256(&url).as_str(),
+                    hash_sha256(&*url).as_str(),
                     determine_cache_extension(&url).unwrap_or(".wasm"),
                     is_latest,
                 );
@@ -268,7 +269,7 @@ impl PluginLoader {
             return Ok(false);
         }
 
-        if self.cache_duration.is_zero() {
+        if self.cache_duration.is_zero() && !self.is_offline() {
             trace!(
                 id = id.as_str(),
                 "Plugin caching has been disabled, acquiring"
@@ -336,12 +337,50 @@ impl PluginLoader {
             "Downloading plugin from URL"
         );
 
-        let temp_file = self.temp_dir.join(extract_file_name_from_url(source_url));
+        // Ensure different URLs with the same file name don't conflict in
+        // the temp directory by hashing the URL into the path
+        let temp_file = self
+            .temp_dir
+            .join(hash_sha256(source_url))
+            .join(extract_file_name_from_url(source_url));
 
-        download_from_url_to_file(source_url, &temp_file, self.get_http_client()?).await?;
-        move_or_unpack_download(&temp_file, dest_file)?;
+        // Do not truncate the file as another process may be writing to it,
+        // instead create if missing and then acquire an exclusive lock.
+        // Hold until after archive extraction and the temp file is moved/copied
+        // to the destination.
+        let mut lock = FileLock::new_async(temp_file).await?;
 
-        fs::remove_file(temp_file)?;
+        // Remove the temp file when unlocking or dropping the reference,
+        // which happens on success or failure!
+        lock.remove_on_unlock();
+
+        if dest_file.exists() {
+            trace!(
+                id = id.as_str(),
+                path = ?dest_file,
+                "Plugin downloaded by another process while waiting for lock, skipping download",
+            );
+
+            return Ok(());
+        }
+
+        download_from_url_to_file(
+            source_url,
+            &lock.path,
+            DownloadOptions {
+                downloader: Some(Box::new(self.get_http_client()?.create_downloader())),
+                file: Some(lock.file.try_clone().map_err(|error| FsError::Create {
+                    path: lock.path.clone(),
+                    error: Box::new(error),
+                })?),
+                // Don't lock within this function as we locked it above!
+                lock: false,
+                ..Default::default()
+            },
+        )
+        .await?;
+
+        move_or_unpack_download(&lock.path, dest_file)?;
 
         Ok(())
     }

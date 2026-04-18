@@ -4,6 +4,7 @@ use crate::loader_error::WarpgateLoaderError;
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use starbase_archive::is_supported_archive_extension;
+use std::borrow::Cow;
 use std::env;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -22,9 +23,9 @@ impl GitHubLoader {
     ) -> Result<T, WarpgateHttpClientError> {
         let mut request = self.client.get(url).query(&[("per_page", "100")]);
 
-        if let Ok(auth_token) = env::var("GITHUB_TOKEN") {
+        if let Ok(auth_token) = env::var("GH_TOKEN") {
             request = request.bearer_auth(auth_token);
-        } else if let Ok(auth_token) = env::var("GH_TOKEN") {
+        } else if let Ok(auth_token) = env::var("GITHUB_TOKEN") {
             request = request.bearer_auth(auth_token);
         }
 
@@ -53,12 +54,12 @@ impl LoaderProtocol<GitHubLocator> for GitHubLoader {
             || locator.tag.is_none() && locator.project_name.is_none()
     }
 
-    async fn load(
+    async fn load<'a>(
         &self,
-        id: &Id,
-        locator: &GitHubLocator,
+        id: &'a Id,
+        locator: &'a GitHubLocator,
         _: &Self::Data,
-    ) -> Result<LoadFrom, WarpgateLoaderError> {
+    ) -> Result<LoadFrom<'a>, WarpgateLoaderError> {
         // Fetch all tags to find a matching tag + release
         let tags_url = format!("https://api.github.com/repos/{}/tags", locator.repo_slug);
 
@@ -123,7 +124,9 @@ impl LoaderProtocol<GitHubLocator> for GitHubLoader {
                     "Found WASM asset with application/wasm content type"
                 );
 
-                return Ok(LoadFrom::Url(asset.browser_download_url.clone()));
+                return Ok(LoadFrom::Url(Cow::Owned(
+                    asset.browser_download_url.clone(),
+                )));
             }
         }
 
@@ -140,7 +143,9 @@ impl LoaderProtocol<GitHubLocator> for GitHubLoader {
                         "Found possible asset as an archive"
                     );
 
-                    return Ok(LoadFrom::Url(asset.browser_download_url.clone()));
+                    return Ok(LoadFrom::Url(Cow::Owned(
+                        asset.browser_download_url.clone(),
+                    )));
                 }
             }
         }

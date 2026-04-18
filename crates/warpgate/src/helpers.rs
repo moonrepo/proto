@@ -1,12 +1,11 @@
-use crate::clients::HttpClient;
 use crate::loader_error::WarpgateLoaderError;
 use base64::prelude::*;
 use sha2::{Digest, Sha256};
 use starbase_archive::{Archiver, is_supported_archive_extension};
+use starbase_utils::net::DownloadOptions;
 use starbase_utils::{fs, glob, net, net::NetError};
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
-use std::time::SystemTime;
 use tracing::instrument;
 use warpgate_api::{PluginLocator, UrlLocator, VirtualPath};
 
@@ -54,19 +53,13 @@ pub fn extract_file_name_from_url(base: &str) -> String {
 
 /// Download a file from the provided URL, with the provided HTTP(S)
 /// client, and save it to a destination location.
-#[instrument(skip(client))]
+#[instrument(skip(options))]
 pub async fn download_from_url_to_file(
     source_url: &str,
     dest_file: &Path,
-    client: &HttpClient,
+    options: DownloadOptions,
 ) -> Result<(), WarpgateLoaderError> {
-    if let Err(error) = net::download_from_url_with_options(
-        source_url,
-        dest_file,
-        net::DownloadOptions::new(client.create_downloader()),
-    )
-    .await
-    {
+    if let Err(error) = net::download_from_url_with_options(source_url, dest_file, options).await {
         return Err(match error {
             NetError::UrlNotFound { url } => WarpgateLoaderError::NotFound { url },
             e => WarpgateLoaderError::FailedDownload {
@@ -80,7 +73,7 @@ pub async fn download_from_url_to_file(
 }
 
 /// If the temporary file is an archive, unpack it into the destination,
-/// otherwise more the file into the destination.
+/// otherwise move the file into the destination.
 #[instrument]
 pub fn move_or_unpack_download(
     temp_file: &Path,
@@ -88,13 +81,7 @@ pub fn move_or_unpack_download(
 ) -> Result<(), WarpgateLoaderError> {
     // Archive supported file extensions
     if is_supported_archive_extension(temp_file) {
-        let out_dir = temp_file.parent().unwrap().join(format!(
-            "out-{}",
-            SystemTime::now()
-                .duration_since(SystemTime::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_millis()
-        ));
+        let out_dir = temp_file.parent().unwrap().join("out");
 
         Archiver::new(&out_dir, temp_file).unpack_from_ext()?;
 
@@ -132,7 +119,7 @@ pub fn move_or_unpack_download(
             // errors when hitting this block, so let's avoid the failure
             // if the condition is met and assume all is good!
             if temp_file.exists() && !dest_file.exists() {
-                fs::copy_file(temp_file, dest_file)?;
+                fs::rename(temp_file, dest_file)?;
             }
         }
 

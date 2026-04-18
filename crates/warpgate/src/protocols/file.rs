@@ -13,12 +13,12 @@ impl LoaderProtocol<FileLocator> for FileLoader {
         true
     }
 
-    async fn load(
+    async fn load<'a>(
         &self,
-        id: &Id,
-        locator: &FileLocator,
+        id: &'a Id,
+        locator: &'a FileLocator,
         _: &Self::Data,
-    ) -> Result<LoadFrom, WarpgateLoaderError> {
+    ) -> Result<LoadFrom<'a>, WarpgateLoaderError> {
         let path = locator.get_resolved_path();
 
         if path.exists() {

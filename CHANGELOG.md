@@ -15,6 +15,17 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added file system locking to temporary files while downloading plugins. This should mitigate issues where multiple processes are attempting to download the same plugin at the same time.
+- Updated the OCI client to inherit settings from `settings.http` when applicable.
+
+#### 🐞 Fixes
+
+- Fixed an issue where different URLs with the same file name could conflict while writing temporary files.
+
 ## 0.56.3
 
 #### 💥 Breaking

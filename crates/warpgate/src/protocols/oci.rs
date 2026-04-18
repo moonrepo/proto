@@ -3,6 +3,7 @@ use crate::clients::OciClient;
 use crate::loader_error::WarpgateLoaderError;
 use crate::registry::*;
 use oci_client::{Reference, errors::OciDistributionError};
+use std::borrow::Cow;
 use std::sync::Arc;
 use tracing::trace;
 use warpgate_api::{Id, RegistryLocator};
@@ -13,13 +14,13 @@ pub struct OciLoader {
 }
 
 impl OciLoader {
-    async fn pull_image(
+    async fn pull_image<'a>(
         &self,
-        id: &str,
-        locator: &RegistryLocator,
+        id: &'a str,
+        locator: &'a RegistryLocator,
         config: &RegistryConfig,
         fallthrough: bool,
-    ) -> Result<Option<LoadFrom>, WarpgateLoaderError> {
+    ) -> Result<Option<LoadFrom<'a>>, WarpgateLoaderError> {
         let image = locator.image.as_ref();
         let tag = locator.tag.as_deref().unwrap_or("latest");
 
@@ -82,8 +83,8 @@ impl OciLoader {
             let digest = layer.sha256_digest();
 
             LoadFrom::Blob {
-                data: layer.data.to_vec(),
-                hash: digest.strip_prefix("sha256:").unwrap_or(&digest).into(),
+                data: Cow::Owned(layer.data.to_vec()),
+                hash: Cow::Owned(digest.strip_prefix("sha256:").unwrap_or(&digest).into()),
                 ext: match layer.media_type.as_str() {
                     WASM_LAYER_MEDIA_TYPE_WASM => ".wasm",
                     WASM_LAYER_MEDIA_TYPE_TOML => ".toml",
@@ -104,12 +105,12 @@ impl LoaderProtocol<RegistryLocator> for OciLoader {
         locator.tag.as_ref().is_none_or(|tag| tag == "latest")
     }
 
-    async fn load(
+    async fn load<'a>(
         &self,
-        id: &Id,
-        locator: &RegistryLocator,
+        id: &'a Id,
+        locator: &'a RegistryLocator,
         data: &Self::Data,
-    ) -> Result<LoadFrom, WarpgateLoaderError> {
+    ) -> Result<LoadFrom<'a>, WarpgateLoaderError> {
         trace!(id = id.as_str(), "Scanning and loading from OCI registries");
 
         // Try the explicit registry first

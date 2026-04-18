@@ -52,7 +52,7 @@ impl Downloader for HttpDownloader {
 // https://github.com/TrueLayer/reqwest-middleware/issues/203
 
 /// An HTTP(S) client with middleware that wraps [`reqwest::Client`].
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct HttpClient {
     client: Client,
     middleware: ClientWithMiddleware,
@@ -143,7 +143,9 @@ pub fn create_http_client_with_options(
 
     let mut client_builder = reqwest::Client::builder()
         .user_agent(format!("warpgate@{}", env!("CARGO_PKG_VERSION")))
-        .use_rustls_tls();
+        .use_rustls_tls()
+        .read_timeout(Duration::from_mins(5))
+        .connect_timeout(Duration::from_mins(1));
 
     if options.allow_invalid_certs {
         trace!("Allowing invalid certificates (I hope you know what you're doing!)");
@@ -155,7 +157,7 @@ pub fn create_http_client_with_options(
         trace!(root_cert = ?root_cert, "Adding user provided root certificate");
 
         match root_cert.extension().and_then(|ext| ext.to_str()) {
-            Some("der") => {
+            Some("der" | "DER") => {
                 client_builder = client_builder.add_root_certificate(
                     reqwest::Certificate::from_der(&fs::read_file_bytes(root_cert)?).map_err(
                         |error| WarpgateHttpClientError::InvalidCert {
@@ -165,7 +167,7 @@ pub fn create_http_client_with_options(
                     )?,
                 )
             }
-            Some("pem") => {
+            Some("pem" | "PEM") => {
                 client_builder = client_builder.add_root_certificate(
                     reqwest::Certificate::from_pem(&fs::read_file_bytes(root_cert)?).map_err(
                         |error| WarpgateHttpClientError::InvalidCert {
@@ -241,11 +243,18 @@ pub fn create_http_client_with_options(
         ExponentialBackoff::builder().build_with_max_retries(options.retry_count.unwrap_or(3)),
     ));
 
-    if let Ok(netrc) = NetrcMiddleware::new() {
-        trace!("Adding .netrc support");
+    match NetrcMiddleware::new() {
+        Ok(netrc) => {
+            trace!("Adding .netrc support");
 
-        middleware_builder = middleware_builder.with_init(netrc);
-    }
+            middleware_builder = middleware_builder.with_init(netrc);
+        }
+        Err(error) => {
+            if matches!(error, netrc::Error::Parsing { .. }) {
+                warn!("Failed to initialize .netrc support: {error}");
+            }
+        }
+    };
 
     if let Some(cache_dir) = &options.cache_dir
         && !envx::is_docker()
