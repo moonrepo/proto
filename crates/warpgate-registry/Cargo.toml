@@ -1,0 +1,21 @@
+[package]
+name = "warpgate_registry"
+version = "0.0.1"
+edition = "2024"
+license = "MIT"
+description = "Integration with OCI registries."
+homepage = "https://moonrepo.dev/proto"
+repository = "https://github.com/moonrepo/proto"
+rust-version = "1.85.0"
+
+[dependencies]
+warpgate = { version = "0.30.5", path = "../warpgate" }
+cargo_toml = "0.22.3"
+miette = { workspace = true, optional = true }
+oci-client = { workspace = true }
+starbase_styles = { workspace = true }
+thiserror = { workspace = true }
+
+[features]
+default = []
+miette = ["dep:miette"]
