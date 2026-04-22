@@ -15,6 +15,12 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Normalized `proto activate` path exports for Git Bash, MSYS2, and Cygwin on Windows so POSIX shells receive `/c/...` style entries while native Windows shells keep their existing format.
+
 ## 0.56.4
 
 #### 🚀 Updates
