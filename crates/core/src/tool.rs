@@ -318,7 +318,7 @@ impl Tool {
 
         let inventory_id =
             if metadata.inventory_options.scoped_backend_dir && self.context.backend.is_some() {
-                Id::raw(self.context.as_str().replace(':', "-"))
+                Id::raw(self.context.as_str().replace(':', "__"))
             } else {
                 self.context.id.clone()
             };
