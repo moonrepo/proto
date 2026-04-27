@@ -15,6 +15,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use starbase_args::parse as parse_args;
 use starbase_shell::{BoxedShell, ShellType, join_args};
 use starbase_utils::envx;
+use std::borrow::Cow;
 use std::collections::VecDeque;
 use std::env;
 use std::ffi::{OsStr, OsString};
@@ -265,6 +266,17 @@ impl<'app> ExecWorkflow<'app> {
         Ok(None)
     }
 
+    pub fn activation_path_value_for_shell(
+        &self,
+        shell_type: &ShellType,
+    ) -> miette::Result<OsString> {
+        join_paths_for_shell(self.paths.iter(), shell_type)
+    }
+
+    pub fn reset_paths_for_shell(&self, store_dir: &Path, shell_type: &ShellType) -> Vec<String> {
+        convert_paths_for_shell(self.reset_paths(store_dir).iter(), shell_type)
+    }
+
     pub fn reset_paths(&self, store_dir: &Path) -> Vec<PathBuf> {
         let start_path = store_dir.join("activate-start");
         let stop_path = store_dir.join("activate-stop");
@@ -300,8 +312,12 @@ impl<'app> ExecWorkflow<'app> {
         reset_paths
     }
 
-    pub fn reset_and_join_paths(&self, store_dir: &Path) -> miette::Result<OsString> {
-        env::join_paths(self.reset_paths(store_dir)).into_diagnostic()
+    pub fn reset_and_join_paths_for_shell(
+        &self,
+        store_dir: &Path,
+        shell_type: &ShellType,
+    ) -> miette::Result<OsString> {
+        join_paths_for_shell(self.reset_paths(store_dir).iter(), shell_type)
     }
 
     pub fn requires_shell(&self, shell: &BoxedShell, args: &[String], raw: bool) -> bool {
@@ -323,6 +339,105 @@ impl<'app> ExecWorkflow<'app> {
             Err(_) => true,
         }
     }
+}
+
+fn convert_paths_for_shell<'a, I>(paths: I, shell_type: &ShellType) -> Vec<String>
+where
+    I: IntoIterator<Item = &'a PathBuf>,
+{
+    let posix = is_windows_posix_shell(shell_type);
+
+    paths
+        .into_iter()
+        .map(|path| convert_path(path.as_path(), posix))
+        .collect()
+}
+
+fn join_paths_for_shell<'a, I>(paths: I, shell_type: &ShellType) -> miette::Result<OsString>
+where
+    I: IntoIterator<Item = &'a PathBuf>,
+{
+    if is_windows_posix_shell(shell_type) {
+        return Ok(OsString::from(
+            paths
+                .into_iter()
+                .map(|path| convert_path(path.as_path(), true))
+                .collect::<Vec<_>>()
+                .join(":"),
+        ));
+    }
+
+    env::join_paths(paths).into_diagnostic()
+}
+
+fn convert_path(path: &Path, posix: bool) -> String {
+    if posix {
+        return windows_path_to_posix(path).into_owned();
+    }
+
+    path.to_string_lossy().to_string()
+}
+
+fn is_windows_posix_shell(shell_type: &ShellType) -> bool {
+    if !cfg!(windows) {
+        return false;
+    }
+
+    matches!(
+        shell_type,
+        ShellType::Bash | ShellType::Zsh | ShellType::Fish | ShellType::Murex | ShellType::Elvish
+    ) && (env::var_os("MSYSTEM").is_some()
+        || env::var_os("MINGW").is_some()
+        || env::var_os("MSYS").is_some()
+        || env::var("OSTYPE")
+            .map(|value| {
+                let value = value.to_ascii_lowercase();
+                value.contains("msys") || value.contains("cygwin")
+            })
+            .unwrap_or(false))
+}
+
+#[cfg(windows)]
+fn windows_path_to_posix(path: &Path) -> Cow<'_, str> {
+    let input = path.to_string_lossy();
+
+    if input.starts_with('/') {
+        return input;
+    }
+
+    if input.starts_with("\\\\") || input.starts_with("//") {
+        let rest = input
+            .trim_start_matches(['\\', '/'])
+            .replace('\\', "/")
+            .trim_start_matches('/')
+            .to_owned();
+
+        if rest.is_empty() {
+            return Cow::Owned("/unc".into());
+        }
+
+        return Cow::Owned(format!("/unc/{rest}"));
+    }
+
+    if input.len() >= 2 && input.as_bytes()[1] == b':' && input.as_bytes()[0].is_ascii_alphabetic()
+    {
+        let drive = input[..1].to_ascii_lowercase();
+        let rest = input[2..].replace('\\', "/");
+        let rest = rest.trim_start_matches('/');
+
+        if rest.is_empty() {
+            return Cow::Owned(format!("/{drive}"));
+        }
+
+        return Cow::Owned(format!("/{drive}/{rest}"));
+    }
+
+    input
+}
+
+#[cfg(not(windows))]
+fn windows_path_to_posix(path: &Path) -> Cow<'_, str> {
+    path.to_string_lossy()
 }
 
 async fn prepare_tool(
@@ -562,6 +677,73 @@ mod tests {
 
             let joined = result.unwrap().to_string_lossy().to_string();
             assert!(joined.starts_with("/test/bin"));
+        }
+
+        #[cfg(windows)]
+        #[test]
+        fn converts_windows_paths_to_posix() {
+            let path = PathBuf::from("C:\\Users\\Alice\\proto\\bin\\");
+            assert_eq!(windows_path_to_posix(&path), "/c/Users/Alice/proto/bin/");
+        }
+
+        #[cfg(windows)]
+        #[test]
+        fn converts_unc_windows_paths_to_posix() {
+            let path = PathBuf::from("\\\\server\\share\\bin");
+            assert_eq!(windows_path_to_posix(&path), "/unc/server/share/bin");
+        }
+
+        #[cfg(windows)]
+        #[test]
+        fn ignores_posix_and_relative_paths() {
+            assert_eq!(
+                windows_path_to_posix(Path::new("/usr/local/bin")),
+                "/usr/local/bin"
+            );
+            assert_eq!(
+                windows_path_to_posix(Path::new("relative\\bin")),
+                "relative\\bin"
+            );
+        }
+
+        #[cfg(windows)]
+        #[test]
+        fn detects_emulated_posix_shells() {
+            use std::env;
+
+            struct EnvVarGuard {
+                key: &'static str,
+                original: Option<String>,
+            }
+
+            impl EnvVarGuard {
+                fn set(key: &'static str, value: &str) -> Self {
+                    let original = env::var(key).ok();
+
+                    unsafe {
+                        env::set_var(key, value);
+                    }
+
+                    Self { key, original }
+                }
+            }
+
+            impl Drop for EnvVarGuard {
+                fn drop(&mut self) {
+                    unsafe {
+                        if let Some(value) = &self.original {
+                            env::set_var(self.key, value);
+                        } else {
+                            env::remove_var(self.key);
+                        }
+                    }
+                }
+            }
+
+            let _guard = EnvVarGuard::set("MSYSTEM", "MINGW64");
+
+            assert!(is_windows_posix_shell(&ShellType::Bash));
+            assert!(!is_windows_posix_shell(&ShellType::Pwsh));
         }
     }
 }
