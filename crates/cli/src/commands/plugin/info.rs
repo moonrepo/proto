@@ -46,7 +46,7 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
         .load_tool_with_options(
             &context,
             LoadToolOptions {
-                detect_version: args.id != "asdf",
+                detect_version: true,
                 inherit_local: true,
                 inherit_remote: true,
                 ..Default::default()

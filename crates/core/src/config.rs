@@ -149,12 +149,30 @@ impl ProtoConfig {
         let backends = &mut self.plugins.backends;
         let tools = &mut self.plugins.tools;
 
+        // BACKENDS
+
         if !backends.contains_key("asdf") && is_allowed("asdf") {
             backends.insert(
                 Id::raw("asdf"),
                 find_debug_locator_with_url_fallback("asdf_backend", "0.3.3"),
             );
         }
+
+        if !backends.contains_key("cargo") && is_allowed("cargo") {
+            backends.insert(
+                Id::raw("cargo"),
+                find_debug_locator_with_url_fallback("cargo_backend", "0.1.0"),
+            );
+        }
+
+        if !backends.contains_key("npm") && is_allowed("npm") {
+            backends.insert(
+                Id::raw("npm"),
+                find_debug_locator_with_url_fallback("npm_backend", "0.1.0"),
+            );
+        }
+
+        // TOOLS
 
         if !tools.contains_key("bun") && is_allowed("bun") {
             tools.insert(

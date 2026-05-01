@@ -362,8 +362,8 @@ pub enum DebugCommands {
 pub enum PluginCommands {
     #[command(
         name = "add",
-        about = "Add a plugin to manage a tool.",
-        long_about = "Add a plugin to a .prototools config file to enable and manage that tool."
+        about = "Add a plugin.",
+        long_about = "Add a plugin to a .prototools config file."
     )]
     Add(AddPluginArgs),
 
@@ -381,8 +381,8 @@ pub enum PluginCommands {
 
     #[command(
         name = "remove",
-        about = "Remove a plugin and unmanage a tool.",
-        long_about = "Remove a plugin from a .prototools config file and unmanage that tool."
+        about = "Remove a plugin.",
+        long_about = "Remove a plugin from a .prototools config file."
     )]
     Remove(RemovePluginArgs),
 
