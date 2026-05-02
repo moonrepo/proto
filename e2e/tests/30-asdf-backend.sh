@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # os: linux,macos
+# group: backends
 set -euo pipefail
 source "$(dirname "$0")/../lib/env.sh"
 source "$(dirname "$0")/../lib/assert.sh"

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # requires: 14-install-python
+# group: tools-secondary
 set -euo pipefail
 source "$(dirname "$0")/../lib/env.sh"
 source "$(dirname "$0")/../lib/assert.sh"

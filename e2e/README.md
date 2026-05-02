@@ -53,12 +53,13 @@ State accumulates across tests — earlier installs are visible to later tests. 
 
 ## Test directives
 
-Two optional comment directives are parsed by `run.sh`:
+Three optional comment directives are parsed by `run.sh`:
 
 ```bash
 #!/usr/bin/env bash
 # requires: 10-install-node 14-install-python    # space-separated test names (no .sh)
 # os: linux,macos                                # comma-separated allow-list
+# group: tools                            # parallel batch label
 set -euo pipefail
 source "$(dirname "$0")/../lib/env.sh"
 source "$(dirname "$0")/../lib/assert.sh"
@@ -66,6 +67,7 @@ source "$(dirname "$0")/../lib/assert.sh"
 
 - **`# requires:`** — if any named test FAILED or was SKIPPED, this test is also SKIPPED. Used for tool dependencies (`npm` requires `node`).
 - **`# os:`** — allow-list of OSes. Default = all 3. Used for `30-asdf-backend` (`linux,macos`) since the asdf backend doesn't run on Windows.
+- **`# group:`** — consecutive tests sharing this value run as background jobs in parallel. The harness waits for the whole group to finish before moving on to the next test. Used to fan out the install phase: `10–18` share `install-base`, `20–23` share `install-deps`. Members of the same group must be independent of each other — `# requires:` should only point to tests in earlier groups or earlier sequential tests, not peers in the same group (peer status isn't recorded until the batch completes).
 
 ## Adding a test
 

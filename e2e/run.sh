@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # E2E test harness for proto.
 #
-# Walks tests/*.sh in glob order, parses `# requires:` and `# os:` directives,
-# runs each as a subprocess with shared PROTO_HOME, captures stdout/stderr to
-# .logs/, and exits non-zero if any test failed.
+# Walks tests/*.sh in glob order, parses `# requires:`, `# os:`, `# group:`
+# directives, and runs each test as a subprocess with shared PROTO_HOME.
+# Consecutive tests sharing a `# group:` value run as background jobs in
+# parallel; the harness waits for the group to complete before moving on.
+# Captures stdout/stderr to .logs/, exits non-zero if any test failed.
 #
 # Usage:
 #   ./e2e/run.sh             # run all tests
@@ -16,9 +18,8 @@ source "$(dirname "$0")/lib/env.sh"
 if ! command -v proto >/dev/null 2>&1 || ! proto --version >/dev/null 2>&1; then
   {
     echo "FATAL: proto binary not available on PATH."
-    echo "       PROTO_BIN_DIR=$PROTO_BIN_DIR"
     echo "       PATH=$PATH"
-    echo "       Did you run 'cargo build --release --bin proto --bin proto-shim'?"
+    echo "       Run e2e/bootstrap.sh first to install the binary into PROTO_HOME."
   } >&2
   exit 1
 fi
@@ -92,32 +93,42 @@ parse_directive() {
   done < "$file"
 }
 
-run_one() {
-  local file="$1"
-  local name; name=$(basename "$file" .sh)
+# Returns "" if the test should run, otherwise records a SKIP and returns the
+# reason. Used by both run_one and run_batch to enforce os/requires gates
+# uniformly.
+should_skip() {
+  local file="$1" name="$2"
   local os_list; os_list=$(parse_directive "$file" "os" || true)
   local requires; requires=$(parse_directive "$file" "requires" || true)
 
   if [[ -n "$os_list" && ",$os_list," != *",$E2E_OS,"* ]]; then
-    record "$name" "SKIP" "os=$os_list"
-    printf "[SKIP] %-32s  os mismatch (%s)\n" "$name" "$os_list"
+    echo "os=$os_list"
     return 0
   fi
 
   if [[ -n "$requires" ]]; then
-    local req st blocker=""
+    local req st
     for req in $requires; do
       st=$(get_status "$req")
       if [[ "$st" == "FAIL" || "$st" == "SKIP" ]]; then
-        blocker="$req=$st"
-        break
+        echo "dep $req=$st"
+        return 0
       fi
     done
-    if [[ -n "$blocker" ]]; then
-      record "$name" "SKIP" "dep $blocker"
-      printf "[SKIP] %-32s  dep %s\n" "$name" "$blocker"
-      return 0
-    fi
+  fi
+
+  echo ""
+}
+
+run_one() {
+  local file="$1"
+  local name; name=$(basename "$file" .sh)
+  local skip; skip=$(should_skip "$file" "$name")
+
+  if [[ -n "$skip" ]]; then
+    record "$name" "SKIP" "$skip"
+    printf "[SKIP] %-32s  %s\n" "$name" "$skip"
+    return 0
   fi
 
   printf "[RUN ] %-32s\n" "$name"
@@ -138,9 +149,94 @@ run_one() {
   fi
 }
 
+# Runs a batch of tests concurrently as background jobs. Members must be
+# independent of each other — `# requires:` should only point to tests in
+# earlier groups or earlier sequential tests, never to peers in the same
+# group (peer status isn't visible until the batch completes).
+run_batch() {
+  local group="$1"; shift
+  local files=("$@")
+  printf "[GRP ] %s  (%d tests, parallel)\n" "$group" "${#files[@]}"
+
+  local pids=() names=() logs=() starts=() testdirs=()
+  local f name skip log testdir
+
+  for f in "${files[@]}"; do
+    name=$(basename "$f" .sh)
+    skip=$(should_skip "$f" "$name")
+    if [[ -n "$skip" ]]; then
+      record "$name" "SKIP" "$skip"
+      printf "  [SKIP] %-30s  %s\n" "$name" "$skip"
+      continue
+    fi
+
+    log="$E2E_LOGS/$name.log"
+    testdir=$(mktemp -d)
+    testdirs+=("$testdir")
+    starts+=("$SECONDS")
+    ( cd "$testdir" && bash "$f" >"$log" 2>&1 ) &
+    pids+=("$!")
+    names+=("$name")
+    logs+=("$log")
+    printf "  [RUN ] %-30s  pid=%d\n" "$name" "$!"
+  done
+
+  local i pid rc start dur
+  for ((i=0; i<${#pids[@]}; i++)); do
+    pid="${pids[$i]}"
+    name="${names[$i]}"
+    log="${logs[$i]}"
+    start="${starts[$i]}"
+    rc=0
+    wait "$pid" || rc=$?
+    dur=$((SECONDS - start))
+
+    if [[ $rc -eq 0 ]]; then
+      record "$name" "PASS" ""
+      printf "  [PASS] %-30s  %ds\n" "$name" "$dur"
+    else
+      record "$name" "FAIL" "exit=$rc"
+      printf "  [FAIL] %-30s  %ds exit=%d  log=%s\n" "$name" "$dur" "$rc" "$log"
+      echo "  ----- tail $name -----"
+      tail -40 "$log" 2>/dev/null | sed 's/^/  /' || true
+      echo "  ----- end -----"
+    fi
+  done
+
+  local d
+  for d in "${testdirs[@]}"; do
+    rm -rf "$d"
+  done
+}
+
+# Dispatcher: walk tests in glob order, batching adjacent same-group runs.
+batch=()
+batch_group=""
+
+flush_batch() {
+  if [[ ${#batch[@]} -eq 0 ]]; then
+    return 0
+  fi
+  if [[ ${#batch[@]} -eq 1 ]]; then
+    run_one "${batch[0]}"
+  else
+    run_batch "$batch_group" "${batch[@]}"
+  fi
+  batch=()
+  batch_group=""
+}
+
 for f in "${tests[@]}"; do
-  run_one "$f"
+  group=$(parse_directive "$f" "group" || true)
+  if [[ -n "$group" && "$group" == "$batch_group" ]]; then
+    batch+=("$f")
+  else
+    flush_batch
+    batch=("$f")
+    batch_group="$group"
+  fi
 done
+flush_batch
 
 # Summary
 pass=0; fail=0; skip=0
