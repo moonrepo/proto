@@ -32,7 +32,7 @@ export E2E_LOGS="$E2E_DIR/.logs"
 # Keep an internal POSIX form for bash builtins / PATH composition,
 # and export PROTO_HOME in the form proto's binary expects.
 if [[ -z "${_PROTO_HOME_POSIX:-}" ]]; then
-  _PROTO_HOME_POSIX="$E2E_DIR/.proto-home"
+  _PROTO_HOME_POSIX="$HOME/.proto"
 fi
 
 if [[ "$E2E_OS" == "windows" ]]; then
@@ -41,15 +41,9 @@ if [[ "$E2E_OS" == "windows" ]]; then
 else
   PROTO_HOME="$_PROTO_HOME_POSIX"
 fi
+
 export PROTO_HOME
-
-# Locate the built proto binary; allow override for non-default build dirs
-PROTO_BIN_DIR="${PROTO_BIN_DIR:-$REPO_ROOT/target/release}"
-export PROTO_BIN_DIR
-
-# PATH uses POSIX paths so bash PATH lookup works on Git Bash. MSYS translates
-# them when handing off to native exes.
-export PATH="$PROTO_BIN_DIR:$_PROTO_HOME_POSIX/shims:$_PROTO_HOME_POSIX/bin:$PATH"
+export PATH="$PROTO_HOME/shims:$PROTO_HOME/bin:$PATH"
 
 # Stable locale across runners (stderr matching shouldn't depend on it)
 export LANG="${LANG:-C.UTF-8}"
@@ -57,4 +51,5 @@ export LC_ALL="${LC_ALL:-C.UTF-8}"
 
 # Match existing CI diagnostics
 export PROTO_DEBUG_COMMAND=1
+export PROTO_DEBUG_WASM=1
 export RUST_BACKTRACE=1

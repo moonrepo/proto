@@ -27,26 +27,27 @@ Override the binary location with `PROTO_BIN_DIR=/some/dir bash ./e2e/run.sh` if
 
 ## Layout
 
-| Path | Purpose |
-|---|---|
-| [run.sh](run.sh) | Harness. Walks `tests/*.sh` in glob order, parses directives, runs each as a subprocess, prints summary. |
-| [lib/env.sh](lib/env.sh) | Cross-platform env: `PROTO_HOME`, `PATH`, MSYS settings, locale. Sourced by harness and every test. |
-| [lib/assert.sh](lib/assert.sh) | `assert_eq`, `assert_contains`, `assert_exit`, `retry`, etc. |
-| [fixtures/](fixtures) | `.prototools` files copied into temp work dirs by tests. |
-| [tests/](tests) | Numbered test scripts — see below. |
+| Path                           | Purpose                                                                                                  |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| [run.sh](run.sh)               | Harness. Walks `tests/*.sh` in glob order, parses directives, runs each as a subprocess, prints summary. |
+| [lib/env.sh](lib/env.sh)       | Cross-platform env: `PROTO_HOME`, `PATH`, MSYS settings, locale. Sourced by harness and every test.      |
+| [lib/assert.sh](lib/assert.sh) | `assert_eq`, `assert_contains`, `assert_exit`, `retry`, etc.                                             |
+| [fixtures/](fixtures)          | `.prototools` files copied into temp work dirs by tests.                                                 |
+| [tests/](tests)                | Numbered test scripts — see below.                                                                       |
 
 ## Test ordering
 
 Tests run alphabetically. The numeric prefix encodes phase, not strict ordering inside a phase:
 
-| Range | Phase |
-|---|---|
-| `00–09` | Smoke (help, version listing) |
-| `10–19` | Standalone tool installs |
-| `20–29` | Dependent tool installs (npm/pnpm/yarn → node, poetry → python) |
-| `30–39` | Backends (asdf, Unix-only) |
-| `40–49` | Cross-cutting checks (status, bin, run, shim, prototools, activate, exec, outdated, pin/alias) |
-| `90–99` | Teardown (uninstall, clean) |
+| Range   | Phase                                                                                |
+| ------- | ------------------------------------------------------------------------------------ |
+| `00–09` | Smoke (help, version listing)                                                        |
+| `10–19` | Standalone tool installs                                                             |
+| `20–29` | Dependent tool installs (npm/pnpm/yarn → node, poetry → python)                      |
+| `30–39` | Backends (asdf, Unix-only)                                                           |
+| `40–49` | Cross-cutting checks (status, bin, run, shim, prototools, exec, outdated, pin/alias) |
+| `50-59` | Activation checks (activate, deactivate, etc)                                        |
+| `90–99` | Teardown (uninstall, clean)                                                          |
 
 State accumulates across tests — earlier installs are visible to later tests. Don't reorder without considering dependencies.
 
