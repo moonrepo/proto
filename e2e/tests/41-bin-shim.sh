@@ -12,6 +12,11 @@ for tool in node bun deno go python ruby rust uv moon npm pnpm yarn poetry; do
     assert_executable "$bin"
     checked=$((checked + 1))
   fi
+
+  if shim=$(proto bin --shim "$tool" 2>/dev/null); then
+    assert_executable "$shim"
+    checked=$((checked + 1))
+  fi
 done
 
 # Sanity: at least one tool should resolve (node, given dep ordering)

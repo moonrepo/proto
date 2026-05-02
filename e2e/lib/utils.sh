@@ -23,3 +23,25 @@ install_tool() {
 
   return $exit_code
 }
+
+install_backend() {
+  backend="$1"
+  tool="$2"
+  version="$3"
+  version_arg="${4:---version}"
+
+  retry 3 proto install "$backend:$tool" "$version" --pin local
+  exit_code=$?
+
+  if [ $exit_code -ne 0 ]; then
+    return $exit_code
+  fi
+
+  bin=$(proto bin "$tool")
+  assert_executable "$bin"
+
+  ver=$("$bin" "$version_arg" 2>&1)
+  assert_contains "$ver" "$version"
+
+  return $exit_code
+}

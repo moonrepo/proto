@@ -14,3 +14,6 @@ cd "$work"
 
 ver=$(node --version 2>&1)
 assert_contains "$ver" "v22"
+
+bin=$(which node 2>&1)
+assert_contains "$bin" "$PROTO_HOME/shims"
