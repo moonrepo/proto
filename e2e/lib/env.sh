@@ -25,8 +25,9 @@ if [[ "$E2E_OS" == "windows" ]]; then
   export MSYS2_ARG_CONV_EXCL='*'
 fi
 
-# Where run.sh writes per-test stdout/stderr captures
+# Where run.sh writes per-test stdout/stderr captures.
 export E2E_LOGS="$E2E_DIR/.logs"
+mkdir -p "$E2E_LOGS"
 
 # Shared PROTO_HOME for the whole run. Tests accumulate state here.
 # Keep an internal POSIX form for bash builtins / PATH composition,
