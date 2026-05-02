@@ -25,4 +25,4 @@ const tools = [];
 	});
 });
 
-console.log(JSON.stringify(tools));
+console.log(`matrix=${JSON.stringify(tools)}`);
