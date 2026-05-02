@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-source "$(dirname "$0")/env.sh"
-source "$(dirname "$0")/assert.sh"
+source ./env.sh
+source ./assert.sh
 
 install_tool() {
   tool="$1"
