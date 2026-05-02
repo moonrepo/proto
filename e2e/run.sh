@@ -25,14 +25,16 @@ if ! command -v proto >/dev/null 2>&1 || ! proto --version >/dev/null 2>&1; then
 fi
 
 echo "Using proto at: $(command -v proto)"
-proto --version
-echo "OS:        $E2E_OS"
+echo "With version: $(proto --version)"
+echo ""
+echo "OS:         $E2E_OS"
 echo "PROTO_HOME: $PROTO_HOME"
+echo "PATH:       $PATH"
 echo ""
 
 # Wipe state from any previous run
-rm -rf "$_PROTO_HOME_POSIX" "$E2E_LOGS"
-mkdir -p "$_PROTO_HOME_POSIX" "$E2E_LOGS"
+# rm -rf "$_PROTO_HOME_POSIX" "$E2E_LOGS"
+# mkdir -p "$_PROTO_HOME_POSIX" "$E2E_LOGS"
 
 # Neutral cwd for tests that don't need a specific work dir. Lives outside
 # the repo so the repo's own .prototools doesn't get picked up as ancestry.

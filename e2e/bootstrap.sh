@@ -17,3 +17,5 @@ else
 	cp "$REPO_ROOT/target/release/proto-shim" "$PROTO_HOME/bin"
 fi
 
+# Print the directory contents for debugging. If the copy above failed, this will show it.
+ls -lR "$PROTO_HOME"
