@@ -41,6 +41,11 @@ test $PROTO_TEST="true" $STARBASE_TEST="true" name="":
 test-ci $PROTO_TEST="true" $STARBASE_TEST="true" :
 	cargo nextest run --workspace --exclude proto_pdk --profile ci --config-file ./.cargo/nextest.toml
 
+test-e2e filter="":
+	cargo build --release --bin proto --bin proto-shim
+	cd plugins && cargo build --workspace --target wasm32-wasip1 --release
+	bash ./e2e/run.sh {{filter}}
+
 setup-shims:
 	cargo build --workspace
 	mkdir -p ./shims
