@@ -2,10 +2,6 @@
 # requires: 10-install-node
 # group: tools-secondary
 set -euo pipefail
-source "$(dirname "$0")/../lib/env.sh"
-source "$(dirname "$0")/../lib/assert.sh"
+source "$(dirname "$0")/../lib/utils.sh"
 
-retry 3 proto install yarn 1
-
-bin=$(proto bin yarn)
-assert_executable "$bin"
+install_tool yarn 4.2

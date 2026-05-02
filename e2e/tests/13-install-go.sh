@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
 # group: tools
 set -euo pipefail
-source "$(dirname "$0")/../lib/env.sh"
-source "$(dirname "$0")/../lib/assert.sh"
+source "$(dirname "$0")/../lib/utils.sh"
 
-retry 3 proto install go 1.23
-
-bin=$(proto bin go)
-assert_executable "$bin"
+install_tool go 1.23

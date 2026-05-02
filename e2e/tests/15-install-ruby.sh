@@ -1,10 +1,7 @@
 #!/usr/bin/env bash
+# os: linux,macos
 # group: tools
 set -euo pipefail
-source "$(dirname "$0")/../lib/env.sh"
-source "$(dirname "$0")/../lib/assert.sh"
+source "$(dirname "$0")/../lib/utils.sh"
 
-retry 3 proto install ruby 3.3
-
-bin=$(proto bin ruby)
-assert_executable "$bin"
+install_tool ruby 3.3

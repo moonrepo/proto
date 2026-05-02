@@ -133,7 +133,7 @@ run_one() {
     return 0
   fi
 
-  printf "[RUN ] %-32s\n" "$name"
+  printf "[RUN]  %-32s\n" "$name"
   local log="$E2E_LOGS/$name.log"
   local start=$SECONDS rc=0
   ( cd "$E2E_SCRATCH" && bash "$file" ) >"$log" 2>&1 || rc=$?
@@ -158,7 +158,7 @@ run_one() {
 run_batch() {
   local group="$1"; shift
   local files=("$@")
-  printf "[GRP ] %s  (%d tests, parallel)\n" "$group" "${#files[@]}"
+  printf "[GRP]  %s  (%d tests, parallel)\n" "$group" "${#files[@]}"
 
   local pids=() names=() logs=() starts=() testdirs=()
   local f name skip log testdir
@@ -180,7 +180,7 @@ run_batch() {
     pids+=("$!")
     names+=("$name")
     logs+=("$log")
-    printf "  [RUN ] %-30s  pid=%d\n" "$name" "$!"
+    printf "  [RUN]  %-30s  pid=%d\n" "$name" "$!"
   done
 
   local i pid rc start dur

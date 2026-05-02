@@ -2,10 +2,6 @@
 # requires: 10-install-node
 # group: tools-secondary
 set -euo pipefail
-source "$(dirname "$0")/../lib/env.sh"
-source "$(dirname "$0")/../lib/assert.sh"
+source "$(dirname "$0")/../lib/utils.sh"
 
-retry 3 proto install pnpm 9
-
-bin=$(proto bin pnpm)
-assert_executable "$bin"
+install_tool pnpm 10.1
