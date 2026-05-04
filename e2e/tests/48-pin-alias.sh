@@ -11,19 +11,19 @@ cd "$work"
 # pin → writes .prototools with the version
 proto pin node 22
 assert_file ".prototools"
-assert_contains "$(cat .prototools)" "node"
+assert_contains "$(cat .prototools)" 'node = "22"'
 
 # unpin → removes the entry
 proto unpin node
 content=$(cat .prototools 2>/dev/null || echo "")
-assert_not_contains "$content" 'node ='
+assert_not_contains "$content" 'node = "22"'
 
 # alias → registers a named alias for a version
 proto alias node my-alias 22
-out=$(proto alias node 2>&1 || true)
-assert_contains "$out" "my-alias"
+content=$(cat .prototools 2>/dev/null || echo "")
+assert_contains "$content" 'my-alias = "22"'
 
 # unalias → removes the alias
 proto unalias node my-alias
-out=$(proto alias node 2>&1 || true)
-assert_not_contains "$out" "my-alias"
+content=$(cat .prototools 2>/dev/null || echo "")
+assert_not_contains "$content" 'my-alias = "22"'

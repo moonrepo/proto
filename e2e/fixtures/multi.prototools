@@ -1,4 +1,4 @@
-node = "22"
+node = "24"
 bun = "1"
-python = "3.12"
-go = "1.23"
+python = "3"
+go = "1"
