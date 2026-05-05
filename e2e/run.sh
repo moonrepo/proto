@@ -14,8 +14,13 @@ set -euo pipefail
 
 source "$(dirname "$0")/lib/env.sh"
 
+echo "START"
+echo "$(command -v proto)"
+echo "$(which proto)"
+echo "END"
+
 # Verify the proto binary is reachable
-if ! which proto >/dev/null 2>&1 || ! proto --version >/dev/null 2>&1; then
+if ! command -v proto >/dev/null 2>&1 || ! proto --version >/dev/null 2>&1; then
   {
     echo "FATAL: proto binary not available on PATH."
     echo "       PATH=$PATH"
@@ -24,7 +29,7 @@ if ! which proto >/dev/null 2>&1 || ! proto --version >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "Using proto at: $(which proto)"
+echo "Using proto at: $(command -v proto)"
 echo "With version: $(proto --version)"
 echo ""
 echo "OS:         $E2E_OS"

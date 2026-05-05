@@ -43,7 +43,6 @@ test-ci $PROTO_TEST="true" $STARBASE_TEST="true" :
 
 test-e2e filter="":
 	cargo build --release --bin proto --bin proto-shim
-	cd plugins && cargo build --workspace --target wasm32-wasip1 --release
 	bash ./e2e/run.sh {{filter}}
 
 setup-shims:
