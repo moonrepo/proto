@@ -5,7 +5,7 @@ expression: "fs::read_to_string(sandbox.path().join(\".proto/shims/registry.json
 {
   "moon": {},
   "moonx": {
-    "alt_bin": true,
-    "parent": "moon"
+    "alt_exe": true,
+    "context": "moon"
   }
 }
