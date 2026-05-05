@@ -15,13 +15,7 @@ set -euo pipefail
 source "$(dirname "$0")/lib/env.sh"
 
 # Verify the proto binary is reachable
-if [[ "$E2E_OS" == "windows" ]]; then
-	exe_path="$PROTO_HOME/bin/proto.exe"
-else
-	exe_path="$PROTO_HOME/bin/proto"
-fi
-
-if ! [[ -f "$exe_path" ]]; then
+if ! command -v proto >/dev/null 2>&1 || ! proto --version >/dev/null 2>&1; then
   {
     echo "FATAL: proto binary not available on PATH."
     echo "       PATH=$PATH"
@@ -30,7 +24,7 @@ if ! [[ -f "$exe_path" ]]; then
   exit 1
 fi
 
-echo "Using proto at: $exe_path"
+echo "Using proto at: $(command -v proto)"
 echo "With version: $(proto --version)"
 echo ""
 echo "OS:         $E2E_OS"
