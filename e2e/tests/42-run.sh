@@ -21,7 +21,7 @@ check_run() {
   fi
 }
 
-check_run node   "v22"          --version
-check_run bun    "1."           --version
+check_run node   "v24"          --version
+check_run bun    "1.2"          --version
 check_run go     "go1.23"       version
 check_run python "Python 3.12"  --version

@@ -3,4 +3,4 @@
 set -euo pipefail
 source "$(dirname "$0")/../lib/utils.sh"
 
-install_tool go 1.23
+install_tool go 1.23 version

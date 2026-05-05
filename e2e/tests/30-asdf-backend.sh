@@ -4,4 +4,4 @@
 set -euo pipefail
 source "$(dirname "$0")/../lib/utils.sh"
 
-install_backend asdf zig 0.13
+install_backend asdf zig 0.16 version

@@ -9,11 +9,11 @@ source "$(dirname "$0")/../lib/assert.sh"
 # via lib/env.sh.
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
-echo 'node = "22"' > "$work/.prototools"
+echo 'node = "24"' > "$work/.prototools"
 cd "$work"
 
 ver=$(node --version 2>&1)
-assert_contains "$ver" "v22"
+assert_contains "$ver" "v24"
 
 bin=$(which node 2>&1)
 assert_contains "$bin" "$PROTO_HOME/shims"

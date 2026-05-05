@@ -17,6 +17,10 @@
 
 ## Unreleased
 
+#### 🐞 Fixes
+
+- Fixed an issue where some tools that require a backend (asdf) would generate broken shims.
+
 #### ⚙️ Internal
 
 - Updated dependencies.

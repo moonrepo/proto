@@ -10,7 +10,7 @@ trap 'rm -rf "$work"' EXIT
 cp "$E2E_DIR/fixtures/multi.prototools" "$work/.prototools"
 cd "$work"
 
-assert_contains "$(proto run node   -- --version 2>&1)" "v22"
-assert_contains "$(proto run bun    -- --version 2>&1)" "1."
-assert_contains "$(proto run go     -- version    2>&1)" "go1.23"
+assert_contains "$(proto run node   -- --version 2>&1)" "v24"
+assert_contains "$(proto run bun    -- --version 2>&1)" "1.2"
+assert_contains "$(proto run go     -- version   2>&1)" "go1.23"
 assert_contains "$(proto run python -- --version 2>&1)" "Python 3.12"

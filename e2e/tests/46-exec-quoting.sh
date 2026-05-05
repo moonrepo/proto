@@ -9,9 +9,8 @@ source "$(dirname "$0")/../lib/assert.sh"
 # vector directly).
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
-echo 'node = "22"' > "$work/.prototools"
+echo 'node = "24"' > "$work/.prototools"
 cd "$work"
 
 out=$(proto run node -- -e "console.log('hello world with literal \$dollar')" 2>&1)
-assert_contains "$out" "hello world with literal"
-assert_contains "$out" "dollar"
+assert_contains "$out" 'hello world with literal $dollar'
