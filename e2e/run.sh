@@ -14,6 +14,9 @@ set -euo pipefail
 
 source "$(dirname "$0")/lib/env.sh"
 
+command -v proto
+which proto
+
 # Verify the proto binary is reachable
 if ! command -v proto >/dev/null 2>&1 || ! proto --version >/dev/null 2>&1; then
   {
@@ -29,6 +32,9 @@ echo "With version: $(proto --version)"
 echo ""
 echo "OS:         $E2E_OS"
 echo "PROTO_HOME: $PROTO_HOME"
+echo "E2E_DIR:    $E2E_DIR"
+echo "E2E_LOGS:   $E2E_LOGS"
+echo "REPO_ROOT:  $REPO_ROOT"
 echo "PATH:       $PATH"
 echo ""
 
@@ -267,5 +273,9 @@ if [[ $fail -gt 0 ]]; then
   done
   exit 1
 fi
+
+echo ""
+echo "Log files:"
+ls -l "$E2E_LOGS"
 
 exit 0

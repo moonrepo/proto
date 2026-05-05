@@ -18,7 +18,12 @@ install_tool() {
   bin=$(proto bin "$tool")
   assert_executable "$bin"
 
+  # Bin
   ver=$("$bin" "$version_arg" 2>&1)
+  assert_contains "$ver" "$version"
+
+  # Shim
+  ver=$("$tool" "$version_arg" 2>&1)
   assert_contains "$ver" "$version"
 
   return $exit_code
@@ -37,10 +42,15 @@ install_backend() {
     return $exit_code
   fi
 
-  bin=$(proto bin "$tool")
+  bin=$(proto bin "$backend:$tool")
   assert_executable "$bin"
 
+  # Bin
   ver=$("$bin" "$version_arg" 2>&1)
+  assert_contains "$ver" "$version"
+
+  # Shim
+  ver=$("$tool" "$version_arg" 2>&1)
   assert_contains "$ver" "$version"
 
   return $exit_code

@@ -23,6 +23,7 @@
 
 #### ⚙️ Internal
 
+- Added extensive E2E tests to catch issues and regressions moving forward. These E2E tests run on the command line, not through Rust's testing framework, to better simulate real world usage and catch issues that unit tests may miss.
 - Updated dependencies.
 
 ## 0.56.4
