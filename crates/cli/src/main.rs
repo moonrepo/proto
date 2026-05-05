@@ -60,7 +60,7 @@ async fn main() -> MainResult {
         show_spans: cli.log.is_verbose(),
         // test_env: "PROTO_TEST".into(),
         ..TracingOptions::default()
-    });
+    })?;
 
     let session = ProtoSession::new(cli);
     let mut args = env::args_os().collect::<Vec<_>>();
