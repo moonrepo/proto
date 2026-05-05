@@ -44,7 +44,12 @@ else
 fi
 
 export PROTO_HOME
-export PATH="$PROTO_HOME/shims:$PROTO_HOME/bin:$PATH"
+# PATH must use POSIX form (e.g. /c/Users/...) on Git Bash. Windows-mixed form
+# (C:/Users/...) breaks bash's PATH splitting because the `C:` colon collides
+# with the `:` PATH separator. MSYS translates POSIX PATH entries to Windows
+# form when invoking native .exe binaries, so child processes still get the
+# right paths.
+export PATH="$_PROTO_HOME_POSIX/shims:$_PROTO_HOME_POSIX/bin:$PATH"
 
 # Stable locale across runners (stderr matching shouldn't depend on it)
 export LANG="${LANG:-C.UTF-8}"
