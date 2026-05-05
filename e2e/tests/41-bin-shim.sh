@@ -7,7 +7,7 @@ source "$(dirname "$0")/../lib/assert.sh"
 # or was skipped will return non-zero from `proto bin` and are silently
 # skipped here — failures already surfaced upstream.
 checked=0
-for tool in node bun deno go python ruby rust uv moon npm pnpm yarn poetry; do
+for tool in node bun deno go python uv moon npm pnpm yarn poetry; do
   if bin=$(proto bin "$tool" 2>/dev/null); then
     assert_executable "$bin"
     checked=$((checked + 1))

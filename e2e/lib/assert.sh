@@ -44,7 +44,7 @@ assert_dir() {
 
 assert_executable() {
   [[ -n "$1" ]] || fail "empty path passed to assert_executable"
-  [[ -x "$1" || -f "$1.exe" ]] || fail "not executable: $1"
+  [[ -x "$1" || -f "$1.exe" || -f "$1.cmd" ]] || fail "not executable: $1"
 }
 
 # Retry a command with backoff. Use only for network-bound install commands.

@@ -16,4 +16,4 @@ ver=$(node --version 2>&1)
 assert_contains "$ver" "v24"
 
 bin=$(which node 2>&1)
-assert_contains "$bin" "$PROTO_HOME/shims"
+assert_contains "$bin" "$_PROTO_HOME_POSIX/shims"
