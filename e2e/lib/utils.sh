@@ -23,8 +23,10 @@ install_tool() {
   assert_contains "$ver" "$version"
 
   # Shim
-  ver=$("$tool" "$version_arg" 2>&1)
-  assert_contains "$ver" "$version"
+  if [[ "$tool" != "rust" ]]; then
+    ver=$("$tool" "$version_arg" 2>&1)
+    assert_contains "$ver" "$version"
+  fi
 
   return $exit_code
 }

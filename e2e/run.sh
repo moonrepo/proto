@@ -14,11 +14,8 @@ set -euo pipefail
 
 source "$(dirname "$0")/lib/env.sh"
 
-command -v proto
-which proto
-
 # Verify the proto binary is reachable
-if ! command -v proto >/dev/null 2>&1 || ! proto --version >/dev/null 2>&1; then
+if ! which proto >/dev/null 2>&1 || ! proto --version >/dev/null 2>&1; then
   {
     echo "FATAL: proto binary not available on PATH."
     echo "       PATH=$PATH"
@@ -27,7 +24,7 @@ if ! command -v proto >/dev/null 2>&1 || ! proto --version >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "Using proto at: $(command -v proto)"
+echo "Using proto at: $(which proto)"
 echo "With version: $(proto --version)"
 echo ""
 echo "OS:         $E2E_OS"
@@ -166,8 +163,8 @@ run_batch() {
   local files=("$@")
   printf "[GRP]  %s  (%d tests, parallel)\n" "$group" "${#files[@]}"
 
-  local pids=() names=() logs=() starts=() testdirs=()
-  local f name skip log testdir
+  local pids=() names=() logs=() starts=()
+  local f name skip log
 
   for f in "${files[@]}"; do
     name=$(basename "$f" .sh)
@@ -179,10 +176,8 @@ run_batch() {
     fi
 
     log="$E2E_LOGS/$name.log"
-    testdir=$(mktemp -d)
-    testdirs+=("$testdir")
     starts+=("$SECONDS")
-    ( cd "$testdir" && bash "$f" >"$log" 2>&1 ) &
+    ( cd "$E2E_SCRATCH" && bash "$f" >"$log" 2>&1 ) &
     pids+=("$!")
     names+=("$name")
     logs+=("$log")
@@ -209,11 +204,6 @@ run_batch() {
       tail -40 "$log" 2>/dev/null | sed 's/^/  /' || true
       echo "  ----- end -----"
     fi
-  done
-
-  local d
-  for d in "${testdirs[@]}"; do
-    rm -rf "$d"
   done
 }
 

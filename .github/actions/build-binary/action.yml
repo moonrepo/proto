@@ -6,25 +6,10 @@ runs:
   steps:
     - uses: moonrepo/setup-rust@v1
       with:
-        cache: true
+        cache: false
 
-    - id: download
-      uses: actions/download-artifact@v8
-      continue-on-error: true
-      with:
-        name: proto-bins
+    - uses: swatinem/rust-cache@v2
 
     - id: build
       run: cargo build --release --bin proto --bin proto-shim
       shell: bash
-
-    - id: upload
-      uses: actions/upload-artifact@v7
-      with:
-        name: proto-bins
-        path: |
-          target/release/proto
-          target/release/proto.exe
-          target/release/proto-shim
-          target/release/proto-shim.exe
-        if-no-files-found: error
