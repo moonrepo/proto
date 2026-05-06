@@ -76,13 +76,10 @@ jobs:
           # cache: ${{ runner.os != 'Linux' }}
           # cache-base: "^(master|develop-)"
           targets: wasm32-wasip1
-      - if: ${{ runner.os != 'Windows' }}
-        run: just build-wasm
+      - run: just build-wasm
         # Windows runs out of disk space
       - if: ${{ runner.os == 'Windows' }}
-        run: |
-          just build-wasm;
-          node .github/actions/delete-target-files.js;
+        run: node .github/actions/delete-target-files.js;
       - run: just test-ci
         env:
           PROTO_DEBUG_COMMAND: 1
