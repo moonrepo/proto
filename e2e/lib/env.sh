@@ -58,5 +58,4 @@ export LC_ALL="${LC_ALL:-C.UTF-8}"
 # Match existing CI diagnostics
 export PROTO_DEBUG_COMMAND=1
 export PROTO_DEBUG_WASM=1
-export PROTO_LOG=trace
 export RUST_BACKTRACE=1
