@@ -32,9 +32,9 @@ pub trait LoaderProtocol<T> {
 
 pub enum LoadFrom<'a> {
     Blob {
-        archive: bool,
         data: Cow<'a, [u8]>,
         ext: String,
+        ext_archive: Option<String>,
         hash: Cow<'a, str>,
     },
     File(PathBuf),
@@ -44,7 +44,7 @@ pub enum LoadFrom<'a> {
 impl LoadFrom<'_> {
     pub fn is_archive(&self) -> Option<String> {
         match self {
-            LoadFrom::Blob { archive, ext, .. } => archive.then(|| ext.into()),
+            LoadFrom::Blob { ext_archive, .. } => ext_archive.clone(),
             LoadFrom::File(_) => None,
             LoadFrom::Url(url) => PathBuf::from(extract_file_name_from_url(url))
                 .extension()

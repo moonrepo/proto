@@ -348,7 +348,7 @@ impl PluginLoader {
             LoadFrom::Blob { data, .. } => {
                 trace!(
                     id = id.as_str(),
-                    to = ?dest_file,
+                    to = ?lock.path,
                     "Saving plugin from bytes"
                 );
 
@@ -365,7 +365,7 @@ impl PluginLoader {
                 trace!(
                     id = id.as_str(),
                     from = ?url,
-                    to = ?dest_file,
+                    to = ?lock.path,
                     "Downloading plugin from URL"
                 );
 

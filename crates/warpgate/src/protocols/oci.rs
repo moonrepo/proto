@@ -46,6 +46,8 @@ impl OciLoader {
                     WASM_LAYER_MEDIA_TYPE_YAML,
                     WASM_LAYER_MEDIA_TYPE_JSON,
                     WASM_LAYER_MEDIA_TYPE_TAR,
+                    WASM_LAYER_MEDIA_TYPE_TAR_GZIP,
+                    WASM_LAYER_MEDIA_TYPE_TAR_ZSTD,
                 ],
             )
             .await
@@ -84,28 +86,32 @@ impl OciLoader {
             // If still nothing, maybe an archive is being used
             // This happens for certain registries, like GHCR
             .or_else(|| {
-                image_data
-                    .layers
-                    .iter()
-                    .find(|layer| layer.media_type == WASM_LAYER_MEDIA_TYPE_TAR)
+                image_data.layers.iter().find(|layer| {
+                    layer.media_type == WASM_LAYER_MEDIA_TYPE_TAR
+                        || layer.media_type == WASM_LAYER_MEDIA_TYPE_TAR_GZIP
+                        || layer.media_type == WASM_LAYER_MEDIA_TYPE_TAR_ZSTD
+                })
             });
 
         Ok(layer.map(|layer| {
             let digest = layer.sha256_digest();
 
             LoadFrom::Blob {
-                archive: layer.media_type == WASM_LAYER_MEDIA_TYPE_TAR,
                 data: Cow::Owned(layer.data.to_vec()),
                 hash: Cow::Owned(digest.strip_prefix("sha256:").unwrap_or(&digest).into()),
                 ext: match layer.media_type.as_str() {
-                    // We assume archives contain a WASM file, nothing else
-                    WASM_LAYER_MEDIA_TYPE_WASM | WASM_LAYER_MEDIA_TYPE_TAR => "wasm",
                     WASM_LAYER_MEDIA_TYPE_TOML => "toml",
                     WASM_LAYER_MEDIA_TYPE_YAML => "yaml",
                     WASM_LAYER_MEDIA_TYPE_JSON => "json",
-                    _ => unreachable!(),
+                    _ => "wasm",
                 }
                 .into(),
+                ext_archive: match layer.media_type.as_str() {
+                    WASM_LAYER_MEDIA_TYPE_TAR => Some("tar".into()),
+                    WASM_LAYER_MEDIA_TYPE_TAR_GZIP => Some("tar.gz".into()),
+                    WASM_LAYER_MEDIA_TYPE_TAR_ZSTD => Some("tar.zst".into()),
+                    _ => None,
+                },
             }
         }))
     }
