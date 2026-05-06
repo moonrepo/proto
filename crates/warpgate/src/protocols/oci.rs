@@ -3,6 +3,7 @@ use crate::clients::OciClient;
 use crate::loader_error::WarpgateLoaderError;
 use crate::registry::*;
 use oci_client::{Reference, errors::OciDistributionError};
+use starbase_styles::color;
 use std::borrow::Cow;
 use std::sync::Arc;
 use tracing::trace;
@@ -23,15 +24,15 @@ impl OciLoader {
     ) -> Result<Option<LoadFrom<'a>>, WarpgateLoaderError> {
         let image = locator.image.as_ref();
         let tag = locator.tag.as_deref().unwrap_or("latest");
-
-        trace!(
-            id,
-            "Searching OCI registry {} for {image}:{tag}", config.registry
-        );
-
         let reference =
             Reference::try_from(config.get_reference_with_tag(image, tag).as_str()).unwrap();
         let auth = config.get_credential();
+
+        trace!(
+            id,
+            "Searching OCI registry for {}",
+            color::url(reference.to_string())
+        );
 
         // Pull the image data and handle the error accordingly
         let image_data = match self
@@ -44,6 +45,7 @@ impl OciLoader {
                     WASM_LAYER_MEDIA_TYPE_TOML,
                     WASM_LAYER_MEDIA_TYPE_YAML,
                     WASM_LAYER_MEDIA_TYPE_JSON,
+                    WASM_LAYER_MEDIA_TYPE_TAR,
                 ],
             )
             .await
@@ -66,30 +68,41 @@ impl OciLoader {
             }
         };
 
-        // Find the WASM layer first, otherwise fallback to a non-WASM layer
+        // Find the WASM layer first
         let layer = image_data
             .layers
             .iter()
             .find(|layer| layer.media_type == WASM_LAYER_MEDIA_TYPE_WASM)
+            // Otherwise fallback to a non-WASM layer
             .or_else(|| {
                 image_data.layers.iter().find(|layer| {
                     layer.media_type == WASM_LAYER_MEDIA_TYPE_TOML
                         || layer.media_type == WASM_LAYER_MEDIA_TYPE_JSON
                         || layer.media_type == WASM_LAYER_MEDIA_TYPE_YAML
                 })
+            })
+            // If still nothing, maybe an archive is being used
+            // This happens for certain registries, like GHCR
+            .or_else(|| {
+                image_data
+                    .layers
+                    .iter()
+                    .find(|layer| layer.media_type == WASM_LAYER_MEDIA_TYPE_TAR)
             });
 
         Ok(layer.map(|layer| {
             let digest = layer.sha256_digest();
 
             LoadFrom::Blob {
+                archive: layer.media_type == WASM_LAYER_MEDIA_TYPE_TAR,
                 data: Cow::Owned(layer.data.to_vec()),
                 hash: Cow::Owned(digest.strip_prefix("sha256:").unwrap_or(&digest).into()),
                 ext: match layer.media_type.as_str() {
-                    WASM_LAYER_MEDIA_TYPE_WASM => ".wasm",
-                    WASM_LAYER_MEDIA_TYPE_TOML => ".toml",
-                    WASM_LAYER_MEDIA_TYPE_YAML => ".yaml",
-                    WASM_LAYER_MEDIA_TYPE_JSON => ".json",
+                    // We assume archives contain a WASM file, nothing else
+                    WASM_LAYER_MEDIA_TYPE_WASM | WASM_LAYER_MEDIA_TYPE_TAR => "wasm",
+                    WASM_LAYER_MEDIA_TYPE_TOML => "toml",
+                    WASM_LAYER_MEDIA_TYPE_YAML => "yaml",
+                    WASM_LAYER_MEDIA_TYPE_JSON => "json",
                     _ => unreachable!(),
                 }
                 .into(),

@@ -1,7 +1,6 @@
 use crate::clients::*;
 use crate::helpers::{
-    determine_cache_extension, download_from_url_to_file, extract_file_name_from_url, hash_sha256,
-    move_or_unpack_download,
+    determine_cache_extension, download_from_url_to_file, hash_sha256, move_or_unpack_download,
 };
 use crate::loader_error::WarpgateLoaderError;
 use crate::protocols::{
@@ -205,43 +204,37 @@ impl PluginLoader {
             }
         };
 
-        // Create a lock before checking the cache, so that subsequent requests for
-        // the same plugin will wait for the first one to finish downloading, and will
-        // then hit the cache instead of downloading again
-        let cache_path = match source {
-            LoadFrom::Blob {
-                data, ext, hash, ..
-            } => {
-                let entry = self.locks.entry_async(hash.to_string()).await.or_default();
-                let _lock = entry.lock().await;
-
-                let cache_path = self.create_cache_path(id, &hash, &ext, is_latest);
-
-                if !self.is_cached(id, &cache_path)? {
-                    fs::write_file_with_lock(&cache_path, &*data)?;
-                }
-
-                cache_path
-            }
-            LoadFrom::File(path) => path.to_path_buf(),
-            LoadFrom::Url(url) => {
-                let entry = self.locks.entry_async(url.to_string()).await.or_default();
-                let _lock = entry.lock().await;
-
-                let cache_path = self.create_cache_path(
+        // Extract values for caching and loading
+        let (lock_key, cache_path) = match &source {
+            LoadFrom::Blob { ext, hash, .. } => (
+                hash.to_string(),
+                self.create_cache_path(id, hash, ext, is_latest),
+            ),
+            LoadFrom::Url(url) => (
+                url.to_string(),
+                self.create_cache_path(
                     id,
-                    hash_sha256(&*url).as_str(),
-                    determine_cache_extension(&url).unwrap_or(".wasm"),
+                    hash_sha256(url.as_bytes()).as_str(),
+                    determine_cache_extension(url).unwrap_or("wasm"),
                     is_latest,
-                );
-
-                if !self.is_cached(id, &cache_path)? {
-                    self.download_plugin(id, &url, &cache_path).await?;
-                }
-
-                cache_path
+                ),
+            ),
+            // File paths are used as-is and completely ignore the locking and caching system,
+            // as it's assumed the user is managing these themselves
+            LoadFrom::File(path) => {
+                return Ok(path.to_path_buf());
             }
         };
+
+        // Create a lock before checking the cache, so that subsequent requests for
+        // the same plugin will wait for the first one to finish loading, and will
+        // then hit the cache instead of loading again
+        let entry = self.locks.entry_async(lock_key).await.or_default();
+        let _lock = entry.lock().await;
+
+        if !self.is_cached(id, &cache_path)? {
+            self.save_plugin(id, &cache_path, source).await?;
+        }
 
         Ok(cache_path)
     }
@@ -250,11 +243,10 @@ impl PluginLoader {
     /// located in the cached plugins directory.
     pub fn create_cache_path(&self, id: &Id, hash: &str, ext: &str, is_latest: bool) -> PathBuf {
         self.plugins_dir.join(format!(
-            "{}-{}{}.{}",
+            "{}-{}{}.{ext}",
             path::encode_component(id.as_str()),
             if is_latest { "latest-" } else { "" },
             hash,
-            ext.trim_start_matches('.')
         ))
     }
 
@@ -316,33 +308,18 @@ impl PluginLoader {
         self.offline_checker = Some(Arc::new(op));
     }
 
-    #[instrument(skip(self))]
-    async fn download_plugin(
+    #[instrument(skip(self, source))]
+    async fn save_plugin(
         &self,
         id: &Id,
-        source_url: &str,
         dest_file: &Path,
+        source: LoadFrom<'_>,
     ) -> Result<(), WarpgateLoaderError> {
-        if self.is_offline() {
-            return Err(WarpgateLoaderError::RequiredInternetConnection {
-                message: "Unable to download plugin.".into(),
-                url: source_url.to_owned(),
-            });
+        let mut temp_file = self.temp_dir.join(fs::file_name(dest_file));
+
+        if let Some(ext) = source.is_archive() {
+            temp_file.set_extension(ext);
         }
-
-        trace!(
-            id = id.as_str(),
-            from = source_url,
-            to = ?dest_file,
-            "Downloading plugin from URL"
-        );
-
-        // Ensure different URLs with the same file name don't conflict in
-        // the temp directory by hashing the URL into the path
-        let temp_file = self
-            .temp_dir
-            .join(hash_sha256(source_url))
-            .join(extract_file_name_from_url(source_url));
 
         // Do not truncate the file as another process may be writing to it,
         // instead create if missing and then acquire an exclusive lock.
@@ -357,29 +334,63 @@ impl PluginLoader {
         if dest_file.exists() {
             trace!(
                 id = id.as_str(),
-                path = ?dest_file,
-                "Plugin downloaded by another process while waiting for lock, skipping download",
+                to = ?dest_file,
+                "Plugin saved by another process while waiting for lock, skipping",
             );
 
             return Ok(());
         }
 
-        download_from_url_to_file(
-            source_url,
-            &lock.path,
-            DownloadOptions {
-                downloader: Some(Box::new(self.get_http_client()?.create_downloader())),
-                file: Some(lock.file.try_clone().map_err(|error| FsError::Create {
-                    path: lock.path.clone(),
-                    error: Box::new(error),
-                })?),
-                // Don't lock within this function as we locked it above!
-                lock: false,
-                ..Default::default()
-            },
-        )
-        .await?;
+        // Save the plugin to a temporary file first, then move it to the destination, to ensure
+        // atomicity and prevent partially written files in case of failure or multiple processes
+        // trying to acquire the same plugin at the same time.
+        match source {
+            LoadFrom::Blob { data, .. } => {
+                trace!(
+                    id = id.as_str(),
+                    to = ?dest_file,
+                    "Saving plugin from bytes"
+                );
 
+                fs::write_file(&lock.path, &data)?;
+            }
+            LoadFrom::Url(url) => {
+                if self.is_offline() {
+                    return Err(WarpgateLoaderError::RequiredInternetConnection {
+                        message: "Unable to download plugin.".into(),
+                        url: url.to_string(),
+                    });
+                }
+
+                trace!(
+                    id = id.as_str(),
+                    from = ?url,
+                    to = ?dest_file,
+                    "Downloading plugin from URL"
+                );
+
+                download_from_url_to_file(
+                    &url,
+                    &lock.path,
+                    DownloadOptions {
+                        downloader: Some(Box::new(self.get_http_client()?.create_downloader())),
+                        file: Some(lock.file.try_clone().map_err(|error| FsError::Create {
+                            path: lock.path.clone(),
+                            error: Box::new(error),
+                        })?),
+                        // Don't lock within this function as we locked it above!
+                        lock: false,
+                        ..Default::default()
+                    },
+                )
+                .await?;
+            }
+            LoadFrom::File(_) => {
+                unimplemented!();
+            }
+        };
+
+        // If the file is an archive, unpack it, otherwise move it to the destination!
         move_or_unpack_download(&lock.path, dest_file)?;
 
         Ok(())

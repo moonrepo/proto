@@ -43,8 +43,9 @@ impl LoaderProtocol<DataLocator> for DataLoader {
         );
 
         Ok(LoadFrom::Blob {
+            archive: false,
             hash: Cow::Owned(hash_sha256(&*data)),
-            ext: ".wasm".into(),
+            ext: "wasm".into(),
             data,
         })
     }

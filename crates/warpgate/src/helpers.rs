@@ -28,9 +28,9 @@ pub fn hash_sha256<T: AsRef<[u8]>>(value: T) -> String {
 /// Determine the extension to use for a cache file, based on our
 /// list of supported extensions.
 pub fn determine_cache_extension(value: &str) -> Option<&str> {
-    [".toml", ".json", ".jsonc", ".yaml", ".yml", ".wasm", ".txt"]
+    ["toml", "json", "jsonc", "yaml", "yml", "wasm"]
         .into_iter()
-        .find(|ext| value.ends_with(ext))
+        .find(|ext| value.ends_with(&format!(".{ext}")))
 }
 
 /// Attempt to extract a file name from the provided URL,
