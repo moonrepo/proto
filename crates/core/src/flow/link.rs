@@ -103,12 +103,17 @@ impl<'tool> Linker<'tool> {
             }
 
             if !shim.config.primary || shim.name != self.tool.context.id.as_str() {
-                shim_entry.parent = Some(self.tool.context.to_string());
+                shim_entry.context = Some(self.tool.context.clone());
 
                 // Only use --alt when the secondary executable exists
                 if shim.config.exe_path.is_some() {
-                    shim_entry.alt_bin = Some(true);
+                    shim_entry.alt_exe = Some(true);
                 }
+            }
+
+            // Tools that require a backend must always set a context
+            if self.tool.context.backend.is_some() && shim_entry.context.is_none() {
+                shim_entry.context = Some(self.tool.context.clone());
             }
 
             // Create the shim file by copying the source executable

@@ -1,0 +1,15 @@
+name: Build binary
+description: ""
+
+runs:
+  using: composite
+  steps:
+    - uses: moonrepo/setup-rust@v1
+      with:
+        cache: false
+
+    - uses: swatinem/rust-cache@v2
+
+    - id: build
+      run: cargo build --release --bin proto --bin proto-shim
+      shell: bash

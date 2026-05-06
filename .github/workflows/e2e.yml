@@ -1,0 +1,40 @@
+name: E2E
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  suite:
+    name: Suite
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: jlumbroso/free-disk-space@main
+        if: ${{ runner.os == 'Linux' }}
+      - uses: ./.github/actions/build-binary
+      - name: Bootstrap E2E
+        shell: bash
+        run: ./e2e/bootstrap.sh
+      - name: Run E2E
+        shell: bash
+        run: ./e2e/run.sh
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-logs-${{ matrix.os }}
+          path: e2e/.logs/**/*.log

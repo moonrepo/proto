@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+set -euo pipefail
+source "$(dirname "$0")/../lib/env.sh"
+source "$(dirname "$0")/../lib/assert.sh"
+
+install_tool() {
+  tool="$1"
+  version="$2"
+  version_arg="${3:---version}"
+
+  retry 3 proto install "$tool" "$version" --pin local
+  exit_code=$?
+
+  if [ $exit_code -ne 0 ]; then
+    return $exit_code
+  fi
+
+  bin=$(proto bin "$tool")
+  assert_executable "$bin"
+
+  # Bin
+  ver=$("$bin" "$version_arg" 2>&1)
+  assert_contains "$ver" "$version"
+
+  # Shim
+  if [[ "$tool" != "rust" ]]; then
+    ver=$("$tool" "$version_arg" 2>&1)
+    assert_contains "$ver" "$version"
+  fi
+
+  return $exit_code
+}
+
+install_backend() {
+  backend="$1"
+  tool="$2"
+  version="$3"
+  version_arg="${4:---version}"
+
+  retry 3 proto install "$backend:$tool" "$version" --pin local
+  exit_code=$?
+
+  if [ $exit_code -ne 0 ]; then
+    return $exit_code
+  fi
+
+  bin=$(proto bin "$backend:$tool")
+  assert_executable "$bin"
+
+  # Bin
+  ver=$("$bin" "$version_arg" 2>&1)
+  assert_contains "$ver" "$version"
+
+  # Shim
+  ver=$("$tool" "$version_arg" 2>&1)
+  assert_contains "$ver" "$version"
+
+  return $exit_code
+}

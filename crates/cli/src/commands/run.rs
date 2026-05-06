@@ -220,33 +220,33 @@ pub async fn run(session: ProtoSession, mut args: RunArgs) -> AppResult {
             );
 
             let registry = ShimRegistry::load(&session.env.store.shims_dir)?;
-            let mut parent_tool_id: Option<Id> = None;
+            let mut custom_context: Option<ToolContext> = None;
             let mut before_args: Vec<String> = vec![];
             let mut after_args: Vec<String> = vec![];
 
             // Try reading the shims registry
             if let Some(shim_entry) = registry.shims.get(id.as_str())
-                && let Some(parent) = &shim_entry.parent
+                && let Some(context) = &shim_entry.context
             {
                 debug!(
                     bin = id.as_str(),
-                    parent_tool = parent,
+                    context = context.as_str(),
                     "Found {} in shims registry, redirecting to {}",
                     id.as_str(),
-                    parent
+                    context
                 );
 
-                parent_tool_id = Some(Id::raw(parent));
+                custom_context = Some(context.to_owned());
 
                 // Store before/after args from the shim entry
                 before_args = shim_entry.before_args.clone();
                 after_args = shim_entry.after_args.clone();
             }
 
-            if let Some(parent_id) = parent_tool_id {
+            if let Some(context) = custom_context {
                 // Update args to run the parent tool with this bin as an alternate executable
                 args.exe = Some(id.to_string());
-                args.context = ToolContext::new(parent_id);
+                args.context = context;
 
                 // Prepend before_args and append after_args to passthrough
                 let mut new_passthrough = before_args;
