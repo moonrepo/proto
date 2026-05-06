@@ -17,6 +17,12 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- Updated `proto versions` command and `list_tool_versions` MCP tool to support a filter option, which is a version range/requirement, to filter the versions list.
+  - `proto versions node ~24`
+  - `list_tool_versions node --filter ~24`
+
 #### 🐞 Fixes
 
 - Fixed an issue where some tools that require a backend (asdf) would generate broken shims.

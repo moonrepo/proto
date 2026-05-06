@@ -15,8 +15,10 @@ use rmcp::{
     service::RequestContext,
     tool, tool_handler, tool_router,
 };
+use semver::VersionReq;
 use serde_json::json;
 use std::fmt::Display;
+use std::mem;
 
 macro_rules! handle_tool_error {
     ($result:expr) => {
@@ -241,9 +243,18 @@ impl ProtoMcp {
                 .await
         );
 
-        let versions = resolver
-            .data
-            .versions
+        let mut versions = mem::take(&mut resolver.data.versions);
+
+        if let Some(filter) = req.filter {
+            let filter = VersionReq::parse(&filter).map_err(map_parse_error)?;
+
+            versions.retain(|item| {
+                item.as_version()
+                    .is_some_and(|version| filter.matches(version))
+            });
+        }
+
+        let versions = versions
             .into_iter()
             .map(|v| v.to_string())
             .collect::<Vec<_>>();

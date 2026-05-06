@@ -4,6 +4,7 @@ use clap::Args;
 use indexmap::IndexMap;
 use iocraft::prelude::{View, element};
 use proto_core::{ToolContext, ToolSpec, VersionSpec};
+use semver::VersionReq;
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_console::ui::*;
@@ -15,6 +16,9 @@ use tracing::debug;
 pub struct VersionsArgs {
     #[arg(required = true, help = "Tool to list for")]
     context: ToolContext,
+
+    #[arg(help = "Filter versions with the provided requirement")]
+    filter: Option<VersionReq>,
 
     #[arg(long, help = "Include aliases in the output")]
     aliases: bool,
@@ -64,7 +68,7 @@ pub async fn versions(session: ProtoSession, args: VersionsArgs) -> AppResult {
         return Ok(Some(1));
     }
 
-    let versions = tool
+    let mut versions = tool
         .remote_versions
         .iter()
         .filter_map(|version| {
@@ -85,6 +89,14 @@ pub async fn versions(session: ProtoSession, args: VersionsArgs) -> AppResult {
             }
         })
         .collect::<Vec<_>>();
+
+    if let Some(filter) = args.filter {
+        versions.retain(|item| {
+            item.version
+                .as_version()
+                .is_some_and(|version| filter.matches(version))
+        });
+    }
 
     if session.should_print_json() {
         let result = VersionsResult {
