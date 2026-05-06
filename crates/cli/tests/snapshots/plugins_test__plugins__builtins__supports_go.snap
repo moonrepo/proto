@@ -5,7 +5,7 @@ expression: "fs::read_to_string(sandbox.path().join(\".proto/shims/registry.json
 {
   "go": {},
   "gofmt": {
-    "alt_bin": true,
-    "parent": "go"
+    "alt_exe": true,
+    "context": "go"
   }
 }

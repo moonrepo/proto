@@ -49,6 +49,10 @@ pub struct ListToolVersionsRequest {
     /// Include all available versions, otherwise the latest 25.
     #[serde(default)]
     pub all: bool,
+
+    /// Filter versions with the provided requirement.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub filter: Option<String>,
 }
 
 #[derive(Default, JsonSchema, Deserialize, Serialize)]

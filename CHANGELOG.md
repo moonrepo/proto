@@ -15,6 +15,23 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Updated `proto versions` command and `list_tool_versions` MCP tool to support a filter option, which is a version range/requirement, to filter the versions list.
+  - `proto versions node ~24`
+  - `list_tool_versions node --filter ~24`
+
+#### 🐞 Fixes
+
+- Fixed an issue where some tools that require a backend (asdf) would generate broken shims.
+
+#### ⚙️ Internal
+
+- Added extensive E2E tests to catch issues and regressions moving forward. These E2E tests run on the command line, not through Rust's testing framework, to better simulate real world usage and catch issues that unit tests may miss.
+- Updated dependencies.
+
 ## 0.56.4
 
 #### 🚀 Updates

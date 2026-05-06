@@ -1,5 +1,6 @@
 use super::layout_error::ProtoLayoutError;
 use crate::helpers::{read_json_file_with_lock, write_json_file_with_lock};
+use crate::tool_context::ToolContext;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -13,16 +14,14 @@ pub struct Shim {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub after_args: Vec<String>,
 
-    // TODO rename to alt_exe in next version
-    #[serde(skip_serializing_if = "Option::is_none", alias = "alt_exe")]
-    pub alt_bin: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none", alias = "alt_bin")]
+    pub alt_exe: Option<bool>,
 
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub before_args: Vec<String>,
 
-    // TODO rename to context in next version
-    #[serde(skip_serializing_if = "Option::is_none", alias = "context")]
-    pub parent: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", alias = "parent")]
+    pub context: Option<ToolContext>,
 
     #[serde(skip_serializing_if = "FxHashMap::is_empty")]
     pub env_vars: FxHashMap<String, String>,
