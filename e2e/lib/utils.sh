@@ -8,22 +8,30 @@ install_tool() {
   version="$2"
   version_arg="${3:---version}"
 
-  retry 3 proto install "$tool" "$version" --pin local
+  echo "Installing tool $tool $version..."
+
+  retry 3 proto install "$tool" "$version" --pin local --log trace
   exit_code=$?
 
   if [ $exit_code -ne 0 ]; then
     return $exit_code
   fi
 
+  echo "Verifying bin is executable..."
+
   bin=$(proto bin "$tool")
   assert_executable "$bin"
 
   # Bin
+  echo "Verifying bin version..."
+
   ver=$("$bin" "$version_arg" 2>&1)
   assert_contains "$ver" "$version"
 
   # Shim
   if [[ "$tool" != "rust" ]]; then
+    echo "Verifying shim version..."
+
     ver=$("$tool" "$version_arg" 2>&1)
     assert_contains "$ver" "$version"
   fi
@@ -37,21 +45,29 @@ install_backend() {
   version="$3"
   version_arg="${4:---version}"
 
-  retry 3 proto install "$backend:$tool" "$version" --pin local
+  echo "Installing backend tool $backend:$tool $version..."
+
+  retry 3 proto install "$backend:$tool" "$version" --pin local --log trace
   exit_code=$?
 
   if [ $exit_code -ne 0 ]; then
     return $exit_code
   fi
 
+  echo "Verifying bin is executable..."
+
   bin=$(proto bin "$backend:$tool")
   assert_executable "$bin"
 
   # Bin
+  echo "Verifying bin version..."
+
   ver=$("$bin" "$version_arg" 2>&1)
   assert_contains "$ver" "$version"
 
   # Shim
+  echo "Verifying shim version..."
+
   ver=$("$tool" "$version_arg" 2>&1)
   assert_contains "$ver" "$version"
 
