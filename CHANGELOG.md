@@ -17,6 +17,14 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- Added 2 new backends, `cargo` and `npm`, allowing you to install CLIs from their respective registries. Simply prefix the package name with the backend identifier, for example:
+  ```toml
+  "cargo:cargo-dist" = "0.31"
+  "npm:typescript" = "6"
+  ```
+
 #### 🐞 Fixes
 
 - Fixed an issue where some tools that require a backend (asdf) would generate broken shims.
