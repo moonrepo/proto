@@ -3,4 +3,4 @@
 set -euo pipefail
 source "$(dirname "$0")/../lib/utils.sh"
 
-install_backend cargo cargo-dist 0.31
+install_backend cargo:cargo-dist:dist 0.31

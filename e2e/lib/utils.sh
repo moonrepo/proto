@@ -40,10 +40,30 @@ install_tool() {
 }
 
 install_backend() {
-  backend="$1"
-  tool="$2"
-  version="$3"
-  version_arg="${4:---version}"
+  context="$1"
+  version="$2"
+  version_arg="${3:---version}"
+  backend=""
+  tool=""
+  bin_name=""
+
+  export IFS=":"
+  count=0
+  for part in $context; do
+    if [ $count -eq 0 ]; then
+      backend="$part"
+    elif [ $count -eq 1 ]; then
+      tool="$part"
+      bin_name="$part"
+    elif [ $count -eq 2 ]; then
+      bin_name="$part"
+    else
+      echo "Invalid context: $context"
+      exit 1
+    fi
+
+    (( count+=1 ))
+  done
 
   echo "Installing backend tool $backend:$tool $version..."
 
@@ -68,7 +88,7 @@ install_backend() {
   # Shim
   echo "Verifying shim version..."
 
-  ver=$("$tool" "$version_arg" 2>&1)
+  ver=$("$bin_name" "$version_arg" 2>&1)
   assert_contains "$ver" "$version"
 
   return $exit_code

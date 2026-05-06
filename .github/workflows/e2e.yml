@@ -38,3 +38,4 @@ jobs:
         with:
           name: e2e-logs-${{ matrix.os }}
           path: e2e/.logs
+          include-hidden-files: true
