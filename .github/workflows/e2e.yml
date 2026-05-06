@@ -37,4 +37,4 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: e2e-logs-${{ matrix.os }}
-          path: e2e/.logs/**/*.log
+          path: e2e/.logs

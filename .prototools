@@ -5,6 +5,8 @@ unstable-lockfile = true
 
 # [plugins.backends]
 # asdf = "file://../moonrepo/plugins/target/wasm32-wasip1/release/asdf_backend.wasm"
+# cargo = "file://../moonrepo/plugins/target/wasm32-wasip1/release/cargo_backend.wasm"
+# npm = "file://../moonrepo/plugins/target/wasm32-wasip1/release/npm_backend.wasm"
 
 # [plugins.tools]
 # deno-test = "file://../moonrepo/plugins/target/wasm32-wasip1/release/deno_tool.wasm"

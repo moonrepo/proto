@@ -17,7 +17,8 @@ permissions:
 
 jobs:
   build:
-    if: (github.event_name == 'schedule' && github.repository == 'moonrepo/proto') || (github.event_name != 'schedule')
+    if: ${{ (github.event_name == 'schedule' && github.repository ==
+      'moonrepo/proto') || (github.event_name != 'schedule') }}
     strategy:
       fail-fast: false
       matrix:
@@ -52,7 +53,7 @@ jobs:
     name: Stable - ${{ matrix.target }}
     runs-on: ${{ matrix.host }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: moonrepo/setup-rust@v1
         with:
           bins: cargo-release
@@ -79,7 +80,8 @@ jobs:
         with:
           allowUpdates: true
           artifactErrorsFailBuild: true
-          artifacts: proto-${{ matrix.target }}${{ matrix.ext }},proto-shim-${{ matrix.target }}${{ matrix.ext }}
+          artifacts: proto-${{ matrix.target }}${{ matrix.ext }},proto-shim-${{
+            matrix.target }}${{ matrix.ext }}
           body: "This canary release corresponds to the commit [${{ github.sha }}]."
           name: "Canary"
           tag: "canary"
@@ -93,7 +95,8 @@ jobs:
         with:
           allowUpdates: true
           artifactErrorsFailBuild: true
-          artifacts: proto-${{ matrix.target }}${{ matrix.ext }},proto-shim-${{ matrix.target }}${{ matrix.ext }}
+          artifacts: proto-${{ matrix.target }}${{ matrix.ext }},proto-shim-${{
+            matrix.target }}${{ matrix.ext }}
           body: "This nightly release corresponds to the commit [${{ github.sha }}]."
           name: "Nightly"
           tag: "nightly"

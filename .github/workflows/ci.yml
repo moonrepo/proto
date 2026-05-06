@@ -21,7 +21,7 @@ jobs:
     name: Codegen
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: moonrepo/setup-rust@v1
         with:
           cache: false
@@ -31,10 +31,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ ubuntu-latest, windows-latest ]
       fail-fast: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: moonrepo/setup-rust@v1
         with:
           bins: just
@@ -46,10 +46,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ ubuntu-latest, windows-latest ]
       fail-fast: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: moonrepo/setup-rust@v1
         with:
           bins: just
@@ -62,10 +62,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
       fail-fast: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: jlumbroso/free-disk-space@main
         if: ${{ runner.os == 'Linux' }}
       - uses: moonrepo/setup-toolchain@v0
@@ -76,13 +76,10 @@ jobs:
           # cache: ${{ runner.os != 'Linux' }}
           # cache-base: "^(master|develop-)"
           targets: wasm32-wasip1
-      - if: ${{ runner.os != 'Windows' }}
-        run: just build-wasm
+      - run: just build-wasm
         # Windows runs out of disk space
       - if: ${{ runner.os == 'Windows' }}
-        run: |
-          just build-wasm;
-          node .github/actions/delete-target-files.js;
+        run: node .github/actions/delete-target-files.js;
       - run: just test-ci
         env:
           PROTO_DEBUG_COMMAND: 1
@@ -93,10 +90,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
       fail-fast: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: moonrepo/setup-rust@v1
         with:
           bins: cargo-wasi, just
