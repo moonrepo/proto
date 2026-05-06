@@ -15,8 +15,18 @@ mod versions {
 
         // Without stderr
         let output = output_to_string(&assert.inner.get_output().stdout);
+        let length = output.split('\n').collect::<Vec<_>>().len();
 
-        assert!(output.split('\n').collect::<Vec<_>>().len() > 1);
+        // Run again but filtered
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.arg("versions").arg("protostar").arg("~1");
+        });
+
+        // Without stderr
+        let output2 = output_to_string(&assert.inner.get_output().stdout);
+        let length2 = output2.split('\n').collect::<Vec<_>>().len();
+
+        assert_ne!(length, length2);
     }
 
     #[test]
