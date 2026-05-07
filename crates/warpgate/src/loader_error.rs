@@ -139,11 +139,8 @@ pub enum WarpgateLoaderError {
         feature = "miette",
         diagnostic(code(plugin::loader::registry::reference_failure))
     )]
-    #[error(
-        "OCI reference error: {message}. {}",
-        .location.style(Style::Path),
-    )]
-    OCIReferenceError { message: String, location: String },
+    #[error("OCI reference error: {message}")]
+    OCIReferenceError { message: String },
 
     #[cfg_attr(
         feature = "miette",

@@ -7,6 +7,7 @@ pub const WASM_LAYER_MEDIA_TYPE_WASM: &str = "application/wasm";
 pub const WASM_LAYER_MEDIA_TYPE_TOML: &str = "application/toml";
 pub const WASM_LAYER_MEDIA_TYPE_JSON: &str = "application/json";
 pub const WASM_LAYER_MEDIA_TYPE_YAML: &str = "application/yaml";
+pub const WASM_LAYER_MEDIA_TYPE_MARKDOWN: &str = "text/markdown";
 
 pub const WASM_LAYER_MEDIA_TYPE_TAR: &str = "application/vnd.oci.image.layer.v1.tar";
 pub const WASM_LAYER_MEDIA_TYPE_TAR_GZIP: &str = "application/vnd.oci.image.layer.v1.tar+gzip";

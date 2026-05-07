@@ -13,8 +13,16 @@ expression: "fs::read_to_string(sandbox.path().join(\".proto/shims/registry.json
     "alt_exe": true,
     "context": "npm"
   },
+  "pn": {
+    "alt_exe": true,
+    "context": "pnpm"
+  },
   "pnpm": {},
   "pnpx": {
+    "alt_exe": true,
+    "context": "pnpm"
+  },
+  "pnx": {
     "alt_exe": true,
     "context": "pnpm"
   },

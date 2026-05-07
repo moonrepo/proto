@@ -45,6 +45,7 @@ impl OciLoader {
                     WASM_LAYER_MEDIA_TYPE_TOML,
                     WASM_LAYER_MEDIA_TYPE_YAML,
                     WASM_LAYER_MEDIA_TYPE_JSON,
+                    WASM_LAYER_MEDIA_TYPE_MARKDOWN,
                     WASM_LAYER_MEDIA_TYPE_TAR,
                     WASM_LAYER_MEDIA_TYPE_TAR_GZIP,
                     WASM_LAYER_MEDIA_TYPE_TAR_ZSTD,
@@ -157,8 +158,10 @@ impl LoaderProtocol<RegistryLocator> for OciLoader {
         }
 
         Err(WarpgateLoaderError::OCIReferenceError {
-            message: "No valid registry found or no valid layer.".into(),
-            location: locator.image.clone(),
+            message: format!(
+                "No valid registry or valid layer found for {}.",
+                locator.image
+            ),
         })
     }
 }
