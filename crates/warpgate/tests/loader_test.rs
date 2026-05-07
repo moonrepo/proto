@@ -21,7 +21,7 @@ fn create_loader() -> (Sandbox, PluginLoader) {
 
 // Returns the expected cache path for a URL download with id="test".
 fn url_cache_path(loader: &PluginLoader, url: &str) -> PathBuf {
-    loader.create_cache_path(&Id::raw("test"), &hash_sha256(url), ".wasm", false)
+    loader.create_cache_path(&Id::raw("test"), &hash_sha256(url), "wasm", false)
 }
 
 mod loader {

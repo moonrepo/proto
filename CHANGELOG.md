@@ -19,6 +19,9 @@
 
 #### 🚀 Updates
 
+- Added support for `.tar.zst` archives (tar + zstd compression).
+- Updated OCI registry artifacts to support tar archives as a supported media type.
+  - The archive will be downloaded, then unpacked, and searched for a valid WASM file.
 - Updated `proto versions` command and `list_tool_versions` MCP tool to support a filter option, which is a version range/requirement, to filter the versions list.
   - `proto versions node ~24`
   - `list_tool_versions node --filter ~24`
