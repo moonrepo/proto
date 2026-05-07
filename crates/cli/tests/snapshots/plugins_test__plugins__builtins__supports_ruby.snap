@@ -4,20 +4,20 @@ expression: "fs::read_to_string(sandbox.path().join(\".proto/shims/registry.json
 ---
 {
   "bundle": {
-    "alt_bin": true,
-    "parent": "ruby"
+    "alt_exe": true,
+    "context": "ruby"
   },
   "gem": {
-    "alt_bin": true,
-    "parent": "ruby"
+    "alt_exe": true,
+    "context": "ruby"
   },
   "irb": {
-    "alt_bin": true,
-    "parent": "ruby"
+    "alt_exe": true,
+    "context": "ruby"
   },
   "rake": {
-    "alt_bin": true,
-    "parent": "ruby"
+    "alt_exe": true,
+    "context": "ruby"
   },
   "ruby": {}
 }

@@ -268,7 +268,7 @@ mod plugins {
 
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install").arg("node");
+                    cmd.arg("install").arg("node").arg("24");
                 })
                 .success();
 
@@ -279,7 +279,7 @@ mod plugins {
 
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install").arg("npm");
+                    cmd.arg("install").arg("npm").arg("10");
                 })
                 .success();
 
@@ -290,7 +290,7 @@ mod plugins {
 
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install").arg("pnpm");
+                    cmd.arg("install").arg("pnpm").arg("10");
                 })
                 .success();
 
@@ -301,7 +301,7 @@ mod plugins {
 
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install").arg("yarn");
+                    cmd.arg("install").arg("yarn").arg("4");
                 })
                 .success();
 

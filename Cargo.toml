@@ -50,7 +50,7 @@ serde_json = { version = "1.0.49", features = ["preserve_order"] }
 sha2 = "0.10.9"
 shell-words = "1.1.1"
 starbase = { version = "0.11.0" }
-starbase_archive = { version = "0.13.0", features = [
+starbase_archive = { version = "0.13.1", features = [
     "gz",
     "miette",
     "tar-all",
