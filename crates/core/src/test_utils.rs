@@ -79,8 +79,8 @@ pub fn create_shim_command_std<T: AsRef<Path>>(path: T, name: &str) -> std::proc
     let mut cmd = std::process::Command::new(get_shim_path(path, name));
     cmd.env("PROTO_LOG", "trace");
     cmd.env("PROTO_HOME", path.join(".proto"));
-    cmd.env("PROTO_NODE_VERSION", "latest"); // For package managers
-    cmd.env(format!("PROTO_{}_VERSION", name.to_uppercase()), "latest");
+    cmd.env("PROTO_NODE_VERSION", "*"); // For package managers
+    cmd.env(format!("PROTO_{}_VERSION", name.to_uppercase()), "*");
     cmd
 }
 
