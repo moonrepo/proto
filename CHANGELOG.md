@@ -17,6 +17,14 @@
 
 ## Unreleased
 
+#### 💥 Breaking
+
+- If you are using a custom OCI registry that requires authentication, you will now need to set `auth = true` in your settings.
+  ```toml
+  [settings]
+  unstable-registries = [{ registry = "custom.host.com", auth = true }]
+  ```
+
 #### 🚀 Updates
 
 - Added support for `.tar.zst` archives (tar + zstd compression).

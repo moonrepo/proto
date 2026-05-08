@@ -14,20 +14,30 @@ pub const WASM_LAYER_MEDIA_TYPE_TAR_GZIP: &str = "application/vnd.oci.image.laye
 pub const WASM_LAYER_MEDIA_TYPE_TAR_ZSTD: &str = "application/vnd.oci.image.layer.v1.tar+zstd";
 
 /// Configures an individual plugin registry.
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(default, rename_all = "kebab-case")]
 #[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
 pub struct RegistryConfig {
+    // Whether this registry requires authentication or not.
+    // If true, we'll attempt to retrieve credentials from the Docker
+    // config for this registry's host.
+    pub auth: bool,
+
     /// The domain/host of the registry.
     pub registry: String,
 
     /// An optional namespace to bucket the plugin into.
+    /// This is typically the organization or user.
     pub namespace: Option<String>,
 }
 
 impl RegistryConfig {
     /// Return the Docker credential's for the current registry host.
     pub fn get_credential(&self) -> RegistryAuth {
+        if !self.auth {
+            return RegistryAuth::Anonymous;
+        }
+
         match docker_credential::get_credential(&self.registry) {
             Ok(DockerCredential::UsernamePassword(username, password)) => {
                 trace!("Found Docker credentials (username and password)");

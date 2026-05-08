@@ -131,26 +131,46 @@ impl LoaderProtocol<RegistryLocator> for OciLoader {
         locator: &'a RegistryLocator,
         data: &Self::Data,
     ) -> Result<LoadFrom<'a>, WarpgateLoaderError> {
-        trace!(id = id.as_str(), "Scanning and loading from OCI registries");
+        trace!(id = id.as_str(), "Loading from OCI registries");
 
-        // Try the explicit registry first
-        if let Some(registry) = &locator.registry
-            && let Some(from) = self
+        // If the locator has defined a specific registry (and namespace),
+        // attempt to find a matching registry configuration
+        if let Some(host) = &locator.registry {
+            // 1) Search the configs
+            if let Some(registry) = data.iter().find(|registry| {
+                // Matches host (always)
+                host == &registry.registry
+                    // Matches namespace (if specified)
+                    && registry
+                        .namespace
+                        .as_ref()
+                        .is_none_or(|ns| {
+                            locator.namespace.as_ref().is_some_and(|loc_ns| loc_ns == ns)
+                        })
+            }) && let Some(from) = self.pull_image(id, locator, registry, true).await?
+            {
+                return Ok(from);
+            }
+
+            // 2) Use an explicit config
+            if let Some(from) = self
                 .pull_image(
                     id,
                     locator,
                     &RegistryConfig {
-                        registry: registry.to_string(),
+                        auth: true,
+                        registry: host.into(),
                         namespace: locator.namespace.clone(),
                     },
                     false,
                 )
                 .await?
-        {
-            return Ok(from);
+            {
+                return Ok(from);
+            }
         }
 
-        // Then try the configured registries
+        // Then try all the configured registries
         for registry in data {
             if let Some(from) = self.pull_image(id, locator, registry, true).await? {
                 return Ok(from);
@@ -158,10 +178,7 @@ impl LoaderProtocol<RegistryLocator> for OciLoader {
         }
 
         Err(WarpgateLoaderError::OCIReferenceError {
-            message: format!(
-                "No valid registry or valid layer found for {}.",
-                locator.image
-            ),
+            message: format!("No valid registry or layer found for {}.", locator.image),
         })
     }
 }
