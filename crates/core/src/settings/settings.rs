@@ -57,6 +57,7 @@ fn default_builtin_plugins(_context: &()) -> DefaultValueResult<BuiltinPlugins> 
 fn default_registries(_context: &()) -> DefaultValueResult<IndexSet<RegistryConfig>> {
     Ok(Some(IndexSet::from_iter([RegistryConfig {
         auth: false,
+        default: false,
         registry: "ghcr.io".into(),
         namespace: Some("moonrepo".into()),
     }])))

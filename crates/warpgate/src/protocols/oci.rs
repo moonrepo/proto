@@ -159,6 +159,7 @@ impl LoaderProtocol<RegistryLocator> for OciLoader {
                     locator,
                     &RegistryConfig {
                         auth: true,
+                        default: false,
                         registry: host.into(),
                         namespace: locator.namespace.clone(),
                     },

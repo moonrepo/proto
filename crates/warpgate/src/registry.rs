@@ -18,10 +18,15 @@ pub const WASM_LAYER_MEDIA_TYPE_TAR_ZSTD: &str = "application/vnd.oci.image.laye
 #[serde(default, rename_all = "kebab-case")]
 #[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
 pub struct RegistryConfig {
-    // Whether this registry requires authentication or not.
-    // If true, we'll attempt to retrieve credentials from the Docker
-    // config for this registry's host.
+    /// Whether this registry requires authentication or not.
+    /// If true, we'll attempt to retrieve credentials from the Docker
+    /// config for this registry's host.
     pub auth: bool,
+
+    /// Whether this registry should be used as the default when
+    /// no registry is specified in the locator, or when only an
+    /// identifier is provided.
+    pub default: bool,
 
     /// The domain/host of the registry.
     pub registry: String,
