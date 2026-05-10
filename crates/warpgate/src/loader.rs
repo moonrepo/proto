@@ -13,6 +13,7 @@ use starbase_utils::fs::{FileLock, FsError};
 use starbase_utils::net::DownloadOptions;
 use starbase_utils::{fs, path};
 use std::fmt::Debug;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
@@ -352,7 +353,19 @@ impl PluginLoader {
                     "Saving plugin from bytes"
                 );
 
-                fs::write_file(&lock.path, &data)?;
+                // Write through the already-locked file handle. Opening a
+                // separate handle (as `fs::write_file` does) fails on Windows
+                // with ERROR_LOCK_VIOLATION (os error 33) because the
+                // exclusive lock acquired above is mandatory there, unlike
+                // the advisory flock on Unix.
+                fs::truncate_file_handle(&lock.path, &mut lock.file)?;
+
+                lock.file
+                    .write_all(&data)
+                    .map_err(|error| FsError::Write {
+                        path: lock.path.clone(),
+                        error: Box::new(error),
+                    })?;
             }
             LoadFrom::Url(url) => {
                 if self.is_offline() {
