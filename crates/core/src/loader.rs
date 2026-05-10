@@ -90,8 +90,13 @@ pub fn locate_plugin(
 
     // Search in registries
     if locator.is_none()
-        && !config.settings.registries.is_empty()
-        && let Ok(maybe_locator) = PluginLocator::try_from(format!("registry://{id}"))
+        && let Some(registry) = config
+            .settings
+            .registries
+            .iter()
+            .find(|registry| registry.default)
+        && let Ok(maybe_locator) =
+            PluginLocator::try_from(format!("registry://{}", registry.get_reference(id)))
     {
         debug!(
             id = id.as_str(),

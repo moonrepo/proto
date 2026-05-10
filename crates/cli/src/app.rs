@@ -164,6 +164,10 @@ impl App {
                 env::set_var("WARPGATE_DEBUG_COMMAND", value);
             }
 
+            if let Ok(value) = env::var("PROTO_GITHUB_TOKEN") {
+                env::set_var("WARPGATE_GITHUB_TOKEN", value);
+            }
+
             env::set_var(
                 "STARBASE_THEME",
                 match self.theme {
