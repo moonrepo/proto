@@ -26,6 +26,7 @@ install_tool() {
   echo "Verifying bin version..."
 
   ver=$("$bin" "$version_arg" 2>&1)
+  echo "$ver" # Debug
   assert_contains "$ver" "$version"
 
   # Shim
@@ -33,6 +34,7 @@ install_tool() {
     echo "Verifying shim version..."
 
     ver=$("$tool" "$version_arg" 2>&1)
+    echo "$ver" # Debug
     assert_contains "$ver" "$version"
   fi
 
@@ -83,12 +85,14 @@ install_backend() {
   echo "Verifying bin version..."
 
   ver=$("$bin" "$version_arg" 2>&1)
+  echo "$ver" # Debug
   assert_contains "$ver" "$version"
 
   # Shim
   echo "Verifying shim version..."
 
   ver=$("$bin_name" "$version_arg" 2>&1)
+  echo "$ver" # Debug
   assert_contains "$ver" "$version"
 
   return $exit_code
