@@ -161,14 +161,14 @@ impl ProtoConfig {
         if !backends.contains_key("cargo") && is_allowed("cargo") {
             backends.insert(
                 Id::raw("cargo"),
-                find_debug_locator_with_url_fallback("cargo_backend", "0.1.0"),
+                find_debug_locator_with_fallback("cargo_backend", "0.1.0"),
             );
         }
 
         if !backends.contains_key("npm") && is_allowed("npm") {
             backends.insert(
                 Id::raw("npm"),
-                find_debug_locator_with_url_fallback("npm_backend", "0.1.0"),
+                find_debug_locator_with_fallback("npm_backend", "0.1.0"),
             );
         }
 
