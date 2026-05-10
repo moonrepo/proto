@@ -56,6 +56,7 @@ If this turns out not to be true, we'll revert back to the previous implementati
 #### 🐞 Fixes
 
 - Fixed an issue where some tools that require a backend (asdf) would generate broken shims.
+- Fixed an issue where `proto outdated --update` would overwrite aliases.
 
 #### ⚙️ Internal
 

@@ -165,4 +165,20 @@ mod outdated {
                 .contains("3.0.0")
         );
     }
+
+    #[test]
+    fn doesnt_overwrite_aliases() {
+        let sandbox = create_empty_proto_sandbox();
+        sandbox.create_file(".prototools", r#"moonbase = "latest""#);
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("outdated").arg("--update").arg("--yes");
+            })
+            .debug();
+
+        assert_debug_snapshot!(vec![
+            fs::read_to_string(sandbox.path().join(".prototools")).unwrap(),
+        ]);
+    }
 }
