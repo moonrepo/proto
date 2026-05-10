@@ -360,12 +360,10 @@ impl PluginLoader {
                 // the advisory flock on Unix.
                 fs::truncate_file_handle(&lock.path, &mut lock.file)?;
 
-                lock.file
-                    .write_all(&data)
-                    .map_err(|error| FsError::Write {
-                        path: lock.path.clone(),
-                        error: Box::new(error),
-                    })?;
+                lock.file.write_all(&data).map_err(|error| FsError::Write {
+                    path: lock.path.clone(),
+                    error: Box::new(error),
+                })?;
             }
             LoadFrom::Url(url) => {
                 if self.is_offline() {
