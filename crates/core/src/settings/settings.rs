@@ -1,7 +1,7 @@
 use super::{DetectStrategy, PinLocation, merge_iter};
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use rustc_hash::FxHashMap;
-use schematic::{Config, DefaultValueResult, RegexSetting, env, merge};
+use schematic::{Config, DefaultValueResult, RegexSetting, env};
 use serde::{Deserialize, Serialize};
 use system_env::{SystemOS, SystemPackageManager};
 use warpgate::{HttpOptions, RegistryConfig};
@@ -54,6 +54,15 @@ fn default_builtin_plugins(_context: &()) -> DefaultValueResult<BuiltinPlugins> 
     Ok(Some(BuiltinPlugins::Enabled(true)))
 }
 
+fn default_registries(_context: &()) -> DefaultValueResult<IndexSet<RegistryConfig>> {
+    Ok(Some(IndexSet::from_iter([RegistryConfig {
+        auth: false,
+        default: false,
+        registry: "ghcr.io".into(),
+        namespace: Some("moonrepo".into()),
+    }])))
+}
+
 // `[settings]`
 #[derive(Clone, Config, Debug, Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -88,9 +97,12 @@ pub struct ProtoSettingsConfig {
     #[setting(env = "PROTO_PIN_LATEST")]
     pub pin_latest: Option<PinLocation>,
 
-    #[serde(alias = "unstable-registries", skip_serializing_if = "Vec::is_empty")]
-    #[setting(merge = merge::append_vec)]
-    pub registries: Vec<RegistryConfig>,
+    #[serde(
+        alias = "unstable-registries",
+        skip_serializing_if = "IndexSet::is_empty"
+    )]
+    #[setting(default = default_registries, merge = merge_iter)]
+    pub registries: IndexSet<RegistryConfig>,
 
     #[setting(default = true, env = "PROTO_TELEMETRY", parse_env = env::parse_bool)]
     pub telemetry: bool,

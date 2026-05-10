@@ -105,7 +105,7 @@ impl ProtoEnvironment {
 
             loader.set_http_client_options(&options);
             loader.set_offline_checker(is_offline);
-            loader.add_registries(config.settings.registries.clone());
+            loader.add_registries(config.settings.registries.iter().cloned().collect());
 
             Ok(loader)
         })

@@ -17,9 +17,31 @@
 
 ## Unreleased
 
+#### 🎉 Release
+
+In an effort to combat GitHub's flakiness when downloading plugins, we're migrating from raw URLs to referencing OCI artifacts in ghcr.io / GitHub Packages (also known as GitHub Container Registry). Yeah we know, we're still using GitHub, but we want to experiment with this, and verify that ghcr.io is more reliable and stable than the raw file CDN.
+
+If this turns out not to be true, we'll revert back to the previous implementation and look into other alternatives.
+
+#### 💥 Breaking
+
+- If you are using a custom OCI registry that requires authentication, you will now need to set `auth = true` in your settings.
+  ```toml
+  [settings]
+  unstable-registries = [{ registry = "custom.host.com", auth = true }]
+  ```
+- If you are using a custom OCI registry as the fallback for unknown plugin identifiers, you will now need to set `default = true` in your settings.
+  ```toml
+  [settings]
+  unstable-registries = [{ registry = "custom.host.com", default = true }]
+  ```
+
 #### 🚀 Updates
 
 - Added support for `.tar.zst` archives (tar + zstd compression).
+- Added `auth` and `default` options to the `settings.unstable-registries` configuration entries.
+  - `auth` indicates whether the registry requires authentication or not. If true, we'll attempt to retrieve credentials from the Docker config for this registry's host.
+  - `default` indicates whether this registry should be used as the default when no registry is specified in the locator, or when only an identifier is provided.
 - Updated OCI registry artifacts to support tar archives as a supported media type.
   - The archive will be downloaded, then unpacked, and searched for a valid WASM file.
 - Updated `proto versions` command and `list_tool_versions` MCP tool to support a filter option, which is a version range/requirement, to filter the versions list.
