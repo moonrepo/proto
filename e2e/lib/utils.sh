@@ -32,6 +32,8 @@ install_tool() {
 
   # Shim
   if [[ "$tool" != "rust" ]]; then
+    export PROTO_DEBUG_SHIM=1;
+
     echo "Verifying shim is executable..."
 
     shim=$(command -v "$tool")
@@ -43,6 +45,8 @@ install_tool() {
     ver=$("$tool" "$version_arg" 2>&1)
     echo "  $ver" # Debug
     assert_contains "$ver" "$version"
+
+    unset PROTO_DEBUG_SHIM
   fi
 
   return $exit_code
@@ -97,6 +101,8 @@ install_backend() {
   assert_contains "$ver" "$version"
 
   # Shim
+  export PROTO_DEBUG_SHIM=1;
+
   echo "Verifying shim is executable..."
 
   shim=$(command -v "$bin_name")
@@ -108,6 +114,8 @@ install_backend() {
   ver=$("$bin_name" "$version_arg" 2>&1)
   echo "  $ver" # Debug
   assert_contains "$ver" "$version"
+
+  unset PROTO_DEBUG_SHIM
 
   return $exit_code
 }
