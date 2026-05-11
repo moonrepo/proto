@@ -531,11 +531,18 @@ impl<'tool> Installer<'tool> {
             }
         }
 
-        // Verify the primary binary exists after installation.
-        // Without this check, a silently failed extraction (wrong archive prefix,
-        // corrupted download, platform-specific unpack issue) would be reported as
-        // a successful install, only to fail later when the linker or shim tries to
-        // locate the binary. Fail fast here with an actionable error.
+        self.verify_primary_binary().await?;
+
+        Ok(record)
+    }
+
+    /// Verify the primary binary exists after installation.
+    ///
+    /// Without this check, a silently failed extraction (wrong archive prefix,
+    /// corrupted download, platform-specific unpack issue) would be reported as
+    /// a successful install, only to fail later when the linker or shim tries to
+    /// locate the binary. Fail fast here with an actionable error.
+    pub async fn verify_primary_binary(&self) -> Result<(), ProtoInstallError> {
         let locate_output: LocateExecutablesOutput = self
             .tool
             .plugin
@@ -571,7 +578,7 @@ impl<'tool> Installer<'tool> {
             }
         }
 
-        Ok(record)
+        Ok(())
     }
 
     /// Uninstall the tool by deleting the current install directory.
