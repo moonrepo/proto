@@ -53,6 +53,7 @@ If this turns out not to be true, we'll revert back to the previous implementati
 - Updated `proto versions` command and `list_tool_versions` MCP tool to support a filter option, which is a version range/requirement, to filter the versions list.
   - `proto versions node ~24`
   - `list_tool_versions node --filter ~24`
+- Updated the [`moonrepo/build-wasm-plugin`](https://github.com/moonrepo/build-wasm-plugin) GitHub action to support publishing to ghcr.io.
 
 #### 🐞 Fixes
 
