@@ -266,9 +266,11 @@ mod plugins {
         fn supports_node_and_package_managers() {
             let sandbox = create_empty_proto_sandbox();
 
+            // Pin Node to 22 (LTS) — pnpm 11+ requires Node >= 22.13 and
+            // will crash with ERR_UNKNOWN_BUILTIN_MODULE if run on Node 20.
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install").arg("node");
+                    cmd.arg("install").arg("node").arg("22");
                 })
                 .success();
 

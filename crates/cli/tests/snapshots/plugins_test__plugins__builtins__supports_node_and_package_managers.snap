@@ -13,8 +13,16 @@ expression: "fs::read_to_string(sandbox.path().join(\".proto/shims/registry.json
     "alt_bin": true,
     "parent": "npm"
   },
+  "pn": {
+    "alt_bin": true,
+    "parent": "pnpm"
+  },
   "pnpm": {},
   "pnpx": {
+    "alt_bin": true,
+    "parent": "pnpm"
+  },
+  "pnx": {
     "alt_bin": true,
     "parent": "pnpm"
   },

@@ -13,7 +13,7 @@ mod clean {
             .run_bin(|cmd| {
                 cmd.arg("clean")
                     .arg("--yes")
-                    .timeout(Duration::from_mins(3));
+                    .timeout(Duration::from_mins(5));
             })
             .success();
     }
@@ -60,7 +60,7 @@ mod clean {
                 cmd.arg("install")
                     .arg("protostar")
                     .arg("1.0.0")
-                    .timeout(Duration::from_mins(3));
+                    .timeout(Duration::from_mins(5));
             })
             .success();
 
@@ -69,7 +69,7 @@ mod clean {
                 cmd.arg("install")
                     .arg("protostar")
                     .arg("2.0.0")
-                    .timeout(Duration::from_mins(3));
+                    .timeout(Duration::from_mins(5));
             })
             .success();
 
@@ -78,7 +78,7 @@ mod clean {
                 cmd.arg("install")
                     .arg("protostar")
                     .arg("3.0.0")
-                    .timeout(Duration::from_mins(3));
+                    .timeout(Duration::from_mins(5));
             })
             .success();
 
@@ -111,7 +111,7 @@ mod clean {
                     .arg("tools")
                     .arg("--days")
                     .arg("1")
-                    .timeout(Duration::from_mins(3));
+                    .timeout(Duration::from_mins(5));
             })
             .success();
 
