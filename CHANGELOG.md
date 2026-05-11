@@ -35,6 +35,7 @@ If this turns out not to be true, we'll revert back to the previous implementati
   [settings]
   unstable-registries = [{ registry = "custom.host.com", default = true }]
   ```
+- When installing a tool for the first time, we no longer pin the version to the global `~/.proto/.prototools` config.
 
 #### 🚀 Updates
 
