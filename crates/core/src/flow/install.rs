@@ -549,14 +549,24 @@ impl<'tool> Installer<'tool> {
             .await?;
 
         if let Some(primary_config) = locate_output.exes.values().find(|c| c.primary) {
-            if let Some(exe_path) = &primary_config.exe_path {
-                let expected = self.product_dir.join(path::normalize_separators(exe_path));
+            // Only verify tools that produce a real binary (no_bin = false).
+            // Tools like npm/pnpm/yarn set no_bin because they're JS scripts
+            // run via a parent executable (node) — their exe_path may not
+            // point to a standalone binary on disk.
+            if !primary_config.no_bin {
+                if let Some(exe_path) = primary_config
+                    .exe_link_path
+                    .as_ref()
+                    .or(primary_config.exe_path.as_ref())
+                {
+                    let expected = self.product_dir.join(path::normalize_separators(exe_path));
 
-                if !expected.exists() {
-                    return Err(ProtoInstallError::MissingBinaryAfterInstall {
-                        tool: self.tool.context.to_string(),
-                        expected_path: expected,
-                    });
+                    if !expected.exists() {
+                        return Err(ProtoInstallError::MissingBinaryAfterInstall {
+                            tool: self.tool.context.to_string(),
+                            expected_path: expected,
+                        });
+                    }
                 }
             }
         }
