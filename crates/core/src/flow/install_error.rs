@@ -1,4 +1,5 @@
 use super::build_error::ProtoBuildError;
+use super::locate_error::ProtoLocateError;
 use super::lock_error::ProtoLockError;
 use crate::checksum::ProtoChecksumError;
 use crate::config_error::ProtoConfigError;
@@ -32,6 +33,10 @@ pub enum ProtoInstallError {
     #[diagnostic(transparent)]
     #[error(transparent)]
     Fs(#[from] Box<FsError>),
+
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Locate(#[from] Box<ProtoLocateError>),
 
     #[diagnostic(transparent)]
     #[error(transparent)]
@@ -70,17 +75,6 @@ pub enum ProtoInstallError {
     InvalidChecksum {
         checksum: PathBuf,
         download: PathBuf,
-    },
-
-    #[diagnostic(code(proto::install::missing_binary))]
-    #[error(
-        "Installation of {tool} completed but the expected binary {} does not exist. The archive may have failed to extract correctly, or the download may be corrupt. Try running {} to re-install.",
-        .expected_path.style(Style::Path),
-        "proto install --force".style(Style::Shell),
-    )]
-    MissingBinaryAfterInstall {
-        tool: String,
-        expected_path: PathBuf,
     },
 
     #[diagnostic(code(proto::install::prebuilt_unsupported))]
@@ -129,6 +123,12 @@ impl From<ProtoConfigError> for ProtoInstallError {
 impl From<FsError> for ProtoInstallError {
     fn from(e: FsError) -> ProtoInstallError {
         ProtoInstallError::Fs(Box::new(e))
+    }
+}
+
+impl From<ProtoLocateError> for ProtoInstallError {
+    fn from(e: ProtoLocateError) -> ProtoInstallError {
+        ProtoInstallError::Locate(Box::new(e))
     }
 }
 

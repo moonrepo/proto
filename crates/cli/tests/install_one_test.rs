@@ -839,7 +839,7 @@ mod install_one {
             })
             .failure();
 
-        assert.stderr(predicate::str::contains("does not exist"));
+        assert.stderr(predicate::str::contains("Unable to find an executable"));
     }
 
     mod manifest_lockfile {

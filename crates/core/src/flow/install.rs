@@ -3,6 +3,7 @@ pub use super::build_error::ProtoBuildError;
 pub use super::install_error::ProtoInstallError;
 use crate::checksum::*;
 use crate::env::ProtoConsole;
+use crate::flow::locate::Locator;
 use crate::flow::lock::Locker;
 use crate::helpers::{is_archive_file, is_offline};
 use crate::lockfile::*;
@@ -531,54 +532,16 @@ impl<'tool> Installer<'tool> {
             }
         }
 
-        self.verify_primary_binary().await?;
-
-        Ok(record)
-    }
-
-    /// Verify the primary binary exists after installation.
-    ///
-    /// Without this check, a silently failed extraction (wrong archive prefix,
-    /// corrupted download, platform-specific unpack issue) would be reported as
-    /// a successful install, only to fail later when the linker or shim tries to
-    /// locate the binary. Fail fast here with an actionable error.
-    pub async fn verify_primary_binary(&self) -> Result<(), ProtoInstallError> {
-        let locate_output: LocateExecutablesOutput = self
-            .tool
-            .plugin
-            .cache_func_with(
-                PluginFunction::LocateExecutables,
-                LocateExecutablesInput {
-                    context: self.tool.create_plugin_context(self.spec),
-                    install_dir: self.tool.to_virtual_path(&self.product_dir),
-                },
-            )
+        // Verify the primary binary exists after installation.
+        // Without this check, a silently failed extraction (wrong archive
+        // prefix, corrupted download, platform-specific unpack issue) would be
+        // reported as a successful install, only to fail later when the linker
+        // or shim tries to locate the binary. Fail fast with an actionable error.
+        Locator::new(self.tool, self.spec)
+            .locate_exe_file()
             .await?;
 
-        if let Some(primary_config) = locate_output.exes.values().find(|c| c.primary) {
-            // Only verify tools that produce a real binary (no_bin = false).
-            // Tools like npm/pnpm/yarn set no_bin because they're JS scripts
-            // run via a parent executable (node) — their exe_path may not
-            // point to a standalone binary on disk.
-            if !primary_config.no_bin {
-                if let Some(exe_path) = primary_config
-                    .exe_link_path
-                    .as_ref()
-                    .or(primary_config.exe_path.as_ref())
-                {
-                    let expected = self.product_dir.join(path::normalize_separators(exe_path));
-
-                    if !expected.exists() {
-                        return Err(ProtoInstallError::MissingBinaryAfterInstall {
-                            tool: self.tool.context.to_string(),
-                            expected_path: expected,
-                        });
-                    }
-                }
-            }
-        }
-
-        Ok(())
+        Ok(record)
     }
 
     /// Uninstall the tool by deleting the current install directory.
