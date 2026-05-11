@@ -550,9 +550,7 @@ impl<'tool> Installer<'tool> {
 
         if let Some(primary_config) = locate_output.exes.values().find(|c| c.primary) {
             if let Some(exe_path) = &primary_config.exe_path {
-                let expected = self
-                    .product_dir
-                    .join(path::normalize_separators(exe_path));
+                let expected = self.product_dir.join(path::normalize_separators(exe_path));
 
                 if !expected.exists() {
                     return Err(ProtoInstallError::MissingBinaryAfterInstall {
