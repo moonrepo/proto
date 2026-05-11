@@ -17,24 +17,31 @@ install_tool() {
     return $exit_code
   fi
 
+  # Bin
   echo "Verifying bin is executable..."
 
   bin=$(proto bin "$tool")
+  echo "  $bin" # Debug
   assert_executable "$bin"
 
-  # Bin
   echo "Verifying bin version..."
 
   ver=$("$bin" "$version_arg" 2>&1)
-  echo "$ver" # Debug
+  echo "  $ver" # Debug
   assert_contains "$ver" "$version"
 
   # Shim
   if [[ "$tool" != "rust" ]]; then
+    echo "Verifying shim is executable..."
+
+    shim=$(command -v "$tool")
+    echo "  $shim" # Debug
+    assert_executable "$shim"
+
     echo "Verifying shim version..."
 
     ver=$("$tool" "$version_arg" 2>&1)
-    echo "$ver" # Debug
+    echo "  $ver" # Debug
     assert_contains "$ver" "$version"
   fi
 
@@ -76,23 +83,30 @@ install_backend() {
     return $exit_code
   fi
 
+  # Bin
   echo "Verifying bin is executable..."
 
   bin=$(proto bin "$backend:$tool")
+  echo "  $bin" # Debug
   assert_executable "$bin"
 
-  # Bin
   echo "Verifying bin version..."
 
   ver=$("$bin" "$version_arg" 2>&1)
-  echo "$ver" # Debug
+  echo "  $ver" # Debug
   assert_contains "$ver" "$version"
 
   # Shim
+  echo "Verifying shim is executable..."
+
+  shim=$(command -v "$bin_name")
+  echo "  $shim" # Debug
+  assert_executable "$shim"
+
   echo "Verifying shim version..."
 
   ver=$("$bin_name" "$version_arg" 2>&1)
-  echo "$ver" # Debug
+  echo "  $ver" # Debug
   assert_contains "$ver" "$version"
 
   return $exit_code
