@@ -6,6 +6,7 @@ use proto_shim::{exec_command_and_replace, locate_proto_exe};
 use rust_json::{JsonElem as Json, json_parse};
 use std::collections::HashMap;
 use std::ffi::OsString;
+use std::io::Write;
 use std::path::PathBuf;
 use std::process::Command;
 use std::sync::OnceLock;
@@ -19,7 +20,7 @@ static DEBUG: OnceLock<bool> = OnceLock::new();
 macro_rules! debug {
     ($($arg:tt)*) => {
         if *DEBUG.get_or_init(|| env::var("PROTO_DEBUG_SHIM").is_ok()) {
-            println!($($arg)*);
+            eprintln!($($arg)*);
         }
     };
 }
@@ -236,6 +237,12 @@ pub fn main() -> Result<()> {
 
     debug!("Executing proto command");
     debug!("This will replace the current process and stop debugging!");
+
+    // Ensure any buffered debug output reaches the captured stream before
+    // exec_command_and_replace takes over the process (Unix) or before the
+    // shim process exits with the child's status (Windows). Without this,
+    // diagnostics get stranded in the buffer and the log is silent on failures.
+    let _ = std::io::stderr().flush();
 
     // On success, this replaces the current process or exits.
     match exec_command_and_replace(command) {

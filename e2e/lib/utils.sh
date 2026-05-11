@@ -26,8 +26,11 @@ install_tool() {
 
   echo "Verifying bin version..."
 
-  ver=$("$bin" "$version_arg" 2>&1)
+  bin_rc=0
+  ver=$("$bin" "$version_arg" 2>&1) || bin_rc=$?
+  echo "  exit=$bin_rc"
   echo "  $ver" # Debug
+  [[ $bin_rc -eq 0 ]] || fail "bin '$bin' exited $bin_rc"
   assert_contains "$ver" "$version"
 
   # Shim
@@ -42,8 +45,11 @@ install_tool() {
 
     echo "Verifying shim version..."
 
-    ver=$("$tool" "$version_arg" 2>&1)
+    shim_rc=0
+    ver=$("$tool" "$version_arg" 2>&1) || shim_rc=$?
+    echo "  exit=$shim_rc"
     echo "  $ver" # Debug
+    [[ $shim_rc -eq 0 ]] || fail "shim '$tool' exited $shim_rc"
     assert_contains "$ver" "$version"
 
     unset PROTO_DEBUG_SHIM
@@ -96,8 +102,11 @@ install_backend() {
 
   echo "Verifying bin version..."
 
-  ver=$("$bin" "$version_arg" 2>&1)
+  bin_rc=0
+  ver=$("$bin" "$version_arg" 2>&1) || bin_rc=$?
+  echo "  exit=$bin_rc"
   echo "  $ver" # Debug
+  [[ $bin_rc -eq 0 ]] || fail "bin '$bin' exited $bin_rc"
   assert_contains "$ver" "$version"
 
   # Shim
@@ -111,8 +120,11 @@ install_backend() {
 
   echo "Verifying shim version..."
 
-  ver=$("$bin_name" "$version_arg" 2>&1)
+  shim_rc=0
+  ver=$("$bin_name" "$version_arg" 2>&1) || shim_rc=$?
+  echo "  exit=$shim_rc"
   echo "  $ver" # Debug
+  [[ $shim_rc -eq 0 ]] || fail "shim '$bin_name' exited $shim_rc"
   assert_contains "$ver" "$version"
 
   unset PROTO_DEBUG_SHIM
