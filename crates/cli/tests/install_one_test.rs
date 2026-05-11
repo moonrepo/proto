@@ -829,13 +829,13 @@ mod install_one {
     fn errors_when_primary_binary_missing_after_install() {
         let sandbox = create_empty_proto_sandbox();
 
-        // Version 0.0.1 triggers the mocked tool's "broken install" mode:
+        // Version 1.0.1 triggers the mocked tool's "broken install" mode:
         // native_install creates secondary executables but skips the primary
         // binary, simulating a failed archive extraction where the binary
         // was never written to disk.
         let assert = sandbox
             .run_bin(|cmd| {
-                cmd.arg("install").arg("protostar").arg("0.0.1");
+                cmd.arg("install").arg("protostar").arg("1.0.1");
             })
             .failure();
 

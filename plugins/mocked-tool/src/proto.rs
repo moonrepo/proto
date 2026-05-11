@@ -187,10 +187,10 @@ pub fn native_install(
         return Err(plugin_err!("Invalid version {version}"));
     }
 
-    // When version 0.0.1 is requested, simulate a broken install where the
+    // When version 1.0.1 is requested, simulate a broken install where the
     // primary binary is never written to disk (e.g., failed archive extraction).
     // This lets us test the post-install binary verification check.
-    let skip_primary = version.as_version().is_some_and(|v| v.major == 0 && v.minor == 0 && v.patch == 1);
+    let skip_primary = version.as_version().is_some_and(|v| v.major == 1 && v.minor == 0 && v.patch == 1);
 
     if !skip_primary {
         // Create the primary executable
