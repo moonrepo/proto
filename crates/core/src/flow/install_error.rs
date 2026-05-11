@@ -72,6 +72,17 @@ pub enum ProtoInstallError {
         download: PathBuf,
     },
 
+    #[diagnostic(code(proto::install::missing_binary))]
+    #[error(
+        "Installation of {tool} completed but the expected binary {} does not exist. The archive may have failed to extract correctly, or the download may be corrupt. Try running {} to re-install.",
+        .expected_path.style(Style::Path),
+        "proto install --force".style(Style::Shell),
+    )]
+    MissingBinaryAfterInstall {
+        tool: String,
+        expected_path: PathBuf,
+    },
+
     #[diagnostic(code(proto::install::prebuilt_unsupported))]
     #[error("Downloading a pre-built is not supported for {tool}. Try building from source by passing {}.", "--build".style(Style::Shell))]
     UnsupportedDownloadPrebuilt { tool: String },

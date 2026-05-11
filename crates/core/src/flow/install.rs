@@ -531,6 +531,38 @@ impl<'tool> Installer<'tool> {
             }
         }
 
+        // Verify the primary binary exists after installation.
+        // Without this check, a silently failed extraction (wrong archive prefix,
+        // corrupted download, platform-specific unpack issue) would be reported as
+        // a successful install, only to fail later when the linker or shim tries to
+        // locate the binary. Fail fast here with an actionable error.
+        let locate_output: LocateExecutablesOutput = self
+            .tool
+            .plugin
+            .cache_func_with(
+                PluginFunction::LocateExecutables,
+                LocateExecutablesInput {
+                    context: self.tool.create_plugin_context(self.spec),
+                    install_dir: self.tool.to_virtual_path(&self.product_dir),
+                },
+            )
+            .await?;
+
+        if let Some(primary_config) = locate_output.exes.values().find(|c| c.primary) {
+            if let Some(exe_path) = &primary_config.exe_path {
+                let expected = self
+                    .product_dir
+                    .join(path::normalize_separators(exe_path));
+
+                if !expected.exists() {
+                    return Err(ProtoInstallError::MissingBinaryAfterInstall {
+                        tool: self.tool.context.to_string(),
+                        expected_path: expected,
+                    });
+                }
+            }
+        }
+
         Ok(record)
     }
 
