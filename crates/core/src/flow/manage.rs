@@ -1,6 +1,4 @@
 pub use super::manage_error::ProtoManageError;
-use crate::cfg;
-use crate::config::{PinLocation, ProtoConfig};
 use crate::flow::install::{InstallOptions, Installer, ProtoInstallError};
 use crate::flow::link::Linker;
 use crate::flow::locate::Locator;
@@ -68,22 +66,6 @@ impl<'tool> Manager<'tool> {
             },
         );
 
-        // Pin the global version
-        ProtoConfig::update_document(self.tool.proto.get_config_dir(PinLocation::Global), |doc| {
-            if !doc.contains_key(self.tool.get_id()) {
-                doc[self.tool.context.as_str()] = cfg::value(
-                    ToolSpec::new(
-                        self.tool
-                            .metadata
-                            .default_version
-                            .clone()
-                            .unwrap_or_else(|| version.to_unresolved_spec()),
-                    )
-                    .to_string(),
-                );
-            }
-        })?;
-
         self.post_install(spec, true).await?;
 
         Ok(Some(record))
@@ -142,19 +124,6 @@ impl<'tool> Manager<'tool> {
                 proto.store.unlink_bin(&bin.path)?;
             }
         }
-
-        // Unpin global version if a match
-        ProtoConfig::update_document(proto.get_config_dir(PinLocation::Global), |doc| {
-            if doc
-                .get(self.tool.context.as_str())
-                .and_then(|item| item.as_str())
-                .is_some_and(|v| version == v)
-            {
-                debug!("Unpinning global version");
-
-                doc.as_table_mut().remove(self.tool.context.as_str());
-            }
-        })?;
 
         // We must do this last because the location resolves above
         // require `installed_versions` to have values!

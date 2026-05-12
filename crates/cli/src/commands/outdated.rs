@@ -33,7 +33,7 @@ pub struct OutdatedArgs {
     update: bool,
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub struct OutdatedItem {
     is_latest: bool,
     is_outdated: bool,
@@ -272,6 +272,14 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
                     color::file(PROTO_CONFIG_NAME),
                 );
 
+                continue;
+            }
+
+            // Don't update aliases, only semantic or calendar versions
+            if matches!(
+                item.config_version.req,
+                UnresolvedVersionSpec::Canary | UnresolvedVersionSpec::Alias(_)
+            ) {
                 continue;
             }
 
