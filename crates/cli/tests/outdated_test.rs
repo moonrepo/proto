@@ -175,7 +175,7 @@ mod outdated {
             .run_bin(|cmd| {
                 cmd.arg("outdated").arg("--update").arg("--yes");
             })
-            .debug();
+            .success();
 
         assert_debug_snapshot!(vec![
             fs::read_to_string(sandbox.path().join(".prototools")).unwrap(),

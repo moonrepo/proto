@@ -268,7 +268,11 @@ mod plugins {
 
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install").arg("node").arg("24");
+                    cmd.arg("install")
+                        .arg("node")
+                        .arg("24")
+                        .arg("--pin")
+                        .arg("local");
                 })
                 .success();
 
@@ -342,7 +346,11 @@ mod plugins {
 
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install").arg("python").arg("3.12.0");
+                    cmd.arg("install")
+                        .arg("python")
+                        .arg("3.12.0")
+                        .arg("--pin")
+                        .arg("local");
                 })
                 .success();
 

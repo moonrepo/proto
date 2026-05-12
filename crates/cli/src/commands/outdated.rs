@@ -276,7 +276,7 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
             }
 
             // Don't update aliases, only semantic or calendar versions
-            if matches!(
+            if !matches!(
                 item.config_version.req,
                 UnresolvedVersionSpec::Semantic(_) | UnresolvedVersionSpec::Calendar(_)
             ) {
