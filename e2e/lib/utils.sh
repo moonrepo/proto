@@ -3,79 +3,25 @@ set -euo pipefail
 source "$(dirname "$0")/../lib/env.sh"
 source "$(dirname "$0")/../lib/assert.sh"
 
-install_tool() {
-  tool="$1"
-  version="$2"
-  version_arg="${3:---version}"
-
-  echo "Installing tool $tool $version..."
-
-  retry 3 proto install "$tool" "$version" --pin local --log trace
-  exit_code=$?
-
-  if [ $exit_code -ne 0 ]; then
-    return $exit_code
-  fi
-
-  # Bin
-  echo "Verifying bin is executable..."
-
-  bin=$(proto bin "$tool")
-  echo "  $bin" # Debug
-  assert_executable "$bin"
-
-  echo "Verifying bin version..."
-
-  bin_rc=0
-  ver=$("$bin" "$version_arg" 2>&1) || bin_rc=$?
-  echo "  exit=$bin_rc"
-  echo "  $ver" # Debug
-  [[ $bin_rc -eq 0 ]] || fail "bin '$bin' exited $bin_rc"
-  assert_contains "$ver" "$version"
-
-  # Shim
-  if [[ "$tool" != "rust" ]]; then
-    export PROTO_DEBUG_SHIM=1;
-
-    echo "Verifying shim is executable..."
-
-    shim=$(command -v "$tool")
-    echo "  $shim" # Debug
-    assert_executable "$shim"
-
-    echo "Verifying shim version..."
-
-    shim_rc=0
-    ver=$("$tool" "$version_arg" 2>&1) || shim_rc=$?
-    echo "  exit=$shim_rc"
-    echo "  $ver" # Debug
-    [[ $shim_rc -eq 0 ]] || fail "shim '$tool' exited $shim_rc"
-    assert_contains "$ver" "$version"
-
-    unset PROTO_DEBUG_SHIM
-  fi
-
-  return $exit_code
-}
-
-install_backend() {
-  context="$1"
-  version="$2"
-  version_arg="${3:---version}"
-  backend=""
-  tool=""
-  bin_name=""
+parse_context() {
+  local context="$1"
+  local backend=""
+  local tool=""
+  local exe=""
 
   export IFS=":"
-  count=0
+  local count=0
+
   for part in $context; do
     if [ $count -eq 0 ]; then
       backend="$part"
+      tool="$part"
+      exe="$part"
     elif [ $count -eq 1 ]; then
       tool="$part"
-      bin_name="$part"
+      exe="$part"
     elif [ $count -eq 2 ]; then
-      bin_name="$part"
+      exe="$part"
     else
       echo "Invalid context: $context"
       exit 1
@@ -84,50 +30,140 @@ install_backend() {
     (( count+=1 ))
   done
 
-  echo "Installing backend tool $backend:$tool $version..."
-
-  retry 3 proto install "$backend:$tool" "$version" --pin local --log trace
-  exit_code=$?
-
-  if [ $exit_code -ne 0 ]; then
-    return $exit_code
+  if [[ $count -eq 1 ]]; then
+    echo "$tool" "$exe"
+  else
+    echo "$backend:$tool" "$exe"
   fi
+}
 
-  # Bin
+test_bin() {
+  local id="$1"
+  local version="$2"
+  local version_arg="$3"
+  local context=""
+  local exe_name=""
+
+  read -r context exe_name <<< $(parse_context "$id")
+
   echo "Verifying bin is executable..."
 
-  bin=$(proto bin "$backend:$tool")
-  echo "  $bin" # Debug
+  local bin, bin_rc
+  bin=$(proto bin "$context")
+  bin_rc=$?
+
+  echo "  exit=$bin_rc"
+  echo "  path=$bin"
+
+  if [[ $bin_rc -ne 0 ]]; then
+    fail "bin '$bin' exited $bin_rc"
+  fi
+
   assert_executable "$bin"
 
   echo "Verifying bin version..."
 
-  bin_rc=0
-  ver=$("$bin" "$version_arg" 2>&1) || bin_rc=$?
-  echo "  exit=$bin_rc"
-  echo "  $ver" # Debug
-  [[ $bin_rc -eq 0 ]] || fail "bin '$bin' exited $bin_rc"
-  assert_contains "$ver" "$version"
+  local ver, bin_rc
+  ver=$("$bin" "$version_arg" 2>&1)
+  bin_rc=$?
 
-  # Shim
+  echo "  exit=$bin_rc"
+  echo "  output=$ver"
+
+  if [[ $bin_rc -ne 0 ]]; then
+    fail "bin '$bin' exited $bin_rc"
+  fi
+
+  assert_contains "$ver" "$version"
+}
+
+
+test_shim() {
   export PROTO_DEBUG_SHIM=1;
+
+  local id="$1"
+  local version="$2"
+  local version_arg="$3"
+  local context=""
+  local exe_name=""
+
+  read -r context exe_name <<< $(parse_context "$id")
 
   echo "Verifying shim is executable..."
 
-  shim=$(command -v "$bin_name")
-  echo "  $shim" # Debug
+  local shim, shim_rc
+  shim=$(command -v "$exe_name")
+  shim_rc=$?
+
+  echo "  exit=$shim_rc"
+  echo "  path=$shim"
+
+  if [[ $shim_rc -ne 0 ]]; then
+    fail "shim '$shim' exited $shim_rc"
+  fi
+
   assert_executable "$shim"
 
   echo "Verifying shim version..."
 
-  shim_rc=0
-  ver=$("$bin_name" "$version_arg" 2>&1) || shim_rc=$?
+  local ver, shim_rc
+  ver=$("$shim" "$version_arg" 2>&1)
+  shim_rc=$?
+
   echo "  exit=$shim_rc"
-  echo "  $ver" # Debug
-  [[ $shim_rc -eq 0 ]] || fail "shim '$bin_name' exited $shim_rc"
+  echo "  output=$ver"
+
+  if [[ $shim_rc -ne 0 ]]; then
+    fail "shim '$shim' exited $shim_rc"
+  fi
+
   assert_contains "$ver" "$version"
 
   unset PROTO_DEBUG_SHIM
+}
+
+install_tool() {
+  local tool="$1"
+  local version="$2"
+  local version_arg="${3:---version}"
+
+  echo "Installing tool $tool $version..."
+
+  retry 3 proto install "$tool" "$version" --pin local --log trace
+  local exit_code=$?
+
+  if [[ $exit_code -ne 0 ]]; then
+    return $exit_code
+  fi
+
+  test_bin "$tool" "$version" "$version_arg"
+
+  if [[ "$tool" != "rust" ]]; then
+    test_shim "$tool" "$version" "$version_arg"
+  fi
+
+  return $exit_code
+}
+
+install_backend() {
+  local id="$1"
+  local version="$2"
+  local version_arg="${3:---version}"
+  local context=""
+
+  read -r context exe_name <<< $(parse_context "$id")
+
+  echo "Installing backend tool $context $version..."
+
+  retry 3 proto install "$context" "$version" --pin local --log trace
+  local exit_code=$?
+
+  if [[ $exit_code -ne 0 ]]; then
+    return $exit_code
+  fi
+
+  test_bin "$id" "$version" "$version_arg"
+  test_shim "$id" "$version" "$version_arg"
 
   return $exit_code
 }
