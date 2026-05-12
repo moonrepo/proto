@@ -253,6 +253,10 @@ printf "  Failed:  %d\n" "$fail"
 printf "  Skipped: %d\n" "$skip"
 printf "  Total:   %d\n" "${#test_names[@]}"
 
+echo ""
+echo "Log files:"
+ls -l "$E2E_LOGS"
+
 if [[ $fail -gt 0 ]]; then
   echo ""
   echo "Failed tests:"
@@ -263,9 +267,5 @@ if [[ $fail -gt 0 ]]; then
   done
   exit 1
 fi
-
-echo ""
-echo "Log files:"
-ls -l "$E2E_LOGS"
 
 exit 0

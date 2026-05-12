@@ -38,10 +38,15 @@ If this turns out not to be true, we'll revert back to the previous implementati
 
 #### 🚀 Updates
 
-- Added support for `.tar.zst` archives (tar + zstd compression).
+- Added 2 new backends, `cargo` and `npm`, allowing you to install CLIs from their respective registries. Simply prefix the package name with the backend identifier, for example:
+  ```toml
+  "cargo:cargo-dist" = "0.31"
+  "npm:typescript" = "6"
+  ```
 - Added `auth` and `default` options to the `settings.unstable-registries` configuration entries.
   - `auth` indicates whether the registry requires authentication or not. If true, we'll attempt to retrieve credentials from the Docker config for this registry's host.
   - `default` indicates whether this registry should be used as the default when no registry is specified in the locator, or when only an identifier is provided.
+- Added support for `.tar.zst` archives (tar + zstd compression).
 - Updated OCI registry artifacts to support tar archives as a supported media type.
   - The archive will be downloaded, then unpacked, and searched for a valid WASM file.
 - Updated `proto versions` command and `list_tool_versions` MCP tool to support a filter option, which is a version range/requirement, to filter the versions list.

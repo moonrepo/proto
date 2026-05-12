@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# os: linux,macos
 # group: backends
 set -euo pipefail
 source "$(dirname "$0")/../lib/utils.sh"
 
-install_backend asdf:zig 0.16 version
+install_backend npm:typescript:tsc 6
+
+# With scope
+install_backend npm:@moonrepo/cli:moon 2
