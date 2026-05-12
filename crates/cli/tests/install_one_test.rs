@@ -374,7 +374,11 @@ mod install_one {
         // Install
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("install").arg("protostar").arg("1.0.0");
+                cmd.arg("install")
+                    .arg("protostar")
+                    .arg("1.0.0")
+                    .arg("--pin")
+                    .arg("local");
             })
             .success();
 
