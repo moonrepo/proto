@@ -35,6 +35,7 @@ If this turns out not to be true, we'll revert back to the previous implementati
   [settings]
   unstable-registries = [{ registry = "custom.host.com", default = true }]
   ```
+- When installing a tool for the first time, we no longer pin the version to the global `~/.proto/.prototools` config.
 
 #### 🚀 Updates
 
@@ -52,10 +53,12 @@ If this turns out not to be true, we'll revert back to the previous implementati
 - Updated `proto versions` command and `list_tool_versions` MCP tool to support a filter option, which is a version range/requirement, to filter the versions list.
   - `proto versions node ~24`
   - `list_tool_versions node --filter ~24`
+- Updated the [`moonrepo/build-wasm-plugin`](https://github.com/moonrepo/build-wasm-plugin) GitHub action to support publishing to ghcr.io.
 
 #### 🐞 Fixes
 
 - Fixed an issue where some tools that require a backend (asdf) would generate broken shims.
+- Fixed an issue where `proto outdated --update` would overwrite aliases.
 
 #### ⚙️ Internal
 

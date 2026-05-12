@@ -2935,7 +2935,7 @@ dependencies = [
  "proto_pdk",
  "proto_pdk_test_utils",
  "serde",
- "starbase_sandbox 0.10.7",
+ "starbase_sandbox",
  "tokio",
  "tracing",
 ]
@@ -2969,7 +2969,7 @@ dependencies = [
  "starbase_console",
  "starbase_shell",
  "starbase_styles",
- "starbase_utils 0.13.2",
+ "starbase_utils",
  "system_env",
  "thiserror 2.0.18",
  "tokio",
@@ -2989,7 +2989,7 @@ dependencies = [
  "proto_pdk",
  "serde",
  "sha2",
- "starbase_utils 0.13.2",
+ "starbase_utils",
  "tracing",
 ]
 
@@ -3029,7 +3029,7 @@ dependencies = [
  "proto_pdk_api",
  "serde",
  "serde_json",
- "starbase_sandbox 0.11.0",
+ "starbase_sandbox",
  "warpgate",
 ]
 
@@ -4026,9 +4026,9 @@ checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
 
 [[package]]
 name = "starbase_archive"
-version = "0.13.0"
+version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1bfe3d9c45b8b09ca135378de4c4f87c24c96feb270f620c1335f8e223dc8d63"
+checksum = "7d0ac0e61833eaed23a3d61cab2e0a87f32f47a832dc1822487798cac1f7d876"
 dependencies = [
  "binstall-tar",
  "bzip2",
@@ -4037,7 +4037,7 @@ dependencies = [
  "miette 7.6.0",
  "rustc-hash",
  "starbase_styles",
- "starbase_utils 0.13.2",
+ "starbase_utils",
  "thiserror 2.0.18",
  "tracing",
  "zip",
@@ -4076,20 +4076,6 @@ dependencies = [
 
 [[package]]
 name = "starbase_sandbox"
-version = "0.10.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfc48e15d92211d3e2b2ace7a1d8a8bd448f38128711d41550d7d32a0a7a4e23"
-dependencies = [
- "assert_cmd",
- "assert_fs",
- "insta",
- "predicates",
- "pretty_assertions",
- "starbase_utils 0.12.10",
-]
-
-[[package]]
-name = "starbase_sandbox"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57b2695cf7880f3005dc73b8787534258fb3645eb8cb3e14bf37d94019dbe0d4"
@@ -4099,7 +4085,7 @@ dependencies = [
  "insta",
  "predicates",
  "pretty_assertions",
- "starbase_utils 0.13.2",
+ "starbase_utils",
 ]
 
 [[package]]
@@ -4126,18 +4112,6 @@ dependencies = [
  "dirs",
  "owo-colors",
  "supports-color",
-]
-
-[[package]]
-name = "starbase_utils"
-version = "0.12.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "34fea0f809a215e4ee5ef128fc8874d97b1f359bca71d6d11e76d47cb137153a"
-dependencies = [
- "dirs",
- "starbase_styles",
- "thiserror 2.0.18",
- "tracing",
 ]
 
 [[package]]
@@ -4971,7 +4945,7 @@ dependencies = [
  "starbase_archive",
  "starbase_shell",
  "starbase_styles",
- "starbase_utils 0.13.2",
+ "starbase_utils",
  "system_env",
  "thiserror 2.0.18",
  "tokio",
@@ -6304,9 +6278,9 @@ dependencies = [
 
 [[package]]
 name = "zip"
-version = "8.5.1"
+version = "8.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dcab981e19633ebcf0b001ddd37dd802996098bc1864f90b7c5d970ce76c1d59"
+checksum = "2d04a6b5381502aa6087c94c669499eb1602eb9c5e8198e534de571f7154809b"
 dependencies = [
  "bzip2",
  "crc32fast",

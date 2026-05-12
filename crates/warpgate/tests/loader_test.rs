@@ -5,8 +5,8 @@ use starbase_utils::fs;
 use std::path::PathBuf;
 use std::time::Duration;
 use warpgate::{
-    DataLocator, FileLocator, GitHubLocator, Id, PluginLoader, PluginLocator, UrlLocator,
-    hash_sha256,
+    DataLocator, FileLocator, GitHubLocator, Id, PluginLoader, PluginLocator, RegistryConfig,
+    RegistryLocator, UrlLocator, hash_sha256,
 };
 
 // A pinned, stable .wasm release to use across URL-based tests.
@@ -15,6 +15,13 @@ const SYSTEM_TOOLCHAIN_URL: &str = "https://github.com/moonrepo/plugins/releases
 fn create_loader() -> (Sandbox, PluginLoader) {
     let sandbox = create_empty_sandbox();
     let loader = PluginLoader::new(sandbox.path().join("plugins"), sandbox.path().join("temp"));
+
+    (sandbox, loader)
+}
+
+fn create_loader_with_registries(registries: Vec<RegistryConfig>) -> (Sandbox, PluginLoader) {
+    let (sandbox, mut loader) = create_loader();
+    loader.add_registries(registries);
 
     (sandbox, loader)
 }
@@ -475,6 +482,215 @@ mod loader {
                     "plugins/test-latest-171d1fba97b9fe0489125b9253b8fdb8a85d37837f966aaacd06df662292f507.wasm"
                 )
             );
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Registry (OCI) locator
+    // -------------------------------------------------------------------------
+
+    mod registry {
+        use super::*;
+
+        // A pinned, anonymous-pullable image on GHCR. This is one of the
+        // built-in plugins shipped in `crates/core/src/config.rs`, so it must
+        // remain available for the project to function.
+        const FIXTURE_IMAGE: &str = "node_tool";
+        const FIXTURE_TAG: &str = "0.17.9";
+        const FIXTURE_HOST: &str = "ghcr.io";
+        const FIXTURE_NAMESPACE: &str = "moonrepo";
+
+        fn make_locator(
+            registry: Option<&str>,
+            namespace: Option<&str>,
+            image: &str,
+            tag: Option<&str>,
+        ) -> PluginLocator {
+            PluginLocator::Registry(Box::new(RegistryLocator {
+                registry: registry.map(Into::into),
+                namespace: namespace.map(Into::into),
+                image: image.into(),
+                tag: tag.map(Into::into),
+            }))
+        }
+
+        fn assert_wasm(path: &std::path::Path) {
+            assert!(path.exists(), "expected plugin path to exist: {path:?}");
+
+            let bytes = fs::read_file_bytes(path).unwrap();
+
+            // All WASM binaries begin with the 4-byte magic header `\0asm`.
+            assert!(
+                bytes.starts_with(b"\0asm"),
+                "expected WASM magic header at {path:?}",
+            );
+        }
+
+        // -- Step 1: locator host matches a configured registry --------------
+
+        // When the locator's host AND namespace match a configured registry,
+        // pull_image is called with that config (fallthrough = true) and the
+        // blob is returned successfully.
+        #[tokio::test]
+        async fn matches_configured_registry() {
+            let (_sandbox, loader) = create_loader_with_registries(vec![RegistryConfig {
+                auth: false,
+                default: false,
+                registry: FIXTURE_HOST.into(),
+                namespace: Some(FIXTURE_NAMESPACE.into()),
+            }]);
+
+            let path = loader
+                .load_plugin(
+                    Id::raw("test"),
+                    make_locator(
+                        Some(FIXTURE_HOST),
+                        Some(FIXTURE_NAMESPACE),
+                        FIXTURE_IMAGE,
+                        Some(FIXTURE_TAG),
+                    ),
+                )
+                .await
+                .unwrap();
+
+            assert_wasm(&path);
+        }
+
+        // -- Step 2: locator host without a matching config ------------------
+
+        // When the locator has a host but no registry config matches, the
+        // loader synthesizes an explicit `RegistryConfig` (auth = true) and
+        // tries it. With an anonymous-pullable image, this still resolves.
+        #[tokio::test]
+        async fn explicit_host_no_matching_config_uses_explicit_fallback() {
+            let (_sandbox, loader) = create_loader_with_registries(vec![]);
+
+            let path = loader
+                .load_plugin(
+                    Id::raw("test"),
+                    make_locator(
+                        Some(FIXTURE_HOST),
+                        Some(FIXTURE_NAMESPACE),
+                        FIXTURE_IMAGE,
+                        Some(FIXTURE_TAG),
+                    ),
+                )
+                .await
+                .unwrap();
+
+            assert_wasm(&path);
+        }
+
+        // -- Step 3: locator without a host, iterate configured registries --
+
+        // With no host on the locator, Steps 1 & 2 are skipped and the final
+        // for-loop tries each configured registry.
+        #[tokio::test]
+        async fn no_host_iterates_configured_registries() {
+            let (_sandbox, loader) = create_loader_with_registries(vec![RegistryConfig {
+                auth: false,
+                default: false,
+                registry: FIXTURE_HOST.into(),
+                namespace: Some(FIXTURE_NAMESPACE.into()),
+            }]);
+
+            let path = loader
+                .load_plugin(
+                    Id::raw("test"),
+                    make_locator(None, None, FIXTURE_IMAGE, Some(FIXTURE_TAG)),
+                )
+                .await
+                .unwrap();
+
+            assert_wasm(&path);
+        }
+
+        // -- Step 4: error path (no host, no registries) ---------------------
+
+        // When the locator has no host and no registries are configured,
+        // both early branches are skipped and the final for-loop is empty,
+        // so the loader returns OCIReferenceError without making any network
+        // requests.
+        #[tokio::test]
+        #[should_panic(expected = "No valid registry or layer found for node_tool.")]
+        async fn no_registries_no_host_returns_oci_reference_error() {
+            let (_sandbox, loader) = create_loader_with_registries(vec![]);
+
+            loader
+                .load_plugin(
+                    Id::raw("test"),
+                    make_locator(None, None, FIXTURE_IMAGE, Some(FIXTURE_TAG)),
+                )
+                .await
+                .unwrap();
+        }
+
+        // -- Tag / cache behaviour -------------------------------------------
+
+        // A locator with no tag is treated as the `latest` tag, which is
+        // reflected in the cache path by the `-latest-` segment.
+        #[tokio::test]
+        async fn uses_latest_when_tag_is_none() {
+            let (sandbox, loader) = create_loader_with_registries(vec![]);
+
+            let path = loader
+                .load_plugin(
+                    Id::raw("test"),
+                    make_locator(
+                        Some(FIXTURE_HOST),
+                        Some(FIXTURE_NAMESPACE),
+                        FIXTURE_IMAGE,
+                        None,
+                    ),
+                )
+                .await
+                .unwrap();
+
+            assert!(path.exists());
+
+            let file_name = path.file_name().unwrap().to_string_lossy().to_string();
+            assert!(
+                file_name.contains("-latest-"),
+                "expected cache filename to include `-latest-`, got {file_name}"
+            );
+            assert!(path.starts_with(sandbox.path().join("plugins")));
+        }
+
+        // After a successful pull, a second call with the same locator must
+        // return the same path from cache without re-downloading (mtime is
+        // unchanged).
+        #[tokio::test]
+        async fn uses_cache_on_second_call() {
+            let (_sandbox, loader) = create_loader_with_registries(vec![RegistryConfig {
+                auth: false,
+                default: false,
+                registry: FIXTURE_HOST.into(),
+                namespace: Some(FIXTURE_NAMESPACE.into()),
+            }]);
+
+            let locator = make_locator(
+                Some(FIXTURE_HOST),
+                Some(FIXTURE_NAMESPACE),
+                FIXTURE_IMAGE,
+                Some(FIXTURE_TAG),
+            );
+
+            let path1 = loader
+                .load_plugin(Id::raw("test"), locator.clone())
+                .await
+                .unwrap();
+
+            assert!(path1.exists());
+
+            let mtime1 = path1.metadata().unwrap().modified().unwrap();
+
+            let path2 = loader.load_plugin(Id::raw("test"), locator).await.unwrap();
+
+            assert_eq!(path1, path2);
+
+            let mtime2 = path2.metadata().unwrap().modified().unwrap();
+
+            assert_eq!(mtime1, mtime2);
         }
     }
 }
