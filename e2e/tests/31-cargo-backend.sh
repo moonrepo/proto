@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# os: linux,macos
 # group: backends
 set -euo pipefail
 source "$(dirname "$0")/../lib/utils.sh"
 
-install_backend asdf:zig 0.16 version
+install_backend cargo:cargo-dist:dist 0.31

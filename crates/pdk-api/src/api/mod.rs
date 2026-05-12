@@ -417,7 +417,8 @@ api_struct!(
 api_struct!(
     /// Output returned by the `register_backend` function.
     pub struct RegisterBackendOutput {
-        /// Unique identifier for this backend. Will be used as the folder name.
+        /// Unique identifier for this backend. Will be used as the folder name
+        /// when utilizing builders (via `source`).
         pub backend_id: Id,
 
         /// List of executables, relative from the backend directory,

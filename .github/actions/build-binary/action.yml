@@ -6,6 +6,7 @@ runs:
   steps:
     - uses: moonrepo/setup-rust@v1
       with:
+        bins: cargo-binstall
         cache: false
 
     - uses: swatinem/rust-cache@v2
