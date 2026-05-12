@@ -48,7 +48,7 @@ test_bin() {
 
   echo "Verifying bin is executable..."
 
-  local bin, bin_rc
+  local bin="" bin_rc=0
   bin=$(proto bin "$context")
   bin_rc=$?
 
@@ -63,7 +63,7 @@ test_bin() {
 
   echo "Verifying bin version..."
 
-  local ver, bin_rc
+  local ver="" bin_rc=0
   ver=$("$bin" "$version_arg" 2>&1)
   bin_rc=$?
 
@@ -91,7 +91,7 @@ test_shim() {
 
   echo "Verifying shim is executable..."
 
-  local shim, shim_rc
+  local shim="" shim_rc=0
   shim=$(command -v "$exe_name")
   shim_rc=$?
 
@@ -106,7 +106,7 @@ test_shim() {
 
   echo "Verifying shim version..."
 
-  local ver, shim_rc
+  local ver="" shim_rc=0
   ver=$("$shim" "$version_arg" 2>&1)
   shim_rc=$?
 
