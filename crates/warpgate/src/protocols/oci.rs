@@ -12,6 +12,7 @@ use warpgate_api::{Id, RegistryLocator};
 #[derive(Clone)]
 pub struct OciLoader {
     pub client: Arc<OciClient>,
+    pub registries: Vec<RegistryConfig>,
 }
 
 impl OciLoader {
@@ -119,8 +120,6 @@ impl OciLoader {
 }
 
 impl LoaderProtocol<RegistryLocator> for OciLoader {
-    type Data = Vec<RegistryConfig>;
-
     fn is_latest(&self, locator: &RegistryLocator) -> bool {
         locator.tag.as_ref().is_none_or(|tag| tag == "latest")
     }
@@ -129,7 +128,6 @@ impl LoaderProtocol<RegistryLocator> for OciLoader {
         &self,
         id: &'a Id,
         locator: &'a RegistryLocator,
-        data: &Self::Data,
     ) -> Result<LoadFrom<'a>, WarpgateLoaderError> {
         trace!(id = id.as_str(), "Loading from OCI registries");
 
@@ -137,7 +135,7 @@ impl LoaderProtocol<RegistryLocator> for OciLoader {
         // attempt to find a matching registry configuration
         if let Some(host) = &locator.registry {
             // 1) Search the configs
-            if let Some(registry) = data.iter().find(|registry| {
+            if let Some(registry) = self.registries.iter().find(|registry| {
                 // Matches host (always)
                 host == &registry.registry
                     // Matches namespace (if specified)
@@ -158,7 +156,7 @@ impl LoaderProtocol<RegistryLocator> for OciLoader {
                     id,
                     locator,
                     &RegistryConfig {
-                        auth: true,
+                        auth: false,
                         default: false,
                         registry: host.into(),
                         namespace: locator.namespace.clone(),
@@ -172,7 +170,7 @@ impl LoaderProtocol<RegistryLocator> for OciLoader {
         }
 
         // Then try all the configured registries
-        for registry in data {
+        for registry in &self.registries {
             if let Some(from) = self.pull_image(id, locator, registry, true).await? {
                 return Ok(from);
             }

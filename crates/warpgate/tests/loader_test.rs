@@ -62,7 +62,7 @@ mod loader {
             assert_eq!(
                 path,
                 sandbox.path().join(
-                    "plugins/test-fb04dcb6970e4c3d1873de51fd5a50d7bb46b3383113602665c350ec40b5f990.wasm"
+                    "plugins/test-4374997ed8a7ed705a30a31d465a3f807dcd59e1dba8133ec09ffe9e0cf840b3.wasm"
                 )
             );
         }
@@ -455,7 +455,7 @@ mod loader {
             assert_eq!(
                 path,
                 sandbox.path().join(
-                    "plugins/test-d38b431dfda1d53f9d1bc97ea409a97dcaa03efa11a508d73f1f9497b9bcaa3a.wasm"
+                    "plugins/test-1756ec66c45394f9dd6badaa8e035a94fef3e5e0a47ae645f3e170fc3e4a0031.wasm"
                 )
             );
         }
@@ -479,7 +479,7 @@ mod loader {
             assert_eq!(
                 path,
                 sandbox.path().join(
-                    "plugins/test-latest-171d1fba97b9fe0489125b9253b8fdb8a85d37837f966aaacd06df662292f507.wasm"
+                    "plugins/test-latest-075e6a5e83610a68889f0c73b07c7fdae2b277dc5ee0244523ab597873238a7f.wasm"
                 )
             );
         }

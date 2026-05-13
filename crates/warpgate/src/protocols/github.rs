@@ -48,8 +48,6 @@ impl GitHubLoader {
 }
 
 impl LoaderProtocol<GitHubLocator> for GitHubLoader {
-    type Data = ();
-
     fn is_latest(&self, locator: &GitHubLocator) -> bool {
         locator.tag.as_ref().is_some_and(|tag| tag == "latest")
             || locator.tag.is_none() && locator.project_name.is_none()
@@ -59,7 +57,6 @@ impl LoaderProtocol<GitHubLocator> for GitHubLoader {
         &self,
         id: &'a Id,
         locator: &'a GitHubLocator,
-        _: &Self::Data,
     ) -> Result<LoadFrom<'a>, WarpgateLoaderError> {
         // Fetch all tags to find a matching tag + release
         let tags_url = format!("https://api.github.com/repos/{}/tags", locator.repo_slug);

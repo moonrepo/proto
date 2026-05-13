@@ -1,6 +1,7 @@
 use crate::clients::*;
 use crate::helpers::{
-    determine_cache_extension, download_from_url_to_file, hash_sha256, move_or_unpack_download,
+    determine_cache_extension, download_from_url_to_file, extract_file_name_from_url, hash_sha256,
+    move_or_unpack_download,
 };
 use crate::loader_error::WarpgateLoaderError;
 use crate::protocols::{
@@ -136,6 +137,7 @@ impl PluginLoader {
         self.oci_loader.get_or_try_init(|| {
             Ok(OciLoader {
                 client: Arc::clone(self.get_oci_client()?),
+                registries: self.registries.clone(),
             })
         })
     }
@@ -170,74 +172,62 @@ impl PluginLoader {
             color::id(id.as_str())
         );
 
-        // Determine the source location
-        let (source, is_latest) = match locator {
+        match locator {
             PluginLocator::Data(data) => {
                 let loader = self.get_data_loader()?;
 
-                (loader.load(id, data, &()).await?, loader.is_latest(data))
+                let hash = hash_sha256(data.bytes.as_deref().unwrap_or(data.data.as_bytes()));
+                let cache_file = self.create_cache_path(id, &hash, "wasm", loader.is_latest(data));
+
+                self.check_plugin(id, cache_file, hash, || loader.load(id, data))
+                    .await
             }
             PluginLocator::File(file) => {
                 let loader = self.get_file_loader()?;
 
-                (loader.load(id, file, &()).await?, loader.is_latest(file))
+                // File paths are used as-is and completely ignore the locking and caching system,
+                // as it's assumed the user is managing these themselves
+                match loader.load(id, file).await? {
+                    LoadFrom::File(path) => Ok(path),
+                    _ => unreachable!(),
+                }
             }
             PluginLocator::GitHub(github) => {
                 let loader = self.get_github_loader()?;
 
-                (
-                    loader.load(id, github, &()).await?,
-                    loader.is_latest(github),
-                )
+                let hash = hash_sha256(locator.to_string());
+                let cache_file =
+                    self.create_cache_path(id, &hash, "wasm", loader.is_latest(github));
+
+                self.check_plugin(id, cache_file, hash, || loader.load(id, github))
+                    .await
             }
             PluginLocator::Url(url) => {
                 let loader = self.get_http_loader()?;
 
-                (loader.load(id, url, &()).await?, loader.is_latest(url))
+                let hash = hash_sha256(&url.url);
+                let file_name = extract_file_name_from_url(&url.url);
+                let cache_file = self.create_cache_path(
+                    id,
+                    &hash,
+                    determine_cache_extension(&file_name).unwrap_or("wasm"),
+                    loader.is_latest(url),
+                );
+
+                self.check_plugin(id, cache_file, hash, || loader.load(id, url))
+                    .await
             }
             PluginLocator::Registry(registry) => {
                 let loader = self.get_oci_loader()?;
 
-                (
-                    loader.load(id, registry, &self.registries).await?,
-                    loader.is_latest(registry),
-                )
+                let hash = hash_sha256(locator.to_string());
+                let cache_file =
+                    self.create_cache_path(id, &hash, "wasm", loader.is_latest(registry));
+
+                self.check_plugin(id, cache_file, hash, || loader.load(id, registry))
+                    .await
             }
-        };
-
-        // Extract values for caching and loading
-        let (lock_key, cache_path) = match &source {
-            LoadFrom::Blob { ext, hash, .. } => (
-                hash.to_string(),
-                self.create_cache_path(id, hash, ext, is_latest),
-            ),
-            LoadFrom::Url(url) => (
-                url.to_string(),
-                self.create_cache_path(
-                    id,
-                    hash_sha256(url.as_bytes()).as_str(),
-                    determine_cache_extension(url).unwrap_or("wasm"),
-                    is_latest,
-                ),
-            ),
-            // File paths are used as-is and completely ignore the locking and caching system,
-            // as it's assumed the user is managing these themselves
-            LoadFrom::File(path) => {
-                return Ok(path.to_path_buf());
-            }
-        };
-
-        // Create a lock before checking the cache, so that subsequent requests for
-        // the same plugin will wait for the first one to finish loading, and will
-        // then hit the cache instead of loading again
-        let entry = self.locks.entry_async(lock_key).await.or_default();
-        let _lock = entry.lock().await;
-
-        if !self.is_cached(id, &cache_path)? {
-            self.save_plugin(id, &cache_path, source).await?;
         }
-
-        Ok(cache_path)
     }
 
     /// Create an absolute path to the plugin's destination file,
@@ -309,14 +299,38 @@ impl PluginLoader {
         self.offline_checker = Some(Arc::new(op));
     }
 
+    async fn check_plugin<'a, F>(
+        &self,
+        id: &'a Id,
+        mut cache_file: PathBuf,
+        cache_key: String,
+        load_source: F,
+    ) -> Result<PathBuf, WarpgateLoaderError>
+    where
+        F: AsyncFnOnce() -> Result<LoadFrom<'a>, WarpgateLoaderError>,
+    {
+        // Create a lock before checking the cache, so that subsequent requests for
+        // the same plugin will wait for the first one to finish loading, and will
+        // then hit the cache instead of loading again
+        let entry = self.locks.entry_async(cache_key).await.or_default();
+        let _lock = entry.lock().await;
+
+        if !self.is_cached(id, &cache_file)? {
+            self.save_plugin(id, &mut cache_file, load_source().await?)
+                .await?;
+        }
+
+        Ok(cache_file)
+    }
+
     #[instrument(skip(self, source))]
     async fn save_plugin(
         &self,
         id: &Id,
-        dest_file: &Path,
+        dest_file: &mut PathBuf,
         source: LoadFrom<'_>,
     ) -> Result<(), WarpgateLoaderError> {
-        let mut temp_file = self.temp_dir.join(fs::file_name(dest_file));
+        let mut temp_file = self.temp_dir.join(fs::file_name(dest_file.clone()));
 
         if let Some(ext) = source.is_archive() {
             temp_file.set_extension(ext);
@@ -346,7 +360,7 @@ impl PluginLoader {
         // atomicity and prevent partially written files in case of failure or multiple processes
         // trying to acquire the same plugin at the same time.
         match source {
-            LoadFrom::Blob { data, .. } => {
+            LoadFrom::Blob { data, ext, .. } => {
                 trace!(
                     id = id.as_str(),
                     to = ?lock.path,
@@ -364,6 +378,10 @@ impl PluginLoader {
                     path: lock.path.clone(),
                     error: Box::new(error),
                 })?;
+
+                if ext != "wasm" {
+                    dest_file.set_extension(ext);
+                }
             }
             LoadFrom::Url(url) => {
                 if self.is_offline() {
@@ -395,6 +413,12 @@ impl PluginLoader {
                     },
                 )
                 .await?;
+
+                let file_name = extract_file_name_from_url(&url);
+
+                if let Some(ext) = determine_cache_extension(&file_name) {
+                    dest_file.set_extension(ext);
+                }
             }
             LoadFrom::File(_) => {
                 unimplemented!();
