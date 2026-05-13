@@ -3354,7 +3354,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.31.11"
+version = "0.31.12"
 dependencies = [
  "derive_setters",
  "proto_pdk_api",
@@ -3384,7 +3384,7 @@ dependencies = [
 
 [[package]]
 name = "proto_shim"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "dirs",
  "windows-sys 0.61.2",
