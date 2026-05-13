@@ -112,12 +112,27 @@ mod determine_cache_extension {
 
     #[test]
     fn returns_known_extensions_without_leading_dot() {
-        assert_eq!(determine_cache_extension("plugin.wasm"), Some("wasm"));
-        assert_eq!(determine_cache_extension("plugin.toml"), Some("toml"));
-        assert_eq!(determine_cache_extension("plugin.json"), Some("json"));
-        assert_eq!(determine_cache_extension("plugin.jsonc"), Some("jsonc"));
-        assert_eq!(determine_cache_extension("plugin.yaml"), Some("yaml"));
-        assert_eq!(determine_cache_extension("plugin.yml"), Some("yml"));
+        assert_eq!(
+            determine_cache_extension("plugin.wasm"),
+            Some("wasm".into())
+        );
+        assert_eq!(
+            determine_cache_extension("plugin.toml"),
+            Some("toml".into())
+        );
+        assert_eq!(
+            determine_cache_extension("plugin.json"),
+            Some("json".into())
+        );
+        assert_eq!(
+            determine_cache_extension("plugin.jsonc"),
+            Some("jsonc".into())
+        );
+        assert_eq!(
+            determine_cache_extension("plugin.yaml"),
+            Some("yaml".into())
+        );
+        assert_eq!(determine_cache_extension("plugin.yml"), Some("yml".into()));
     }
 
     // Regression guard: `.txt` was previously in the supported list and was
@@ -140,8 +155,11 @@ mod determine_cache_extension {
     // (5 chars), not `.yml` (4 chars), so the longer arm wins.
     #[test]
     fn yaml_does_not_collide_with_yml() {
-        assert_eq!(determine_cache_extension("config.yaml"), Some("yaml"));
-        assert_eq!(determine_cache_extension("config.yml"), Some("yml"));
+        assert_eq!(
+            determine_cache_extension("config.yaml"),
+            Some("yaml".into())
+        );
+        assert_eq!(determine_cache_extension("config.yml"), Some("yml".into()));
     }
 }
 
@@ -185,7 +203,7 @@ mod move_or_unpack_download {
         let sandbox = create_empty_sandbox();
         let source_root = sandbox.path().join("src");
         let archive_path = sandbox.path().join("plugin.tar.gz");
-        let dest_path = sandbox.path().join("plugin.wasm");
+        let mut dest_path = sandbox.path().join("plugin.wasm");
 
         // Two `.wasm` files: one in `release/` and one outside. The function
         // should prefer the release one so that archives that include build
@@ -199,7 +217,7 @@ mod move_or_unpack_download {
             ],
         );
 
-        move_or_unpack_download(&archive_path, &dest_path).unwrap();
+        move_or_unpack_download(&archive_path, &mut dest_path).unwrap();
 
         assert!(dest_path.exists());
 
@@ -212,11 +230,11 @@ mod move_or_unpack_download {
         let sandbox = create_empty_sandbox();
         let source_root = sandbox.path().join("src");
         let archive_path = sandbox.path().join("plugin.tar.gz");
-        let dest_path = sandbox.path().join("plugin.wasm");
+        let mut dest_path = sandbox.path().join("plugin.wasm");
 
         pack_tar_gz(&source_root, &archive_path, &[("plugin.wasm", WASM_MAGIC)]);
 
-        move_or_unpack_download(&archive_path, &dest_path).unwrap();
+        move_or_unpack_download(&archive_path, &mut dest_path).unwrap();
 
         let bytes = fs::read_file_bytes(&dest_path).unwrap();
         assert_eq!(bytes, WASM_MAGIC);
@@ -227,7 +245,7 @@ mod move_or_unpack_download {
         let sandbox = create_empty_sandbox();
         let source_root = sandbox.path().join("src");
         let archive_path = sandbox.path().join("plugin.tar.gz");
-        let dest_path = sandbox.path().join("plugin.wasm");
+        let mut dest_path = sandbox.path().join("plugin.wasm");
 
         pack_tar_gz(
             &source_root,
@@ -235,7 +253,7 @@ mod move_or_unpack_download {
             &[("README.md", b"no wasm here")],
         );
 
-        let err = move_or_unpack_download(&archive_path, &dest_path).unwrap_err();
+        let err = move_or_unpack_download(&archive_path, &mut dest_path).unwrap_err();
 
         assert!(
             matches!(err, WarpgateLoaderError::NoWasmFound { .. }),
@@ -248,11 +266,11 @@ mod move_or_unpack_download {
     fn renames_plain_wasm_file() {
         let sandbox = create_empty_sandbox();
         let temp_path = sandbox.path().join("temp.wasm");
-        let dest_path = sandbox.path().join("plugin.wasm");
+        let mut dest_path = sandbox.path().join("plugin.wasm");
 
         fs::write_file(&temp_path, WASM_MAGIC).unwrap();
 
-        move_or_unpack_download(&temp_path, &dest_path).unwrap();
+        move_or_unpack_download(&temp_path, &mut dest_path).unwrap();
 
         assert!(dest_path.exists());
         // `fs::rename` moves the file — temp should no longer exist.
@@ -265,12 +283,12 @@ mod move_or_unpack_download {
     #[test]
     fn errors_on_unsupported_extension() {
         let sandbox = create_empty_sandbox();
-        let temp_path = sandbox.path().join("temp.exe");
-        let dest_path = sandbox.path().join("plugin.wasm");
+        let temp_path = sandbox.path().join("temp.wasm");
+        let mut dest_path = sandbox.path().join("plugin.exe");
 
         fs::write_file(&temp_path, b"not a plugin").unwrap();
 
-        let err = move_or_unpack_download(&temp_path, &dest_path).unwrap_err();
+        let err = move_or_unpack_download(&temp_path, &mut dest_path).unwrap_err();
 
         assert!(
             matches!(
@@ -285,12 +303,12 @@ mod move_or_unpack_download {
     #[test]
     fn errors_on_missing_extension() {
         let sandbox = create_empty_sandbox();
-        let temp_path = sandbox.path().join("temp_no_ext");
-        let dest_path = sandbox.path().join("plugin.wasm");
+        let temp_path = sandbox.path().join("temp.wasm");
+        let mut dest_path = sandbox.path().join("plugin");
 
         fs::write_file(&temp_path, b"unknown").unwrap();
 
-        let err = move_or_unpack_download(&temp_path, &dest_path).unwrap_err();
+        let err = move_or_unpack_download(&temp_path, &mut dest_path).unwrap_err();
 
         assert!(
             matches!(err, WarpgateLoaderError::UnknownDownloadType { .. }),
