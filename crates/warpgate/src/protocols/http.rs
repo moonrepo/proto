@@ -8,8 +8,6 @@ use warpgate_api::{Id, UrlLocator};
 pub struct HttpLoader {}
 
 impl LoaderProtocol<UrlLocator> for HttpLoader {
-    type Data = ();
-
     fn is_latest(&self, locator: &UrlLocator) -> bool {
         locator.url.contains("latest")
     }
@@ -18,7 +16,6 @@ impl LoaderProtocol<UrlLocator> for HttpLoader {
         &self,
         id: &'a Id,
         locator: &'a UrlLocator,
-        _: &Self::Data,
     ) -> Result<LoadFrom<'a>, WarpgateLoaderError> {
         let url = &locator.url;
 

@@ -62,7 +62,7 @@ mod loader {
             assert_eq!(
                 path,
                 sandbox.path().join(
-                    "plugins/test-fb04dcb6970e4c3d1873de51fd5a50d7bb46b3383113602665c350ec40b5f990.wasm"
+                    "plugins/test-4374997ed8a7ed705a30a31d465a3f807dcd59e1dba8133ec09ffe9e0cf840b3.wasm"
                 )
             );
         }
@@ -117,6 +117,98 @@ mod loader {
             assert!(path1.exists());
             assert_eq!(path1, path2);
             assert_eq!(path1, path3);
+        }
+
+        // The cache file extension was previously hardcoded to `.wasm` on
+        // lookup, which silently re-fetched any plugin persisted under a
+        // different extension (OCI TOML/YAML/JSON layers, primarily). Once
+        // a non-WASM extension is registered via `add_extensions`, a
+        // pre-existing `.toml` cache file with a matching hash must be
+        // adopted as-is, without writing a fresh `.wasm` alongside.
+        #[tokio::test]
+        async fn cache_probe_finds_non_wasm_extension() {
+            let (_sandbox, mut loader) = create_loader();
+            loader.add_extensions(vec!["toml".into()]);
+
+            let bytes = b"fake-plugin-payload".to_vec();
+            let hash = hash_sha256(&bytes);
+
+            let toml_path = loader.create_cache_path(&Id::raw("test"), &hash, "toml", false);
+            fs::create_dir_all(toml_path.parent().unwrap()).unwrap();
+            fs::write_file(&toml_path, b"# pre-existing toml plugin").unwrap();
+
+            let locator = PluginLocator::Data(Box::new(DataLocator {
+                data: String::new(),
+                bytes: Some(bytes),
+            }));
+
+            let result = loader.load_plugin(Id::raw("test"), locator).await.unwrap();
+
+            assert_eq!(result, toml_path);
+
+            // The probe must short-circuit before the Data loader runs, so
+            // no fresh `.wasm` is written.
+            let wasm_path = loader.create_cache_path(&Id::raw("test"), &hash, "wasm", false);
+            assert!(!wasm_path.exists());
+        }
+
+        // When the same plugin happens to exist under multiple supported
+        // extensions, the probe must return the first one in `extensions`
+        // (which defaults to `wasm`-first). This pins the canonical-preference
+        // ordering so a stray non-WASM file can never shadow a valid WASM.
+        #[tokio::test]
+        async fn cache_probe_prefers_first_extension() {
+            let (_sandbox, mut loader) = create_loader();
+            loader.add_extensions(vec!["toml".into()]);
+
+            let bytes = b"fake-plugin-payload".to_vec();
+            let hash = hash_sha256(&bytes);
+
+            let wasm_path = loader.create_cache_path(&Id::raw("test"), &hash, "wasm", false);
+            let toml_path = loader.create_cache_path(&Id::raw("test"), &hash, "toml", false);
+            fs::create_dir_all(wasm_path.parent().unwrap()).unwrap();
+            fs::write_file(&wasm_path, b"\0asm fake wasm").unwrap();
+            fs::write_file(&toml_path, b"# fake toml").unwrap();
+
+            let locator = PluginLocator::Data(Box::new(DataLocator {
+                data: String::new(),
+                bytes: Some(bytes),
+            }));
+
+            let result = loader.load_plugin(Id::raw("test"), locator).await.unwrap();
+
+            assert_eq!(result, wasm_path);
+        }
+
+        // Without an explicit `add_extensions`, the probe is constrained to
+        // `wasm` only. A pre-existing `.toml` file with a matching hash must
+        // be ignored, and the loader must fall through to its normal save
+        // path (producing a fresh `.wasm`).
+        #[tokio::test]
+        async fn cache_probe_ignores_unregistered_extension() {
+            let (_sandbox, loader) = create_loader();
+            // Default extensions: ["wasm"]
+
+            let bytes = b"fake-plugin-payload".to_vec();
+            let hash = hash_sha256(&bytes);
+
+            let toml_path = loader.create_cache_path(&Id::raw("test"), &hash, "toml", false);
+            fs::create_dir_all(toml_path.parent().unwrap()).unwrap();
+            fs::write_file(&toml_path, b"# orphan toml - must be ignored").unwrap();
+
+            let locator = PluginLocator::Data(Box::new(DataLocator {
+                data: String::new(),
+                bytes: Some(bytes),
+            }));
+
+            let result = loader.load_plugin(Id::raw("test"), locator).await.unwrap();
+
+            let wasm_path = loader.create_cache_path(&Id::raw("test"), &hash, "wasm", false);
+            assert_eq!(result, wasm_path);
+            assert!(wasm_path.exists());
+            // The orphan `.toml` remains untouched — the loader doesn't sweep
+            // unrelated cache entries.
+            assert!(toml_path.exists());
         }
     }
 
@@ -455,7 +547,7 @@ mod loader {
             assert_eq!(
                 path,
                 sandbox.path().join(
-                    "plugins/test-d38b431dfda1d53f9d1bc97ea409a97dcaa03efa11a508d73f1f9497b9bcaa3a.wasm"
+                    "plugins/test-1756ec66c45394f9dd6badaa8e035a94fef3e5e0a47ae645f3e170fc3e4a0031.wasm"
                 )
             );
         }
@@ -479,9 +571,35 @@ mod loader {
             assert_eq!(
                 path,
                 sandbox.path().join(
-                    "plugins/test-latest-171d1fba97b9fe0489125b9253b8fdb8a85d37837f966aaacd06df662292f507.wasm"
+                    "plugins/test-latest-075e6a5e83610a68889f0c73b07c7fdae2b277dc5ee0244523ab597873238a7f.wasm"
                 )
             );
+        }
+
+        // The rewrite's headline goal: once a GitHub plugin is cached, the
+        // GitHub releases/tags APIs must never be touched again. We exercise
+        // this with a deliberately unreachable repo slug — any actual network
+        // attempt would error with MissingGitHubAsset or a transport error.
+        // The pre-populated cache forces the probe to short-circuit before
+        // load() ever runs, so `unwrap()` succeeding proves no API call fired.
+        #[tokio::test]
+        async fn cached_plugin_skips_github_api() {
+            let (_sandbox, loader) = create_loader();
+
+            let locator = PluginLocator::GitHub(Box::new(GitHubLocator {
+                repo_slug: "warpgate-test-nonexistent/this-repo-must-never-exist".into(),
+                tag: Some("v0.0.0-bogus".into()),
+                project_name: None,
+            }));
+
+            let hash = hash_sha256(locator.to_string());
+            let cache_path = loader.create_cache_path(&Id::raw("test"), &hash, "wasm", false);
+            fs::create_dir_all(cache_path.parent().unwrap()).unwrap();
+            fs::write_file(&cache_path, b"\0asm fake wasm").unwrap();
+
+            let result = loader.load_plugin(Id::raw("test"), locator).await.unwrap();
+
+            assert_eq!(result, cache_path);
         }
     }
 
@@ -691,6 +809,37 @@ mod loader {
             let mtime2 = path2.metadata().unwrap().modified().unwrap();
 
             assert_eq!(mtime1, mtime2);
+        }
+
+        // The primary motivation for this branch: an OCI plugin whose layer
+        // is TOML/YAML/JSON used to silently re-pull on every load because
+        // the cache lookup was hardcoded to `.wasm`. After `add_extensions`
+        // is called, the probe must find a pre-existing non-WASM cache file
+        // and skip the network round-trip entirely.
+        //
+        // We point the locator at a bogus host/image so any actual OCI pull
+        // would error out at the network layer — `unwrap()` succeeding is
+        // proof the registry was never contacted.
+        #[tokio::test]
+        async fn cached_non_wasm_layer_skips_oci_network() {
+            let (_sandbox, mut loader) = create_loader_with_registries(vec![]);
+            loader.add_extensions(vec!["toml".into()]);
+
+            let locator = make_locator(
+                Some("warpgate-test-nonexistent.invalid"),
+                Some("nope"),
+                "no_such_image",
+                Some("v0.0.0-bogus"),
+            );
+
+            let hash = hash_sha256(locator.to_string());
+            let toml_path = loader.create_cache_path(&Id::raw("test"), &hash, "toml", false);
+            fs::create_dir_all(toml_path.parent().unwrap()).unwrap();
+            fs::write_file(&toml_path, b"# fake toml plugin").unwrap();
+
+            let result = loader.load_plugin(Id::raw("test"), locator).await.unwrap();
+
+            assert_eq!(result, toml_path);
         }
     }
 }

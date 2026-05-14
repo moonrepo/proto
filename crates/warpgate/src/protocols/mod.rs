@@ -18,15 +18,12 @@ use std::path::PathBuf;
 use warpgate_api::Id;
 
 pub trait LoaderProtocol<T> {
-    type Data;
-
     fn is_latest(&self, locator: &T) -> bool;
 
     async fn load<'a>(
         &self,
         id: &'a Id,
         locator: &'a T,
-        data: &Self::Data,
     ) -> Result<LoadFrom<'a>, WarpgateLoaderError>;
 }
 
@@ -35,6 +32,8 @@ pub enum LoadFrom<'a> {
         data: Cow<'a, [u8]>,
         ext: String,
         ext_archive: Option<String>,
+
+        #[allow(dead_code)]
         hash: Cow<'a, str>,
     },
     File(PathBuf),

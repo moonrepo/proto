@@ -7,8 +7,6 @@ use warpgate_api::{FileLocator, Id};
 pub struct FileLoader {}
 
 impl LoaderProtocol<FileLocator> for FileLoader {
-    type Data = ();
-
     fn is_latest(&self, _locator: &FileLocator) -> bool {
         true
     }
@@ -17,7 +15,6 @@ impl LoaderProtocol<FileLocator> for FileLoader {
         &self,
         id: &'a Id,
         locator: &'a FileLocator,
-        _: &Self::Data,
     ) -> Result<LoadFrom<'a>, WarpgateLoaderError> {
         let path = locator.get_resolved_path();
 

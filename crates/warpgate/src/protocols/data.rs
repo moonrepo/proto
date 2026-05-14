@@ -10,8 +10,6 @@ use warpgate_api::{DataLocator, Id};
 pub struct DataLoader {}
 
 impl LoaderProtocol<DataLocator> for DataLoader {
-    type Data = ();
-
     fn is_latest(&self, _locator: &DataLocator) -> bool {
         false
     }
@@ -20,7 +18,6 @@ impl LoaderProtocol<DataLocator> for DataLoader {
         &self,
         id: &'a Id,
         locator: &'a DataLocator,
-        _: &Self::Data,
     ) -> Result<LoadFrom<'a>, WarpgateLoaderError> {
         let encoded_data = locator
             .data

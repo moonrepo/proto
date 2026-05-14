@@ -4,8 +4,8 @@ use starbase_sandbox::create_empty_sandbox;
 use starbase_utils::fs;
 use std::path::{Path, PathBuf};
 use warpgate::{
-    WarpgateLoaderError, determine_cache_extension, extract_file_name_from_url, from_virtual_path,
-    move_or_unpack_download, sort_virtual_paths, to_virtual_path,
+    WarpgateLoaderError, extract_file_name_from_url, from_virtual_path, move_or_unpack_file,
+    sort_virtual_paths, to_virtual_path,
 };
 
 // A WASM binary's first 4 bytes are the magic header `\0asm`. Used so the
@@ -107,44 +107,6 @@ fn converts_virtual_paths() {
     assert_eq!(b2.to_str().unwrap(), "C:\\Unknown\\prefix\\some\\path");
 }
 
-mod determine_cache_extension {
-    use super::*;
-
-    #[test]
-    fn returns_known_extensions_without_leading_dot() {
-        assert_eq!(determine_cache_extension("plugin.wasm"), Some("wasm"));
-        assert_eq!(determine_cache_extension("plugin.toml"), Some("toml"));
-        assert_eq!(determine_cache_extension("plugin.json"), Some("json"));
-        assert_eq!(determine_cache_extension("plugin.jsonc"), Some("jsonc"));
-        assert_eq!(determine_cache_extension("plugin.yaml"), Some("yaml"));
-        assert_eq!(determine_cache_extension("plugin.yml"), Some("yml"));
-    }
-
-    // Regression guard: `.txt` was previously in the supported list and was
-    // intentionally removed. If someone re-adds it, we want the regression
-    // signal here rather than via a runtime cache filename surprise.
-    #[test]
-    fn rejects_txt() {
-        assert_eq!(determine_cache_extension("plugin.txt"), None);
-    }
-
-    #[test]
-    fn returns_none_for_unrecognised_or_missing_extension() {
-        assert_eq!(determine_cache_extension("plugin"), None);
-        assert_eq!(determine_cache_extension(""), None);
-        assert_eq!(determine_cache_extension("plugin.zip"), None);
-        assert_eq!(determine_cache_extension("plugin.tar.gz"), None);
-    }
-
-    // The match is exact on the trailing extension — `.yaml` ends with `yaml`
-    // (5 chars), not `.yml` (4 chars), so the longer arm wins.
-    #[test]
-    fn yaml_does_not_collide_with_yml() {
-        assert_eq!(determine_cache_extension("config.yaml"), Some("yaml"));
-        assert_eq!(determine_cache_extension("config.yml"), Some("yml"));
-    }
-}
-
 mod extract_file_name_from_url {
     use super::*;
 
@@ -177,7 +139,7 @@ mod extract_file_name_from_url {
     }
 }
 
-mod move_or_unpack_download {
+mod move_or_unpack_file {
     use super::*;
 
     #[test]
@@ -185,7 +147,7 @@ mod move_or_unpack_download {
         let sandbox = create_empty_sandbox();
         let source_root = sandbox.path().join("src");
         let archive_path = sandbox.path().join("plugin.tar.gz");
-        let dest_path = sandbox.path().join("plugin.wasm");
+        let mut dest_path = sandbox.path().join("plugin.wasm");
 
         // Two `.wasm` files: one in `release/` and one outside. The function
         // should prefer the release one so that archives that include build
@@ -199,7 +161,7 @@ mod move_or_unpack_download {
             ],
         );
 
-        move_or_unpack_download(&archive_path, &dest_path).unwrap();
+        move_or_unpack_file(&archive_path, &mut dest_path, &["wasm".into()]).unwrap();
 
         assert!(dest_path.exists());
 
@@ -212,11 +174,11 @@ mod move_or_unpack_download {
         let sandbox = create_empty_sandbox();
         let source_root = sandbox.path().join("src");
         let archive_path = sandbox.path().join("plugin.tar.gz");
-        let dest_path = sandbox.path().join("plugin.wasm");
+        let mut dest_path = sandbox.path().join("plugin.wasm");
 
         pack_tar_gz(&source_root, &archive_path, &[("plugin.wasm", WASM_MAGIC)]);
 
-        move_or_unpack_download(&archive_path, &dest_path).unwrap();
+        move_or_unpack_file(&archive_path, &mut dest_path, &["wasm".into()]).unwrap();
 
         let bytes = fs::read_file_bytes(&dest_path).unwrap();
         assert_eq!(bytes, WASM_MAGIC);
@@ -227,7 +189,7 @@ mod move_or_unpack_download {
         let sandbox = create_empty_sandbox();
         let source_root = sandbox.path().join("src");
         let archive_path = sandbox.path().join("plugin.tar.gz");
-        let dest_path = sandbox.path().join("plugin.wasm");
+        let mut dest_path = sandbox.path().join("plugin.wasm");
 
         pack_tar_gz(
             &source_root,
@@ -235,7 +197,7 @@ mod move_or_unpack_download {
             &[("README.md", b"no wasm here")],
         );
 
-        let err = move_or_unpack_download(&archive_path, &dest_path).unwrap_err();
+        let err = move_or_unpack_file(&archive_path, &mut dest_path, &["wasm".into()]).unwrap_err();
 
         assert!(
             matches!(err, WarpgateLoaderError::NoWasmFound { .. }),
@@ -248,11 +210,11 @@ mod move_or_unpack_download {
     fn renames_plain_wasm_file() {
         let sandbox = create_empty_sandbox();
         let temp_path = sandbox.path().join("temp.wasm");
-        let dest_path = sandbox.path().join("plugin.wasm");
+        let mut dest_path = sandbox.path().join("plugin.wasm");
 
         fs::write_file(&temp_path, WASM_MAGIC).unwrap();
 
-        move_or_unpack_download(&temp_path, &dest_path).unwrap();
+        move_or_unpack_file(&temp_path, &mut dest_path, &["wasm".into()]).unwrap();
 
         assert!(dest_path.exists());
         // `fs::rename` moves the file — temp should no longer exist.
@@ -265,12 +227,12 @@ mod move_or_unpack_download {
     #[test]
     fn errors_on_unsupported_extension() {
         let sandbox = create_empty_sandbox();
-        let temp_path = sandbox.path().join("temp.exe");
-        let dest_path = sandbox.path().join("plugin.wasm");
+        let temp_path = sandbox.path().join("temp.wasm");
+        let mut dest_path = sandbox.path().join("plugin.exe");
 
         fs::write_file(&temp_path, b"not a plugin").unwrap();
 
-        let err = move_or_unpack_download(&temp_path, &dest_path).unwrap_err();
+        let err = move_or_unpack_file(&temp_path, &mut dest_path, &["wasm".into()]).unwrap_err();
 
         assert!(
             matches!(
@@ -285,17 +247,84 @@ mod move_or_unpack_download {
     #[test]
     fn errors_on_missing_extension() {
         let sandbox = create_empty_sandbox();
-        let temp_path = sandbox.path().join("temp_no_ext");
-        let dest_path = sandbox.path().join("plugin.wasm");
+        let temp_path = sandbox.path().join("temp.wasm");
+        let mut dest_path = sandbox.path().join("plugin");
 
         fs::write_file(&temp_path, b"unknown").unwrap();
 
-        let err = move_or_unpack_download(&temp_path, &dest_path).unwrap_err();
+        let err = move_or_unpack_file(&temp_path, &mut dest_path, &["wasm".into()]).unwrap_err();
 
         assert!(
             matches!(err, WarpgateLoaderError::UnknownDownloadType { .. }),
             "expected UnknownDownloadType, got: {err:?}"
         );
         assert!(!dest_path.exists());
+    }
+
+    // When the caller permits multiple extensions and the archive holds a
+    // non-WASM plugin (e.g. a TOML config layer shipped as `.tar.gz`), the
+    // function must:
+    //   1. find the .toml file inside the archive
+    //   2. mutate `dest_path` from the `.wasm` placeholder to `.toml` so the
+    //      cache lookup on the next load finds the right file
+    //   3. write the file's actual contents
+    // This exercises the mutable-dest contract added when extensions became
+    // caller-configurable.
+    #[test]
+    fn unpacks_non_wasm_archive_and_updates_dest_extension() {
+        let sandbox = create_empty_sandbox();
+        let source_root = sandbox.path().join("src");
+        let archive_path = sandbox.path().join("plugin.tar.gz");
+        let mut dest_path = sandbox.path().join("plugin.wasm");
+
+        pack_tar_gz(
+            &source_root,
+            &archive_path,
+            &[("plugin.toml", b"[plugin]\nname = \"test\"\n")],
+        );
+
+        move_or_unpack_file(
+            &archive_path,
+            &mut dest_path,
+            &["wasm".into(), "toml".into()],
+        )
+        .unwrap();
+
+        assert_eq!(dest_path.extension().and_then(|e| e.to_str()), Some("toml"));
+        assert!(dest_path.exists());
+
+        let bytes = fs::read_file_bytes(&dest_path).unwrap();
+        assert!(bytes.starts_with(b"[plugin]"));
+    }
+
+    // With both `.wasm` and `.toml` in an archive, the function must honor
+    // the caller's extension priority (first wins) — i.e. `.wasm` is picked
+    // and `dest_path` is left at the `.wasm` placeholder.
+    #[test]
+    fn prefers_first_extension_when_archive_contains_multiple() {
+        let sandbox = create_empty_sandbox();
+        let source_root = sandbox.path().join("src");
+        let archive_path = sandbox.path().join("plugin.tar.gz");
+        let mut dest_path = sandbox.path().join("plugin.wasm");
+
+        pack_tar_gz(
+            &source_root,
+            &archive_path,
+            &[
+                ("plugin.toml", b"[plugin]\nname = \"test\"\n"),
+                ("plugin.wasm", WASM_MAGIC),
+            ],
+        );
+
+        move_or_unpack_file(
+            &archive_path,
+            &mut dest_path,
+            &["wasm".into(), "toml".into()],
+        )
+        .unwrap();
+
+        assert_eq!(dest_path.extension().and_then(|e| e.to_str()), Some("wasm"));
+        let bytes = fs::read_file_bytes(&dest_path).unwrap();
+        assert_eq!(bytes, WASM_MAGIC);
     }
 }
