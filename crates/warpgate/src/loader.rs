@@ -1,17 +1,16 @@
-use crate::helpers::{
-    download_from_url_to_file, get_plugin_extensions, hash_sha256, move_or_unpack_download,
-};
+use crate::clients::*;
+use crate::helpers::{download_from_url_to_file, extract_file_name_from_url, hash_sha256};
 use crate::loader_error::WarpgateLoaderError;
 use crate::protocols::{
     DataLoader, FileLoader, GitHubLoader, HttpLoader, LoadFrom, LoaderProtocol, OciLoader,
 };
 use crate::registry::RegistryConfig;
-use crate::{clients::*, determine_cache_extension, extract_file_name_from_url};
 use once_cell::sync::OnceCell;
+use starbase_archive::{Archiver, is_supported_archive_extension};
 use starbase_styles::color;
-use starbase_utils::fs::{FileLock, FsError};
+use starbase_utils::fs::{self, FileLock, FsError};
 use starbase_utils::net::DownloadOptions;
-use starbase_utils::{fs, path};
+use starbase_utils::{glob, path};
 use std::fmt::Debug;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -31,6 +30,9 @@ pub struct PluginLoader {
 
     /// Loader for referencing local plugins using byte streams.
     data_loader: OnceCell<DataLoader>,
+
+    /// List of supported plugin file extensions, used for caching and validation.
+    extensions: Vec<String>,
 
     /// Loader for referencing local plugins using file paths.
     file_loader: OnceCell<FileLoader>,
@@ -80,6 +82,7 @@ impl PluginLoader {
         Self {
             cache_duration: Duration::from_secs(86400 * 30), // 30 days
             data_loader: OnceCell::new(),
+            extensions: vec!["wasm".into()],
             file_loader: OnceCell::new(),
             github_loader: OnceCell::new(),
             http_client: OnceCell::new(),
@@ -95,16 +98,14 @@ impl PluginLoader {
         }
     }
 
-    /// Add an OCI registry as a backend.
-    pub fn add_registry(&mut self, registry: RegistryConfig) {
-        self.registries.push(registry);
+    /// Add multiple supported plugin file extensions.
+    pub fn add_extensions(&mut self, extensions: Vec<String>) {
+        self.extensions.extend(extensions);
     }
 
     /// Add multiple OCI registries as a backend.
     pub fn add_registries(&mut self, registries: Vec<RegistryConfig>) {
-        for registry in registries {
-            self.add_registry(registry);
-        }
+        self.registries.extend(registries);
     }
 
     /// Return a data loader for use with [`DataLocator`]s.
@@ -305,10 +306,10 @@ impl PluginLoader {
         // extension than "wasm" (e.g. "toml" or "yaml")
         trace!(id = id.as_str(), "Checking if plugin has been cached");
 
-        for ext in get_plugin_extensions() {
+        for ext in &self.extensions {
             let cache_path = self.create_cache_path(id, &hash, &ext, is_latest);
 
-            if cache_path.exists() && self.is_cached(id, &cache_path)? {
+            if self.is_cached(id, &cache_path)? {
                 return Ok(cache_path);
             }
         }
@@ -320,6 +321,97 @@ impl PluginLoader {
             .await?;
 
         Ok(cache_path)
+    }
+
+    fn determine_cache_extension(&self, value: &str) -> Option<&str> {
+        self.extensions
+            .iter()
+            .find(|ext| value.ends_with(&format!(".{ext}")))
+            .map(|s| s.as_str())
+    }
+
+    /// If the temporary file is an archive, unpack it into the destination,
+    /// otherwise move the file into the destination.
+    #[doc(hidden)]
+    #[instrument(skip(self))]
+    pub fn move_or_unpack_file(
+        &self,
+        temp_file: &Path,
+        dest_file: &mut PathBuf,
+    ) -> Result<(), WarpgateLoaderError> {
+        // The temporary file is an archive that may contain a plugin/wasm file,
+        // so we need to unpack it and find the plugin file inside!
+        if is_supported_archive_extension(temp_file) {
+            let mut out_dir = temp_file.to_path_buf();
+
+            // Unpack the archive into a temporary directory, using the same
+            // name as the file, so we can easily reference it if needed
+            out_dir.set_file_name(
+                temp_file
+                    .file_prefix()
+                    .and_then(|prefix| prefix.to_str())
+                    .unwrap_or("out"),
+            );
+
+            Archiver::new(&out_dir, temp_file).unpack_from_ext()?;
+
+            let files = glob::walk_files(&out_dir, ["**/*.{wasm,toml,json,jsonc,yaml,yml}"])?;
+
+            if files.is_empty() {
+                return Err(WarpgateLoaderError::NoWasmFound {
+                    path: temp_file.to_path_buf(),
+                });
+            } else {
+                for ext in &self.extensions {
+                    if let Some(file) = find_file_with_extension(&files, &ext) {
+                        // At this point, we know what type of file to use,
+                        // so update the destination extension to match the file we found,
+                        // otherwise "wasm" will be used for non-wasm files!
+                        dest_file.set_extension(ext);
+
+                        fs::copy_file(file, dest_file)?;
+
+                        break;
+                    }
+                }
+            }
+
+            fs::remove_dir_all(out_dir)?;
+
+            return Ok(());
+        }
+
+        // Non-archive supported extensions, typically the plugin file itself.
+        // We extract the extension from the destination file, as that path is
+        // the source of truth for the plugin file type, while the temporary
+        // file is extensionless (when not an archive).
+        match dest_file.extension().and_then(|ext| ext.to_str()) {
+            Some("wasm" | "toml" | "json" | "jsonc" | "yaml" | "yml") => {
+                // Plugins can be downloaded in parallel, which means
+                // that this temp file can also be moved by another process.
+                // Because of this, proto constantly runs into "Failed to rename"
+                // errors when hitting this block, so let's avoid the failure
+                // if the condition is met and assume all is good!
+                if temp_file.exists() && !dest_file.exists() {
+                    fs::rename(temp_file, dest_file)?;
+                }
+            }
+
+            Some(ext) => {
+                return Err(WarpgateLoaderError::UnsupportedDownloadExtension {
+                    ext: ext.to_owned(),
+                    path: temp_file.to_path_buf(),
+                });
+            }
+
+            None => {
+                return Err(WarpgateLoaderError::UnknownDownloadType {
+                    path: temp_file.to_path_buf(),
+                });
+            }
+        };
+
+        Ok(())
     }
 
     #[instrument(skip(self, source))]
@@ -395,7 +487,7 @@ impl PluginLoader {
                 // so that we can update the destination similar to the blob case
                 let file_name = extract_file_name_from_url(&url);
 
-                if let Some(ext) = determine_cache_extension(&file_name) {
+                if let Some(ext) = self.determine_cache_extension(&file_name) {
                     dest_file.set_extension(ext);
                 }
 
@@ -422,8 +514,26 @@ impl PluginLoader {
         };
 
         // If the file is an archive, unpack it, otherwise move it to the destination!
-        move_or_unpack_download(&lock.path, &mut dest_file)?;
+        self.move_or_unpack_file(&lock.path, &mut dest_file)?;
 
         Ok(dest_file)
     }
+}
+
+fn find_file_with_extension(paths: &[PathBuf], ext: &str) -> Option<PathBuf> {
+    // Find a release file first, as some archives include the target folder
+    if ext == "wasm"
+        && let Some(release) = paths.iter().find(|path| {
+            path.extension().is_some_and(|e| e == "wasm")
+                && path.iter().any(|comp| comp == "release")
+        })
+    {
+        return Some(release.to_path_buf());
+    }
+
+    // Otherwise, find the first file available
+    paths
+        .iter()
+        .find(|path| path.extension().is_some_and(|e| e == ext))
+        .cloned()
 }

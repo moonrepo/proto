@@ -8,7 +8,7 @@ use crate::lockfile::ProtoLock;
 use once_cell::sync::OnceCell;
 use starbase_console::{Console, EmptyReporter};
 use starbase_utils::dirs::home_dir;
-use starbase_utils::envx;
+use starbase_utils::{envx, string_vec};
 use std::env;
 use std::fmt;
 use std::path::{Path, PathBuf};
@@ -105,6 +105,7 @@ impl ProtoEnvironment {
 
             loader.set_http_client_options(&options);
             loader.set_offline_checker(is_offline);
+            loader.add_extensions(string_vec!["toml", "json", "jsonc", "yaml", "yml"]);
             loader.add_registries(config.settings.registries.iter().cloned().collect());
 
             Ok(loader)

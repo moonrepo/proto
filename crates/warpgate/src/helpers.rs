@@ -1,10 +1,7 @@
 use crate::loader_error::WarpgateLoaderError;
 use base64::prelude::*;
 use sha2::{Digest, Sha256};
-use starbase_archive::{Archiver, is_supported_archive_extension};
-use starbase_utils::net::DownloadOptions;
-use starbase_utils::string_vec;
-use starbase_utils::{fs, glob, net, net::NetError};
+use starbase_utils::net::{self, DownloadOptions, NetError};
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use tracing::instrument;
@@ -24,20 +21,6 @@ pub fn hash_sha256<T: AsRef<[u8]>>(value: T) -> String {
     sha.update("v2");
 
     format!("{:x}", sha.finalize())
-}
-
-/// Return a list of supported plugin file extensions,
-/// which can be used for caching and validation.
-pub fn get_plugin_extensions() -> Vec<String> {
-    string_vec!["wasm", "toml", "json", "jsonc", "yaml", "yml"]
-}
-
-/// Determine the extension to use for a cache file, based on our
-/// list of supported extensions.
-pub fn determine_cache_extension(value: &str) -> Option<String> {
-    get_plugin_extensions()
-        .into_iter()
-        .find(|ext| value.ends_with(&format!(".{ext}")))
 }
 
 /// Attempt to extract a file name from the provided URL,
@@ -74,105 +57,6 @@ pub async fn download_from_url_to_file(
                 error: Box::new(e),
             },
         });
-    };
-
-    Ok(())
-}
-
-fn find_file_with_extension(paths: &[PathBuf], ext: &str) -> Option<PathBuf> {
-    // Find a release file first, as some archives include the target folder
-    if ext == "wasm"
-        && let Some(release) = paths.iter().find(|path| {
-            path.extension().is_some_and(|e| e == ext) && path.iter().any(|comp| comp == "release")
-        })
-    {
-        return Some(release.to_path_buf());
-    }
-
-    // Otherwise, find the first file available
-    paths
-        .iter()
-        .find(|path| path.extension().is_some_and(|e| e == ext))
-        .cloned()
-}
-
-/// If the temporary file is an archive, unpack it into the destination,
-/// otherwise move the file into the destination.
-#[instrument]
-pub fn move_or_unpack_download(
-    temp_file: &Path,
-    dest_file: &mut PathBuf,
-) -> Result<(), WarpgateLoaderError> {
-    // The temporary file is an archive that may contain a plugin/wasm file,
-    // so we need to unpack it and find the plugin file inside!
-    if is_supported_archive_extension(temp_file) {
-        let mut out_dir = temp_file.to_path_buf();
-
-        // Unpack the archive into a temporary directory, using the same
-        // name as the file, so we can easily reference it if needed
-        out_dir.set_file_name(
-            temp_file
-                .file_prefix()
-                .and_then(|prefix| prefix.to_str())
-                .unwrap_or("out"),
-        );
-
-        Archiver::new(&out_dir, temp_file).unpack_from_ext()?;
-
-        let files = glob::walk_files(&out_dir, ["**/*.{wasm,toml,json,jsonc,yaml,yml}"])?;
-
-        if files.is_empty() {
-            return Err(WarpgateLoaderError::NoWasmFound {
-                path: temp_file.to_path_buf(),
-            });
-        } else {
-            for ext in get_plugin_extensions() {
-                if let Some(file) = find_file_with_extension(&files, &ext) {
-                    // At this point, we know what type of file to use,
-                    // so update the destination extension to match the file we found,
-                    // otherwise "wasm" will be used for non-wasm files!
-                    dest_file.set_extension(ext);
-
-                    fs::copy_file(file, dest_file)?;
-
-                    break;
-                }
-            }
-        }
-
-        fs::remove_dir_all(out_dir)?;
-
-        return Ok(());
-    }
-
-    // Non-archive supported extensions, typically the plugin file itself.
-    // We extract the extension from the destination file, as that path is
-    // the source of truth for the plugin file type, while the temporary
-    // file is extensionless (when not an archive).
-    match dest_file.extension().and_then(|ext| ext.to_str()) {
-        Some("wasm" | "toml" | "json" | "jsonc" | "yaml" | "yml") => {
-            // Plugins can be downloaded in parallel, which means
-            // that this temp file can also be moved by another process.
-            // Because of this, proto constantly runs into "Failed to rename"
-            // errors when hitting this block, so let's avoid the failure
-            // if the condition is met and assume all is good!
-            if temp_file.exists() && !dest_file.exists() {
-                fs::rename(temp_file, dest_file)?;
-            }
-        }
-
-        Some(ext) => {
-            return Err(WarpgateLoaderError::UnsupportedDownloadExtension {
-                ext: ext.to_owned(),
-                path: temp_file.to_path_buf(),
-            });
-        }
-
-        None => {
-            return Err(WarpgateLoaderError::UnknownDownloadType {
-                path: temp_file.to_path_buf(),
-            });
-        }
     };
 
     Ok(())
