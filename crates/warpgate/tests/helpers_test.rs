@@ -260,4 +260,71 @@ mod move_or_unpack_file {
         );
         assert!(!dest_path.exists());
     }
+
+    // When the caller permits multiple extensions and the archive holds a
+    // non-WASM plugin (e.g. a TOML config layer shipped as `.tar.gz`), the
+    // function must:
+    //   1. find the .toml file inside the archive
+    //   2. mutate `dest_path` from the `.wasm` placeholder to `.toml` so the
+    //      cache lookup on the next load finds the right file
+    //   3. write the file's actual contents
+    // This exercises the mutable-dest contract added when extensions became
+    // caller-configurable.
+    #[test]
+    fn unpacks_non_wasm_archive_and_updates_dest_extension() {
+        let sandbox = create_empty_sandbox();
+        let source_root = sandbox.path().join("src");
+        let archive_path = sandbox.path().join("plugin.tar.gz");
+        let mut dest_path = sandbox.path().join("plugin.wasm");
+
+        pack_tar_gz(
+            &source_root,
+            &archive_path,
+            &[("plugin.toml", b"[plugin]\nname = \"test\"\n")],
+        );
+
+        move_or_unpack_file(
+            &archive_path,
+            &mut dest_path,
+            &["wasm".into(), "toml".into()],
+        )
+        .unwrap();
+
+        assert_eq!(dest_path.extension().and_then(|e| e.to_str()), Some("toml"));
+        assert!(dest_path.exists());
+
+        let bytes = fs::read_file_bytes(&dest_path).unwrap();
+        assert!(bytes.starts_with(b"[plugin]"));
+    }
+
+    // With both `.wasm` and `.toml` in an archive, the function must honor
+    // the caller's extension priority (first wins) — i.e. `.wasm` is picked
+    // and `dest_path` is left at the `.wasm` placeholder.
+    #[test]
+    fn prefers_first_extension_when_archive_contains_multiple() {
+        let sandbox = create_empty_sandbox();
+        let source_root = sandbox.path().join("src");
+        let archive_path = sandbox.path().join("plugin.tar.gz");
+        let mut dest_path = sandbox.path().join("plugin.wasm");
+
+        pack_tar_gz(
+            &source_root,
+            &archive_path,
+            &[
+                ("plugin.toml", b"[plugin]\nname = \"test\"\n"),
+                ("plugin.wasm", WASM_MAGIC),
+            ],
+        );
+
+        move_or_unpack_file(
+            &archive_path,
+            &mut dest_path,
+            &["wasm".into(), "toml".into()],
+        )
+        .unwrap();
+
+        assert_eq!(dest_path.extension().and_then(|e| e.to_str()), Some("wasm"));
+        let bytes = fs::read_file_bytes(&dest_path).unwrap();
+        assert_eq!(bytes, WASM_MAGIC);
+    }
 }
