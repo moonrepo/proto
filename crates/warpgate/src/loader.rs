@@ -1,4 +1,3 @@
-use crate::clients::*;
 use crate::helpers::{
     download_from_url_to_file, get_plugin_extensions, hash_sha256, move_or_unpack_download,
 };
@@ -7,12 +6,14 @@ use crate::protocols::{
     DataLoader, FileLoader, GitHubLoader, HttpLoader, LoadFrom, LoaderProtocol, OciLoader,
 };
 use crate::registry::RegistryConfig;
+use crate::{clients::*, determine_cache_extension, extract_file_name_from_url};
 use once_cell::sync::OnceCell;
 use starbase_styles::color;
 use starbase_utils::fs::{FileLock, FsError};
 use starbase_utils::net::DownloadOptions;
 use starbase_utils::{fs, path};
 use std::fmt::Debug;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
@@ -232,6 +233,10 @@ impl PluginLoader {
     /// is only valid for a duration (to ensure not stale), otherwise forever.
     #[instrument(name = "is_plugin_cached", skip(self))]
     pub fn is_cached(&self, id: &Id, path: &Path) -> Result<bool, WarpgateLoaderError> {
+        if !path.exists() {
+            return Ok(false);
+        }
+
         if self.cache_duration.is_zero() && !self.is_offline() {
             trace!(
                 id = id.as_str(),
@@ -326,7 +331,9 @@ impl PluginLoader {
         source: LoadFrom<'_>,
     ) -> Result<PathBuf, WarpgateLoaderError> {
         let mut dest_file = self.create_cache_path(id, &hash, "wasm", is_latest);
-        let mut temp_file = self.temp_dir.join(format!("{id}-{hash}")); // Extensionless
+        let mut temp_file = self
+            .temp_dir
+            .join(format!("{}-{hash}", path::encode_component(id))); // Extensionless
 
         if let Some(ext) = source.is_archive() {
             temp_file.set_extension(ext);
@@ -353,10 +360,21 @@ impl PluginLoader {
                     "Saving plugin from bytes"
                 );
 
-                // We know the final file extension ahead of time
+                // We know the final file extension ahead of time as it is
+                // explicitly provided by the loader (from an OCI layer)
                 dest_file.set_extension(&ext);
 
-                fs::write_file(&lock.path, data)?;
+                // Write through the already-locked file handle. Opening a
+                // separate handle (as `fs::write_file` does) fails on Windows
+                // with ERROR_LOCK_VIOLATION (os error 33) because the
+                // exclusive lock acquired above is mandatory there, unlike
+                // the advisory flock on Unix.
+                fs::truncate_file_handle(&lock.path, &mut lock.file)?;
+
+                lock.file.write_all(&data).map_err(|error| FsError::Write {
+                    path: lock.path.clone(),
+                    error: Box::new(error),
+                })?;
             }
             LoadFrom::Url(url) => {
                 if self.is_offline() {
@@ -373,6 +391,15 @@ impl PluginLoader {
                     "Downloading plugin from URL"
                 );
 
+                // Attempt to extract the final file extension from the URL,
+                // so that we can update the destination similar to the blob case
+                let file_name = extract_file_name_from_url(&url);
+
+                if let Some(ext) = determine_cache_extension(&file_name) {
+                    dest_file.set_extension(ext);
+                }
+
+                // Now download the file to the temporary location
                 download_from_url_to_file(
                     &url,
                     &lock.path,
