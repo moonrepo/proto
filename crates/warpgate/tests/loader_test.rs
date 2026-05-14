@@ -1,14 +1,12 @@
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
-use starbase_archive::Archiver;
-use starbase_archive::tar::TarPacker;
 use starbase_sandbox::{Sandbox, create_empty_sandbox, locate_fixture};
 use starbase_utils::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::time::Duration;
 use warpgate::{
     DataLocator, FileLocator, GitHubLocator, Id, PluginLoader, PluginLocator, RegistryConfig,
-    RegistryLocator, UrlLocator, WarpgateLoaderError, hash_sha256,
+    RegistryLocator, UrlLocator, hash_sha256,
 };
 
 // A pinned, stable .wasm release to use across URL-based tests.
@@ -33,164 +31,8 @@ fn url_cache_path(loader: &PluginLoader, url: &str) -> PathBuf {
     loader.create_cache_path(&Id::raw("test"), &hash_sha256(url), "wasm", false)
 }
 
-// A WASM binary's first 4 bytes are the magic header `\0asm`. Used so the
-// file is treated as a real WASM (not an empty file) by anything that sniffs.
-const WASM_MAGIC: &[u8] = b"\0asm\x01\x00\x00\x00";
-
-// Pack the provided files into a `.tar.gz` archive at `archive_path`.
-// Each `(rel_path, contents)` entry is added relative to `source_root`.
-fn pack_tar_gz(source_root: &Path, archive_path: &Path, files: &[(&str, &[u8])]) {
-    for (rel, contents) in files {
-        let target = source_root.join(rel);
-        fs::write_file(&target, contents).unwrap();
-    }
-
-    let mut archiver = Archiver::new(source_root, archive_path);
-
-    for (rel, _) in files {
-        archiver.add_source_file(rel, None);
-    }
-
-    archiver.pack(TarPacker::new_gz).unwrap();
-}
-
 mod loader {
     use super::*;
-
-    mod move_or_unpack {
-        use super::*;
-
-        #[test]
-        fn unpacks_archive_and_prefers_release_dir() {
-            let (sandbox, loader) = create_loader();
-            let source_root = sandbox.path().join("src");
-            let archive_path = sandbox.path().join("plugin.tar.gz");
-            let mut dest_path = sandbox.path().join("plugin.wasm");
-
-            // Two `.wasm` files: one in `release/` and one outside. The function
-            // should prefer the release one so that archives that include build
-            // artefacts under `target/release/` resolve correctly.
-            pack_tar_gz(
-                &source_root,
-                &archive_path,
-                &[
-                    ("debug/plugin.wasm", b"not this one"),
-                    ("release/plugin.wasm", WASM_MAGIC),
-                ],
-            );
-
-            loader
-                .move_or_unpack_file(&archive_path, &mut dest_path)
-                .unwrap();
-
-            assert!(dest_path.exists());
-
-            let bytes = fs::read_file_bytes(&dest_path).unwrap();
-            assert_eq!(bytes, WASM_MAGIC);
-        }
-
-        #[test]
-        fn unpacks_archive_with_no_release_dir() {
-            let (sandbox, loader) = create_loader();
-            let source_root = sandbox.path().join("src");
-            let archive_path = sandbox.path().join("plugin.tar.gz");
-            let mut dest_path = sandbox.path().join("plugin.wasm");
-
-            pack_tar_gz(&source_root, &archive_path, &[("plugin.wasm", WASM_MAGIC)]);
-
-            loader
-                .move_or_unpack_file(&archive_path, &mut dest_path)
-                .unwrap();
-
-            let bytes = fs::read_file_bytes(&dest_path).unwrap();
-            assert_eq!(bytes, WASM_MAGIC);
-        }
-
-        #[test]
-        fn errors_when_archive_contains_no_wasm() {
-            let (sandbox, loader) = create_loader();
-            let source_root = sandbox.path().join("src");
-            let archive_path = sandbox.path().join("plugin.tar.gz");
-            let mut dest_path = sandbox.path().join("plugin.wasm");
-
-            pack_tar_gz(
-                &source_root,
-                &archive_path,
-                &[("README.md", b"no wasm here")],
-            );
-
-            let err = loader
-                .move_or_unpack_file(&archive_path, &mut dest_path)
-                .unwrap_err();
-
-            assert!(
-                matches!(err, WarpgateLoaderError::NoWasmFound { .. }),
-                "expected NoWasmFound, got: {err:?}"
-            );
-            assert!(!dest_path.exists());
-        }
-
-        #[test]
-        fn renames_plain_wasm_file() {
-            let (sandbox, loader) = create_loader();
-            let temp_path = sandbox.path().join("temp.wasm");
-            let mut dest_path = sandbox.path().join("plugin.wasm");
-
-            fs::write_file(&temp_path, WASM_MAGIC).unwrap();
-
-            loader
-                .move_or_unpack_file(&temp_path, &mut dest_path)
-                .unwrap();
-
-            assert!(dest_path.exists());
-            // `fs::rename` moves the file — temp should no longer exist.
-            assert!(!temp_path.exists());
-
-            let bytes = fs::read_file_bytes(&dest_path).unwrap();
-            assert_eq!(bytes, WASM_MAGIC);
-        }
-
-        #[test]
-        fn errors_on_unsupported_extension() {
-            let (sandbox, loader) = create_loader();
-            let temp_path = sandbox.path().join("temp.wasm");
-            let mut dest_path = sandbox.path().join("plugin.exe");
-
-            fs::write_file(&temp_path, b"not a plugin").unwrap();
-
-            let err = loader
-                .move_or_unpack_file(&temp_path, &mut dest_path)
-                .unwrap_err();
-
-            assert!(
-                matches!(
-                    err,
-                    WarpgateLoaderError::UnsupportedDownloadExtension { ref ext, .. } if ext == "exe"
-                ),
-                "expected UnsupportedDownloadExtension(exe), got: {err:?}"
-            );
-            assert!(!dest_path.exists());
-        }
-
-        #[test]
-        fn errors_on_missing_extension() {
-            let (sandbox, loader) = create_loader();
-            let temp_path = sandbox.path().join("temp.wasm");
-            let mut dest_path = sandbox.path().join("plugin");
-
-            fs::write_file(&temp_path, b"unknown").unwrap();
-
-            let err = loader
-                .move_or_unpack_file(&temp_path, &mut dest_path)
-                .unwrap_err();
-
-            assert!(
-                matches!(err, WarpgateLoaderError::UnknownDownloadType { .. }),
-                "expected UnknownDownloadType, got: {err:?}"
-            );
-            assert!(!dest_path.exists());
-        }
-    }
 
     // -------------------------------------------------------------------------
     // Data / blob locator
