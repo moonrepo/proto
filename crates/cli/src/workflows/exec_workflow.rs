@@ -399,40 +399,48 @@ fn is_windows_posix_shell(shell_type: &ShellType) -> bool {
 
 #[cfg(windows)]
 fn windows_path_to_posix(path: &Path) -> Cow<'_, str> {
-    let input = path.to_string_lossy();
+    use std::path::{Component, Prefix};
 
-    if input.starts_with('/') {
-        return input;
-    }
+    let mut components = path.components();
 
-    if input.starts_with("\\\\") || input.starts_with("//") {
-        let rest = input
-            .trim_start_matches(['\\', '/'])
-            .replace('\\', "/")
-            .trim_start_matches('/')
-            .to_owned();
+    let Some(first) = components.next() else {
+        return path.to_string_lossy();
+    };
 
-        if rest.is_empty() {
-            return Cow::Owned("/unc".into());
+    let Component::Prefix(prefix) = first else {
+        // Already POSIX-style (starts with RootDir) or relative path - return as-is
+        return path.to_string_lossy();
+    };
+
+    let prefix_str = match prefix.kind() {
+        Prefix::Disk(drive) | Prefix::VerbatimDisk(drive) => {
+            format!("/{}", (drive as char).to_ascii_lowercase())
         }
-
-        return Cow::Owned(format!("/unc/{rest}"));
-    }
-
-    if input.len() >= 2 && input.as_bytes()[1] == b':' && input.as_bytes()[0].is_ascii_alphabetic()
-    {
-        let drive = input[..1].to_ascii_lowercase();
-        let rest = input[2..].replace('\\', "/");
-        let rest = rest.trim_start_matches('/');
-
-        if rest.is_empty() {
-            return Cow::Owned(format!("/{drive}"));
+        Prefix::UNC(server, share) | Prefix::VerbatimUNC(server, share) => {
+            format!(
+                "/unc/{}/{}",
+                server.to_string_lossy(),
+                share.to_string_lossy()
+            )
         }
+        _ => return path.to_string_lossy(),
+    };
 
-        return Cow::Owned(format!("/{drive}/{rest}"));
+    // Skip the RootDir separator that immediately follows the prefix on Windows
+    let mut remaining = components.peekable();
+    if matches!(remaining.peek(), Some(Component::RootDir)) {
+        remaining.next();
     }
 
-    input
+    let rest: Vec<_> = remaining
+        .map(|c| c.as_os_str().to_string_lossy().into_owned())
+        .collect();
+
+    if rest.is_empty() {
+        Cow::Owned(prefix_str)
+    } else {
+        Cow::Owned(format!("{prefix_str}/{}", rest.join("/")))
+    }
 }
 
 #[cfg(not(windows))]
@@ -682,8 +690,8 @@ mod tests {
         #[cfg(windows)]
         #[test]
         fn converts_windows_paths_to_posix() {
-            let path = PathBuf::from("C:\\Users\\Alice\\proto\\bin\\");
-            assert_eq!(windows_path_to_posix(&path), "/c/Users/Alice/proto/bin/");
+            let path = PathBuf::from("C:\\Users\\Alice\\proto\\bin");
+            assert_eq!(windows_path_to_posix(&path), "/c/Users/Alice/proto/bin");
         }
 
         #[cfg(windows)]
@@ -709,41 +717,16 @@ mod tests {
         #[cfg(windows)]
         #[test]
         fn detects_emulated_posix_shells() {
-            use std::env;
-
-            struct EnvVarGuard {
-                key: &'static str,
-                original: Option<String>,
+            unsafe {
+                std::env::set_var("MSYSTEM", "MINGW64");
             }
-
-            impl EnvVarGuard {
-                fn set(key: &'static str, value: &str) -> Self {
-                    let original = env::var(key).ok();
-
-                    unsafe {
-                        env::set_var(key, value);
-                    }
-
-                    Self { key, original }
-                }
-            }
-
-            impl Drop for EnvVarGuard {
-                fn drop(&mut self) {
-                    unsafe {
-                        if let Some(value) = &self.original {
-                            env::set_var(self.key, value);
-                        } else {
-                            env::remove_var(self.key);
-                        }
-                    }
-                }
-            }
-
-            let _guard = EnvVarGuard::set("MSYSTEM", "MINGW64");
 
             assert!(is_windows_posix_shell(&ShellType::Bash));
             assert!(!is_windows_posix_shell(&ShellType::Pwsh));
+
+            unsafe {
+                std::env::remove_var("MSYSTEM");
+            }
         }
     }
 }
