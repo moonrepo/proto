@@ -379,6 +379,13 @@ fn convert_path(path: &Path, posix: bool) -> String {
 }
 
 fn is_windows_posix_shell(shell_type: &ShellType) -> bool {
+    is_windows_posix_shell_with(shell_type, |key| env::var_os(key))
+}
+
+fn is_windows_posix_shell_with<F>(shell_type: &ShellType, get_env: F) -> bool
+where
+    F: Fn(&str) -> Option<OsString>,
+{
     if !cfg!(windows) {
         return false;
     }
@@ -386,12 +393,12 @@ fn is_windows_posix_shell(shell_type: &ShellType) -> bool {
     matches!(
         shell_type,
         ShellType::Bash | ShellType::Zsh | ShellType::Fish | ShellType::Murex | ShellType::Elvish
-    ) && (env::var_os("MSYSTEM").is_some()
-        || env::var_os("MINGW").is_some()
-        || env::var_os("MSYS").is_some()
-        || env::var("OSTYPE")
+    ) && (get_env("MSYSTEM").is_some()
+        || get_env("MINGW").is_some()
+        || get_env("MSYS").is_some()
+        || get_env("OSTYPE")
             .map(|value| {
-                let value = value.to_ascii_lowercase();
+                let value = value.to_string_lossy().to_ascii_lowercase();
                 value.contains("msys") || value.contains("cygwin")
             })
             .unwrap_or(false))
@@ -717,16 +724,24 @@ mod tests {
         #[cfg(windows)]
         #[test]
         fn detects_emulated_posix_shells() {
-            unsafe {
-                std::env::set_var("MSYSTEM", "MINGW64");
-            }
+            let env_vars = [(
+                "MSYSTEM",
+                std::ffi::OsString::from("MINGW64"),
+            )];
 
-            assert!(is_windows_posix_shell(&ShellType::Bash));
-            assert!(!is_windows_posix_shell(&ShellType::Pwsh));
+            assert!(is_windows_posix_shell_with(&ShellType::Bash, |key| {
+                env_vars
+                    .iter()
+                    .find(|(env_key, _)| *env_key == key)
+                    .map(|(_, value)| value.clone())
+            }));
 
-            unsafe {
-                std::env::remove_var("MSYSTEM");
-            }
+            assert!(!is_windows_posix_shell_with(&ShellType::Pwsh, |key| {
+                env_vars
+                    .iter()
+                    .find(|(env_key, _)| *env_key == key)
+                    .map(|(_, value)| value.clone())
+            }));
         }
     }
 }
