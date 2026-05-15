@@ -2,7 +2,6 @@ use crate::session::{LoadToolOptions, ProtoSession};
 use crate::workflows::{ExecWorkflow, ExecWorkflowParams};
 use clap::Args;
 use indexmap::IndexMap;
-use miette::IntoDiagnostic;
 use proto_core::{Id, PROTO_PLUGIN_KEY, ToolContext, UnresolvedVersionSpec};
 use rustc_hash::FxHashMap;
 use serde::Serialize;
@@ -137,7 +136,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
     if session.should_print_json() {
         let result = ActivateResult {
             path: workflow
-                .reset_and_join_paths(&session.env.store.dir)?
+                .reset_and_join_paths_for_shell(&session.env.store.dir, &shell_type)?
                 .into_string()
                 .ok(),
             env: workflow.env,
@@ -258,21 +257,14 @@ fn print_activation_exports(
 
     // Set new `PATH`
     if !workflow.paths.is_empty() {
-        output.push(
-            shell.format_env_set(
-                "_PROTO_ACTIVATED_PATH",
-                env::join_paths(&workflow.paths)
-                    .into_diagnostic()?
-                    .to_str()
-                    .unwrap_or_default(),
-            ),
-        );
+        let activated_path = workflow.activation_path_value_for_shell(shell_type)?;
 
-        let paths = workflow
-            .reset_paths(&session.env.store.dir)
-            .into_iter()
-            .map(|path| path.to_string_lossy().to_string())
-            .collect::<Vec<_>>();
+        output.push(shell.format_env_set(
+            "_PROTO_ACTIVATED_PATH",
+            activated_path.to_string_lossy().as_ref(),
+        ));
+
+        let paths = workflow.reset_paths_for_shell(&session.env.store.dir, shell_type);
 
         if !paths.is_empty() && !is_test() {
             output.push(shell.format_path_set(&paths));

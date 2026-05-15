@@ -15,6 +15,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use starbase_args::parse as parse_args;
 use starbase_shell::{BoxedShell, ShellType, join_args};
 use starbase_utils::envx;
+use std::borrow::Cow;
 use std::collections::VecDeque;
 use std::env;
 use std::ffi::{OsStr, OsString};
@@ -265,6 +266,17 @@ impl<'app> ExecWorkflow<'app> {
         Ok(None)
     }
 
+    pub fn activation_path_value_for_shell(
+        &self,
+        shell_type: &ShellType,
+    ) -> miette::Result<OsString> {
+        join_paths_for_shell(self.paths.iter(), shell_type)
+    }
+
+    pub fn reset_paths_for_shell(&self, store_dir: &Path, shell_type: &ShellType) -> Vec<String> {
+        convert_paths_for_shell(self.reset_paths(store_dir).iter(), shell_type)
+    }
+
     pub fn reset_paths(&self, store_dir: &Path) -> Vec<PathBuf> {
         let start_path = store_dir.join("activate-start");
         let stop_path = store_dir.join("activate-stop");
@@ -300,8 +312,12 @@ impl<'app> ExecWorkflow<'app> {
         reset_paths
     }
 
-    pub fn reset_and_join_paths(&self, store_dir: &Path) -> miette::Result<OsString> {
-        env::join_paths(self.reset_paths(store_dir)).into_diagnostic()
+    pub fn reset_and_join_paths_for_shell(
+        &self,
+        store_dir: &Path,
+        shell_type: &ShellType,
+    ) -> miette::Result<OsString> {
+        join_paths_for_shell(self.reset_paths(store_dir).iter(), shell_type)
     }
 
     pub fn requires_shell(&self, shell: &BoxedShell, args: &[String], raw: bool) -> bool {
@@ -323,6 +339,120 @@ impl<'app> ExecWorkflow<'app> {
             Err(_) => true,
         }
     }
+}
+
+fn convert_paths_for_shell<'a, I>(paths: I, shell_type: &ShellType) -> Vec<String>
+where
+    I: IntoIterator<Item = &'a PathBuf>,
+{
+    let posix = is_windows_posix_shell(shell_type);
+
+    paths
+        .into_iter()
+        .map(|path| convert_path(path.as_path(), posix))
+        .collect()
+}
+
+fn join_paths_for_shell<'a, I>(paths: I, shell_type: &ShellType) -> miette::Result<OsString>
+where
+    I: IntoIterator<Item = &'a PathBuf>,
+{
+    if is_windows_posix_shell(shell_type) {
+        return Ok(OsString::from(
+            paths
+                .into_iter()
+                .map(|path| convert_path(path.as_path(), true))
+                .collect::<Vec<_>>()
+                .join(":"),
+        ));
+    }
+
+    env::join_paths(paths).into_diagnostic()
+}
+
+fn convert_path(path: &Path, posix: bool) -> String {
+    if posix {
+        return windows_path_to_posix(path).into_owned();
+    }
+
+    path.to_string_lossy().to_string()
+}
+
+fn is_windows_posix_shell(shell_type: &ShellType) -> bool {
+    is_windows_posix_shell_with(shell_type, |key| env::var_os(key))
+}
+
+fn is_windows_posix_shell_with<F>(shell_type: &ShellType, get_env: F) -> bool
+where
+    F: Fn(&str) -> Option<OsString>,
+{
+    if !cfg!(windows) {
+        return false;
+    }
+
+    matches!(
+        shell_type,
+        ShellType::Bash | ShellType::Zsh | ShellType::Fish | ShellType::Murex | ShellType::Elvish
+    ) && (get_env("MSYSTEM").is_some()
+        || get_env("MINGW").is_some()
+        || get_env("MSYS").is_some()
+        || get_env("OSTYPE")
+            .map(|value| {
+                let value = value.to_string_lossy().to_ascii_lowercase();
+                value.contains("msys") || value.contains("cygwin")
+            })
+            .unwrap_or(false))
+}
+
+#[cfg(windows)]
+fn windows_path_to_posix(path: &Path) -> Cow<'_, str> {
+    use std::path::{Component, Prefix};
+
+    let mut components = path.components();
+
+    let Some(first) = components.next() else {
+        return path.to_string_lossy();
+    };
+
+    let Component::Prefix(prefix) = first else {
+        // Already POSIX-style (starts with RootDir) or relative path - return as-is
+        return path.to_string_lossy();
+    };
+
+    let prefix_str = match prefix.kind() {
+        Prefix::Disk(drive) | Prefix::VerbatimDisk(drive) => {
+            format!("/{}", (drive as char).to_ascii_lowercase())
+        }
+        Prefix::UNC(server, share) | Prefix::VerbatimUNC(server, share) => {
+            format!(
+                "/unc/{}/{}",
+                server.to_string_lossy(),
+                share.to_string_lossy()
+            )
+        }
+        _ => return path.to_string_lossy(),
+    };
+
+    // Skip the RootDir separator that immediately follows the prefix on Windows
+    let mut remaining = components.peekable();
+    if matches!(remaining.peek(), Some(Component::RootDir)) {
+        remaining.next();
+    }
+
+    let rest: Vec<_> = remaining
+        .map(|c| c.as_os_str().to_string_lossy().into_owned())
+        .collect();
+
+    if rest.is_empty() {
+        Cow::Owned(prefix_str)
+    } else {
+        Cow::Owned(format!("{prefix_str}/{}", rest.join("/")))
+    }
+}
+
+#[cfg(not(windows))]
+fn windows_path_to_posix(path: &Path) -> Cow<'_, str> {
+    path.to_string_lossy()
 }
 
 async fn prepare_tool(
@@ -562,6 +692,56 @@ mod tests {
 
             let joined = result.unwrap().to_string_lossy().to_string();
             assert!(joined.starts_with("/test/bin"));
+        }
+
+        #[cfg(windows)]
+        #[test]
+        fn converts_windows_paths_to_posix() {
+            let path = PathBuf::from("C:\\Users\\Alice\\proto\\bin");
+            assert_eq!(windows_path_to_posix(&path), "/c/Users/Alice/proto/bin");
+        }
+
+        #[cfg(windows)]
+        #[test]
+        fn converts_unc_windows_paths_to_posix() {
+            let path = PathBuf::from("\\\\server\\share\\bin");
+            assert_eq!(windows_path_to_posix(&path), "/unc/server/share/bin");
+        }
+
+        #[cfg(windows)]
+        #[test]
+        fn ignores_posix_and_relative_paths() {
+            assert_eq!(
+                windows_path_to_posix(Path::new("/usr/local/bin")),
+                "/usr/local/bin"
+            );
+            assert_eq!(
+                windows_path_to_posix(Path::new("relative\\bin")),
+                "relative\\bin"
+            );
+        }
+
+        #[cfg(windows)]
+        #[test]
+        fn detects_emulated_posix_shells() {
+            let env_vars = [(
+                "MSYSTEM",
+                std::ffi::OsString::from("MINGW64"),
+            )];
+
+            assert!(is_windows_posix_shell_with(&ShellType::Bash, |key| {
+                env_vars
+                    .iter()
+                    .find(|(env_key, _)| *env_key == key)
+                    .map(|(_, value)| value.clone())
+            }));
+
+            assert!(!is_windows_posix_shell_with(&ShellType::Pwsh, |key| {
+                env_vars
+                    .iter()
+                    .find(|(env_key, _)| *env_key == key)
+                    .map(|(_, value)| value.clone())
+            }));
         }
     }
 }
