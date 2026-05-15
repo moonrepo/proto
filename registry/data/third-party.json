@@ -1026,6 +1026,35 @@
       ]
     },
     {
+      "id": "nu",
+      "locator": "github://Hebilicious/proto-nu",
+      "format": "wasm",
+      "name": "Nushell",
+      "description": "A modern shell written in Rust with structured data pipelines.",
+      "author": "Hebilicious",
+      "homepageUrl": "https://www.nushell.sh/",
+      "repositoryUrl": "https://github.com/Hebilicious/proto-nu",
+      "bins": [
+        "nu",
+        "nu_plugin_custom_values",
+        "nu_plugin_example",
+        "nu_plugin_formats",
+        "nu_plugin_gstat",
+        "nu_plugin_inc",
+        "nu_plugin_polars",
+        "nu_plugin_query",
+        "nu_plugin_stress_internals"
+      ],
+      "detectionSources": [
+        {
+          "file": ".nu-version"
+        },
+        {
+          "file": ".nushell-version"
+        }
+      ]
+    },
+    {
       "id": "ocaml",
       "locator": "github://Hebilicious/proto-ocaml",
       "format": "wasm",
