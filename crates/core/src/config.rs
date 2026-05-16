@@ -10,6 +10,7 @@ use schematic::{
 };
 use serde::Serialize;
 use starbase_styles::color;
+use starbase_utils::envx::bool_var;
 use starbase_utils::fs::FsError;
 use starbase_utils::toml::TomlValue;
 use starbase_utils::{fs, toml};
@@ -18,9 +19,10 @@ use std::env;
 use std::ffi::OsStr;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 use toml_edit::DocumentMut;
 use tracing::{debug, instrument, trace};
-use warpgate::{Id, PluginLocator, RegistryLocator, find_debug_locator};
+use warpgate::{Id, PluginLocator, RegistryLocator, UrlLocator, find_debug_locator};
 
 // Re-export settings from here!
 pub use crate::settings::*;
@@ -658,12 +660,24 @@ pub struct ProtoConfigEnvOptions<'ctx> {
 }
 
 pub fn find_debug_locator_with_fallback(name: &str, version: &str) -> PluginLocator {
+    static URL_CACHE: OnceLock<bool> = OnceLock::new();
+
+    let use_urls = *URL_CACHE.get_or_init(|| bool_var("PROTO_PLUGINS_USE_URL_DIST"));
+
     find_debug_locator(name).unwrap_or_else(|| {
-        PluginLocator::Registry(Box::new(RegistryLocator {
-            registry: Some("ghcr.io".into()),
-            namespace: Some("moonrepo".into()),
-            image: name.into(),
-            tag: Some(version.into()),
-        }))
+        if use_urls {
+            PluginLocator::Url(Box::new(UrlLocator {
+                url: format!(
+                    "https://github.com/moonrepo/plugins/releases/download/{name}-v{version}/{name}.wasm"
+                ),
+            }))
+        } else {
+            PluginLocator::Registry(Box::new(RegistryLocator {
+                registry: Some("ghcr.io".into()),
+                namespace: Some("moonrepo".into()),
+                image: name.into(),
+                tag: Some(version.into()),
+            }))
+        }
     })
 }

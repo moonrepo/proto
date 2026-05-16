@@ -257,14 +257,18 @@ fn print_activation_exports(
 
     // Set new `PATH`
     if !workflow.paths.is_empty() {
-        let activated_path = workflow.activation_path_value_for_shell(shell_type)?;
+        if let Some(activated_path) = workflow.join_activated_paths_for_shell(shell_type)? {
+            output.push(shell.format_env_set(
+                "_PROTO_ACTIVATED_PATH",
+                activated_path.to_string_lossy().as_ref(),
+            ));
+        }
 
-        output.push(shell.format_env_set(
-            "_PROTO_ACTIVATED_PATH",
-            activated_path.to_string_lossy().as_ref(),
-        ));
-
-        let paths = workflow.reset_paths_for_shell(&session.env.store.dir, shell_type);
+        let paths = workflow
+            .reset_paths_for_shell(&session.env.store.dir, shell_type)
+            .into_iter()
+            .map(|path| path.to_string_lossy().to_string())
+            .collect::<Vec<_>>();
 
         if !paths.is_empty() && !is_test() {
             output.push(shell.format_path_set(&paths));
