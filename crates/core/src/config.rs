@@ -660,9 +660,9 @@ pub struct ProtoConfigEnvOptions<'ctx> {
 }
 
 pub fn find_debug_locator_with_fallback(name: &str, version: &str) -> PluginLocator {
-    static TEST_CACHE: OnceLock<bool> = OnceLock::new();
+    static URL_CACHE: OnceLock<bool> = OnceLock::new();
 
-    let use_urls = *TEST_CACHE.get_or_init(|| bool_var("PROTO_PLUGINS_USE_URL_DIST"));
+    let use_urls = *URL_CACHE.get_or_init(|| bool_var("PROTO_PLUGINS_USE_URL_DIST"));
 
     find_debug_locator(name).unwrap_or_else(|| {
         if use_urls {

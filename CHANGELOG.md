@@ -25,6 +25,10 @@
 
 - Fixed an issue where Windows styled paths were being used in Windows shells that required POSIX paths.
 
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.57.1
 
 #### 🐞 Fixes
