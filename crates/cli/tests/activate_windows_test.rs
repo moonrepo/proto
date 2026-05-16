@@ -11,6 +11,8 @@ fn exports_posix_paths_for_bash_in_emulated_shells() {
         cmd.env("MSYSTEM", "MINGW64");
     });
 
+    assert.debug();
+
     let output = assert.output();
     let path_line = output
         .lines()
