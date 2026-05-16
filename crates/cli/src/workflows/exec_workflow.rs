@@ -428,7 +428,7 @@ fn windows_path_to_posix(path: &Path) -> PathBuf {
         return path.into();
     };
 
-    let mut res = match prefix.kind() {
+    let prefix = match prefix.kind() {
         Prefix::Disk(drive) | Prefix::VerbatimDisk(drive) => {
             format!("/{}", (drive as char).to_ascii_lowercase())
         }
@@ -449,9 +449,11 @@ fn windows_path_to_posix(path: &Path) -> PathBuf {
         remaining.next();
     }
 
+    let mut res = OsString::from(prefix);
+
     for component in remaining {
-        res.push('/');
-        res.push_str(&component.as_os_str().to_string_lossy());
+        res.push("/");
+        res.push(component.as_os_str());
     }
 
     PathBuf::from(res)
