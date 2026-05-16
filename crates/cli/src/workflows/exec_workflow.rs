@@ -706,14 +706,20 @@ mod tests {
         #[test]
         fn converts_windows_paths_to_posix() {
             let path = PathBuf::from("C:\\Users\\Alice\\proto\\bin");
-            assert_eq!(windows_path_to_posix(&path), "/c/Users/Alice/proto/bin");
+            assert_eq!(
+                windows_path_to_posix(&path),
+                PathBuf::from("/c/Users/Alice/proto/bin")
+            );
         }
 
         #[cfg(windows)]
         #[test]
         fn converts_unc_windows_paths_to_posix() {
             let path = PathBuf::from("\\\\server\\share\\bin");
-            assert_eq!(windows_path_to_posix(&path), "/unc/server/share/bin");
+            assert_eq!(
+                windows_path_to_posix(&path),
+                PathBuf::from("/unc/server/share/bin")
+            );
         }
 
         #[cfg(windows)]
@@ -721,11 +727,11 @@ mod tests {
         fn ignores_posix_and_relative_paths() {
             assert_eq!(
                 windows_path_to_posix(Path::new("/usr/local/bin")),
-                "/usr/local/bin"
+                PathBuf::from("/usr/local/bin")
             );
             assert_eq!(
                 windows_path_to_posix(Path::new("relative\\bin")),
-                "relative\\bin"
+                PathBuf::from("relative\\bin")
             );
         }
 
