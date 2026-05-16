@@ -17,6 +17,10 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- Added a `PROTO_PLUGINS_USE_URL_DIST` environment variable, that can be set to utilize the old URL based pattern for loading plugins, instead of using ghcr.io.
+
 #### 🐞 Fixes
 
 - Fixed an issue where Windows styled paths were being used in Windows shells that required POSIX paths.
