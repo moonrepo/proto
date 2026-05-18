@@ -948,6 +948,19 @@
       ]
     },
     {
+      "id": "mago",
+      "locator": "https://raw.githubusercontent.com/Bocom/proto-toml-plugins/main/mago.toml",
+      "format": "toml",
+      "name": "Mago",
+      "description": "Static analyzer, linter, and formatter for PHP.",
+      "author": "Bocom",
+      "homepageUrl": "https://mago.carthage.software/",
+      "repositoryUrl": "https://github.com/Bocom/proto-toml-plugins",
+      "bins": [
+        "mago"
+      ]
+    },
+    {
       "id": "migrate",
       "locator": "https://raw.githubusercontent.com/jamesukiyo/proto-plugins/master/migrate.toml",
       "format": "toml",
