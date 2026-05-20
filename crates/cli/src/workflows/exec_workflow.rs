@@ -183,18 +183,20 @@ impl<'app> ExecWorkflow<'app> {
         shell_type: Option<ShellType>,
         options: ExecCommandOptions,
     ) -> miette::Result<Command> {
+        if let Some(shell_type) = shell_type {
+            return self.create_command_with_shell(shell_type.build(), args, options.raw_args);
+        }
+
         // We unfortunately need a shell to determine if the args must run in a shell!
-        let shell = shell_type.unwrap_or_default().build();
+        if options.check_shell {
+            let shell = ShellType::detect_with_fallback().build();
 
-        let command = if shell_type.is_some()
-            || (options.check_shell && self.requires_shell(&shell, &args, options.raw_args))
-        {
-            self.create_command_with_shell(shell, args, options.raw_args)?
-        } else {
-            self.create_command_without_shell(args.remove(0), args)?
-        };
+            if self.requires_shell(&shell, &args, options.raw_args) {
+                return self.create_command_with_shell(shell, args, options.raw_args);
+            }
+        }
 
-        Ok(command)
+        self.create_command_without_shell(args.remove(0), args)
     }
 
     pub fn create_command_without_shell<E, I, A>(self, exe: E, args: I) -> miette::Result<Command>
