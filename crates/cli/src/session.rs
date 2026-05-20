@@ -62,6 +62,8 @@ impl ProtoSession {
                 | Commands::Bin(_)
                 | Commands::Clean(_)
                 | Commands::Completions(_)
+                | Commands::Exec(_)
+                | Commands::Run(_)
                 | Commands::Setup(_)
                 | Commands::Upgrade(_)
         )

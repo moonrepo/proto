@@ -15,6 +15,12 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Updated `proto exec` and `proto run` to no longer check for a new proto version. This should speed up execution a bit as it avoids network calls.
+
 ## 0.57.2
 
 #### 🚀 Updates
