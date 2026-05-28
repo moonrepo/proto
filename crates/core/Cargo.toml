@@ -47,7 +47,6 @@ schematic = { workspace = true, features = [
 semver = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-sha2 = { workspace = true }
 shell-words = { workspace = true }
 starbase_archive = { workspace = true }
 starbase_console = { workspace = true, features = ["ui"] }

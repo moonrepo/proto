@@ -1,6 +1,6 @@
 use crate::loader_error::WarpgateLoaderError;
 use base64::prelude::*;
-use sha2::{Digest, Sha256};
+use sha2::{Digest, Sha256, Sha512};
 use starbase_archive::{Archiver, is_supported_archive_extension};
 use starbase_utils::net::{self, DownloadOptions, NetError};
 use starbase_utils::{fs, glob};
@@ -22,7 +22,15 @@ pub fn hash_sha256<T: AsRef<[u8]>>(value: T) -> String {
     // Internally bust the cache of plugins
     sha.update("v2");
 
-    format!("{:x}", sha.finalize())
+    hex::encode(sha.finalize())
+}
+
+/// Create a SHA512 hash based on the provided value.
+pub fn hash_sha512<T: AsRef<[u8]>>(value: T) -> String {
+    let mut sha = Sha512::new();
+    sha.update(value);
+
+    hex::encode(sha.finalize())
 }
 
 /// Attempt to extract a file name from the provided URL,

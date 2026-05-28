@@ -15,6 +15,7 @@ base64 = "0.22.1"
 compact_str = { workspace = true }
 docker_credential = { workspace = true }
 extism = { workspace = true, features = ["http"] }
+hex = { workspace = true }
 http-cache-reqwest = { workspace = true }
 miette = { workspace = true, optional = true }
 oci-client = { workspace = true }
