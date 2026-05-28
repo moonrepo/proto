@@ -9,28 +9,19 @@ use std::path::{Path, PathBuf};
 use tracing::instrument;
 use warpgate_api::{PluginLocator, UrlLocator, VirtualPath};
 
-/// Create a base64 encoded hash based on the provided value.
+/// Create a Base64 encoded hash based on the provided value.
 pub fn hash_base64<T: AsRef<[u8]>>(value: T) -> String {
     BASE64_STANDARD.encode(value)
 }
 
 /// Create a SHA256 hash based on the provided value.
 pub fn hash_sha256<T: AsRef<[u8]>>(value: T) -> String {
-    let mut sha = Sha256::new();
-    sha.update(value);
-
-    // Internally bust the cache of plugins
-    sha.update("v2");
-
-    hex::encode(sha.finalize())
+    hex::encode(Sha256::digest(value))
 }
 
 /// Create a SHA512 hash based on the provided value.
 pub fn hash_sha512<T: AsRef<[u8]>>(value: T) -> String {
-    let mut sha = Sha512::new();
-    sha.update(value);
-
-    hex::encode(sha.finalize())
+    hex::encode(Sha512::digest(value))
 }
 
 /// Attempt to extract a file name from the provided URL,
