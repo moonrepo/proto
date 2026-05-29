@@ -3278,7 +3278,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.57.2"
+version = "0.57.3"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3338,7 +3338,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.57.2"
+version = "0.57.3"
 dependencies = [
  "clap",
  "convert_case 0.11.0",
@@ -5575,7 +5575,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.32.0"
+version = "0.32.1"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
