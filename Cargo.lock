@@ -4746,16 +4746,15 @@ dependencies = [
 
 [[package]]
 name = "starbase_utils"
-version = "0.13.4"
+version = "0.13.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "199fcab1a635071d3bdc2b7d45ae361c4ebdf7937c2761de878c3b5cbacc6cc9"
+checksum = "e6adbd3a089300ce1830d11b737eec2416d03edf11d2db3cd6b73ac6ddba1847"
 dependencies = [
  "async-trait",
  "dirs",
  "json-strip-comments",
  "jwalk",
  "miette 7.6.0",
- "regex",
  "reqwest",
  "serde",
  "serde_json",

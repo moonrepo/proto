@@ -63,7 +63,7 @@ starbase_id = { version = "0.3.2", features = ["miette", "schematic"] }
 starbase_sandbox = { version = "0.11.0" }
 starbase_shell = { version = "0.12.4", features = ["miette"] }
 starbase_styles = { version = "0.6.7" }
-starbase_utils = { version = "0.13.4", default-features = false, features = [
+starbase_utils = { version = "0.13.5", default-features = false, features = [
     "fs-lock",
     "json",
     "miette",
