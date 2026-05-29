@@ -62,7 +62,7 @@ mod loader {
             assert_eq!(
                 path,
                 sandbox.path().join(
-                    "plugins/test-4374997ed8a7ed705a30a31d465a3f807dcd59e1dba8133ec09ffe9e0cf840b3.wasm"
+                    "plugins/test-95e3b392be0793ad655146aa16c567723d9b653011bfc73d19d72b85fec010f6.wasm"
                 )
             );
         }
@@ -314,7 +314,7 @@ mod loader {
             assert_eq!(
                 path,
                 sandbox.path().join(
-                    "plugins/test-bf1e7cdc7ca22a4b75e10560bfce659bd51125f2e64bad2143633d20e30e9e01.wasm"
+                    "plugins/test-1cab19a12ec96a1036dc5d51011634dddfa2911941f31e4957d7780bb70f88f0.wasm"
                 )
             );
         }
@@ -334,7 +334,7 @@ mod loader {
             assert_eq!(
                 path,
                 sandbox.path().join(
-                    "plugins/test-latest-07bced931a4b253ba3da8836c0510275512ce09436c63ed44b77b3683effae91.wasm"
+                    "plugins/test-latest-db3f668c2fe22a7f9a6ce86b6fa8feeffbfd8e7874bdb854e82b154319675269.wasm"
                 )
             );
         }
@@ -547,7 +547,7 @@ mod loader {
             assert_eq!(
                 path,
                 sandbox.path().join(
-                    "plugins/test-1756ec66c45394f9dd6badaa8e035a94fef3e5e0a47ae645f3e170fc3e4a0031.wasm"
+                    "plugins/test-0310ea7f16dfdf46d2b5650962d5b0906a14760a691fd1d6f2c32af321c595ef.wasm"
                 )
             );
         }
@@ -571,7 +571,7 @@ mod loader {
             assert_eq!(
                 path,
                 sandbox.path().join(
-                    "plugins/test-latest-075e6a5e83610a68889f0c73b07c7fdae2b277dc5ee0244523ab597873238a7f.wasm"
+                    "plugins/test-latest-a819971be8d7e966f73c769fdca026ce01fac282e58c55a87a041ca71957e393.wasm"
                 )
             );
         }

@@ -1,27 +1,19 @@
 use super::checksum_error::ProtoChecksumError;
-use sha2::{Digest, Sha256, Sha512};
 use starbase_utils::fs::{self, FsError};
-use std::io;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 use tracing::trace;
+use warpgate::{hash_sha256, hash_sha512};
 
 pub fn hash_file_contents_sha256<P: AsRef<Path>>(path: P) -> Result<String, FsError> {
     let path = path.as_ref();
 
     trace!(file = ?path, "Calculating SHA256 checksum");
 
-    let mut file = fs::open_file(path)?;
-    let mut sha = Sha256::new();
+    let bytes = fs::read_file_bytes(path)?;
+    let hash = hash_sha256(bytes);
 
-    io::copy(&mut file, &mut sha).map_err(|error| FsError::Read {
-        path: path.to_path_buf(),
-        error: Box::new(error),
-    })?;
-
-    let hash = format!("{:x}", sha.finalize());
-
-    trace!(hash, "Calculated hash");
+    trace!(file = ?path, hash, "Calculated hash");
 
     Ok(hash)
 }
@@ -31,17 +23,10 @@ pub fn hash_file_contents_sha512<P: AsRef<Path>>(path: P) -> Result<String, FsEr
 
     trace!(file = ?path, "Calculating SHA512 checksum");
 
-    let mut file = fs::open_file(path)?;
-    let mut sha = Sha512::new();
+    let bytes = fs::read_file_bytes(path)?;
+    let hash = hash_sha512(bytes);
 
-    io::copy(&mut file, &mut sha).map_err(|error| FsError::Read {
-        path: path.to_path_buf(),
-        error: Box::new(error),
-    })?;
-
-    let hash = format!("{:x}", sha.finalize());
-
-    trace!(hash, "Calculated hash");
+    trace!(file = ?path, hash, "Calculated hash");
 
     Ok(hash)
 }

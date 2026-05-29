@@ -63,11 +63,13 @@ pub enum ProtoInstallError {
 
     #[diagnostic(code(proto::install::invalid_checksum))]
     #[error(
-        "Checksum has failed for {}, which was verified using {}.",
+        "Checksum has failed for {} ({}), which was verified against {}.",
         .download.style(Style::Path),
+        .hash.style(Style::Hash),
         .checksum.style(Style::Path),
     )]
     InvalidChecksum {
+        hash: String,
         checksum: PathBuf,
         download: PathBuf,
     },

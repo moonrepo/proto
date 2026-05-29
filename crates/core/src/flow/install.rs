@@ -650,6 +650,7 @@ impl<'tool> Installer<'tool> {
         }
 
         Err(ProtoInstallError::InvalidChecksum {
+            hash: checksum.to_string(),
             checksum: checksum_file.to_path_buf(),
             download: download_file.to_path_buf(),
         })

@@ -175,11 +175,13 @@ impl PluginLoader {
 
         match locator {
             PluginLocator::Data(data) => {
-                let loader = self.get_data_loader()?;
-                let hash = hash_sha256(data.bytes.as_deref().unwrap_or(data.data.as_bytes()));
-
-                self.check_cache_or_save(id, hash, loader.is_latest(data), || loader.load(id, data))
-                    .await
+                self.check_cache_or_save(
+                    id,
+                    &**data,
+                    hash_sha256(data.bytes.as_deref().unwrap_or(data.data.as_bytes())),
+                    || self.get_data_loader(),
+                )
+                .await
             }
             PluginLocator::File(file) => {
                 let loader = self.get_file_loader()?;
@@ -192,27 +194,20 @@ impl PluginLoader {
                 }
             }
             PluginLocator::GitHub(github) => {
-                let loader = self.get_github_loader()?;
-                let hash = hash_sha256(locator.to_string());
-
-                self.check_cache_or_save(id, hash, loader.is_latest(github), || {
-                    loader.load(id, github)
+                self.check_cache_or_save(id, &**github, hash_sha256(locator.to_string()), || {
+                    self.get_github_loader()
                 })
                 .await
             }
             PluginLocator::Url(url) => {
-                let loader = self.get_http_loader()?;
-                let hash = hash_sha256(&url.url);
-
-                self.check_cache_or_save(id, hash, loader.is_latest(url), || loader.load(id, url))
-                    .await
+                self.check_cache_or_save(id, &**url, hash_sha256(&url.url), || {
+                    self.get_http_loader()
+                })
+                .await
             }
             PluginLocator::Registry(registry) => {
-                let loader = self.get_oci_loader()?;
-                let hash = hash_sha256(locator.to_string());
-
-                self.check_cache_or_save(id, hash, loader.is_latest(registry), || {
-                    loader.load(id, registry)
+                self.check_cache_or_save(id, &**registry, hash_sha256(locator.to_string()), || {
+                    self.get_oci_loader()
                 })
                 .await
             }
@@ -285,15 +280,16 @@ impl PluginLoader {
         self.offline_checker = Some(Arc::new(op));
     }
 
-    async fn check_cache_or_save<'a, F>(
+    async fn check_cache_or_save<'a, T, L, F>(
         &self,
         id: &'a Id,
+        locator: &'a T,
         hash: String,
-        is_latest: bool,
-        load_source: F,
+        get_loader: F,
     ) -> Result<PathBuf, WarpgateLoaderError>
     where
-        F: AsyncFnOnce() -> Result<LoadFrom<'a>, WarpgateLoaderError>,
+        L: LoaderProtocol<T> + 'a,
+        F: FnOnce() -> Result<&'a L, WarpgateLoaderError>,
     {
         // Create a lock before checking the cache, so that subsequent requests for
         // the same plugin will wait for the first one to finish loading, and will
@@ -306,6 +302,9 @@ impl PluginLoader {
         // extension than "wasm" (e.g. "toml" or "yaml")
         trace!(id = id.as_str(), "Checking if plugin has been cached");
 
+        let loader = get_loader()?;
+        let is_latest = loader.is_latest(locator);
+
         for ext in &self.extensions {
             let cache_path = self.create_cache_path(id, &hash, ext, is_latest);
 
@@ -317,7 +316,7 @@ impl PluginLoader {
         trace!(id = id.as_str(), "Plugin not cached, acquiring");
 
         let cache_path = self
-            .save_to_cache(id, hash, is_latest, load_source().await?)
+            .save_to_cache(id, hash, is_latest, loader.load(id, locator).await?)
             .await?;
 
         Ok(cache_path)
