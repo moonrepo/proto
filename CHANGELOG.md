@@ -21,6 +21,7 @@
 
 - Updated `proto exec` and `proto run` to no longer check for a new proto version. This should speed up execution a bit as it avoids network calls.
 - Improved the runtime performance of `proto run` slightly.
+- Improved performance by reducing the amount of file syscalls.
 
 #### ⚙️ Internal
 
