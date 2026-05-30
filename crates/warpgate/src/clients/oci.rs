@@ -2,7 +2,7 @@ use super::http::HttpOptions;
 use super::http_error::WarpgateHttpClientError;
 use oci_client::Client;
 use oci_client::client::{Certificate, CertificateEncoding, ClientConfig};
-use starbase_utils::fs;
+use starbase_utils::{envx, fs};
 use std::ops::Deref;
 use std::time::Duration;
 use tracing::{debug, trace, warn};
@@ -26,11 +26,12 @@ pub fn create_oci_client_with_options(
 ) -> Result<OciClient, WarpgateHttpClientError> {
     debug!("Creating OCI client");
 
-    let mut config = ClientConfig {
-        read_timeout: Some(Duration::from_mins(5)),
-        connect_timeout: Some(Duration::from_mins(1)),
-        ..Default::default()
-    };
+    let mut config = ClientConfig::default();
+
+    if !envx::bool_var("WARPGATE_OCI_NO_TIMEOUTS") {
+        config.read_timeout = Some(Duration::from_mins(5));
+        config.connect_timeout = Some(Duration::from_mins(1));
+    }
 
     if options.allow_invalid_certs {
         trace!("Allowing invalid certificates (I hope you know what you're doing!)");
