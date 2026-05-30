@@ -341,9 +341,11 @@ impl PluginLoader {
         let mut temp_file = self
             .temp_dir
             .join(format!("{}-{hash}", path::encode_component(id))); // Extensionless
+        let mut is_archive = false;
 
         if let Some(ext) = source.is_archive() {
             temp_file.set_extension(ext);
+            is_archive = true;
         }
 
         // Do not truncate the file as another process may be writing to it,
@@ -399,7 +401,7 @@ impl PluginLoader {
                     dest_file.set_extension(ext);
                 }
 
-                if dest_file.exists() {
+                if !is_archive && dest_file.exists() {
                     trace!(
                         id = id.as_str(),
                         path = ?dest_file,

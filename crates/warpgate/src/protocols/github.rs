@@ -49,8 +49,7 @@ impl GitHubLoader {
 
 impl LoaderProtocol<GitHubLocator> for GitHubLoader {
     fn is_latest(&self, locator: &GitHubLocator) -> bool {
-        locator.tag.as_ref().is_some_and(|tag| tag == "latest")
-            || locator.tag.is_none() && locator.project_name.is_none()
+        locator.tag.as_ref().is_none_or(|tag| tag == "latest")
     }
 
     async fn load<'a>(
