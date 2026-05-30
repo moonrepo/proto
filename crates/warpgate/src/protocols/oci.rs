@@ -25,9 +25,12 @@ impl OciLoader {
     ) -> Result<Option<LoadFrom<'a>>, WarpgateLoaderError> {
         let image = locator.image.as_ref();
         let tag = locator.tag.as_deref().unwrap_or("latest");
-        let reference =
-            Reference::try_from(config.get_reference_with_tag(image, tag).as_str()).unwrap();
+
         let auth = config.get_credential();
+        let reference = Reference::try_from(config.get_reference_with_tag(image, tag).as_str())
+            .map_err(|error| WarpgateLoaderError::OCIReferenceError {
+                message: error.to_string(),
+            })?;
 
         trace!(
             id,

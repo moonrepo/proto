@@ -341,9 +341,11 @@ impl PluginLoader {
         let mut temp_file = self
             .temp_dir
             .join(format!("{}-{hash}", path::encode_component(id))); // Extensionless
+        let mut is_archive = false;
 
         if let Some(ext) = source.is_archive() {
             temp_file.set_extension(ext);
+            is_archive = true;
         }
 
         // Do not truncate the file as another process may be writing to it,
@@ -391,13 +393,6 @@ impl PluginLoader {
                     });
                 }
 
-                trace!(
-                    id = id.as_str(),
-                    from = ?url,
-                    to = ?lock.path,
-                    "Downloading plugin from URL"
-                );
-
                 // Attempt to extract the final file extension from the URL,
                 // so that we can update the destination similar to the blob case
                 let file_name = extract_file_name_from_url(&url);
@@ -405,6 +400,23 @@ impl PluginLoader {
                 if let Some(ext) = self.determine_cache_extension(&file_name) {
                     dest_file.set_extension(ext);
                 }
+
+                if !is_archive && dest_file.exists() {
+                    trace!(
+                        id = id.as_str(),
+                        path = ?dest_file,
+                        "Plugin downloaded by another process while waiting for lock, skipping download",
+                    );
+
+                    return Ok(dest_file);
+                }
+
+                trace!(
+                    id = id.as_str(),
+                    from = ?url,
+                    to = ?lock.path,
+                    "Downloading plugin from URL"
+                );
 
                 // Now download the file to the temporary location
                 download_from_url_to_file(

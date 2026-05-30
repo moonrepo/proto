@@ -143,9 +143,13 @@ pub fn create_http_client_with_options(
 
     let mut client_builder = reqwest::Client::builder()
         .user_agent(format!("warpgate@{}", env!("CARGO_PKG_VERSION")))
-        .use_rustls_tls()
-        .read_timeout(Duration::from_mins(5))
-        .connect_timeout(Duration::from_mins(1));
+        .use_rustls_tls();
+
+    if !envx::bool_var("WARPGATE_HTTP_NO_TIMEOUTS") {
+        client_builder = client_builder
+            .read_timeout(Duration::from_mins(5))
+            .connect_timeout(Duration::from_mins(1));
+    }
 
     if options.allow_invalid_certs {
         trace!("Allowing invalid certificates (I hope you know what you're doing!)");
