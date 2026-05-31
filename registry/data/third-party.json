@@ -97,6 +97,27 @@
       ]
     },
     {
+      "id": "azure-cli",
+      "locator": "github://BarretoTech/proto-azure-cli-plugin",
+      "format": "wasm",
+      "name": "Azure CLI",
+      "description": "Cross-platform command-line tool for managing Azure resources.",
+      "author": "BarretoTech",
+      "homepageUrl": "https://learn.microsoft.com/en-us/cli/azure/",
+      "repositoryUrl": "https://github.com/BarretoTech/proto-azure-cli-plugin",
+      "devicon": "azure",
+      "bins": [
+        "az"
+      ],
+      "detectionSources": [
+        {
+          "file": ".tool-versions",
+          "label": "asdf",
+          "url": "https://asdf-vm.com/manage/configuration.html"
+        }
+      ]
+    },
+    {
       "id": "bazel",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/bazel/plugin.toml",
       "format": "toml",
