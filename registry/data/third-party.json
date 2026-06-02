@@ -688,6 +688,25 @@
       ]
     },
     {
+      "id": "hk",
+      "locator": "github://Hebilicious/proto-plugins/hk",
+      "format": "wasm",
+      "name": "HK",
+      "description": "Git hook manager with a focus on speed and shareable configuration.",
+      "author": "Hebilicious",
+      "homepageUrl": "https://hk.jdx.dev/",
+      "repositoryUrl": "https://github.com/Hebilicious/proto-plugins",
+      "bins": [
+        "hk"
+      ],
+      "detectionSources": [
+        {
+          "file": ".hk-version",
+          "label": ".hk-version"
+        }
+      ]
+    },
+    {
       "id": "hugo",
       "locator": "https://raw.githubusercontent.com/z0rrn/proto-plugins/main/hugo/plugin-standard.toml",
       "format": "toml",
