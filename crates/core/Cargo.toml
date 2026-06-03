@@ -1,6 +1,6 @@
 [package]
 name = "proto_core"
-version = "0.57.3"
+version = "0.57.4"
 edition = "2024"
 license = "MIT"
 description = "Core proto APIs."
