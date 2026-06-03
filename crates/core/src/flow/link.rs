@@ -11,7 +11,7 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 use tracing::{debug, instrument, warn};
 
-#[derive(Debug, Default, Serialize)]
+#[derive(Clone, Debug, Default, Serialize)]
 pub struct LinkerResponse {
     pub bins: Vec<PathBuf>,
     pub shims: Vec<PathBuf>,

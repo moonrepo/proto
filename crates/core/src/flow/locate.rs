@@ -18,7 +18,7 @@ use version_spec::VersionSpec;
 // Executable = File within the tool's install directory
 // Binary/shim = File within proto's store directories
 
-#[derive(Debug, Default, Serialize)]
+#[derive(Clone, Debug, Default, Serialize)]
 pub struct ExecutableLocation {
     pub config: ExecutableConfig,
     pub name: String,
@@ -28,7 +28,7 @@ pub struct ExecutableLocation {
     pub version: Option<VersionSpec>,
 }
 
-#[derive(Debug, Default, Serialize)]
+#[derive(Clone, Debug, Default, Serialize)]
 pub struct LocatorResponse {
     pub exe_file: PathBuf,
     pub exes_dirs: Vec<PathBuf>,

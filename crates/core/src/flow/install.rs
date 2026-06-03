@@ -39,7 +39,7 @@ pub enum InstallPhase {
     CloneRepository { url: String },
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct InstallOptions {
     pub console: Option<ProtoConsole>,
     pub force: bool,
