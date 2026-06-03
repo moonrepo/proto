@@ -225,6 +225,16 @@ impl PluginLoader {
         ))
     }
 
+    /// Create an absolute path to a temporary file for the plugin,
+    /// which will be used for locking and downloading to.
+    pub fn create_temp_path(&self, id: &Id, hash: &str, is_lock: bool) -> PathBuf {
+        self.temp_dir.join(format!(
+            "{}-{hash}{}",
+            path::encode_component(id.as_str()),
+            if is_lock { ".lock" } else { "" },
+        ))
+    }
+
     /// Check if the plugin has been acquired and is cached.
     /// If using a latest strategy (no explicit version or tag), the cache
     /// is only valid for a duration (to ensure not stale), otherwise forever.
@@ -309,6 +319,17 @@ impl PluginLoader {
             let cache_path = self.create_cache_path(id, &hash, ext, is_latest);
 
             if self.is_cached(id, &cache_path)? {
+                let lock_path = self.create_temp_path(id, &hash, true);
+
+                // Although the cache file exists, another process may be in the middle of
+                // downloading and saving it, so we need to acquire an exclusive lock on the
+                // lock file to ensure it's fully written before we return the path
+                if lock_path.exists()
+                    && let Ok(lock_file) = fs::open_file(&lock_path)
+                {
+                    let _ = fs::acquire_exclusive_lock(lock_path, &lock_file)?;
+                }
+
                 return Ok(cache_path);
             }
         }
@@ -338,9 +359,7 @@ impl PluginLoader {
         source: LoadFrom<'_>,
     ) -> Result<PathBuf, WarpgateLoaderError> {
         let mut dest_file = self.create_cache_path(id, &hash, "wasm", is_latest);
-        let mut temp_file = self
-            .temp_dir
-            .join(format!("{}-{hash}", path::encode_component(id))); // Extensionless
+        let mut temp_file = self.create_temp_path(id, &hash, false);
         let mut is_archive = false;
 
         if let Some(ext) = source.is_archive() {
@@ -352,7 +371,7 @@ impl PluginLoader {
         // instead create if missing and then acquire an exclusive lock.
         // Hold until after archive extraction and the temp file is moved/copied
         // to the destination.
-        let mut lock = FileLock::new_async(temp_file).await?;
+        let mut lock = FileLock::new_async(self.create_temp_path(id, &hash, true)).await?;
 
         // Remove the temp file when unlocking or dropping the reference,
         // which happens on success or failure!
@@ -365,7 +384,7 @@ impl PluginLoader {
             LoadFrom::Blob { data, ext, .. } => {
                 trace!(
                     id = id.as_str(),
-                    to = ?lock.path,
+                    to = ?temp_file,
                     "Saving plugin from bytes"
                 );
 
@@ -373,17 +392,7 @@ impl PluginLoader {
                 // explicitly provided by the loader (from an OCI layer)
                 dest_file.set_extension(&ext);
 
-                // Write through the already-locked file handle. Opening a
-                // separate handle (as `fs::write_file` does) fails on Windows
-                // with ERROR_LOCK_VIOLATION (os error 33) because the
-                // exclusive lock acquired above is mandatory there, unlike
-                // the advisory flock on Unix.
-                fs::truncate_file_handle(&lock.path, &mut lock.file)?;
-
-                lock.file.write_all(&data).map_err(|error| FsError::Write {
-                    path: lock.path.clone(),
-                    error: Box::new(error),
-                })?;
+                fs::write_file(&temp_file, data)?;
             }
             LoadFrom::Url(url) => {
                 if self.is_offline() {
@@ -414,22 +423,16 @@ impl PluginLoader {
                 trace!(
                     id = id.as_str(),
                     from = ?url,
-                    to = ?lock.path,
+                    to = ?temp_file,
                     "Downloading plugin from URL"
                 );
 
                 // Now download the file to the temporary location
                 download_from_url_to_file(
                     &url,
-                    &lock.path,
+                    &temp_file,
                     DownloadOptions {
                         downloader: Some(Box::new(self.get_http_client()?.create_downloader())),
-                        file: Some(lock.file.try_clone().map_err(|error| FsError::Create {
-                            path: lock.path.clone(),
-                            error: Box::new(error),
-                        })?),
-                        // Don't lock within this function as we locked it above!
-                        lock: false,
                         ..Default::default()
                     },
                 )
@@ -441,7 +444,12 @@ impl PluginLoader {
         };
 
         // If the file is an archive, unpack it, otherwise move it to the destination!
-        move_or_unpack_file(&lock.path, &mut dest_file, &self.extensions)?;
+        move_or_unpack_file(&temp_file, &mut dest_file, &self.extensions)?;
+
+        // Remove the temp file if it was not moved
+        if temp_file.exists() {
+            let _ = fs::remove_file(temp_file);
+        }
 
         Ok(dest_file)
     }
