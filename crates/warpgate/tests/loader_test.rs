@@ -842,4 +842,214 @@ mod loader {
             assert_eq!(result, toml_path);
         }
     }
+
+    // -------------------------------------------------------------------------
+    // Cross-process locking (Windows race condition)
+    // -------------------------------------------------------------------------
+    //
+    // On Windows, parallel proto processes could observe the cache file existing
+    // while another process was still writing it, returning a partially written
+    // plugin (or one mid-extraction). The fix uses a dedicated `.lock` file,
+    // separate from the temp download file, that a writer holds for the whole
+    // critical section (write temp -> move/unpack -> remove temp). A reader that
+    // finds the cache file must also wait on that lock before trusting the cache.
+    //
+    // The in-process `Mutex` map only serialises tasks within a single
+    // `PluginLoader`, so to exercise the cross-process file lock we either drive
+    // the lock file directly or run several independent loaders (each with its
+    // own in-process lock map) against a shared cache directory — the file lock
+    // is then the only thing keeping them in sync, exactly as across processes.
+    mod locking {
+        use super::*;
+        use std::sync::Arc;
+        use std::sync::atomic::{AtomicBool, Ordering};
+        use std::sync::mpsc;
+
+        fn make_locator(bytes: Vec<u8>) -> PluginLocator {
+            PluginLocator::Data(Box::new(DataLocator {
+                data: String::new(),
+                bytes: Some(bytes),
+            }))
+        }
+
+        // The download target and its guard share a stem and temp directory, but
+        // the guard is suffixed with `.lock`. Keeping them as distinct files is
+        // the crux of the fix: the lock can outlive the temp file (it's removed
+        // on unlock) and the temp download is never itself the thing being
+        // locked, which is what tripped ERROR_LOCK_VIOLATION on Windows.
+        #[test]
+        fn temp_path_separates_lock_from_download() {
+            let (_sandbox, loader) = create_loader();
+            let id = Id::raw("test");
+            let hash = "abc123";
+
+            let download = loader.create_temp_path(&id, hash, false);
+            let lock = loader.create_temp_path(&id, hash, true);
+
+            assert_eq!(download.file_name().unwrap(), "test-abc123");
+            assert_eq!(lock.file_name().unwrap(), "test-abc123.lock");
+            // Same temp directory, so the lock genuinely guards the download.
+            assert_eq!(download.parent(), lock.parent());
+            assert_ne!(download, lock);
+        }
+
+        // The core of the fix: even when the cache file already exists, a reader
+        // must block on the `.lock` file while a writer holds it, so it never
+        // returns a path another process is still writing. We stand in for the
+        // writer with a separate OS thread that grabs the exclusive lock, signals
+        // that it holds it, then flips `released` immediately before unlocking.
+        // Because `load_plugin` only returns after acquiring the same lock, the
+        // flag must be observed as `true` — no timing assumptions required.
+        #[tokio::test]
+        async fn cache_hit_waits_for_inflight_writer_lock() {
+            let (_sandbox, loader) = create_loader();
+            let id = Id::raw("test");
+
+            let bytes = b"plugin-payload".to_vec();
+            let hash = hash_sha256(&bytes);
+
+            // Pre-populate the cache so `is_cached` is true and the loader takes
+            // the wait-on-lock branch instead of downloading.
+            let cache_path = loader.create_cache_path(&id, &hash, "wasm", false);
+            fs::create_dir_all(cache_path.parent().unwrap()).unwrap();
+            fs::write_file(&cache_path, &bytes).unwrap();
+
+            let lock_path = loader.create_temp_path(&id, &hash, true);
+
+            let released = Arc::new(AtomicBool::new(false));
+            let (tx, rx) = mpsc::channel();
+
+            let writer = {
+                let lock_path = lock_path.clone();
+                let released = Arc::clone(&released);
+
+                std::thread::spawn(move || {
+                    let file = fs::create_file_if_missing(&lock_path).unwrap();
+                    fs::acquire_exclusive_lock(&lock_path, &file).unwrap();
+
+                    // The lock is now held; let the reader start.
+                    tx.send(()).unwrap();
+
+                    // Simulate the writer doing work (download + move) before it
+                    // releases. The exact duration is irrelevant to correctness.
+                    std::thread::sleep(Duration::from_millis(300));
+
+                    released.store(true, Ordering::SeqCst);
+                    fs::release_lock(&lock_path, &file).unwrap();
+                })
+            };
+
+            // Don't load until the writer definitely holds the lock, otherwise
+            // the loader could grab the (uncontended) lock first and the test
+            // would prove nothing.
+            rx.recv().unwrap();
+
+            let path = loader.load_plugin(id, make_locator(bytes)).await.unwrap();
+
+            assert!(
+                released.load(Ordering::SeqCst),
+                "load_plugin returned before the in-flight writer released its lock",
+            );
+            assert_eq!(path, cache_path);
+
+            writer.join().unwrap();
+        }
+
+        // End-to-end simulation of parallel plugin loads across processes: four
+        // independent loaders (separate in-process lock maps) sharing one cache
+        // directory all acquire the same plugin at once. The file lock must
+        // serialise the critical section so every loader resolves to the same
+        // path with intact contents — no torn reads, no corruption, no errors.
+        //
+        // Each loader runs on its own OS thread with its own runtime so the
+        // blocking file-lock acquisition can't starve the others (which a shared
+        // single-threaded runtime would).
+        #[test]
+        fn parallel_loaders_resolve_same_plugin_without_corruption() {
+            let sandbox = create_empty_sandbox();
+            let plugins_dir = sandbox.path().join("plugins");
+            let temp_dir = sandbox.path().join("temp");
+
+            let fixture = locate_fixture("loader");
+            let wasm = fs::read_file_bytes(fixture.join("test.wasm")).unwrap();
+
+            let handles: Vec<_> = (0..4)
+                .map(|_| {
+                    let plugins_dir = plugins_dir.clone();
+                    let temp_dir = temp_dir.clone();
+                    let wasm = wasm.clone();
+
+                    std::thread::spawn(move || {
+                        let rt = tokio::runtime::Builder::new_current_thread()
+                            .enable_all()
+                            .build()
+                            .unwrap();
+
+                        rt.block_on(async move {
+                            let loader = PluginLoader::new(&plugins_dir, &temp_dir);
+
+                            loader
+                                .load_plugin(Id::raw("test"), make_locator(wasm))
+                                .await
+                                .unwrap()
+                        })
+                    })
+                })
+                .collect();
+
+            let paths: Vec<PathBuf> = handles
+                .into_iter()
+                .map(|handle| handle.join().unwrap())
+                .collect();
+
+            // Every loader must agree on the same cache path.
+            let expected = &paths[0];
+            for path in &paths {
+                assert_eq!(path, expected);
+            }
+
+            // And that path must hold the complete, uncorrupted plugin.
+            assert!(expected.exists());
+            assert_eq!(fs::read_file_bytes(expected).unwrap(), wasm);
+        }
+
+        // After a successful save, both the temp download file and its `.lock`
+        // guard must be cleaned up (the lock is removed on unlock, the temp on
+        // the explicit post-move sweep), leaving no leftovers in the temp dir.
+        #[tokio::test]
+        async fn cleans_lock_and_temp_files_after_save() {
+            let (sandbox, loader) = create_loader();
+            let id = Id::raw("test");
+
+            let bytes = b"plugin-payload".to_vec();
+            let hash = hash_sha256(&bytes);
+
+            loader
+                .load_plugin(id.clone(), make_locator(bytes))
+                .await
+                .unwrap();
+
+            assert!(!loader.create_temp_path(&id, &hash, false).exists());
+            assert!(!loader.create_temp_path(&id, &hash, true).exists());
+
+            let temp_dir = sandbox.path().join("temp");
+
+            if temp_dir.exists() {
+                let leftover: Vec<_> = temp_dir
+                    .read_dir()
+                    .unwrap()
+                    .filter_map(|entry| entry.ok())
+                    .collect();
+
+                assert!(
+                    leftover.is_empty(),
+                    "temp/lock files were not cleaned up after save: {:?}",
+                    leftover
+                        .iter()
+                        .map(|entry| entry.path())
+                        .collect::<Vec<_>>(),
+                );
+            }
+        }
+    }
 }
