@@ -9,11 +9,10 @@ use crate::protocols::{
 use crate::registry::RegistryConfig;
 use once_cell::sync::OnceCell;
 use starbase_styles::color;
-use starbase_utils::fs::{self, FileLock, FsError};
+use starbase_utils::fs::{self, FileLock};
 use starbase_utils::net::DownloadOptions;
 use starbase_utils::path;
 use std::fmt::Debug;
-use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
