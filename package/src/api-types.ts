@@ -256,10 +256,7 @@ export type SourceLocation = ArchiveSource | GitSource;
 
 /** Output returned by the `register_backend` function. */
 export interface RegisterBackendOutput {
-	/**
-	 * Unique identifier for this backend. Will be used as the folder name
-	 * when utilizing builders (via `source`).
-	 */
+	/** Unique identifier for this backend. Will be used as the folder name. */
 	backendId: Id;
 	/**
 	 * List of executables, relative from the backend directory,
