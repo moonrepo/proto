@@ -1,7 +1,6 @@
 use crate::commands::pin::internal_pin;
 use crate::components::{InstallAllProgress, InstallProgress, InstallProgressProps};
 use crate::error::ProtoCliError;
-use crate::session::ProtoConsole;
 use crate::shell::{self, Export};
 use crate::telemetry::*;
 use crate::utils::tool_record::ToolRecord;
@@ -10,6 +9,7 @@ use proto_core::flow::install::{InstallOptions, InstallPhase};
 use proto_core::flow::link::Linker;
 use proto_core::flow::manage::Manager;
 use proto_core::flow::resolve::Resolver;
+use proto_core::reporter::ProtoConsole;
 use proto_core::utils::log::LogWriter;
 use proto_core::{Id, LockRecord, PinLocation, ToolSpec};
 use proto_pdk_api::{

@@ -8,14 +8,16 @@ use async_trait::async_trait;
 use proto_core::flow::resolve::Resolver;
 use proto_core::{
     ConfigMode, ProtoConfig, ProtoEnvironment, SCHEMA_PLUGIN_KEY, ToolContext, ToolSpec,
-    load_schema_plugin_with_proto, load_tool, registry::ProtoRegistry,
+    load_schema_plugin_with_proto, load_tool,
+    registry::ProtoRegistry,
+    reporter::{ProtoConsole, ProtoReporter},
 };
 use proto_core::{ProtoConfigError, ProtoLoaderError};
 use rustc_hash::FxHashSet;
 use semver::Version;
 use starbase::{AppResult, AppSession};
+use starbase_console::Console;
 use starbase_console::ui::{OwnedOrShared, Progress, ProgressDisplay, ProgressReporter};
-use starbase_console::{Console, EmptyReporter};
 use std::sync::Arc;
 use tokio::task::JoinSet;
 use tracing::debug;
@@ -29,8 +31,6 @@ pub struct LoadToolOptions {
     pub inherit_remote: bool,
 }
 
-pub type ProtoConsole = Console<EmptyReporter>;
-
 #[derive(Clone)]
 pub struct ProtoSession {
     pub cli: CLI,
@@ -43,9 +43,13 @@ impl ProtoSession {
     pub fn new(cli: CLI) -> Self {
         let env = ProtoEnvironment::default();
 
-        let mut console = Console::<EmptyReporter>::new(false);
+        let mut console = Console::<ProtoReporter>::new(false);
         console.set_theme(create_console_theme());
-        console.set_reporter(EmptyReporter);
+        console.set_reporter(if env.test_only {
+            ProtoReporter::new_testing()
+        } else {
+            ProtoReporter::default()
+        });
 
         Self {
             cli,

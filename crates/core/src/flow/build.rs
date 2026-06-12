@@ -1,9 +1,10 @@
 use super::build_error::*;
 use super::install::{InstallPhase, OnPhaseFn};
 use crate::config::ProtoConfig;
-use crate::env::{ProtoConsole, ProtoEnvironment};
+use crate::env::ProtoEnvironment;
 use crate::id::Id;
 use crate::lockfile::LockRecord;
+use crate::reporter::ProtoConsole;
 use crate::utils::log::LogWriter;
 use crate::utils::process::{self, ProcessResult, ProtoProcessError};
 use crate::utils::{archive, git};

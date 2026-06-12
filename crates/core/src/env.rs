@@ -6,7 +6,6 @@ use crate::helpers::is_offline;
 use crate::layout::Store;
 use crate::lockfile::ProtoLock;
 use once_cell::sync::OnceCell;
-use starbase_console::{Console, EmptyReporter};
 use starbase_utils::dirs::home_dir;
 use starbase_utils::{envx, string_vec};
 use std::env;
@@ -17,8 +16,6 @@ use std::time::Duration;
 use system_env::{SystemArch, SystemOS};
 use tracing::debug;
 use warpgate::{PluginLoader, sort_virtual_paths};
-
-pub type ProtoConsole = Console<EmptyReporter>;
 
 #[derive(Clone, Default)]
 pub struct ProtoEnvironment {

@@ -1,6 +1,6 @@
 use crate::app::{App as CLI, Commands};
 use crate::helpers::fetch_latest_version;
-use proto_core::{ConfigMode, ProtoConsole, ProtoEnvironment, is_offline, now};
+use proto_core::{ConfigMode, ProtoEnvironment, is_offline, now, reporter::ProtoConsole};
 use proto_shim::get_exe_file_name;
 use semver::Version;
 use starbase_styles::color;
