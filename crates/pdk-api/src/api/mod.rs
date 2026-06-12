@@ -667,10 +667,14 @@ api_struct!(
         #[serde(default, skip_serializing_if = "FxHashMap::is_empty")]
         pub http_headers: FxHashMap<String, String>,
 
-        /// A script, relative from the install directory, to execute after
+        /// A script file, relative from the install directory, to execute after
         /// the prebuilt has been installed.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub post_script: Option<PathBuf>,
+
+        /// A list of arguments to pass to the script file when executing it.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        pub post_script_args: Vec<String>,
     }
 );
 

@@ -63,6 +63,7 @@ uuid = { workspace = true }
 
 [dev-dependencies]
 proto_core = { path = ".", features = ["test-plugins"] }
+starbase_sandbox = { workspace = true }
 tokio = { workspace = true }
 
 [features]

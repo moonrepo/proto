@@ -326,7 +326,7 @@ impl PluginLoader {
                 if lock_path.exists()
                     && let Ok(lock_file) = fs::open_file(&lock_path)
                 {
-                    let _ = fs::acquire_exclusive_lock(lock_path, &lock_file)?;
+                    fs::acquire_exclusive_lock(lock_path, &lock_file)?;
                 }
 
                 return Ok(cache_path);
