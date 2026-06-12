@@ -39,7 +39,7 @@ fn get_tracing_modules() -> Vec<String> {
 async fn main() -> MainResult {
     sigpipe::reset();
 
-    let cli = CLI::parse();
+    let mut cli = CLI::parse();
     cli.setup_env_vars();
 
     let app = App::default();

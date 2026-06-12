@@ -48,7 +48,7 @@ impl ProtoSession {
         console.set_reporter(if env.test_only {
             ProtoReporter::new_testing()
         } else {
-            ProtoReporter::default()
+            ProtoReporter::new(cli.reporter)
         });
 
         Self {

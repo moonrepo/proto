@@ -251,6 +251,9 @@ name = "bitflags"
 version = "2.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "84d7ced0ae9557296835c32bf1b1e02b44c746701f898460fb000d7eaa84f00a"
+dependencies = [
+ "serde_core",
+]
 
 [[package]]
 name = "bitmaps"
@@ -937,6 +940,7 @@ dependencies = [
  "mio",
  "parking_lot",
  "rustix 1.1.4",
+ "serde",
  "signal-hook",
  "signal-hook-mio",
  "winapi",
@@ -4714,14 +4718,16 @@ dependencies = [
 
 [[package]]
 name = "starbase_console"
-version = "0.6.27"
+version = "0.6.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a00ab3fe8ebe79dff7ee074b34b38cbc6caf7b5a878514beaf358b533724d42"
+checksum = "b11aad63c3ab7b6dfcbbce2357cbb583bd3bf5d0a3e4329f84166f47cb7b6017"
 dependencies = [
  "crossterm",
  "iocraft",
  "miette 7.6.0",
  "parking_lot",
+ "serde",
+ "serde_json",
  "starbase_styles",
  "thiserror 2.0.18",
  "tokio",
@@ -4773,9 +4779,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_styles"
-version = "0.6.7"
+version = "0.6.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "67078591b8bea68aa42e19c61b4a40978e8e3787155012c2aa26331efe07f5e0"
+checksum = "45e6c5ef246f94a8511751dadcbf05ecfad5be5497ad0fd37e42fd2d70b0522e"
 dependencies = [
  "dirs",
  "miette 7.6.0",

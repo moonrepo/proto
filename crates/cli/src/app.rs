@@ -7,7 +7,7 @@ use crate::commands::{
 };
 use clap::builder::styling::{Color, Style, Styles};
 use clap::{Parser, Subcommand, ValueEnum};
-use proto_core::ConfigMode;
+use proto_core::{ConfigMode, reporter::ReporterFormat};
 use starbase_styles::color::Color as ColorType;
 use std::{
     env,
@@ -136,6 +136,16 @@ pub struct App {
         default_value_t,
         long,
         global = true,
+        env = "PROTO_REPORTER",
+        help = "Print output with a specific format"
+    )]
+    pub reporter: ReporterFormat,
+
+    #[arg(
+        value_enum,
+        default_value_t,
+        long,
+        global = true,
         env = "PROTO_THEME",
         help = "Terminal theme to print with"
     )]
@@ -155,7 +165,7 @@ pub struct App {
 }
 
 impl App {
-    pub fn setup_env_vars(&self) {
+    pub fn setup_env_vars(&mut self) {
         unsafe {
             env::set_var("PROTO_APP_LOG", self.log.to_string());
             env::set_var("PROTO_VERSION", env!("CARGO_PKG_VERSION"));
@@ -176,8 +186,13 @@ impl App {
                 },
             );
 
+            // Convenience mapping
+            if self.json && !self.reporter.is_json() {
+                self.reporter = ReporterFormat::Json;
+            }
+
             // Disable ANSI colors in JSON output
-            if self.json {
+            if self.json || self.reporter.is_json() {
                 env::set_var("NO_COLOR", "1");
                 env::remove_var("FORCE_COLOR");
             }
