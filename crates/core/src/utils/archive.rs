@@ -108,7 +108,7 @@ pub async fn download_and_unpack(
     if should_unpack(src, target_dir)? {
         let archive_file = download(src, temp_dir, options).await?;
 
-        unpack_source(src, target_dir, &archive_file).await?;
+        unpack_source(src, target_dir, temp_dir, &archive_file).await?;
     }
 
     Ok(())
@@ -117,15 +117,10 @@ pub async fn download_and_unpack(
 pub async fn unpack_source(
     src: &ArchiveSource,
     target_dir: &Path,
+    temp_dir: &Path,
     archive_file: &Path,
 ) -> Result<(String, PathBuf), ProtoArchiveError> {
-    let result = unpack(
-        target_dir,
-        target_dir, // Temp not needed!
-        archive_file,
-        src.prefix.as_deref(),
-    )
-    .await;
+    let result = unpack(target_dir, temp_dir, archive_file, src.prefix.as_deref()).await;
 
     fs::write_file(target_dir.join(".archive-url"), &src.url)?;
 
