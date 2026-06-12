@@ -1,7 +1,7 @@
 use crate::error::ProtoCliError;
 use crate::session::{LoadToolOptions, ProtoSession};
 use clap::Args;
-use iocraft::prelude::{Size, element};
+use iocraft::prelude::Size;
 use proto_core::flow::resolve::Resolver;
 use proto_core::{ToolContext, ToolSpec, VersionSpec};
 use serde::Serialize;
@@ -82,89 +82,39 @@ pub async fn status(session: ProtoSession, _args: StatusArgs) -> AppResult {
 
     let ctx_width = items.keys().fold(0, |acc, ctx| acc.max(ctx.as_str().len()));
 
-    session.console.render(element! {
-        Container {
-            Table(
-                headers: vec![
-                    TableHeader::new("Tool", Size::Length((ctx_width + 3).max(10) as u32)),
-                    TableHeader::new("Configured", Size::Length(12)),
-                    TableHeader::new("Resolved", Size::Length(12)),
-                    TableHeader::new("Installed", Size::Percent(30.0)),
-                    TableHeader::new("Config", Size::Auto),
+    session.console.table(
+        vec![
+            TableHeader::new("Tool", Size::Length((ctx_width + 3).max(10) as u32)),
+            TableHeader::new("Configured", Size::Length(12)),
+            TableHeader::new("Resolved", Size::Length(12)),
+            TableHeader::new("Installed", Size::Percent(30.0)),
+            TableHeader::new("Config", Size::Auto),
+        ],
+        items
+            .into_iter()
+            .map(|(ctx, item)| {
+                vec![
+                    format!("<id>{ctx}</id>"),
+                    format!("<invalid>{}</invalid>", item.config_version),
+                    if let Some(version) = item.resolved_version {
+                        format!("<hash>{version}</hash>")
+                    } else {
+                        "<mutedlight>N/A</mutedlight>".into()
+                    },
+                    if let Some(dir) = item.product_dir {
+                        format!("<path>{}</path>", dir.to_string_lossy())
+                    } else {
+                        "<mutedlight>No</mutedlight>".into()
+                    },
+                    if let Some(src) = item.config_source {
+                        format!("<path>{}</path>", src.to_string_lossy())
+                    } else {
+                        "<mutedlight>N/A</mutedlight>".into()
+                    },
                 ]
-            ) {
-                #(items.into_iter().enumerate().map(|(i, (ctx, item))| {
-                    element! {
-                        TableRow(row: i as i32) {
-                            TableCol(col: 0) {
-                                StyledText(
-                                    content: ctx.to_string(),
-                                    style: Style::Id
-                                )
-                            }
-                            TableCol(col: 1) {
-                                StyledText(
-                                    content: item.config_version.to_string(),
-                                    style: Style::Invalid
-                                )
-                            }
-                            TableCol(col: 2) {
-                                #(if let Some(version) = item.resolved_version {
-                                    element! {
-                                        StyledText(
-                                            content: version.to_string(),
-                                            style: Style::Hash
-                                        )
-                                    }
-                                } else {
-                                    element! {
-                                        StyledText(
-                                            content: "N/A",
-                                            style: Style::MutedLight
-                                        )
-                                    }
-                                })
-                            }
-                            TableCol(col: 3) {
-                                #(if let Some(dir) = item.product_dir {
-                                    element! {
-                                        StyledText(
-                                            content: dir.to_string_lossy(),
-                                            style: Style::Path
-                                        )
-                                    }
-                                } else {
-                                    element! {
-                                        StyledText(
-                                            content: "No",
-                                            style: Style::MutedLight
-                                        )
-                                    }
-                                })
-                            }
-                            TableCol(col: 4) {
-                                 #(if let Some(src) = item.config_source {
-                                    element! {
-                                        StyledText(
-                                            content: src.to_string_lossy(),
-                                            style: Style::Path
-                                        )
-                                    }
-                                } else {
-                                    element! {
-                                        StyledText(
-                                            content: "N/A",
-                                            style: Style::MutedLight
-                                        )
-                                    }
-                                })
-                            }
-                        }
-                    }
-                }))
-            }
-        }
-    })?;
+            })
+            .collect(),
+    )?;
 
     Ok(None)
 }

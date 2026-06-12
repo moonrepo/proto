@@ -160,76 +160,41 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
 
     let ctx_width = items.keys().fold(0, |acc, ctx| acc.max(ctx.as_str().len()));
 
-    session.console.render(element! {
-        Container {
-            Table(
-                headers: vec![
-                    TableHeader::new("Tool", Size::Length((ctx_width + 3).max(10) as u32)),
-                    TableHeader::new("Current", Size::Length(10)),
-                    TableHeader::new("Newest", Size::Length(10)),
-                    TableHeader::new("Latest", Size::Length(10)),
-                    TableHeader::new("Config", Size::Auto),
+    session.console.table(
+        vec![
+            TableHeader::new("Tool", Size::Length((ctx_width + 3).max(10) as u32)),
+            TableHeader::new("Current", Size::Length(10)),
+            TableHeader::new("Newest", Size::Length(10)),
+            TableHeader::new("Latest", Size::Length(10)),
+            TableHeader::new("Config", Size::Auto),
+        ],
+        items
+            .iter()
+            .map(|(ctx, item)| {
+                vec![
+                    format!("<id>{ctx}</id>"),
+                    item.current_version.to_string(),
+                    if item.newest_version == item.current_version {
+                        format!("<mutedlight>{}</mutedlight>", item.newest_version)
+                    } else {
+                        format!("<success>{}</success>", item.newest_version)
+                    },
+                    if item.latest_version == item.current_version {
+                        format!("<mutedlight>{}</mutedlight>", item.latest_version)
+                    } else if item.latest_version == item.newest_version {
+                        format!("<success>{}</success>", item.latest_version)
+                    } else {
+                        format!("<failure>{}</failure>", item.latest_version)
+                    },
+                    if let Some(src) = &item.config_source {
+                        format!("<path>{}</path>", src.to_string_lossy())
+                    } else {
+                        "<mutedlight>N/A</mutedlight>".into()
+                    },
                 ]
-            ) {
-                #(items.iter().enumerate().map(|(i, (ctx, item))| {
-                    element! {
-                        TableRow(row: i as i32) {
-                            TableCol(col: 0) {
-                                StyledText(
-                                    content: ctx.to_string(),
-                                    style: Style::Id
-                                )
-                            }
-                            TableCol(col: 1) {
-                                StyledText(
-                                    content: item.current_version.to_string(),
-                                )
-                            }
-                            TableCol(col: 2) {
-                                StyledText(
-                                    content: item.newest_version.to_string(),
-                                    style: if item.newest_version == item.current_version {
-                                        Style::MutedLight
-                                    } else {
-                                        Style::Success
-                                    }
-                                )
-                            }
-                            TableCol(col: 3) {
-                                StyledText(
-                                    content: item.latest_version.to_string(),
-                                    style: if item.latest_version == item.current_version {
-                                        Style::MutedLight
-                                    } else if item.latest_version == item.newest_version {
-                                        Style::Success
-                                    } else {
-                                        Style::Failure
-                                    }
-                                )
-                            }
-                            TableCol(col: 4) {
-                                #(if let Some(src) = &item.config_source {
-                                    element! {
-                                        StyledText(
-                                            content: src.to_string_lossy(),
-                                            style: Style::Path
-                                        )
-                                    }
-                                } else {
-                                    element! {
-                                        StyledText(
-                                            content: "N/A",
-                                            style: Style::MutedLight
-                                        )
-                                    }
-                                })
-                            }
-                        }
-                    }
-                }))
-            }
-        }
-    })?;
+            })
+            .collect(),
+    )?;
 
     // If updating versions, batch the changes based on config paths
     if !args.update {

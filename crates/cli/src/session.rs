@@ -259,7 +259,7 @@ impl ProtoSession {
     }
 
     pub fn should_print_json(&self) -> bool {
-        self.cli.json
+        self.cli.json || self.cli.reporter.is_json()
     }
 
     pub fn should_skip_prompts(&self) -> bool {
@@ -317,6 +317,7 @@ impl AppSession for ProtoSession {
             .await?;
         }
 
+        self.console.flush_json()?;
         self.console.out.flush()?;
         self.console.err.flush()?;
 

@@ -115,5 +115,7 @@ async fn main() -> MainResult {
         })
         .await?;
 
+    // TODO handle JSON for errors
+
     Ok(ExitCode::from(exit_code))
 }

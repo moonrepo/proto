@@ -86,25 +86,43 @@ impl Reporter for ProtoReporter {
 }
 
 impl ProtoReporter {
-    fn append_json<T: Serialize>(&self, value: T) -> Result<(), ConsoleError> {
+    pub fn append_json<T: Serialize>(&self, value: T) -> Result<(), ConsoleError> {
         if let Ok(mut buffer) = self.json_buffer.write() {
-            buffer.push(serde_json::to_string_pretty(&value).map_err(|error| {
+            let content = serde_json::to_string_pretty(&value).map_err(|error| {
                 ConsoleError::WriteJsonFailed {
                     error: Box::new(error),
                 }
-            })?);
+            })?;
+
+            buffer.push(remove_style_tags(content));
         }
 
         Ok(())
     }
 
-    fn write_json<T: Serialize>(&self, value: T) -> Result<(), ConsoleError> {
+    pub fn flush_json(&self) -> Result<(), ConsoleError> {
+        if let Ok(mut buffer) = self.json_buffer.write() {
+            let mut content = buffer.drain(..).collect::<Vec<_>>();
+
+            match content.len() {
+                0 => {}
+                1 => self.out.write_line(content.remove(0))?,
+                _ => self
+                    .out
+                    .write_line(format!("[\n{}\n]", content.join(",\n")))?,
+            };
+        }
+
+        Ok(())
+    }
+
+    pub fn write_json<T: Serialize>(&self, value: T) -> Result<(), ConsoleError> {
         let content =
             serde_json::to_string(&value).map_err(|error| ConsoleError::WriteJsonFailed {
                 error: Box::new(error),
             })?;
 
-        self.out.write_line(content)?;
+        self.out.write_line(remove_style_tags(content))?;
 
         Ok(())
     }
@@ -118,12 +136,7 @@ impl ProtoReporter {
         })
     }
 
-    pub fn notice_with(&self, mut output: NoticeOutput) -> Result<(), ConsoleError> {
-        if self.format.is_json() {
-            output.messages = remove_tags(output.messages);
-            output.items = remove_tags(output.items);
-        }
-
+    pub fn notice_with(&self, output: NoticeOutput) -> Result<(), ConsoleError> {
         match self.format {
             ReporterFormat::Text => {
                 let el = element! {
@@ -165,10 +178,58 @@ impl ProtoReporter {
 
         Ok(())
     }
-}
 
-fn remove_tags(values: Vec<String>) -> Vec<String> {
-    values.into_iter().map(remove_style_tags).collect()
+    pub fn table(
+        &self,
+        headers: Vec<TableHeader>,
+        cells: Vec<Vec<String>>,
+    ) -> Result<(), ConsoleError> {
+        self.table_with(TableOutput {
+            headers_config: headers,
+            cells,
+            ..Default::default()
+        })
+    }
+
+    pub fn table_with(&self, mut output: TableOutput) -> Result<(), ConsoleError> {
+        output.headers = output
+            .headers_config
+            .iter()
+            .map(|header| header.label.clone())
+            .collect();
+
+        match self.format {
+            ReporterFormat::Text => {
+                let el = element! {
+                    Container {
+                        Table(
+                            headers: output.headers_config,
+                        ) {
+                            #(output.cells.into_iter().enumerate().map(|(row_index, row)| element! {
+                                TableRow(row: row_index as i32) {
+                                    #(row.into_iter().enumerate().map(|(col_index, cell)| element! {
+                                        TableCol(col: col_index as i32) {
+                                            StyledText(content: cell)
+                                        }
+                                    }))
+                                }
+                            }))
+                        }
+                    }
+                };
+
+                self.out.render(el, self.theme.clone())?;
+            }
+            ReporterFormat::Json => {
+                self.append_json(output)?;
+            }
+            ReporterFormat::Ndjson => {
+                self.write_json(Event::Table(output))?;
+            }
+        };
+
+        Ok(())
+    }
 }
 
 #[derive(Default, Serialize)]
@@ -182,8 +243,19 @@ pub struct NoticeOutput {
     pub items: Vec<String>,
 }
 
+#[derive(Default, Serialize)]
+pub struct TableOutput {
+    #[serde(skip)]
+    pub headers_config: Vec<TableHeader>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub headers: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub cells: Vec<Vec<String>>,
+}
+
 #[derive(Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Event {
     Notice(NoticeOutput),
+    Table(TableOutput),
 }
