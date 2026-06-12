@@ -77,7 +77,13 @@ pub fn is_cache_enabled() -> bool {
 }
 
 pub fn is_archive_file<P: AsRef<Path>>(path: P) -> bool {
-    is_supported_archive_extension(path.as_ref())
+    let path = path.as_ref();
+
+    is_supported_archive_extension(path)
+        || path
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .is_some_and(|ext| matches!(ext.to_lowercase().as_str(), "pkg"))
 }
 
 pub fn now() -> u128 {
@@ -149,4 +155,20 @@ where
     V: Clone + 'map,
 {
     items.into_iter().map(|v| v.to_owned()).collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn detects_pkg_files_as_archives() {
+        assert!(is_archive_file("tool.pkg"));
+        assert!(is_archive_file("tool.PKG"));
+    }
+
+    #[test]
+    fn does_not_detect_dmg_files_as_archives() {
+        assert!(!is_archive_file("tool.dmg"));
+    }
 }
