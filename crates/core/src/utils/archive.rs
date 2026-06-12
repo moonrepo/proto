@@ -160,28 +160,35 @@ async fn unpack_pkg(
     let expanded_dir = temp_dir.join("pkg");
     let payload_dir = expanded_dir.join("Payload");
 
+    fs::create_dir_all(temp_dir)?;
+
     // Remove expanded dir if it exists
     fs::remove_dir_all(&expanded_dir)?;
 
-    handle_exec(
-        exec_command_piped(
-            Command::new("pkgutil")
-                .arg("--expand-full")
-                .arg(archive_file)
-                .arg(&expanded_dir),
-        )
-        .await?,
-    )?;
+    let result = async {
+        handle_exec(
+            exec_command_piped(
+                Command::new("pkgutil")
+                    .arg("--expand-full")
+                    .arg(archive_file)
+                    .arg(&expanded_dir),
+            )
+            .await?,
+        )?;
 
-    if !payload_dir.exists() {
-        return Err(ProtoArchiveError::MissingPkgPayload {
-            path: expanded_dir.to_path_buf(),
-        });
+        if !payload_dir.exists() {
+            return Err(ProtoArchiveError::MissingPkgPayload {
+                path: expanded_dir.to_path_buf(),
+            });
+        }
+
+        copy_extracted_contents(&payload_dir, target_dir, prefix)
     }
+    .await;
 
-    copy_extracted_contents(&payload_dir, target_dir, prefix)?;
+    let _ = fs::remove_dir_all(&expanded_dir);
 
-    Ok(())
+    result
 }
 
 fn copy_extracted_contents(
@@ -206,4 +213,141 @@ fn copy_extracted_contents(
     }
 
     Ok(())
+}
+
+#[cfg(all(test, target_os = "macos"))]
+mod tests {
+    use super::*;
+    use starbase_sandbox::{Sandbox, create_empty_sandbox};
+    use std::process::{Command as StdCommand, Stdio};
+
+    fn has_macos_pkg_tools() -> bool {
+        ["pkgbuild", "pkgutil"].into_iter().all(|bin| {
+            StdCommand::new("which")
+                .arg(bin)
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .status()
+                .is_ok_and(|status| status.success())
+        })
+    }
+
+    fn create_pkg(sandbox: &Sandbox, name: &str, files: &[(&str, &str, bool)]) -> PathBuf {
+        let root = sandbox.path().join(format!("{name}-root"));
+
+        for (relative_path, contents, executable) in files {
+            let file = root.join(relative_path);
+
+            fs::create_dir_all(file.parent().unwrap()).unwrap();
+            fs::write_file(&file, contents).unwrap();
+
+            #[cfg(unix)]
+            if *executable {
+                fs::update_perms(&file, Some(0o755)).unwrap();
+            }
+        }
+
+        let package = sandbox.path().join(format!("{name}.pkg"));
+        let output = StdCommand::new("pkgbuild")
+            .arg("--root")
+            .arg(&root)
+            .arg("--identifier")
+            .arg(format!("dev.proto.{name}"))
+            .arg("--version")
+            .arg("1.0.0")
+            .arg(&package)
+            .output()
+            .unwrap();
+
+        assert!(
+            output.status.success(),
+            "pkgbuild failed:\nstdout:\n{}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+
+        package
+    }
+
+    #[tokio::test]
+    async fn unpacks_pkg_payload_with_prefix() {
+        if !has_macos_pkg_tools() {
+            return;
+        }
+
+        let sandbox = create_empty_sandbox();
+        let target_dir = sandbox.path().join("target");
+        let temp_dir = sandbox.path().join("temp");
+        let package = create_pkg(
+            &sandbox,
+            "prefixed",
+            &[
+                (
+                    "Library/Developer/Toolchains/swift/bin/swift",
+                    "#!/bin/sh\n",
+                    true,
+                ),
+                (
+                    "Library/Developer/Toolchains/swift/lib/libswift.dylib",
+                    "library",
+                    false,
+                ),
+            ],
+        );
+
+        fs::create_dir_all(&target_dir).unwrap();
+
+        let (ext, unpacked_path) = unpack(
+            &target_dir,
+            &temp_dir,
+            &package,
+            Some("Library/Developer/Toolchains/swift"),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(ext, "pkg");
+        assert_eq!(unpacked_path, target_dir);
+        assert!(target_dir.join("bin/swift").is_file());
+        assert!(target_dir.join("lib/libswift.dylib").is_file());
+        assert!(!target_dir.join("Library").exists());
+        assert!(!target_dir.join("Payload").exists());
+        assert!(!target_dir.join("PackageInfo").exists());
+        assert!(!temp_dir.join("pkg").exists());
+    }
+
+    #[tokio::test]
+    async fn unpack_source_writes_archive_url_for_pkg() {
+        if !has_macos_pkg_tools() {
+            return;
+        }
+
+        let sandbox = create_empty_sandbox();
+        let target_dir = sandbox.path().join("target");
+        let temp_dir = sandbox.path().join("temp");
+        let package = create_pkg(
+            &sandbox,
+            "source",
+            &[("usr/local/bin/proto-tool", "#!/bin/sh\n", true)],
+        );
+        let source = ArchiveSource {
+            url: "https://example.com/proto-tool.pkg".into(),
+            prefix: Some("usr/local".into()),
+        };
+
+        fs::create_dir_all(&target_dir).unwrap();
+
+        let (ext, unpacked_path) = unpack_source(&source, &target_dir, &temp_dir, &package)
+            .await
+            .unwrap();
+
+        assert_eq!(ext, "pkg");
+        assert_eq!(unpacked_path, target_dir);
+        assert!(target_dir.join("bin/proto-tool").is_file());
+        assert_eq!(
+            fs::read_file(target_dir.join(".archive-url")).unwrap(),
+            "https://example.com/proto-tool.pkg"
+        );
+        assert!(!temp_dir.join("pkg").exists());
+    }
 }

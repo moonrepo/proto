@@ -156,3 +156,19 @@ where
 {
     items.into_iter().map(|v| v.to_owned()).collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn detects_pkg_files_as_archives() {
+        assert!(is_archive_file("tool.pkg"));
+        assert!(is_archive_file("tool.PKG"));
+    }
+
+    #[test]
+    fn does_not_detect_dmg_files_as_archives() {
+        assert!(!is_archive_file("tool.dmg"));
+    }
+}
