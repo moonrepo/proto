@@ -11,7 +11,7 @@ use crate::tool_spec::ToolSpec;
 use crate::utils::log::LogWriter;
 use crate::utils::{archive, process};
 use proto_pdk_api::*;
-use starbase_shell::ShellType;
+use starbase_shell::{ShellType, join_exe_args};
 use starbase_styles::color;
 use starbase_utils::net::DownloadOptions;
 use starbase_utils::{fs, net, path};
@@ -164,6 +164,10 @@ impl<'tool> Installer<'tool> {
                     install_dir = ?self.product_dir,
                     "Successfully installed tool",
                 );
+
+                install_lock.unlock()?;
+
+                let _ = fs::remove_dir_all(&self.temp_dir);
 
                 Ok(Some(record))
             }
@@ -524,9 +528,12 @@ impl<'tool> Installer<'tool> {
                 );
 
                 let shell = ShellType::detect_with_fallback().build();
-                let mut command = Command::new(shell.to_string());
-                command.arg("-c");
-                command.arg(shell.quote(&abs_script.to_string_lossy()));
+                let mut command = Command::from(shell.create_wrapped_command_with(join_exe_args(
+                    &shell,
+                    &abs_script,
+                    &output.post_script_args,
+                    false,
+                )));
                 command.current_dir(&self.product_dir);
 
                 process::exec_command(&mut command).await?;
