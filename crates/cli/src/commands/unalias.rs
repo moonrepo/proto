@@ -53,12 +53,12 @@ pub async fn unalias(session: ProtoSession, args: UnaliasArgs) -> AppResult {
     let Some(value) = value else {
         session.console.notice(
             Variant::Caution,
-            vec![format!(
+            format!(
                 "Alias <id>{}</id> for <id>{}</id> not found in config <path>{}</path>",
                 args.alias,
                 args.context,
                 config_path.display()
-            )],
+            ),
         )?;
 
         return Ok(Some(1));
@@ -66,13 +66,13 @@ pub async fn unalias(session: ProtoSession, args: UnaliasArgs) -> AppResult {
 
     session.console.notice(
         Variant::Success,
-        vec![format!(
+        format!(
             "Removed <id>{}</id> alias <id>{}</id> <mutedlight>(with specification <versionalt>{}</versionalt>)</mutedlight> from config <path>{}</path>",
             args.context,
             args.alias,
             encode_style_tags(value.to_string()),
             config_path.display()
-        )],
+        ),
     )?;
 
     Ok(None)

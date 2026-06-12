@@ -64,7 +64,7 @@ pub async fn diagnose(session: ProtoSession, args: DiagnoseArgs) -> AppResult {
     if errors.is_empty() && warnings.is_empty() {
         session.console.notice(
             Variant::Success,
-            vec!["No issues detected with your proto installation!".into()],
+            "No issues detected with your proto installation!",
         )?;
 
         return Ok(None);

@@ -50,15 +50,13 @@ pub async fn alias(session: ProtoSession, args: AliasArgs) -> AppResult {
 
     session.console.notice(
         Variant::Success,
-        vec![
-            format!(
-                "Added <id>{}</id> alias <id>{}</id> <mutedlight>(with specification <versionalt>{}</versionalt>)</mutedlight> to config <path>{}</path>",
-                args.context,
-                args.alias,
-                encode_style_tags(args.spec.to_string()),
-                config_path.display()
-            ),
-        ],
+        format!(
+            "Added <id>{}</id> alias <id>{}</id> <mutedlight>(with specification <versionalt>{}</versionalt>)</mutedlight> to config <path>{}</path>",
+            args.context,
+            args.alias,
+            encode_style_tags(args.spec.to_string()),
+            config_path.display()
+        ),
     )?;
 
     Ok(None)

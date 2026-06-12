@@ -372,10 +372,10 @@ pub async fn clean(session: ProtoSession, args: CleanArgs) -> AppResult {
     if remove_count == 0 {
         session.console.notice(
             Variant::Info,
-            vec![format!(
+            format!(
                 "Clean complete but nothing was removed.\nNo artifacts were found older than {} days.",
                 args.days
-            )],
+            ),
         )?;
     } else {
         let mut items = vec![];

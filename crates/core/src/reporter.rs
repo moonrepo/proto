@@ -109,11 +109,11 @@ impl ProtoReporter {
         Ok(())
     }
 
-    pub fn notice(&self, variant: Variant, messages: Vec<String>) -> Result<(), ConsoleError> {
+    pub fn notice(&self, variant: Variant, message: impl Into<String>) -> Result<(), ConsoleError> {
         self.notice_with(NoticeOutput {
             variant,
             title: None,
-            messages,
+            messages: vec![message.into()],
             items: vec![],
         })
     }

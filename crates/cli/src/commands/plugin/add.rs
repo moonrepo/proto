@@ -54,6 +54,7 @@ pub async fn add(session: ProtoSession, args: AddPluginArgs) -> AppResult {
     #[cfg(not(debug_assertions))]
     {
         use proto_core::ToolContext;
+        use proto_core::reporter::NoticeOutput;
 
         let tool = proto_core::load_tool_from_locator(
             ToolContext::parse(&args.id)?,
@@ -63,21 +64,22 @@ pub async fn add(session: ProtoSession, args: AddPluginArgs) -> AppResult {
         .await?;
 
         if !tool.metadata.deprecations.is_empty() {
-            session.console.notice_with_items(
-                Variant::Info,
-                vec!["Deprecations".into()],
-                tool.metadata.deprecations,
-            )?;
+            session.console.notice_with(NoticeOutput {
+                variant: Variant::Info,
+                title: Some("Deprecations".into()),
+                items: tool.metadata.deprecations,
+                ..Default::default()
+            })?;
         }
     }
 
     session.console.notice(
         Variant::Success,
-        vec![format!(
+        format!(
             "Added <id>{}</id> plugin to config <path>{}</path>",
             args.id,
             config_path.display(),
-        )],
+        ),
     )?;
 
     Ok(None)

@@ -105,10 +105,7 @@ async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult 
         if !args.quiet {
             session.console.notice(
                 Variant::Caution,
-                vec![format!(
-                    "{} has not been installed locally",
-                    tool.get_name(),
-                )],
+                format!("{} has not been installed locally", tool.get_name(),),
             )?;
         }
 
@@ -162,10 +159,7 @@ async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult 
     if !args.quiet {
         session.console.notice(
             Variant::Success,
-            vec![format!(
-                "{} has been completely uninstalled!",
-                tool.get_name(),
-            )],
+            format!("{} has been completely uninstalled!", tool.get_name(),),
         )?;
     }
 
@@ -194,11 +188,11 @@ async fn uninstall_one(
         if !args.quiet {
             session.console.notice(
                 Variant::Caution,
-                vec![format!(
+                format!(
                     "{} <version>{}</version> has not been installed locally",
                     tool.get_name(),
                     spec.get_resolved_version(),
-                )],
+                ),
             )?;
         }
 
@@ -259,11 +253,11 @@ async fn uninstall_one(
     if !args.quiet {
         session.console.notice(
             Variant::Success,
-            vec![format!(
+            format!(
                 "{} <version>{}</version> has been uninstalled!",
                 tool.get_name(),
                 spec.get_resolved_version(),
-            )],
+            ),
         )?;
     }
 

@@ -1,7 +1,10 @@
 use crate::session::ProtoSession;
 use clap::Args;
 use proto_core::flow::resolve::Resolver;
-use proto_core::{PinLocation, ProtoConfig, ProtoConfigError, Tool, ToolContext, ToolSpec, cfg};
+use proto_core::{
+    PinLocation, ProtoConfig, ProtoConfigError, Tool, ToolContext, ToolSpec, cfg,
+    reporter::NoticeOutput,
+};
 use proto_pdk_api::{PinVersionInput, PinVersionOutput, PluginFunction};
 use starbase::AppResult;
 use starbase_console::ui::*;
@@ -91,17 +94,21 @@ pub async fn pin(session: ProtoSession, args: PinArgs) -> AppResult {
                     messages.push(error);
                 }
 
-                session.console.notice(Variant::Failure, messages)?;
+                session.console.notice_with(NoticeOutput {
+                    variant: Variant::Failure,
+                    messages,
+                    ..Default::default()
+                })?;
 
                 return Ok(Some(1));
             }
         } else {
             session.console.notice(
                 Variant::Caution,
-                vec![format!(
+                format!(
                     "{} does not support pinning to a native file. Remove <shell>--tool-native</shell> and try again.",
                     tool.get_name()
-                )],
+                ),
             )?;
 
             return Ok(Some(1));
@@ -112,7 +119,7 @@ pub async fn pin(session: ProtoSession, args: PinArgs) -> AppResult {
 
     session.console.notice(
         Variant::Success,
-        vec![if args.resolve {
+        if args.resolve {
             format!(
                 "Pinned <id>{}</id> version <version>{}</version> (resolved from <versionalt>{}</versionalt>) to config <path>{}</path>",
                 args.context,
@@ -127,7 +134,7 @@ pub async fn pin(session: ProtoSession, args: PinArgs) -> AppResult {
                 encode_style_tags(spec.req.to_string()),
                 config_path.display()
             )
-        }],
+        },
     )?;
 
     Ok(None)

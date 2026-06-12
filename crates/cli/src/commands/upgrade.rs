@@ -82,7 +82,7 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
 
         session.console.notice(
             Variant::Info,
-            vec![if target_version == current_version {
+            if target_version == current_version {
                 format!("You're already on version <version>{current}</version> of proto!")
             } else if has_explicit_target {
                 format!("An explicit version of proto will be used: {target_chain}")
@@ -90,7 +90,7 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
                 format!("A newer version of proto is available: {target_chain}")
             } else {
                 format!("An older version of proto is available: {target_chain}")
-            }],
+            },
         )?;
 
         return Ok(None);
@@ -100,9 +100,7 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
     if not_available {
         session.console.notice(
             Variant::Info,
-            vec![format!(
-                "You're already on version <version>{current}</version> of proto!"
-            )],
+            format!("You're already on version <version>{current}</version> of proto!"),
         )?;
 
         return Ok(None);
@@ -112,7 +110,7 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
     if let Some(pid) = is_running() {
         session.console.notice(
             Variant::Caution,
-            vec![format!("Another instance of <shell>proto</shell> is currently running with the process ID {}. You may run into issues if you continue.", pid)],
+            format!("Another instance of <shell>proto</shell> is currently running with the process ID {}. You may run into issues if you continue.", pid),
         )?;
 
         let skip_prompts = session.should_skip_prompts();
@@ -176,11 +174,11 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
     if upgraded {
         session.console.notice(
             Variant::Success,
-            vec![if target_version >= current_version {
+            if target_version >= current_version {
                 format!("Upgraded proto to <version>{target}</version>!")
             } else {
                 format!("Downgraded proto to <version>{target}</version>!")
-            }],
+            },
         )?;
 
         return Ok(None);

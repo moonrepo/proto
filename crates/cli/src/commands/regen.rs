@@ -82,11 +82,11 @@ pub async fn regen(session: ProtoSession, args: RegenArgs) -> AppResult {
 
     session.console.notice(
         Variant::Success,
-        vec![if args.bin {
-            "Regenerated shims and bins!".into()
+        if args.bin {
+            "Regenerated shims and bins!"
         } else {
-            "Regenerated shims!".into()
-        }],
+            "Regenerated shims!"
+        },
     )?;
 
     Ok(None)

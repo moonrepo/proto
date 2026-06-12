@@ -1,6 +1,6 @@
 use crate::session::ProtoSession;
 use clap::Args;
-use proto_core::{PinLocation, ProtoConfig, ToolContext};
+use proto_core::{PinLocation, ProtoConfig, ToolContext, reporter::NoticeOutput};
 use proto_pdk_api::{PluginFunction, UnpinVersionInput, UnpinVersionOutput};
 use starbase::AppResult;
 use starbase_console::ui::*;
@@ -56,17 +56,21 @@ pub async fn unpin(session: ProtoSession, args: UnpinArgs) -> AppResult {
                     messages.push(error);
                 }
 
-                session.console.notice(Variant::Failure, messages)?;
+                session.console.notice_with(NoticeOutput {
+                    variant: Variant::Failure,
+                    messages,
+                    ..Default::default()
+                })?;
 
                 return Ok(Some(1));
             }
         } else {
             session.console.notice(
                 Variant::Caution,
-                vec![format!(
+                format!(
                     "{} does not support unpinning from a native file. Remove <shell>--tool-native</shell> and try again.",
                     tool.get_name()
-                )],
+                ),
             )?;
 
             return Ok(Some(1));
@@ -83,11 +87,11 @@ pub async fn unpin(session: ProtoSession, args: UnpinArgs) -> AppResult {
     let Some(value) = value else {
         session.console.notice(
             Variant::Caution,
-            vec![format!(
+            format!(
                 "No version pinned for <id>{}</id> in config <path>{}</path>",
                 args.context,
                 config_path.display()
-            )],
+            ),
         )?;
 
         return Ok(Some(1));
@@ -95,12 +99,12 @@ pub async fn unpin(session: ProtoSession, args: UnpinArgs) -> AppResult {
 
     session.console.notice(
         Variant::Success,
-        vec![format!(
+        format!(
             "Removed <id>{}</id> version <version>{}</version> from config <path>{}</path>",
             args.context,
             encode_style_tags(value),
             config_path.display()
-        )],
+        ),
     )?;
 
     Ok(None)

@@ -62,11 +62,11 @@ pub async fn remove(session: ProtoSession, args: RemovePluginArgs) -> AppResult 
 
     session.console.notice(
         Variant::Success,
-        vec![format!(
+        format!(
             "Removed <id>{}</id> plugin from config <path>{}</path>",
             args.id,
             config_path.display(),
-        )],
+        ),
     )?;
 
     Ok(None)

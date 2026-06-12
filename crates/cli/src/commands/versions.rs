@@ -59,7 +59,7 @@ pub async fn versions(session: ProtoSession, args: VersionsArgs) -> AppResult {
     if tool.remote_versions.is_empty() {
         session.console.notice(
             Variant::Failure,
-            vec!["No versions available from remote registry".into()],
+            "No versions available from remote registry",
         )?;
 
         return Ok(Some(1));

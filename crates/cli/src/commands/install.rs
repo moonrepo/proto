@@ -6,7 +6,9 @@ use crate::utils::tool_record::ToolRecord;
 use crate::workflows::{InstallOutcome, InstallWorkflowManager, InstallWorkflowParams};
 use clap::Args;
 use proto_core::flow::detect::Detector;
-use proto_core::{ConfigMode, Id, PinLocation, Tool, ToolContext, ToolSpec};
+use proto_core::{
+    ConfigMode, Id, PinLocation, Tool, ToolContext, ToolSpec, reporter::NoticeOutput,
+};
 use proto_pdk_api::{InstallStrategy, PluginFunction};
 use starbase::AppResult;
 use starbase_console::ui::*;
@@ -178,13 +180,14 @@ pub async fn install_one(
 
     if workflow.is_build(args.get_strategy()) {
         if !args.quiet {
-            session.console.notice(
-                Variant::Caution,
-                vec![
+            session.console.notice_with(NoticeOutput {
+                variant: Variant::Caution,
+                messages: vec![
                     "Building from source is currently unstable. Please report general issues to <url>https://github.com/moonrepo/proto</url>".into(),
                     "and tool specific issues to <url>https://github.com/moonrepo/plugins</url>.".into(),
                 ],
-            )?;
+                ..Default::default()
+            })?;
         }
     } else {
         workflow_manager.render_single_progress().await;
@@ -222,23 +225,23 @@ pub async fn install_one(
         InstallOutcome::Installed(_) => {
             session.console.notice(
                 Variant::Success,
-                vec![format!(
+                format!(
                     "{} <version>{}</version> has been installed to <path>{}</path>!",
                     tool.get_name(),
                     spec.get_resolved_version(),
                     tool.get_product_dir(&spec).display(),
-                )],
+                ),
             )?;
         }
         InstallOutcome::AlreadyInstalled(_) => {
             session.console.notice(
                 Variant::Info,
-                vec![format!(
+                format!(
                     "{} <version>{}</version> has already been installed at <path>{}</path>!",
                     tool.get_name(),
                     spec.get_resolved_version(),
                     tool.get_product_dir(&spec).display(),
-                )],
+                ),
             )?;
         }
         _ => {}
@@ -288,7 +291,11 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
             ));
         }
 
-        session.console.notice(Variant::Caution, messages)?;
+        session.console.notice_with(NoticeOutput {
+            variant: Variant::Caution,
+            messages,
+            ..Default::default()
+        })?;
 
         return Ok(Some(1));
     }
@@ -447,14 +454,15 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
         ));
     }
 
-    session.console.notice(
-        if failed_count == 0 {
+    session.console.notice_with(NoticeOutput {
+        variant: if failed_count == 0 {
             Variant::Success
         } else {
             Variant::Caution
         },
         messages,
-    )?;
+        ..Default::default()
+    })?;
 
     Ok(Some(failed_count as u8))
 }
