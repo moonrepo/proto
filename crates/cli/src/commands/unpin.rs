@@ -1,6 +1,5 @@
 use crate::session::ProtoSession;
 use clap::Args;
-use iocraft::prelude::element;
 use proto_core::{PinLocation, ProtoConfig, ToolContext};
 use proto_pdk_api::{PluginFunction, UnpinVersionInput, UnpinVersionOutput};
 use starbase::AppResult;
@@ -48,35 +47,27 @@ pub async fn unpin(session: ProtoSession, args: UnpinArgs) -> AppResult {
                 config_path = tool.from_virtual_path(file);
                 value = output.version.map(|version| version.to_string());
             } else {
-                session.console.render_err(element! {
-                    Notice(variant: Variant::Failure) {
-                        StyledText(
-                            content: format!(
-                                "Failed to unpin a version for <id>{}</id>.",
-                                args.context,
-                            )
-                        )
-                        #(output.error.map(|error| {
-                            element! {
-                                StyledText(content: error)
-                            }
-                        }))
-                    }
-                })?;
+                let mut messages = vec![format!(
+                    "Failed to unpin a version for <id>{}</id>.",
+                    args.context,
+                )];
+
+                if let Some(error) = output.error {
+                    messages.push(error);
+                }
+
+                session.console.notice(Variant::Failure, messages)?;
 
                 return Ok(Some(1));
             }
         } else {
-            session.console.render_err(element! {
-                Notice(variant: Variant::Caution) {
-                    StyledText(
-                        content: format!(
-                            "{} does not support unpinning from a native file. Remove <shell>--tool-native</shell> and try again.",
-                            tool.get_name()
-                        )
-                    )
-                }
-            })?;
+            session.console.notice(
+                Variant::Caution,
+                vec![format!(
+                    "{} does not support unpinning from a native file. Remove <shell>--tool-native</shell> and try again.",
+                    tool.get_name()
+                )],
+            )?;
 
             return Ok(Some(1));
         }
@@ -90,33 +81,27 @@ pub async fn unpin(session: ProtoSession, args: UnpinArgs) -> AppResult {
     }
 
     let Some(value) = value else {
-        session.console.render_err(element! {
-            Notice(variant: Variant::Caution) {
-                StyledText(
-                    content: format!(
-                        "No version pinned for <id>{}</id> in config <path>{}</path>",
-                        args.context,
-                        config_path.display()
-                    ),
-                )
-            }
-        })?;
+        session.console.notice(
+            Variant::Caution,
+            vec![format!(
+                "No version pinned for <id>{}</id> in config <path>{}</path>",
+                args.context,
+                config_path.display()
+            )],
+        )?;
 
         return Ok(Some(1));
     };
 
-    session.console.render(element! {
-        Notice(variant: Variant::Success) {
-            StyledText(
-                content: format!(
-                    "Removed <id>{}</id> version <version>{}</version> from config <path>{}</path>",
-                    args.context,
-                    encode_style_tags(value),
-                    config_path.display()
-                ),
-            )
-        }
-    })?;
+    session.console.notice(
+        Variant::Success,
+        vec![format!(
+            "Removed <id>{}</id> version <version>{}</version> from config <path>{}</path>",
+            args.context,
+            encode_style_tags(value),
+            config_path.display()
+        )],
+    )?;
 
     Ok(None)
 }

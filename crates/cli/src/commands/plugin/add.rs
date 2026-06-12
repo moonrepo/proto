@@ -1,6 +1,5 @@
 use crate::session::ProtoSession;
 use clap::Args;
-use iocraft::prelude::element;
 use proto_core::{Id, PinLocation, PluginLocator, PluginType, ProtoConfig, cfg};
 use starbase::AppResult;
 use starbase_console::ui::*;
@@ -64,33 +63,22 @@ pub async fn add(session: ProtoSession, args: AddPluginArgs) -> AppResult {
         .await?;
 
         if !tool.metadata.deprecations.is_empty() {
-            session.console.render(element! {
-                Notice(title: "Deprecations".to_owned(), variant: Variant::Info) {
-                    List {
-                        #(tool.metadata.deprecations.iter().map(|message| {
-                            element! {
-                                ListItem {
-                                    StyledText(content: message)
-                                }
-                            }
-                        }))
-                    }
-                }
-            })?;
+            session.console.notice_with_items(
+                Variant::Info,
+                vec!["Deprecations".into()],
+                tool.metadata.deprecations,
+            )?;
         }
     }
 
-    session.console.render(element! {
-        Notice(variant: Variant::Success) {
-            StyledText(
-                content: format!(
-                    "Added <id>{}</id> plugin to config <path>{}</path>",
-                    args.id,
-                    config_path.display(),
-                ),
-            )
-        }
-    })?;
+    session.console.notice(
+        Variant::Success,
+        vec![format!(
+            "Added <id>{}</id> plugin to config <path>{}</path>",
+            args.id,
+            config_path.display(),
+        )],
+    )?;
 
     Ok(None)
 }

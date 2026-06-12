@@ -1,6 +1,5 @@
 use crate::session::ProtoSession;
 use clap::Args;
-use iocraft::prelude::element;
 use proto_core::flow::link::Linker;
 use proto_core::flow::resolve::Resolver;
 use starbase::AppResult;
@@ -81,17 +80,14 @@ pub async fn regen(session: ProtoSession, args: RegenArgs) -> AppResult {
 
     progress.stop().await?;
 
-    session.console.render(element! {
-        Notice(variant: Variant::Success) {
-            StyledText(
-                content: if args.bin {
-                    "Regenerated shims and bins!"
-                } else {
-                    "Regenerated shims!"
-                },
-            )
-        }
-    })?;
+    session.console.notice(
+        Variant::Success,
+        vec![if args.bin {
+            "Regenerated shims and bins!".into()
+        } else {
+            "Regenerated shims!".into()
+        }],
+    )?;
 
     Ok(None)
 }

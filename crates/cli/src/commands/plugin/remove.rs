@@ -1,7 +1,6 @@
 use crate::error::ProtoCliError;
 use crate::session::ProtoSession;
 use clap::Args;
-use iocraft::prelude::element;
 use proto_core::{Id, PROTO_CONFIG_NAME, PinLocation, PluginType, ProtoConfig};
 use starbase::AppResult;
 use starbase_console::ui::*;
@@ -61,17 +60,14 @@ pub async fn remove(session: ProtoSession, args: RemovePluginArgs) -> AppResult 
         doc.as_table_mut().remove(&args.id);
     })?;
 
-    session.console.render(element! {
-        Notice(variant: Variant::Success) {
-            StyledText(
-                content: format!(
-                    "Removed <id>{}</id> plugin from config <path>{}</path>",
-                    args.id,
-                    config_path.display(),
-                ),
-            )
-        }
-    })?;
+    session.console.notice(
+        Variant::Success,
+        vec![format!(
+            "Removed <id>{}</id> plugin from config <path>{}</path>",
+            args.id,
+            config_path.display(),
+        )],
+    )?;
 
     Ok(None)
 }

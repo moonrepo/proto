@@ -3,7 +3,7 @@ use crate::error::ProtoCliError;
 use crate::helpers::fetch_latest_version;
 use crate::session::ProtoSession;
 use clap::Args;
-use iocraft::prelude::{FlexDirection, Text, View, element};
+use iocraft::prelude::{FlexDirection, View, element};
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_console::ui::*;
@@ -62,11 +62,10 @@ pub async fn diagnose(session: ProtoSession, args: DiagnoseArgs) -> AppResult {
     }
 
     if errors.is_empty() && warnings.is_empty() {
-        session.console.render(element! {
-            Notice(variant: Variant::Success) {
-                Text(content: "No issues detected with your proto installation!")
-            }
-        })?;
+        session.console.notice(
+            Variant::Success,
+            vec!["No issues detected with your proto installation!".into()],
+        )?;
 
         return Ok(None);
     }

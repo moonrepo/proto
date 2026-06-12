@@ -1,6 +1,5 @@
 use crate::session::ProtoSession;
 use clap::Args;
-use iocraft::prelude::element;
 use proto_core::flow::resolve::Resolver;
 use proto_core::{PinLocation, ProtoConfig, ProtoConfigError, Tool, ToolContext, ToolSpec, cfg};
 use proto_pdk_api::{PinVersionInput, PinVersionOutput, PluginFunction};
@@ -82,36 +81,28 @@ pub async fn pin(session: ProtoSession, args: PinArgs) -> AppResult {
             {
                 config_path = tool.from_virtual_path(file);
             } else {
-                session.console.render_err(element! {
-                    Notice(variant: Variant::Failure) {
-                        StyledText(
-                            content: format!(
-                                "Failed to pin version <version>{}</version> for <id>{}</id>.",
-                                encode_style_tags(spec.to_string()),
-                                args.context,
-                            )
-                        )
-                        #(output.error.map(|error| {
-                            element! {
-                                StyledText(content: error)
-                            }
-                        }))
-                    }
-                })?;
+                let mut messages = vec![format!(
+                    "Failed to pin version <version>{}</version> for <id>{}</id>.",
+                    encode_style_tags(spec.to_string()),
+                    args.context,
+                )];
+
+                if let Some(error) = output.error {
+                    messages.push(error);
+                }
+
+                session.console.notice(Variant::Failure, messages)?;
 
                 return Ok(Some(1));
             }
         } else {
-            session.console.render_err(element! {
-                Notice(variant: Variant::Caution) {
-                    StyledText(
-                        content: format!(
-                            "{} does not support pinning to a native file. Remove <shell>--tool-native</shell> and try again.",
-                            tool.get_name()
-                        )
-                    )
-                }
-            })?;
+            session.console.notice(
+                Variant::Caution,
+                vec![format!(
+                    "{} does not support pinning to a native file. Remove <shell>--tool-native</shell> and try again.",
+                    tool.get_name()
+                )],
+            )?;
 
             return Ok(Some(1));
         }
@@ -119,28 +110,25 @@ pub async fn pin(session: ProtoSession, args: PinArgs) -> AppResult {
         config_path = internal_pin(&tool, &spec, args.to).await?;
     }
 
-    session.console.render(element! {
-        Notice(variant: Variant::Success) {
-            StyledText(
-                content: if args.resolve {
-                    format!(
-                        "Pinned <id>{}</id> version <version>{}</version> (resolved from <versionalt>{}</versionalt>) to config <path>{}</path>",
-                        args.context,
-                        spec.get_resolved_version(),
-                        encode_style_tags(spec.req.to_string()),
-                        config_path.display()
-                    )
-                } else {
-                    format!(
-                        "Pinned <id>{}</id> version <version>{}</version> to config <path>{}</path>",
-                        args.context,
-                        encode_style_tags(spec.req.to_string()),
-                        config_path.display()
-                    )
-                },
+    session.console.notice(
+        Variant::Success,
+        vec![if args.resolve {
+            format!(
+                "Pinned <id>{}</id> version <version>{}</version> (resolved from <versionalt>{}</versionalt>) to config <path>{}</path>",
+                args.context,
+                spec.get_resolved_version(),
+                encode_style_tags(spec.req.to_string()),
+                config_path.display()
             )
-        }
-    })?;
+        } else {
+            format!(
+                "Pinned <id>{}</id> version <version>{}</version> to config <path>{}</path>",
+                args.context,
+                encode_style_tags(spec.req.to_string()),
+                config_path.display()
+            )
+        }],
+    )?;
 
     Ok(None)
 }

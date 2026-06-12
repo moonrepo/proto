@@ -310,13 +310,13 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
             })?;
         }
 
-        session.console.render(element! {
-            Notice(variant: Variant::Success) {
-                StyledText(
-                    content: "Update complete! Run <shell>proto install</shell> to install these new versions."
-                )
-            }
-        })?;
+        session.console.notice(
+            Variant::Success,
+            vec![
+                "Update complete! Run <shell>proto install</shell> to install these new versions."
+                    .into(),
+            ],
+        )?;
     }
 
     Ok(None)

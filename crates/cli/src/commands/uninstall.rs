@@ -103,16 +103,13 @@ async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult 
 
     if !tool.get_inventory_dir().exists() {
         if !args.quiet {
-            session.console.render_err(element! {
-                Notice(variant: Variant::Caution) {
-                    StyledText(
-                        content: format!(
-                            "{} has not been installed locally",
-                            tool.get_name(),
-                        ),
-                    )
-                }
-            })?;
+            session.console.notice(
+                Variant::Caution,
+                vec![format!(
+                    "{} has not been installed locally",
+                    tool.get_name(),
+                )],
+            )?;
         }
 
         return Ok(Some(1));
@@ -163,16 +160,13 @@ async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult 
     track_uninstall(&tool, None).await?;
 
     if !args.quiet {
-        session.console.render(element! {
-            Notice(variant: Variant::Success) {
-                StyledText(
-                    content: format!(
-                        "{} has been completely uninstalled!",
-                        tool.get_name(),
-                    ),
-                )
-            }
-        })?;
+        session.console.notice(
+            Variant::Success,
+            vec![format!(
+                "{} has been completely uninstalled!",
+                tool.get_name(),
+            )],
+        )?;
     }
 
     Ok(None)
@@ -198,17 +192,14 @@ async fn uninstall_one(
 
     if !tool.is_installed(&spec) {
         if !args.quiet {
-            session.console.render_err(element! {
-                Notice(variant: Variant::Caution) {
-                    StyledText(
-                        content: format!(
-                            "{} <version>{}</version> has not been installed locally",
-                            tool.get_name(),
-                            spec.get_resolved_version(),
-                        ),
-                    )
-                }
-            })?;
+            session.console.notice(
+                Variant::Caution,
+                vec![format!(
+                    "{} <version>{}</version> has not been installed locally",
+                    tool.get_name(),
+                    spec.get_resolved_version(),
+                )],
+            )?;
         }
 
         return Ok(Some(1));
@@ -266,17 +257,14 @@ async fn uninstall_one(
     track_uninstall(&tool, Some(&spec)).await?;
 
     if !args.quiet {
-        session.console.render(element! {
-            Notice(variant: Variant::Success) {
-                StyledText(
-                    content: format!(
-                        "{} <version>{}</version> has been uninstalled!",
-                        tool.get_name(),
-                        spec.get_resolved_version(),
-                    ),
-                )
-            }
-        })?;
+        session.console.notice(
+            Variant::Success,
+            vec![format!(
+                "{} <version>{}</version> has been uninstalled!",
+                tool.get_name(),
+                spec.get_resolved_version(),
+            )],
+        )?;
     }
 
     Ok(None)

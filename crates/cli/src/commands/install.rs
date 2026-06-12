@@ -5,7 +5,6 @@ use crate::utils::install_graph::*;
 use crate::utils::tool_record::ToolRecord;
 use crate::workflows::{InstallOutcome, InstallWorkflowManager, InstallWorkflowParams};
 use clap::Args;
-use iocraft::prelude::element;
 use proto_core::flow::detect::Detector;
 use proto_core::{ConfigMode, Id, PinLocation, Tool, ToolContext, ToolSpec};
 use proto_pdk_api::{InstallStrategy, PluginFunction};
@@ -179,16 +178,13 @@ pub async fn install_one(
 
     if workflow.is_build(args.get_strategy()) {
         if !args.quiet {
-            session.console.render_err(element! {
-                Notice(variant: Variant::Caution) {
-                    StyledText(
-                        content: "Building from source is currently unstable. Please report general issues to <url>https://github.com/moonrepo/proto</url>",
-                    )
-                    StyledText(
-                        content: "and tool specific issues to <url>https://github.com/moonrepo/plugins</url>.",
-                    )
-                }
-            })?;
+            session.console.notice(
+                Variant::Caution,
+                vec![
+                    "Building from source is currently unstable. Please report general issues to <url>https://github.com/moonrepo/proto</url>".into(),
+                    "and tool specific issues to <url>https://github.com/moonrepo/plugins</url>.".into(),
+                ],
+            )?;
         }
     } else {
         workflow_manager.render_single_progress().await;
@@ -224,32 +220,26 @@ pub async fn install_one(
 
     match outcome {
         InstallOutcome::Installed(_) => {
-            session.console.render(element! {
-                Notice(variant: Variant::Success) {
-                    StyledText(
-                        content: format!(
-                            "{} <version>{}</version> has been installed to <path>{}</path>!",
-                            tool.get_name(),
-                            spec.get_resolved_version(),
-                            tool.get_product_dir(&spec).display(),
-                        ),
-                    )
-                }
-            })?;
+            session.console.notice(
+                Variant::Success,
+                vec![format!(
+                    "{} <version>{}</version> has been installed to <path>{}</path>!",
+                    tool.get_name(),
+                    spec.get_resolved_version(),
+                    tool.get_product_dir(&spec).display(),
+                )],
+            )?;
         }
         InstallOutcome::AlreadyInstalled(_) => {
-            session.console.render(element! {
-                Notice(variant: Variant::Info) {
-                    StyledText(
-                        content: format!(
-                            "{} <version>{}</version> has already been installed at <path>{}</path>!",
-                            tool.get_name(),
-                            spec.get_resolved_version(),
-                            tool.get_product_dir(&spec).display(),
-                        ),
-                    )
-                }
-            })?;
+            session.console.notice(
+                Variant::Info,
+                vec![format!(
+                    "{} <version>{}</version> has already been installed at <path>{}</path>!",
+                    tool.get_name(),
+                    spec.get_resolved_version(),
+                    tool.get_product_dir(&spec).display(),
+                )],
+            )?;
         }
         _ => {}
     };
@@ -289,27 +279,16 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
     }
 
     if tools.is_empty() {
-        session.console.render_err(element! {
-            Notice(variant: Variant::Caution) {
-                StyledText(
-                    content: "No versions have been configured, nothing to install!",
-                )
-                #(if session.env.config_mode == ConfigMode::UpwardsGlobal {
-                    None
-                } else {
-                    Some(element! {
-                        View(margin_top: 1) {
-                            StyledText(
-                                content: format!(
-                                    "Configuration has been loaded in <symbol>{}</symbol> mode. Try changing the mode with <property>--config-mode</property> to include other pinned versions.",
-                                    session.env.config_mode
-                                )
-                            )
-                        }
-                    })
-                })
-            }
-        })?;
+        let mut messages = vec!["No versions have been configured, nothing to install!".into()];
+
+        if session.env.config_mode != ConfigMode::UpwardsGlobal {
+            messages.push(format!(
+                "Configuration has been loaded in <symbol>{}</symbol> mode. Try changing the mode with <property>--config-mode</property> to include other pinned versions.",
+                session.env.config_mode
+            ));
+        }
+
+        session.console.notice(Variant::Caution, messages)?;
 
         return Ok(Some(1));
     }
@@ -451,37 +430,31 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
         return Ok(None);
     }
 
-    session.console.render(element! {
-        Notice(
-            variant: if failed_count == 0 {
-                Variant::Success
-            } else {
-                Variant::Caution
-            },
-        ) {
-            #((installed_count > 0).then(|| {
-                element! {
-                    StyledText(
-                        content: format!(
-                            "Installed {} in {}!",
-                            join_list(installed.into_iter().map(color::id).collect::<Vec<_>>()),
-                            format_duration(started.elapsed(), false),
-                        ),
-                    )
-                }
-            }))
-            #((failed_count > 0).then(|| {
-                element! {
-                    StyledText(
-                        content: format!(
-                            "Failed to install {}! A log has been written to the current directory.",
-                            join_list(failed.into_iter().map(color::id).collect::<Vec<_>>()),
-                        ),
-                    )
-                }
-            }))
-        }
-    })?;
+    let mut messages = vec![];
+
+    if installed_count > 0 {
+        messages.push(format!(
+            "Installed {} in {}!",
+            join_list(installed.into_iter().map(color::id).collect::<Vec<_>>()),
+            format_duration(started.elapsed(), false),
+        ));
+    }
+
+    if failed_count > 0 {
+        messages.push(format!(
+            "Failed to install {}! A log has been written to the current directory.",
+            join_list(failed.into_iter().map(color::id).collect::<Vec<_>>()),
+        ));
+    }
+
+    session.console.notice(
+        if failed_count == 0 {
+            Variant::Success
+        } else {
+            Variant::Caution
+        },
+        messages,
+    )?;
 
     Ok(Some(failed_count as u8))
 }
