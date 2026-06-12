@@ -17,6 +17,12 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- Added macOS `.pkg` support for downloaded pre-builts.
+- **WASM API**
+  - Added `DownloadPrebuiltOutput.post_script_args` field, which allows plugins to specify a list of arguments to pass to the post-install script when executing it.
+
 #### ⚙️ Internal
 
 - Updated wasmtime to v43 (from 41).

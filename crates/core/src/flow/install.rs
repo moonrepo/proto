@@ -11,7 +11,7 @@ use crate::tool_spec::ToolSpec;
 use crate::utils::log::LogWriter;
 use crate::utils::{archive, process};
 use proto_pdk_api::*;
-use starbase_shell::ShellType;
+use starbase_shell::{ShellType, join_exe_args};
 use starbase_styles::color;
 use starbase_utils::net::DownloadOptions;
 use starbase_utils::{fs, net, path};
@@ -20,7 +20,7 @@ use std::sync::Arc;
 use system_env::System;
 use tokio::process::Command;
 use tracing::{debug, instrument, warn};
-use warpgate::extract_file_name_from_url;
+use warpgate::{extract_file_name_from_url, hash_base64};
 
 pub use starbase_utils::net::OnChunkFn;
 pub type OnPhaseFn = Arc<dyn Fn(InstallPhase) + Send + Sync>;
@@ -64,7 +64,7 @@ impl<'tool> Installer<'tool> {
     pub fn new(tool: &'tool Tool, spec: &'tool ToolSpec) -> Self {
         Self {
             product_dir: tool.get_product_dir(spec),
-            temp_dir: tool.get_temp_dir().to_path_buf(),
+            temp_dir: tool.get_temp_dir().join(hash_base64(spec.req.to_string())),
             tool,
             spec,
         }
@@ -164,6 +164,10 @@ impl<'tool> Installer<'tool> {
                     install_dir = ?self.product_dir,
                     "Successfully installed tool",
                 );
+
+                install_lock.unlock()?;
+
+                let _ = fs::remove_dir_all(&self.temp_dir);
 
                 Ok(Some(record))
             }
@@ -476,11 +480,13 @@ impl<'tool> Installer<'tool> {
                 });
             });
 
-            let (ext, unpacked_path) = archive::unpack_raw(
+            let (ext, unpacked_path) = archive::unpack(
                 &self.product_dir,
+                &self.temp_dir,
                 &download_file,
                 output.archive_prefix.as_deref(),
-            )?;
+            )
+            .await?;
 
             // If the archive was `.gz` without tar or other formats,
             // it's a single file, so assume a file and update perms
@@ -522,9 +528,12 @@ impl<'tool> Installer<'tool> {
                 );
 
                 let shell = ShellType::detect_with_fallback().build();
-                let mut command = Command::new(shell.to_string());
-                command.arg("-c");
-                command.arg(shell.quote(&abs_script.to_string_lossy()));
+                let mut command = Command::from(shell.create_wrapped_command_with(join_exe_args(
+                    &shell,
+                    &abs_script,
+                    &output.post_script_args,
+                    false,
+                )));
                 command.current_dir(&self.product_dir);
 
                 process::exec_command(&mut command).await?;
