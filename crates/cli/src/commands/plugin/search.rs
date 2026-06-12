@@ -3,6 +3,7 @@ use clap::Args;
 use iocraft::prelude::{FlexDirection, Size, Text, View, element};
 use proto_core::PluginLocator;
 use proto_core::registry::PluginFormat;
+use proto_core::reporter::NoticeOutput;
 use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_utils::json;
@@ -38,15 +39,17 @@ pub async fn search(session: ProtoSession, args: SearchPluginArgs) -> AppResult 
     }
 
     if queried_plugins.is_empty() {
-        session.console.notice(
-            Variant::Caution,
-            vec![
+        session.console.notice_with(NoticeOutput {
+            variant: Variant::Caution,
+            title: Some("No results".into()),
+            messages: vec![
                 "No results".into(),
                 format!(
                     "Please try again, there are no plugins found in the registry for the query <shell>{query}</shell>"
                 ),
             ],
-        )?;
+            ..Default::default()
+        })?;
 
         return Ok(Some(1));
     }

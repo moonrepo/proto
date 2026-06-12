@@ -3,13 +3,13 @@
 // custom jsx
 // table data
 
-use crate::helpers::now;
 use iocraft::prelude::element;
 use serde::Serialize;
 use starbase_console::ui::*;
 use starbase_console::{Console, ConsoleError, ConsoleStream, ConsoleStreamType, Reporter};
 use starbase_styles::remove_style_tags;
 use starbase_utils::json::serde_json;
+use std::sync::{Arc, RwLock};
 
 pub type ProtoConsole = Console<ProtoReporter>;
 
@@ -22,12 +22,12 @@ pub enum ReporterFormat {
     #[cfg_attr(feature = "clap", value(alias = "data"))]
     Json,
     #[cfg_attr(feature = "clap", value(alias = "bot", alias = "agent"))]
-    NdJson,
+    Ndjson,
 }
 
 impl ReporterFormat {
     pub fn is_json(&self) -> bool {
-        matches!(self, Self::Json | Self::NdJson)
+        matches!(self, Self::Json | Self::Ndjson)
     }
 }
 
@@ -38,6 +38,7 @@ pub struct ProtoReporter {
     out: ConsoleStream,
     theme: ConsoleTheme,
     test_mode: bool,
+    json_buffer: Arc<RwLock<Vec<String>>>,
 }
 
 impl ProtoReporter {
@@ -50,11 +51,10 @@ impl ProtoReporter {
 
     pub fn new_testing() -> Self {
         Self {
-            format: ReporterFormat::Text,
             err: ConsoleStream::new_testing(ConsoleStreamType::Stderr),
             out: ConsoleStream::new_testing(ConsoleStreamType::Stdout),
-            theme: ConsoleTheme::default(),
             test_mode: true,
+            ..Default::default()
         }
     }
 }
@@ -67,6 +67,7 @@ impl Default for ProtoReporter {
             out: ConsoleStream::empty(ConsoleStreamType::Stdout),
             theme: ConsoleTheme::default(),
             test_mode: false,
+            json_buffer: Arc::new(RwLock::new(Vec::new())),
         }
     }
 }
@@ -85,7 +86,19 @@ impl Reporter for ProtoReporter {
 }
 
 impl ProtoReporter {
-    pub fn write_json<T: Serialize>(&self, value: T) -> Result<(), ConsoleError> {
+    fn append_json<T: Serialize>(&self, value: T) -> Result<(), ConsoleError> {
+        if let Ok(mut buffer) = self.json_buffer.write() {
+            buffer.push(serde_json::to_string_pretty(&value).map_err(|error| {
+                ConsoleError::WriteJsonFailed {
+                    error: Box::new(error),
+                }
+            })?);
+        }
+
+        Ok(())
+    }
+
+    fn write_json<T: Serialize>(&self, value: T) -> Result<(), ConsoleError> {
         let content =
             serde_json::to_string(&value).map_err(|error| ConsoleError::WriteJsonFailed {
                 error: Box::new(error),
@@ -96,43 +109,36 @@ impl ProtoReporter {
         Ok(())
     }
 
-    pub fn write_json_pretty<T: Serialize>(&self, value: T) -> Result<(), ConsoleError> {
-        let content = serde_json::to_string_pretty(&value).map_err(|error| {
-            ConsoleError::WriteJsonFailed {
-                error: Box::new(error),
-            }
-        })?;
-
-        self.out.write_line(content)?;
-
-        Ok(())
-    }
-
     pub fn notice(&self, variant: Variant, messages: Vec<String>) -> Result<(), ConsoleError> {
-        self.notice_with_items(variant, messages, vec![])
+        self.notice_with(NoticeOutput {
+            variant,
+            title: None,
+            messages,
+            items: vec![],
+        })
     }
 
-    pub fn notice_with_items(
-        &self,
-        variant: Variant,
-        messages: Vec<String>,
-        items: Vec<String>,
-    ) -> Result<(), ConsoleError> {
+    pub fn notice_with(&self, mut output: NoticeOutput) -> Result<(), ConsoleError> {
+        if self.format.is_json() {
+            output.messages = remove_tags(output.messages);
+            output.items = remove_tags(output.items);
+        }
+
         match self.format {
             ReporterFormat::Text => {
                 let el = element! {
                     View {
-                        Notice(variant) {
-                            #(messages.into_iter().map(|message| element! {
+                        Notice(variant: output.variant) {
+                            #(output.messages.into_iter().map(|message| element! {
                                 StyledText(content: message)
                             }))
                         }
-                        #(if items.is_empty() {
+                        #(if output.items.is_empty() {
                             None
                         } else {
                             Some(element! {
                                 List {
-                                    #(items.into_iter().map(|item| element! {
+                                    #(output.items.into_iter().map(|item| element! {
                                         ListItem {
                                             StyledText(content: item)
                                         }
@@ -143,26 +149,17 @@ impl ProtoReporter {
                     }
                 };
 
-                if matches!(variant, Variant::Caution | Variant::Failure) {
+                if matches!(output.variant, Variant::Caution | Variant::Failure) {
                     self.err.render(el, self.theme.clone())?;
                 } else {
                     self.out.render(el, self.theme.clone())?;
                 }
             }
             ReporterFormat::Json => {
-                self.write_json_pretty(NoticeOutput {
-                    variant,
-                    messages: remove_tags(messages),
-                    items: remove_tags(items),
-                })?;
+                self.append_json(output)?;
             }
-            ReporterFormat::NdJson => {
-                self.write_json(Event::Notice {
-                    variant,
-                    messages: remove_tags(messages),
-                    items: remove_tags(items),
-                    timestamp: now(),
-                })?;
+            ReporterFormat::Ndjson => {
+                self.write_json(Event::Notice(output))?;
             }
         };
 
@@ -174,22 +171,19 @@ fn remove_tags(values: Vec<String>) -> Vec<String> {
     values.into_iter().map(remove_style_tags).collect()
 }
 
-#[derive(Serialize)]
+#[derive(Default, Serialize)]
 pub struct NoticeOutput {
-    variant: Variant,
-    messages: Vec<String>,
+    pub variant: Variant,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    items: Vec<String>,
+    pub messages: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub items: Vec<String>,
 }
 
 #[derive(Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Event {
-    Notice {
-        variant: Variant,
-        messages: Vec<String>,
-        #[serde(skip_serializing_if = "Vec::is_empty")]
-        items: Vec<String>,
-        timestamp: u128,
-    },
+    Notice(NoticeOutput),
 }

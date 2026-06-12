@@ -4,6 +4,7 @@ use clap::{Args, ValueEnum};
 use iocraft::prelude::element;
 use proto_core::ToolSpec;
 use proto_core::flow::manage::Manager;
+use proto_core::reporter::NoticeOutput;
 use proto_core::{PROTO_PLUGIN_KEY, Tool, VersionSpec, flow::resolve::ProtoResolveError};
 use proto_shim::get_exe_file_name;
 use rustc_hash::FxHashSet;
@@ -407,14 +408,15 @@ pub async fn clean(session: ProtoSession, args: CleanArgs) -> AppResult {
             items.push(format!("{} installed tool versions", result.tools.len(),));
         }
 
-        session.console.notice_with_items(
-            Variant::Success,
-            vec![format!(
+        session.console.notice_with(NoticeOutput {
+            variant: Variant::Success,
+            messages: vec![format!(
                 "Clean complete, {} artifacts removed:",
                 remove_count
             )],
             items,
-        )?;
+            ..Default::default()
+        })?;
     }
 
     Ok(None)
