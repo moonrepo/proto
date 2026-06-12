@@ -20,7 +20,7 @@ use std::sync::Arc;
 use system_env::System;
 use tokio::process::Command;
 use tracing::{debug, instrument, warn};
-use warpgate::extract_file_name_from_url;
+use warpgate::{extract_file_name_from_url, hash_base64};
 
 pub use starbase_utils::net::OnChunkFn;
 pub type OnPhaseFn = Arc<dyn Fn(InstallPhase) + Send + Sync>;
@@ -64,7 +64,7 @@ impl<'tool> Installer<'tool> {
     pub fn new(tool: &'tool Tool, spec: &'tool ToolSpec) -> Self {
         Self {
             product_dir: tool.get_product_dir(spec),
-            temp_dir: tool.get_temp_dir().to_path_buf(),
+            temp_dir: tool.get_temp_dir().join(hash_base64(spec.req.to_string())),
             tool,
             spec,
         }
@@ -476,11 +476,13 @@ impl<'tool> Installer<'tool> {
                 });
             });
 
-            let (ext, unpacked_path) = archive::unpack_raw(
+            let (ext, unpacked_path) = archive::unpack(
                 &self.product_dir,
+                &self.temp_dir,
                 &download_file,
                 output.archive_prefix.as_deref(),
-            )?;
+            )
+            .await?;
 
             // If the archive was `.gz` without tar or other formats,
             // it's a single file, so assume a file and update perms

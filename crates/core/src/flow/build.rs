@@ -786,7 +786,8 @@ pub async fn download_sources(
                     builder.options.install_dir.display()
                 ))?;
 
-                archive::unpack(&archive, builder.options.install_dir, &download_file)?;
+                archive::unpack_source(&archive, builder.options.install_dir, &download_file)
+                    .await?;
             }
         }
         SourceLocation::Git(git) => {
