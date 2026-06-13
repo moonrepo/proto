@@ -105,7 +105,7 @@ async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult 
         if !args.quiet {
             session.console.notice(
                 Variant::Caution,
-                format!("{} has not been installed locally", tool.get_name(),),
+                format!("{} has not been installed locally", tool.get_name()),
             )?;
         }
 
@@ -159,7 +159,7 @@ async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult 
     if !args.quiet {
         session.console.notice(
             Variant::Success,
-            format!("{} has been completely uninstalled!", tool.get_name(),),
+            format!("{} has been completely uninstalled!", tool.get_name()),
         )?;
     }
 

@@ -12,7 +12,6 @@ use serde::Serialize;
 use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_styles::color;
-use starbase_utils::json;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 use tokio::task::JoinSet;
@@ -149,11 +148,8 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
         "Found tools with configured versions, loading them",
     );
 
-    if session.should_print_json() {
-        session
-            .console
-            .out
-            .write_line(json::format(&items, true)?)?;
+    if session.is_json_format() {
+        session.console.write_json_format(items)?;
 
         return Ok(None);
     }

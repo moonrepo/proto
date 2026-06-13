@@ -13,7 +13,7 @@ use std::sync::{Arc, RwLock};
 
 pub type ProtoConsole = Console<ProtoReporter>;
 
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, Default, PartialEq)]
 #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
 pub enum ReporterFormat {
     #[default]
@@ -127,6 +127,44 @@ impl ProtoReporter {
         Ok(())
     }
 
+    pub fn write_json_pretty<T: Serialize>(&self, value: T) -> Result<(), ConsoleError> {
+        let content = serde_json::to_string_pretty(&value).map_err(|error| {
+            ConsoleError::WriteJsonFailed {
+                error: Box::new(error),
+            }
+        })?;
+
+        self.out.write_line(remove_style_tags(content))?;
+
+        Ok(())
+    }
+
+    pub fn write_json_format<T: Serialize>(&self, value: T) -> Result<(), ConsoleError> {
+        if self.format == ReporterFormat::Ndjson {
+            self.write_json(Data::Data(value))
+        } else {
+            self.write_json_pretty(value)
+        }
+    }
+
+    pub fn message(&self, message: impl Into<String>) -> Result<(), ConsoleError> {
+        let message = message.into();
+
+        match self.format {
+            ReporterFormat::Text => {
+                self.out.write_line(message)?;
+            }
+            ReporterFormat::Json => {
+                self.append_json(message)?;
+            }
+            ReporterFormat::Ndjson => {
+                self.write_json(Event::Message(MessageOutput { message }))?;
+            }
+        };
+
+        Ok(())
+    }
+
     pub fn notice(&self, variant: Variant, message: impl Into<String>) -> Result<(), ConsoleError> {
         self.notice_with(NoticeOutput {
             variant,
@@ -233,6 +271,11 @@ impl ProtoReporter {
 }
 
 #[derive(Default, Serialize)]
+pub struct MessageOutput {
+    pub message: String,
+}
+
+#[derive(Default, Serialize)]
 pub struct NoticeOutput {
     pub variant: Variant,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -256,6 +299,13 @@ pub struct TableOutput {
 #[derive(Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Event {
+    Message(MessageOutput),
     Notice(NoticeOutput),
     Table(TableOutput),
+}
+
+#[derive(Serialize)]
+#[serde(tag = "type", content = "data", rename_all = "snake_case")]
+pub enum Data<T: Serialize> {
+    Data(T),
 }

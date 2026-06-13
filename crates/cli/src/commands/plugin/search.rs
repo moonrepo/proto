@@ -6,16 +6,15 @@ use proto_core::registry::PluginFormat;
 use proto_core::reporter::NoticeOutput;
 use starbase::AppResult;
 use starbase_console::ui::*;
-use starbase_utils::json;
 
 #[derive(Args, Clone, Debug)]
-pub struct SearchPluginArgs {
+pub struct PluginSearchArgs {
     #[arg(required = true, help = "Query to search available plugins")]
     query: String,
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn search(session: ProtoSession, args: SearchPluginArgs) -> AppResult {
+pub async fn search(session: ProtoSession, args: PluginSearchArgs) -> AppResult {
     let mut registry = session.create_registry();
     let plugins = registry.load_external_plugins().await?;
 
@@ -29,11 +28,8 @@ pub async fn search(session: ProtoSession, args: SearchPluginArgs) -> AppResult 
         })
         .collect::<Vec<_>>();
 
-    if session.should_print_json() {
-        session
-            .console
-            .out
-            .write_line(json::format(&queried_plugins, true)?)?;
+    if session.is_json_format() {
+        session.console.write_json_format(queried_plugins)?;
 
         return Ok(None);
     }

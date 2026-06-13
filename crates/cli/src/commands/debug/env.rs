@@ -1,13 +1,14 @@
 use crate::components::is_path_like;
 use crate::session::ProtoSession;
 use clap::Args;
+use indexmap::IndexMap;
 use iocraft::prelude::*;
+use proto_core::get_proto_version;
 use proto_core::layout::Store;
 use proto_pdk_api::{HostArch, HostOS};
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_console::ui::*;
-use starbase_utils::json;
 use std::collections::BTreeMap;
 use std::env;
 use std::path::PathBuf;
@@ -19,7 +20,7 @@ pub struct DebugEnvArgs {
 }
 
 #[derive(Serialize)]
-struct DebugEnvResult<'a> {
+struct DebugEnvOutput<'a> {
     store: &'a Store,
     env: &'a EnvironmentInfo,
 }
@@ -31,7 +32,7 @@ struct EnvironmentInfo {
     os: HostOS,
     proto_version: String,
     vars: BTreeMap<String, String>,
-    virtual_paths: Vec<(PathBuf, PathBuf)>,
+    virtual_paths: IndexMap<PathBuf, PathBuf>,
 }
 
 #[tracing::instrument(skip_all)]
@@ -53,7 +54,7 @@ pub async fn env(session: ProtoSession, args: DebugEnvArgs) -> AppResult {
             })
             .collect(),
         os: HostOS::from_env(),
-        proto_version: env!("CARGO_PKG_VERSION").into(),
+        proto_version: get_proto_version().to_string(),
         vars: env::vars()
             .filter_map(|(k, v)| {
                 if k.starts_with("PROTO_") {
@@ -63,7 +64,7 @@ pub async fn env(session: ProtoSession, args: DebugEnvArgs) -> AppResult {
                 }
             })
             .collect(),
-        virtual_paths: env.get_virtual_paths(),
+        virtual_paths: env.get_virtual_paths().into_iter().collect(),
     };
 
     if args.raw {
@@ -73,16 +74,11 @@ pub async fn env(session: ProtoSession, args: DebugEnvArgs) -> AppResult {
         return Ok(None);
     }
 
-    if session.should_print_json() {
-        let result = DebugEnvResult {
+    if session.is_json_format() {
+        session.console.write_json_format(DebugEnvOutput {
             store: &env.store,
             env: &environment,
-        };
-
-        session
-            .console
-            .out
-            .write_line(json::format(&result, true)?)?;
+        })?;
 
         return Ok(None);
     }

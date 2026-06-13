@@ -3,7 +3,7 @@ use crate::commands::{
     InstallArgs, McpArgs, MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs, SetupArgs,
     ShellArgs, StatusArgs, UnaliasArgs, UninstallArgs, UnpinArgs, UpgradeArgs, VersionsArgs,
     debug::{DebugConfigArgs, DebugEnvArgs},
-    plugin::{AddPluginArgs, InfoPluginArgs, ListPluginsArgs, RemovePluginArgs, SearchPluginArgs},
+    plugin::{PluginAddArgs, PluginInfoArgs, PluginListArgs, PluginRemoveArgs, PluginSearchArgs},
 };
 use clap::builder::styling::{Color, Style, Styles};
 use clap::{Parser, Subcommand, ValueEnum};
@@ -127,7 +127,7 @@ pub struct App {
         long,
         global = true,
         env = "PROTO_JSON",
-        help = "Print as JSON (when applicable)"
+        help = "Print output as JSON (when applicable)"
     )]
     pub json: bool,
 
@@ -137,7 +137,7 @@ pub struct App {
         long,
         global = true,
         env = "PROTO_REPORTER",
-        help = "Print output with a specific format"
+        help = "Print output in a specific format"
     )]
     pub reporter: ReporterFormat,
 
@@ -384,30 +384,30 @@ pub enum PluginCommands {
         about = "Add a plugin.",
         long_about = "Add a plugin to a .prototools config file."
     )]
-    Add(AddPluginArgs),
+    Add(PluginAddArgs),
 
     #[command(
         name = "info",
         about = "Display information about an installed plugin and its inventory."
     )]
-    Info(InfoPluginArgs),
+    Info(PluginInfoArgs),
 
     #[command(
         name = "list",
         about = "List all configured and built-in plugins, and optionally include inventory."
     )]
-    List(ListPluginsArgs),
+    List(PluginListArgs),
 
     #[command(
         name = "remove",
         about = "Remove a plugin.",
         long_about = "Remove a plugin from a .prototools config file."
     )]
-    Remove(RemovePluginArgs),
+    Remove(PluginRemoveArgs),
 
     #[command(
         name = "search",
         about = "Search for available plugins provided by the community."
     )]
-    Search(SearchPluginArgs),
+    Search(PluginSearchArgs),
 }

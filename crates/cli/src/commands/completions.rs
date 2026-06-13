@@ -37,7 +37,7 @@ pub async fn completions(session: ProtoSession, args: CompletionsArgs) -> AppRes
         unsupported => {
             session.console.notice(
                 Variant::Caution,
-                format!("<id>{unsupported}</id> does not currently support completions",),
+                format!("<id>{unsupported}</id> does not currently support completions"),
             )?;
 
             return Ok(Some(1));

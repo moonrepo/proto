@@ -6,7 +6,7 @@ use starbase::AppResult;
 use starbase_console::ui::*;
 
 #[derive(Args, Clone, Debug)]
-pub struct RemovePluginArgs {
+pub struct PluginRemoveArgs {
     #[arg(required = true, help = "ID of plugin")]
     id: Id,
 
@@ -18,7 +18,7 @@ pub struct RemovePluginArgs {
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn remove(session: ProtoSession, args: RemovePluginArgs) -> AppResult {
+pub async fn remove(session: ProtoSession, args: PluginRemoveArgs) -> AppResult {
     let config_dir = session.env.get_config_dir(args.from);
     let config_path = config_dir.join(PROTO_CONFIG_NAME);
 

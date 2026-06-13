@@ -3,7 +3,9 @@ use crate::session::ProtoSession;
 use clap::Args;
 use iocraft::prelude::element;
 use miette::IntoDiagnostic;
+use rmcp::model::InitializeResult;
 use rmcp::{ServerHandler, ServiceExt, transport::stdio};
+use serde::Serialize;
 use starbase::AppResult;
 use starbase_console::ui::*;
 
@@ -16,10 +18,17 @@ pub struct McpArgs {
     info: bool,
 }
 
+#[derive(Serialize)]
+pub struct McpOutput {
+    info: InitializeResult,
+    tools: Vec<rmcp::model::Tool>,
+    resources: Vec<rmcp::model::Resource>,
+}
+
 #[tracing::instrument(skip_all)]
 pub async fn mcp(session: ProtoSession, args: McpArgs) -> AppResult {
     let console = session.console.clone();
-    let server = ProtoMcp::new(session);
+    let server = ProtoMcp::new(session.clone());
 
     if !args.info {
         server
@@ -40,6 +49,16 @@ pub async fn mcp(session: ProtoSession, args: McpArgs) -> AppResult {
 
     let mut resources = server.list_all_resources().resources;
     resources.sort_by(|a, d| a.name.cmp(&d.name));
+
+    if session.is_json_format() {
+        console.write_json_format(McpOutput {
+            info,
+            tools,
+            resources,
+        })?;
+
+        return Ok(None);
+    }
 
     console.render(element! {
         Container {

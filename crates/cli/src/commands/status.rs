@@ -7,7 +7,6 @@ use proto_core::{ToolContext, ToolSpec, VersionSpec};
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_console::ui::*;
-use starbase_utils::json;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 use tracing::debug;
@@ -71,11 +70,8 @@ pub async fn status(session: ProtoSession, _args: StatusArgs) -> AppResult {
         "Found tools with configured versions",
     );
 
-    if session.should_print_json() {
-        session
-            .console
-            .out
-            .write_line(json::format(&items, true)?)?;
+    if session.is_json_format() {
+        session.console.write_json_format(items)?;
 
         return Ok(None);
     }

@@ -11,7 +11,7 @@ use serde::Serialize;
 use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_styles::color;
-use starbase_utils::{fs, fs::FsError, json, path};
+use starbase_utils::{fs, fs::FsError, path};
 use std::env;
 use std::fmt::Debug;
 use std::path::Path;
@@ -27,7 +27,7 @@ pub struct UpgradeArgs {
 }
 
 #[derive(Serialize)]
-struct UpgradeInfo {
+struct UpgradeOutput {
     available: bool,
     current_version: String,
     latest_version: String,
@@ -60,16 +60,13 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
         || target_version == current_version;
 
     // Output in JSON so other tools can utilize it
-    if session.should_print_json() {
-        session.console.out.write_line(json::format(
-            &UpgradeInfo {
-                available: !not_available,
-                current_version: current,
-                latest_version: latest,
-                target_version: target,
-            },
-            true,
-        )?)?;
+    if session.is_json_format() {
+        session.console.write_json_format(UpgradeOutput {
+            available: !not_available,
+            current_version: current,
+            latest_version: latest,
+            target_version: target,
+        })?;
 
         return Ok(None);
     }

@@ -11,8 +11,9 @@ use rustc_hash::FxHashSet;
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_console::ui::*;
+use starbase_console::utils::formats::format_bytes_binary;
 use starbase_styles::color;
-use starbase_utils::{fs, json};
+use starbase_utils::fs;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 use tracing::{debug, instrument};
@@ -357,11 +358,8 @@ pub async fn internal_clean(
 pub async fn clean(session: ProtoSession, args: CleanArgs) -> AppResult {
     let result = internal_clean(&session, &args).await?;
 
-    if session.should_print_json() {
-        session
-            .console
-            .out
-            .write_line(json::format(&result, true)?)?;
+    if session.is_json_format() {
+        session.console.write_json_format(result)?;
 
         return Ok(None);
     }
@@ -382,30 +380,30 @@ pub async fn clean(session: ProtoSession, args: CleanArgs) -> AppResult {
 
         if !result.cache.is_empty() {
             items.push(format!(
-                "{} cached items ({} bytes)",
+                "{} cached items ({})",
                 result.cache.len(),
-                result.cache.iter().fold(0, |acc, x| acc + x.size)
+                format_bytes_binary(result.cache.iter().fold(0, |acc, x| acc + x.size))
             ));
         }
 
         if !result.plugins.is_empty() {
             items.push(format!(
-                "{} downloaded plugins ({} bytes)",
+                "{} downloaded plugins ({})",
                 result.plugins.len(),
-                result.plugins.iter().fold(0, |acc, x| acc + x.size)
+                format_bytes_binary(result.plugins.iter().fold(0, |acc, x| acc + x.size))
             ));
         }
 
         if !result.temp.is_empty() {
             items.push(format!(
-                "{} temporary files ({} bytes)",
+                "{} temporary files ({})",
                 result.temp.len(),
-                result.temp.iter().fold(0, |acc, x| acc + x.size)
+                format_bytes_binary(result.temp.iter().fold(0, |acc, x| acc + x.size))
             ));
         }
 
         if !result.tools.is_empty() {
-            items.push(format!("{} installed tool versions", result.tools.len(),));
+            items.push(format!("{} installed tool versions", result.tools.len()));
         }
 
         session.console.notice_with(NoticeOutput {

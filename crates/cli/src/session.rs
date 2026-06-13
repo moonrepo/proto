@@ -258,7 +258,7 @@ impl ProtoSession {
         ProgressInstance { reporter, handle }
     }
 
-    pub fn should_print_json(&self) -> bool {
+    pub fn is_json_format(&self) -> bool {
         self.cli.json || self.cli.reporter.is_json()
     }
 
