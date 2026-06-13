@@ -1,13 +1,11 @@
-// raw line
-// custom json
-// custom jsx
-// table data
+// progress bars - regen, etc
+// install
 
 use iocraft::prelude::element;
 use serde::Serialize;
 use starbase_console::ui::*;
 use starbase_console::{Console, ConsoleError, ConsoleStream, ConsoleStreamType, Reporter};
-use starbase_styles::remove_style_tags;
+use starbase_styles::{apply_style_tags, color, remove_style_tags};
 use starbase_utils::json::serde_json;
 use std::sync::{Arc, RwLock};
 
@@ -152,7 +150,7 @@ impl ProtoReporter {
 
         match self.format {
             ReporterFormat::Text => {
-                self.out.write_line(message)?;
+                self.out.write_line(apply_style_tags(message))?;
             }
             ReporterFormat::Json => {
                 self.append_json(message)?;
@@ -211,6 +209,37 @@ impl ProtoReporter {
             }
             ReporterFormat::Ndjson => {
                 self.write_json(Event::Notice(output))?;
+            }
+        };
+
+        Ok(())
+    }
+
+    pub fn progress_update(
+        &self,
+        id: impl Into<String>,
+        message: impl Into<String>,
+    ) -> Result<(), ConsoleError> {
+        let message = message.into();
+
+        match self.format {
+            ReporterFormat::Text => {
+                self.out.write_line_with_prefix(
+                    apply_style_tags(message),
+                    &color::muted_light(format!("[{}] ", id.into())),
+                )?;
+            }
+            ReporterFormat::Json => {
+                self.append_json(ProgressOutput {
+                    id: id.into(),
+                    message,
+                })?;
+            }
+            ReporterFormat::Ndjson => {
+                self.write_json(Event::Progress(ProgressOutput {
+                    id: id.into(),
+                    message,
+                }))?;
             }
         };
 
@@ -287,6 +316,12 @@ pub struct NoticeOutput {
 }
 
 #[derive(Default, Serialize)]
+pub struct ProgressOutput {
+    pub id: String,
+    pub message: String,
+}
+
+#[derive(Default, Serialize)]
 pub struct TableOutput {
     #[serde(skip)]
     pub headers_config: Vec<TableHeader>,
@@ -301,6 +336,7 @@ pub struct TableOutput {
 pub enum Event {
     Message(MessageOutput),
     Notice(NoticeOutput),
+    Progress(ProgressOutput),
     Table(TableOutput),
 }
 

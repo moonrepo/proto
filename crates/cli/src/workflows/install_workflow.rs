@@ -20,7 +20,6 @@ use starbase_console::ConsoleError;
 use starbase_console::ui::{OwnedOrShared, ProgressDisplay, ProgressReporter, ProgressState};
 use starbase_console::utils::formats::format_duration;
 use starbase_shell::ShellType;
-use starbase_styles::{apply_style_tags, color};
 use starbase_utils::envx;
 use std::collections::BTreeMap;
 use std::env;
@@ -638,9 +637,9 @@ impl InstallWorkflowManager {
 
     pub fn monitor_messages(&mut self) {
         for (id, reporter) in &self.progress_reporters {
+            let id = id.to_string();
             let reporter = reporter.clone();
             let console = self.console.clone();
-            let prefix = color::muted_light(format!("[{id}] "));
 
             self.monitor_handles.push(tokio::spawn(async move {
                 let mut receiver = reporter.subscribe();
@@ -651,14 +650,12 @@ impl InstallWorkflowManager {
                             break;
                         }
                         ProgressState::Message(message) if !console.out.is_quiet() => {
-                            let _ = console.out.write_line_with_prefix(
-                                apply_style_tags(
-                                    // Compatibility with the UI theme
-                                    message
-                                        .replace("version>", "hash>")
-                                        .replace("versionalt>", "symbol>"),
-                                ),
-                                &prefix,
+                            let _ = console.progress_update(
+                                id.clone(),
+                                // Compatibility with the UI theme
+                                message
+                                    .replace("version>", "hash>")
+                                    .replace("versionalt>", "symbol>"),
                             );
                         }
                         _ => {}

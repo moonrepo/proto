@@ -109,6 +109,7 @@ pub struct App {
         value_enum,
         default_value_t,
         long,
+        short = 'l',
         global = true,
         env = "PROTO_LOG",
         help = "Lowest log level to output"
@@ -135,6 +136,7 @@ pub struct App {
         value_enum,
         default_value_t,
         long,
+        short = 'r',
         global = true,
         env = "PROTO_REPORTER",
         help = "Print output in a specific format"
@@ -145,6 +147,7 @@ pub struct App {
         value_enum,
         default_value_t,
         long,
+        short = 't',
         global = true,
         env = "PROTO_THEME",
         help = "Terminal theme to print with"
