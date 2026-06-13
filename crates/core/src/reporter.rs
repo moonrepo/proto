@@ -217,29 +217,24 @@ impl ProtoReporter {
 
     pub fn progress_update(
         &self,
-        id: impl Into<String>,
         message: impl Into<String>,
+        id: Option<String>,
     ) -> Result<(), ConsoleError> {
         let message = message.into();
 
         match self.format {
-            ReporterFormat::Text => {
-                self.out.write_line_with_prefix(
+            ReporterFormat::Text => match id {
+                Some(id) => self.out.write_line_with_prefix(
                     apply_style_tags(message),
-                    &color::muted_light(format!("[{}] ", id.into())),
-                )?;
-            }
+                    &color::muted_light(format!("[{id}] ")),
+                )?,
+                None => self.out.write_line(apply_style_tags(message))?,
+            },
             ReporterFormat::Json => {
-                self.append_json(ProgressOutput {
-                    id: id.into(),
-                    message,
-                })?;
+                self.append_json(ProgressOutput { id, message })?;
             }
             ReporterFormat::Ndjson => {
-                self.write_json(Event::Progress(ProgressOutput {
-                    id: id.into(),
-                    message,
-                }))?;
+                self.write_json(Event::Progress(ProgressOutput { id, message }))?;
             }
         };
 
@@ -317,7 +312,8 @@ pub struct NoticeOutput {
 
 #[derive(Default, Serialize)]
 pub struct ProgressOutput {
-    pub id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
     pub message: String,
 }
 

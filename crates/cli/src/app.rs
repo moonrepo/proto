@@ -15,6 +15,14 @@ use std::{
     path::PathBuf,
 };
 
+fn default_reporter() -> ReporterFormat {
+    if ai_env::is_ai_agent() {
+        ReporterFormat::Ndjson
+    } else {
+        ReporterFormat::Text
+    }
+}
+
 #[derive(ValueEnum, Clone, Debug, Default)]
 pub enum AppTheme {
     #[default]
@@ -134,7 +142,7 @@ pub struct App {
 
     #[arg(
         value_enum,
-        default_value_t,
+        default_value_t = default_reporter(),
         long,
         short = 'r',
         global = true,

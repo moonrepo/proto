@@ -37,9 +37,12 @@ proto_core = { version = "0.57.5", path = "../core", features = ["clap"] }
 proto_pdk_api = { version = "0.31.12", path = "../pdk-api" }
 proto_shim = { version = "0.8.2", path = "../shim" }
 system_env = { version = "0.10.0", path = "../system-env" }
+ai_env = { workspace = true }
 anyhow = { workspace = true }
 async-trait = { workspace = true }
 chrono = "0.4.45"
+cd_env = { workspace = true }
+ci_env = { workspace = true }
 clap = { workspace = true, features = ["derive", "env"] }
 clap_complete = { workspace = true }
 clap_complete_nushell = "4.6.0"
