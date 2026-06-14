@@ -142,6 +142,22 @@ impl ProtoReporter {
         }
     }
 
+    pub fn main_error(&self, message: impl Into<String>) -> Result<(), ConsoleError> {
+        let message = message.into();
+
+        match self.format {
+            ReporterFormat::Text => {
+                return self.notice(Variant::Failure, message);
+            }
+            // Do not use append here! This happens at the end of main!
+            ReporterFormat::Json | ReporterFormat::Ndjson => {
+                self.write_json(Event::Error(MessageOutput { message }))?;
+            }
+        };
+
+        Ok(())
+    }
+
     pub fn message(&self, message: impl Into<String>) -> Result<(), ConsoleError> {
         let message = message.into();
 
@@ -327,6 +343,7 @@ pub struct TableOutput {
 #[derive(Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Event {
+    Error(MessageOutput),
     Message(MessageOutput),
     Notice(NoticeOutput),
     Progress(ProgressOutput),

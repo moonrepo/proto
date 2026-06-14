@@ -13,6 +13,7 @@ mod workflows;
 
 use app::{App as CLI, Commands, DebugCommands, PluginCommands};
 use clap::Parser;
+use proto_core::reporter::ReporterFormat;
 use session::ProtoSession;
 use starbase::{
     App, MainResult,
@@ -75,8 +76,8 @@ async fn main() -> MainResult {
         session.cli_version
     );
 
-    let exit_code = app
-        .run(session, |session| async {
+    let result = app
+        .run(session.clone(), |session| async {
             match session.cli.command.clone() {
                 Commands::Activate(args) => commands::activate(session, args).await,
                 Commands::Alias(args) => commands::alias(session, args).await,
@@ -113,9 +114,24 @@ async fn main() -> MainResult {
                 Commands::Versions(args) => commands::versions(session, args).await,
             }
         })
-        .await?;
+        .await;
 
-    // TODO handle JSON for errors
+    match result {
+        Ok(exit_code) => Ok(ExitCode::from(exit_code)),
+        Err(error) => {
+            // If NDJSON format, we must print the error as JSON so
+            // that it parses correctly by the consumer!
+            if session.cli.reporter == ReporterFormat::Ndjson {
+                session.console.main_error(error.to_string())?;
+                session.console.out.flush()?;
 
-    Ok(ExitCode::from(exit_code))
+                Ok(ExitCode::from(1))
+            }
+            // Otherwise bubble up the error so that miette renders
+            // it nicely for the user using the fancy output!
+            else {
+                Err(error)
+            }
+        }
+    }
 }
