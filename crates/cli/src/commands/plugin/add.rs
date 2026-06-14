@@ -1,12 +1,11 @@
 use crate::session::ProtoSession;
 use clap::Args;
-use iocraft::prelude::element;
 use proto_core::{Id, PinLocation, PluginLocator, PluginType, ProtoConfig, cfg};
 use starbase::AppResult;
 use starbase_console::ui::*;
 
 #[derive(Args, Clone, Debug)]
-pub struct AddPluginArgs {
+pub struct PluginAddArgs {
     #[arg(required = true, help = "ID of plugin")]
     id: Id,
 
@@ -21,7 +20,7 @@ pub struct AddPluginArgs {
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn add(session: ProtoSession, args: AddPluginArgs) -> AppResult {
+pub async fn add(session: ProtoSession, args: PluginAddArgs) -> AppResult {
     let config_path = ProtoConfig::update_document(session.env.get_config_dir(args.to), |doc| {
         let key = if args.ty == PluginType::Backend {
             "backends"
@@ -55,6 +54,7 @@ pub async fn add(session: ProtoSession, args: AddPluginArgs) -> AppResult {
     #[cfg(not(debug_assertions))]
     {
         use proto_core::ToolContext;
+        use proto_core::reporter::NoticeOutput;
 
         let tool = proto_core::load_tool_from_locator(
             ToolContext::parse(&args.id)?,
@@ -64,33 +64,23 @@ pub async fn add(session: ProtoSession, args: AddPluginArgs) -> AppResult {
         .await?;
 
         if !tool.metadata.deprecations.is_empty() {
-            session.console.render(element! {
-                Notice(title: "Deprecations".to_owned(), variant: Variant::Info) {
-                    List {
-                        #(tool.metadata.deprecations.iter().map(|message| {
-                            element! {
-                                ListItem {
-                                    StyledText(content: message)
-                                }
-                            }
-                        }))
-                    }
-                }
+            session.console.notice_with(NoticeOutput {
+                variant: Variant::Info,
+                title: Some("Deprecations".into()),
+                items: tool.metadata.deprecations,
+                ..Default::default()
             })?;
         }
     }
 
-    session.console.render(element! {
-        Notice(variant: Variant::Success) {
-            StyledText(
-                content: format!(
-                    "Added <id>{}</id> plugin to config <path>{}</path>",
-                    args.id,
-                    config_path.display(),
-                ),
-            )
-        }
-    })?;
+    session.console.notice(
+        Variant::Success,
+        format!(
+            "Added <id>{}</id> plugin to config <path>{}</path>",
+            args.id,
+            config_path.display(),
+        ),
+    )?;
 
     Ok(None)
 }

@@ -2,20 +2,23 @@ use crate::app::{App as CLI, Commands};
 use crate::commands::clean::{CleanArgs, CleanTarget, internal_clean};
 use crate::helpers::create_console_theme;
 use crate::systems::*;
-use crate::utils::progress_instance::ProgressInstance;
+use crate::utils::progress_instance::{ProgressInstance, monitor_non_tty_progress};
 use crate::utils::tool_record::ToolRecord;
 use async_trait::async_trait;
 use proto_core::flow::resolve::Resolver;
 use proto_core::{
     ConfigMode, ProtoConfig, ProtoEnvironment, SCHEMA_PLUGIN_KEY, ToolContext, ToolSpec,
-    load_schema_plugin_with_proto, load_tool, registry::ProtoRegistry,
+    load_schema_plugin_with_proto, load_tool,
+    registry::ProtoRegistry,
+    reporter::{ProtoConsole, ProtoReporter},
 };
 use proto_core::{ProtoConfigError, ProtoLoaderError};
 use rustc_hash::FxHashSet;
 use semver::Version;
 use starbase::{AppResult, AppSession};
+use starbase_console::Console;
 use starbase_console::ui::{OwnedOrShared, Progress, ProgressDisplay, ProgressReporter};
-use starbase_console::{Console, EmptyReporter};
+use starbase_utils::envx;
 use std::sync::Arc;
 use tokio::task::JoinSet;
 use tracing::debug;
@@ -29,8 +32,6 @@ pub struct LoadToolOptions {
     pub inherit_remote: bool,
 }
 
-pub type ProtoConsole = Console<EmptyReporter>;
-
 #[derive(Clone)]
 pub struct ProtoSession {
     pub cli: CLI,
@@ -43,9 +44,13 @@ impl ProtoSession {
     pub fn new(cli: CLI) -> Self {
         let env = ProtoEnvironment::default();
 
-        let mut console = Console::<EmptyReporter>::new(false);
+        let mut console = Console::<ProtoReporter>::new(false);
         console.set_theme(create_console_theme());
-        console.set_reporter(EmptyReporter);
+        console.set_reporter(if env.test_only {
+            ProtoReporter::new_testing()
+        } else {
+            ProtoReporter::new(cli.reporter)
+        });
 
         Self {
             cli,
@@ -233,20 +238,25 @@ impl ProtoSession {
     pub async fn render_progress_loader(&self) -> ProgressInstance {
         use iocraft::prelude::element;
 
-        let reporter = Arc::new(ProgressReporter::default());
-        let reporter_clone = OwnedOrShared::Shared(reporter.clone());
+        let reporter = ProgressReporter::default();
         let console = self.console.clone();
 
-        let handle = tokio::spawn(async move {
-            console
-                .render_interactive(element! {
-                    Progress(
-                        display: ProgressDisplay::Loader,
-                        reporter: reporter_clone,
-                    )
-                })
-                .await
-        });
+        let handle = if self.is_tty() {
+            let reporter_clone = OwnedOrShared::Owned(reporter.clone());
+
+            tokio::spawn(async move {
+                console
+                    .render_interactive(element! {
+                        Progress(
+                            display: ProgressDisplay::Loader,
+                            reporter: reporter_clone,
+                        )
+                    })
+                    .await
+            })
+        } else {
+            monitor_non_tty_progress(console, reporter.clone(), None)
+        };
 
         // Wait a bit for the component to be rendered
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
@@ -254,12 +264,16 @@ impl ProtoSession {
         ProgressInstance { reporter, handle }
     }
 
-    pub fn should_print_json(&self) -> bool {
-        self.cli.json
+    pub fn is_json_format(&self) -> bool {
+        self.cli.json || self.cli.reporter.is_json()
+    }
+
+    pub fn is_tty(&self) -> bool {
+        !envx::bool_var("NO_TTY") && self.console.out.is_terminal()
     }
 
     pub fn should_skip_prompts(&self) -> bool {
-        self.cli.yes || std::env::var("CI").is_ok_and(|v| !v.is_empty())
+        self.cli.yes || ci_env::is_ci() || cd_env::is_cd()
     }
 }
 
@@ -313,6 +327,7 @@ impl AppSession for ProtoSession {
             .await?;
         }
 
+        self.console.flush_json()?;
         self.console.out.flush()?;
         self.console.err.flush()?;
 

@@ -1,7 +1,6 @@
 use crate::error::ProtoCliError;
 use crate::session::ProtoSession;
 use clap::Args;
-use iocraft::prelude::element;
 use proto_core::{
     PinLocation, ProtoConfig, ToolContext, ToolSpec, UnresolvedVersionSpec, cfg, is_alias_name,
 };
@@ -49,19 +48,16 @@ pub async fn alias(session: ProtoSession, args: AliasArgs) -> AppResult {
         aliases[&args.alias] = cfg::value(args.spec.to_string());
     })?;
 
-    session.console.render(element! {
-        Notice(variant: Variant::Success) {
-            StyledText(
-                content: format!(
-                    "Added <id>{}</id> alias <id>{}</id> <mutedlight>(with specification <versionalt>{}</versionalt>)</mutedlight> to config <path>{}</path>",
-                    args.context,
-                    args.alias,
-                    encode_style_tags(args.spec.to_string()),
-                    config_path.display()
-                ),
-            )
-        }
-    })?;
+    session.console.notice(
+        Variant::Success,
+        format!(
+            "Added <id>{}</id> alias <id>{}</id> <mutedlight>(with specification <versionalt>{}</versionalt>)</mutedlight> to config <path>{}</path>",
+            args.context,
+            args.alias,
+            encode_style_tags(args.spec.to_string()),
+            config_path.display()
+        ),
+    )?;
 
     Ok(None)
 }

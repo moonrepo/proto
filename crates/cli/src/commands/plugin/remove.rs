@@ -1,13 +1,12 @@
 use crate::error::ProtoCliError;
 use crate::session::ProtoSession;
 use clap::Args;
-use iocraft::prelude::element;
 use proto_core::{Id, PROTO_CONFIG_NAME, PinLocation, PluginType, ProtoConfig};
 use starbase::AppResult;
 use starbase_console::ui::*;
 
 #[derive(Args, Clone, Debug)]
-pub struct RemovePluginArgs {
+pub struct PluginRemoveArgs {
     #[arg(required = true, help = "ID of plugin")]
     id: Id,
 
@@ -19,7 +18,7 @@ pub struct RemovePluginArgs {
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn remove(session: ProtoSession, args: RemovePluginArgs) -> AppResult {
+pub async fn remove(session: ProtoSession, args: PluginRemoveArgs) -> AppResult {
     let config_dir = session.env.get_config_dir(args.from);
     let config_path = config_dir.join(PROTO_CONFIG_NAME);
 
@@ -61,17 +60,14 @@ pub async fn remove(session: ProtoSession, args: RemovePluginArgs) -> AppResult 
         doc.as_table_mut().remove(&args.id);
     })?;
 
-    session.console.render(element! {
-        Notice(variant: Variant::Success) {
-            StyledText(
-                content: format!(
-                    "Removed <id>{}</id> plugin from config <path>{}</path>",
-                    args.id,
-                    config_path.display(),
-                ),
-            )
-        }
-    })?;
+    session.console.notice(
+        Variant::Success,
+        format!(
+            "Removed <id>{}</id> plugin from config <path>{}</path>",
+            args.id,
+            config_path.display(),
+        ),
+    )?;
 
     Ok(None)
 }

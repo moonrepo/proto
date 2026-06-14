@@ -137,7 +137,7 @@ impl Store {
         // so just copy the binary... annoying...
         #[cfg(windows)]
         {
-            fs::copy_file(src_path, bin_path)?;
+            fs::reflink_file(src_path, bin_path)?;
         }
 
         #[cfg(unix)]

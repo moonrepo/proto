@@ -13,6 +13,7 @@ mod workflows;
 
 use app::{App as CLI, Commands, DebugCommands, PluginCommands};
 use clap::Parser;
+use proto_core::reporter::ReporterFormat;
 use session::ProtoSession;
 use starbase::{
     App, MainResult,
@@ -39,24 +40,30 @@ fn get_tracing_modules() -> Vec<String> {
 async fn main() -> MainResult {
     sigpipe::reset();
 
-    let cli = CLI::parse();
+    let mut cli = CLI::parse();
     cli.setup_env_vars();
 
     let app = App::default();
     app.setup_diagnostics();
 
+    let is_exec_command = matches!(
+        cli.command,
+        Commands::Exec { .. } | Commands::Run { .. } | Commands::Shell { .. }
+    );
+
     let _guard = app.setup_tracing(TracingOptions {
-        default_level: if matches!(cli.command, Commands::Bin { .. } | Commands::Run { .. }) {
+        default_level: if is_exec_command || matches!(cli.command, Commands::Bin { .. }) {
             LogLevel::Warn
         } else if matches!(cli.command, Commands::Completions { .. }) {
             LogLevel::Off
         } else {
             LogLevel::Info
         },
-        dump_trace: cli.dump && !matches!(cli.command, Commands::Run { .. }),
+        dump_trace: cli.dump && !is_exec_command,
         filter_modules: get_tracing_modules(),
         log_env: "PROTO_APP_LOG".into(),
         log_file: cli.log_file.clone(),
+        ndjson: cli.reporter == ReporterFormat::Ndjson,
         show_spans: cli.log.is_verbose(),
         // test_env: "PROTO_TEST".into(),
         ..TracingOptions::default()
@@ -75,8 +82,8 @@ async fn main() -> MainResult {
         session.cli_version
     );
 
-    let exit_code = app
-        .run(session, |session| async {
+    let result = app
+        .run(session.clone(), |session| async {
             match session.cli.command.clone() {
                 Commands::Activate(args) => commands::activate(session, args).await,
                 Commands::Alias(args) => commands::alias(session, args).await,
@@ -113,7 +120,24 @@ async fn main() -> MainResult {
                 Commands::Versions(args) => commands::versions(session, args).await,
             }
         })
-        .await?;
+        .await;
 
-    Ok(ExitCode::from(exit_code))
+    match result {
+        Ok(exit_code) => Ok(ExitCode::from(exit_code)),
+        Err(error) => {
+            // If NDJSON format, we must print the error as JSON so
+            // that it parses correctly by the consumer!
+            if session.cli.reporter == ReporterFormat::Ndjson {
+                session.console.main_error(error.to_string())?;
+                session.console.out.flush()?;
+
+                Ok(ExitCode::from(1))
+            }
+            // Otherwise bubble up the error so that miette renders
+            // it nicely for the user using the fancy output!
+            else {
+                Err(error)
+            }
+        }
+    }
 }

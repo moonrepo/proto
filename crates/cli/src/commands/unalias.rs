@@ -1,6 +1,5 @@
 use crate::session::ProtoSession;
 use clap::Args;
-use iocraft::element;
 use proto_core::{PinLocation, ProtoConfig, ToolContext};
 use starbase::AppResult;
 use starbase_console::ui::*;
@@ -52,35 +51,29 @@ pub async fn unalias(session: ProtoSession, args: UnaliasArgs) -> AppResult {
     })?;
 
     let Some(value) = value else {
-        session.console.render_err(element! {
-            Notice(variant: Variant::Caution) {
-                StyledText(
-                    content: format!(
-                        "Alias <id>{}</id> for <id>{}</id> not found in config <path>{}</path>",
-                        args.alias,
-                        args.context,
-                        config_path.display()
-                    ),
-                )
-            }
-        })?;
+        session.console.notice(
+            Variant::Caution,
+            format!(
+                "Alias <id>{}</id> for <id>{}</id> not found in config <path>{}</path>",
+                args.alias,
+                args.context,
+                config_path.display()
+            ),
+        )?;
 
         return Ok(Some(1));
     };
 
-    session.console.render(element! {
-        Notice(variant: Variant::Success) {
-            StyledText(
-                content: format!(
-                    "Removed <id>{}</id> alias <id>{}</id> <mutedlight>(with specification <versionalt>{}</versionalt>)</mutedlight> from config <path>{}</path>",
-                    args.context,
-                    args.alias,
-                    encode_style_tags(value.to_string()),
-                    config_path.display()
-                ),
-            )
-        }
-    })?;
+    session.console.notice(
+        Variant::Success,
+        format!(
+            "Removed <id>{}</id> alias <id>{}</id> <mutedlight>(with specification <versionalt>{}</versionalt>)</mutedlight> from config <path>{}</path>",
+            args.context,
+            args.alias,
+            encode_style_tags(value.to_string()),
+            config_path.display()
+        ),
+    )?;
 
     Ok(None)
 }

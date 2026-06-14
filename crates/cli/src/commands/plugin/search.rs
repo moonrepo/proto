@@ -3,18 +3,18 @@ use clap::Args;
 use iocraft::prelude::{FlexDirection, Size, Text, View, element};
 use proto_core::PluginLocator;
 use proto_core::registry::PluginFormat;
+use proto_core::reporter::NoticeOutput;
 use starbase::AppResult;
 use starbase_console::ui::*;
-use starbase_utils::json;
 
 #[derive(Args, Clone, Debug)]
-pub struct SearchPluginArgs {
+pub struct PluginSearchArgs {
     #[arg(required = true, help = "Query to search available plugins")]
     query: String,
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn search(session: ProtoSession, args: SearchPluginArgs) -> AppResult {
+pub async fn search(session: ProtoSession, args: PluginSearchArgs) -> AppResult {
     let mut registry = session.create_registry();
     let plugins = registry.load_external_plugins().await?;
 
@@ -28,22 +28,22 @@ pub async fn search(session: ProtoSession, args: SearchPluginArgs) -> AppResult 
         })
         .collect::<Vec<_>>();
 
-    if session.should_print_json() {
-        session
-            .console
-            .out
-            .write_line(json::format(&queried_plugins, true)?)?;
+    if session.is_json_format() {
+        session.console.write_json_for_format(queried_plugins)?;
 
         return Ok(None);
     }
 
     if queried_plugins.is_empty() {
-        session.console.render_err(element! {
-            Notice(title: "No results".to_owned(), variant: Variant::Caution) {
-                StyledText(
-                    content: format!("Please try again, there are no plugins found in the registry for the query <shell>{query}</shell>"),
-                )
-            }
+        session.console.notice_with(NoticeOutput {
+            variant: Variant::Caution,
+            title: Some("No results".into()),
+            messages: vec![
+                format!(
+                    "Please try again, there are no plugins found in the registry for the query <shell>{query}</shell>"
+                ),
+            ],
+            ..Default::default()
         })?;
 
         return Ok(Some(1));

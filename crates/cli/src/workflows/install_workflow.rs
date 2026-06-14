@@ -1,15 +1,16 @@
 use crate::commands::pin::internal_pin;
 use crate::components::{InstallAllProgress, InstallProgress, InstallProgressProps};
 use crate::error::ProtoCliError;
-use crate::session::ProtoConsole;
 use crate::shell::{self, Export};
 use crate::telemetry::*;
+use crate::utils::progress_instance::monitor_non_tty_progress;
 use crate::utils::tool_record::ToolRecord;
 use iocraft::element;
 use proto_core::flow::install::{InstallOptions, InstallPhase};
 use proto_core::flow::link::Linker;
 use proto_core::flow::manage::Manager;
 use proto_core::flow::resolve::Resolver;
+use proto_core::reporter::ProtoConsole;
 use proto_core::utils::log::LogWriter;
 use proto_core::{Id, LockRecord, PinLocation, ToolSpec};
 use proto_pdk_api::{
@@ -17,10 +18,9 @@ use proto_pdk_api::{
     SyncShellProfileOutput,
 };
 use starbase_console::ConsoleError;
-use starbase_console::ui::{OwnedOrShared, ProgressDisplay, ProgressReporter, ProgressState};
+use starbase_console::ui::{OwnedOrShared, ProgressDisplay, ProgressReporter};
 use starbase_console::utils::formats::format_duration;
 use starbase_shell::ShellType;
-use starbase_styles::{apply_style_tags, color};
 use starbase_utils::envx;
 use std::collections::BTreeMap;
 use std::env;
@@ -532,7 +532,7 @@ pub struct InstallWorkflowManager {
     pub progress_reporters: BTreeMap<Id, ProgressReporter>,
     pub quiet: bool,
 
-    monitor_handles: Vec<JoinHandle<()>>,
+    monitor_handles: Vec<JoinHandle<Result<(), ConsoleError>>>,
     render_handle: Option<JoinHandle<Result<(), ConsoleError>>>,
 }
 
@@ -638,33 +638,11 @@ impl InstallWorkflowManager {
 
     pub fn monitor_messages(&mut self) {
         for (id, reporter) in &self.progress_reporters {
-            let reporter = reporter.clone();
-            let console = self.console.clone();
-            let prefix = color::muted_light(format!("[{id}] "));
-
-            self.monitor_handles.push(tokio::spawn(async move {
-                let mut receiver = reporter.subscribe();
-
-                while let Ok(state) = receiver.recv().await {
-                    match state {
-                        ProgressState::Exit => {
-                            break;
-                        }
-                        ProgressState::Message(message) if !console.out.is_quiet() => {
-                            let _ = console.out.write_line_with_prefix(
-                                apply_style_tags(
-                                    // Compatibility with the UI theme
-                                    message
-                                        .replace("version>", "hash>")
-                                        .replace("versionalt>", "symbol>"),
-                                ),
-                                &prefix,
-                            );
-                        }
-                        _ => {}
-                    }
-                }
-            }));
+            self.monitor_handles.push(monitor_non_tty_progress(
+                self.console.clone(),
+                reporter.clone(),
+                Some(id.to_string()),
+            ));
         }
     }
 
@@ -676,7 +654,7 @@ impl InstallWorkflowManager {
         });
 
         for handle in self.monitor_handles {
-            handle.await.into_diagnostic()?;
+            handle.await.into_diagnostic()??;
         }
 
         if let Some(handle) = self.render_handle.take() {

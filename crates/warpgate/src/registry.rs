@@ -59,7 +59,7 @@ impl RegistryConfig {
             Err(CredentialRetrievalError::ConfigNotFound) => RegistryAuth::Anonymous,
             Err(CredentialRetrievalError::NoCredentialConfigured) => RegistryAuth::Anonymous,
             Err(error) => {
-                warn!("Error handling Docker configuration file: {error}; using anonymous auth",);
+                warn!("Error handling Docker configuration file: {error}; using anonymous auth");
 
                 RegistryAuth::Anonymous
             }

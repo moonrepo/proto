@@ -4,8 +4,11 @@ members = ["crates/*"]
 default-members = ["crates/cli"]
 
 [workspace.dependencies]
+ai_env = "0.1.1"
 anyhow = "1.0.102"
 async-trait = "0.1.89"
+cd_env = "0.4.1"
+ci_env = "0.5.1"
 clap = "4.6.1"
 clap_complete = "4.6.3"
 compact_str = { version = "0.9.1", default-features = false, features = [
@@ -26,7 +29,7 @@ miette = "7.6.0"
 oci-client = "0.17.0"
 once_cell = "1.21.4"
 docker_credential = { version = "1.4.0" }
-regex = { version = "1.12.3", default-features = false, features = ["std"] }
+regex = { version = "1.12.4", default-features = false, features = ["std"] }
 reqwest = { version = "0.13.4", default-features = false, features = [
     "charset",
     "http2",
@@ -42,7 +45,7 @@ rmcp = { version = "1.6.0", default-features = false, features = [
     "macros",
 ] }
 rustc-hash = "2.1.2"
-scc = "3.7.1"
+scc = "3.7.3"
 schemars = "1.2.1"
 schematic = { version = "0.19.7", default-features = false }
 semver = { version = "1.0.28", features = ["serde"] }
@@ -50,20 +53,20 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_json = { version = "1.0.150", features = ["preserve_order"] }
 sha2 = "0.11.0"
 shell-words = "1.1.1"
-starbase = { version = "0.11.1" }
-starbase_archive = { version = "0.13.1", features = [
+starbase = { version = "0.11.4" }
+starbase_archive = { version = "0.13.2", features = [
     "gz",
     "miette",
     "tar-all",
     "zip-all",
 ] }
-starbase_args = { version = "0.1.10" }
-starbase_console = { version = "0.6.27", features = ["miette", "ui"] }
-starbase_id = { version = "0.3.2", features = ["miette", "schematic"] }
-starbase_sandbox = { version = "0.11.0" }
-starbase_shell = { version = "0.12.4", features = ["miette"] }
-starbase_styles = { version = "0.6.7" }
-starbase_utils = { version = "0.13.6", default-features = false, features = [
+starbase_args = { version = "0.1.11" }
+starbase_console = { version = "0.6.29", features = ["miette", "ui"] }
+starbase_id = { version = "0.3.3", features = ["miette", "schematic"] }
+starbase_sandbox = { version = "0.11.1" }
+starbase_shell = { version = "0.12.5", features = ["miette"] }
+starbase_styles = { version = "0.6.8" }
+starbase_utils = { version = "0.13.7", default-features = false, features = [
     "fs-lock",
     "json",
     "miette",
@@ -76,4 +79,4 @@ toml_edit = "0.25"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", default-features = false }
 url = "2.5.8"
-uuid = { version = "1.23.1", features = ["v4"] }
+uuid = { version = "1.23.3", features = ["v4"] }

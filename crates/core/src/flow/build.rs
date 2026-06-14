@@ -1,9 +1,10 @@
 use super::build_error::*;
 use super::install::{InstallPhase, OnPhaseFn};
 use crate::config::ProtoConfig;
-use crate::env::{ProtoConsole, ProtoEnvironment};
+use crate::env::ProtoEnvironment;
 use crate::id::Id;
 use crate::lockfile::LockRecord;
+use crate::reporter::ProtoConsole;
 use crate::utils::log::LogWriter;
 use crate::utils::process::{self, ProcessResult, ProtoProcessError};
 use crate::utils::{archive, git};
@@ -517,7 +518,7 @@ pub async fn install_system_dependencies(
     {
         let _lock = builder.acquire_lock(&pm).await;
 
-        builder.render_checkpoint(format!("Installing <shell>{pm}</shell> packages",))?;
+        builder.render_checkpoint(format!("Installing <shell>{pm}</shell> packages"))?;
 
         builder
             .exec_command_with_privileges(
