@@ -51,7 +51,7 @@ pub async fn mcp(session: ProtoSession, args: McpArgs) -> AppResult {
     resources.sort_by(|a, d| a.name.cmp(&d.name));
 
     if session.is_json_format() {
-        console.write_json_format(McpOutput {
+        console.write_json_for_format(McpOutput {
             info,
             tools,
             resources,

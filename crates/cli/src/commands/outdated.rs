@@ -149,7 +149,7 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
     );
 
     if session.is_json_format() {
-        session.console.write_json_format(items)?;
+        session.console.write_json_for_format(items)?;
 
         return Ok(None);
     }

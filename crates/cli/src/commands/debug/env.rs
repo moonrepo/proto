@@ -75,7 +75,7 @@ pub async fn env(session: ProtoSession, args: DebugEnvArgs) -> AppResult {
     }
 
     if session.is_json_format() {
-        session.console.write_json_format(DebugEnvOutput {
+        session.console.write_json_for_format(DebugEnvOutput {
             store: &env.store,
             env: &environment,
         })?;

@@ -71,7 +71,7 @@ pub async fn status(session: ProtoSession, _args: StatusArgs) -> AppResult {
     );
 
     if session.is_json_format() {
-        session.console.write_json_format(items)?;
+        session.console.write_json_for_format(items)?;
 
         return Ok(None);
     }

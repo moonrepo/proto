@@ -47,7 +47,7 @@ pub async fn diagnose(session: ProtoSession, args: DiagnoseArgs) -> AppResult {
             .load_preferred_profile()?
             .unwrap_or_else(|| shell.get_env_path(&session.env.home_dir));
 
-        session.console.write_json_format(DiagnoseOutput {
+        session.console.write_json_for_format(DiagnoseOutput {
             shell: shell_type.to_string(),
             shell_profile: shell_path,
             errors,

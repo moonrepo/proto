@@ -29,7 +29,7 @@ pub async fn search(session: ProtoSession, args: PluginSearchArgs) -> AppResult 
         .collect::<Vec<_>>();
 
     if session.is_json_format() {
-        session.console.write_json_format(queried_plugins)?;
+        session.console.write_json_for_format(queried_plugins)?;
 
         return Ok(None);
     }

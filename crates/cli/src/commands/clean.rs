@@ -359,7 +359,7 @@ pub async fn clean(session: ProtoSession, args: CleanArgs) -> AppResult {
     let result = internal_clean(&session, &args).await?;
 
     if session.is_json_format() {
-        session.console.write_json_format(result)?;
+        session.console.write_json_for_format(result)?;
 
         return Ok(None);
     }

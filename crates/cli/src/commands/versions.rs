@@ -95,7 +95,7 @@ pub async fn versions(session: ProtoSession, args: VersionsArgs) -> AppResult {
     }
 
     if session.is_json_format() {
-        session.console.write_json_format(VersionsOutput {
+        session.console.write_json_for_format(VersionsOutput {
             versions,
             local_aliases: tool.local_aliases,
             remote_aliases: tool.remote_aliases,

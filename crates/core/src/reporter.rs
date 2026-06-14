@@ -134,7 +134,7 @@ impl ProtoReporter {
         Ok(())
     }
 
-    pub fn write_json_format<T: Serialize>(&self, value: T) -> Result<(), ConsoleError> {
+    pub fn write_json_for_format<T: Serialize>(&self, value: T) -> Result<(), ConsoleError> {
         if self.format == ReporterFormat::Ndjson {
             self.write_json(Data::Data(value))
         } else {
@@ -163,7 +163,7 @@ impl ProtoReporter {
 
         match self.format {
             ReporterFormat::Text => {
-                self.out.write_line(apply_style_tags(message))?;
+                self.out.write_line(apply_styles(message))?;
             }
             ReporterFormat::Json => {
                 self.append_json(message)?;
@@ -238,10 +238,10 @@ impl ProtoReporter {
         match self.format {
             ReporterFormat::Text => match id {
                 Some(id) => self.out.write_line_with_prefix(
-                    apply_style_tags(message),
+                    apply_styles(message),
                     &color::muted_light(format!("[{id}] ")),
                 )?,
-                None => self.out.write_line(apply_style_tags(message))?,
+                None => self.out.write_line(apply_styles(message))?,
             },
             ReporterFormat::Json => {
                 self.append_json(ProgressOutput { id, message })?;
@@ -305,6 +305,15 @@ impl ProtoReporter {
 
         Ok(())
     }
+}
+
+fn apply_styles(message: String) -> String {
+    apply_style_tags(
+        // Compatibility with the UI theme
+        message
+            .replace("version>", "hash>")
+            .replace("versionalt>", "symbol>"),
+    )
 }
 
 #[derive(Default, Serialize)]

@@ -60,7 +60,7 @@ pub async fn info(session: ProtoSession, args: PluginInfoArgs) -> AppResult {
     let locations = locator.locate_all().await?;
 
     if session.is_json_format() {
-        session.console.write_json_format(PluginInfoOutput {
+        session.console.write_json_for_format(PluginInfoOutput {
             bins,
             config: tool.config.clone(),
             exe_file: Some(locations.exe_file.clone()),

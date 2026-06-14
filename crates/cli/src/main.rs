@@ -46,18 +46,24 @@ async fn main() -> MainResult {
     let app = App::default();
     app.setup_diagnostics();
 
+    let is_exec_command = matches!(
+        cli.command,
+        Commands::Exec { .. } | Commands::Run { .. } | Commands::Shell { .. }
+    );
+
     let _guard = app.setup_tracing(TracingOptions {
-        default_level: if matches!(cli.command, Commands::Bin { .. } | Commands::Run { .. }) {
+        default_level: if is_exec_command || matches!(cli.command, Commands::Bin { .. }) {
             LogLevel::Warn
         } else if matches!(cli.command, Commands::Completions { .. }) {
             LogLevel::Off
         } else {
             LogLevel::Info
         },
-        dump_trace: cli.dump && !matches!(cli.command, Commands::Run { .. }),
+        dump_trace: cli.dump && !is_exec_command,
         filter_modules: get_tracing_modules(),
         log_env: "PROTO_APP_LOG".into(),
         log_file: cli.log_file.clone(),
+        ndjson: cli.reporter == ReporterFormat::Ndjson,
         show_spans: cli.log.is_verbose(),
         // test_env: "PROTO_TEST".into(),
         ..TracingOptions::default()

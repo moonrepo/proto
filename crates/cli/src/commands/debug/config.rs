@@ -34,7 +34,7 @@ pub async fn config(session: ProtoSession, args: DebugConfigArgs) -> AppResult {
     }
 
     if session.is_json_format() {
-        session.console.write_json_format(DebugConfigOutput {
+        session.console.write_json_for_format(DebugConfigOutput {
             config,
             files: manager
                 .get_config_files()

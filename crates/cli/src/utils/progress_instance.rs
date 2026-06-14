@@ -43,13 +43,7 @@ pub fn monitor_non_tty_progress(
                     break;
                 }
                 ProgressState::Message(message) if !console.out.is_quiet() => {
-                    let _ = console.progress(
-                        // Compatibility with the UI theme
-                        message
-                            .replace("version>", "hash>")
-                            .replace("versionalt>", "symbol>"),
-                        id.clone(),
-                    );
+                    let _ = console.progress(message, id.clone());
                 }
                 _ => {}
             }

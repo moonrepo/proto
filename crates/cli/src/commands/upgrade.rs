@@ -61,7 +61,7 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
 
     // Output in JSON so other tools can utilize it
     if session.is_json_format() {
-        session.console.write_json_format(UpgradeOutput {
+        session.console.write_json_for_format(UpgradeOutput {
             available: !not_available,
             current_version: current,
             latest_version: latest,

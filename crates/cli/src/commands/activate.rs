@@ -133,7 +133,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
     }
 
     if session.is_json_format() {
-        session.console.write_json_format(ActivateOutput {
+        session.console.write_json_for_format(ActivateOutput {
             path: workflow
                 .reset_and_join_paths_for_shell(&session.env.store.dir, &shell_type)?
                 .into_string()

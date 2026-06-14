@@ -75,7 +75,7 @@ pub async fn list(session: ProtoSession, args: PluginListArgs) -> AppResult {
             })
             .collect::<FxHashMap<_, _>>();
 
-        session.console.write_json_format(items)?;
+        session.console.write_json_for_format(items)?;
 
         return Ok(None);
     }
