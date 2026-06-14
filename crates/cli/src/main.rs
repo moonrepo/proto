@@ -17,7 +17,7 @@ use proto_core::reporter::ReporterFormat;
 use session::ProtoSession;
 use starbase::{
     App, MainResult,
-    tracing::{LogLevel, TracingOptions},
+    tracing::{LogLevel, OtelOptions, TracingOptions},
 };
 use starbase_utils::{envx, string_vec};
 use std::env;
@@ -64,6 +64,11 @@ async fn main() -> MainResult {
         log_env: "PROTO_APP_LOG".into(),
         log_file: cli.log_file.clone(),
         ndjson: cli.reporter == ReporterFormat::Ndjson,
+        otel: OtelOptions {
+            enabled: cli.otel,
+            logs_enabled: cli.otel_logs,
+            service_name: cli.otel_service_name.clone(),
+        },
         show_spans: cli.log.is_verbose(),
         // test_env: "PROTO_TEST".into(),
         ..TracingOptions::default()
