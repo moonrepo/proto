@@ -39,7 +39,6 @@ pub async fn search(session: ProtoSession, args: PluginSearchArgs) -> AppResult 
             variant: Variant::Caution,
             title: Some("No results".into()),
             messages: vec![
-                "No results".into(),
                 format!(
                     "Please try again, there are no plugins found in the registry for the query <shell>{query}</shell>"
                 ),

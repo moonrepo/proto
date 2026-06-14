@@ -1,6 +1,3 @@
-// progress bars - regen, etc
-// install
-
 use iocraft::prelude::element;
 use serde::Serialize;
 use starbase_console::ui::*;
@@ -15,7 +12,7 @@ pub type ProtoConsole = Console<ProtoReporter>;
 #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
 pub enum ReporterFormat {
     #[default]
-    #[cfg_attr(feature = "clap", value(alias = "user"))]
+    #[cfg_attr(feature = "clap", value(alias = "user", alias = "human"))]
     Text,
     #[cfg_attr(feature = "clap", value(alias = "data"))]
     Json,
@@ -177,7 +174,7 @@ impl ProtoReporter {
             ReporterFormat::Text => {
                 let el = element! {
                     View {
-                        Notice(variant: output.variant) {
+                        Notice(title: output.title, variant: output.variant) {
                             #(output.messages.into_iter().map(|message| element! {
                                 StyledText(content: message)
                             }))
@@ -215,7 +212,7 @@ impl ProtoReporter {
         Ok(())
     }
 
-    pub fn progress_update(
+    pub fn progress(
         &self,
         message: impl Into<String>,
         id: Option<String>,

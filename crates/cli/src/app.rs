@@ -199,7 +199,11 @@ impl App {
 
             // Convenience mapping
             if self.json && !self.reporter.is_json() {
-                self.reporter = ReporterFormat::Json;
+                self.reporter = if ai_env::is_ai_agent() {
+                    ReporterFormat::Ndjson
+                } else {
+                    ReporterFormat::Json
+                };
             }
 
             // Disable ANSI colors in JSON output

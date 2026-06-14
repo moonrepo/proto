@@ -88,10 +88,8 @@ pub async fn check_for_new_version(
     env.test_only ||
         // Or when explicitly disabled
         env::var("PROTO_VERSION_CHECK").is_ok_and(|var| var == "0" || var == "false") ||
-            // Or when printing formatted output
-            env::args().any(|arg| arg == "--json") ||
-                // Or when offline
-                is_offline()
+            // Or when offline
+            is_offline()
     {
         return Ok(());
     }
@@ -131,9 +129,9 @@ pub async fn check_for_new_version(
                 "✨ There's a new version of proto available, <hash>{remote_version}</hash> (currently on <mutedlight>{local_version}</mutedlight>)",
             ))?;
 
-            console.message(format!(
+            console.message(
                 "✨ Run <shell>proto upgrade</shell> or install from <url>https://moonrepo.dev/docs/proto/install</url>",
-            ))?;
+            )?;
         }
     }
 
