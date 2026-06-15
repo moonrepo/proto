@@ -21,6 +21,7 @@ use starbase_console::ConsoleError;
 use starbase_console::ui::{OwnedOrShared, ProgressDisplay, ProgressReporter};
 use starbase_console::utils::formats::format_duration;
 use starbase_shell::ShellType;
+use starbase_styles::encode_style_tags;
 use starbase_utils::envx;
 use std::collections::BTreeMap;
 use std::env;
@@ -277,7 +278,7 @@ impl InstallWorkflow {
                     "Installing {} <version>{}</version> <mutedlight>(from specification <versionalt>{}</versionalt>)</mutedlight>",
                     self.tool.get_name(),
                     resolved_version,
-                    spec
+                    encode_style_tags(spec.to_string())
                 )
             }
         );

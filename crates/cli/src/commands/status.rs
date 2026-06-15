@@ -7,6 +7,7 @@ use proto_core::{ToolContext, ToolSpec, VersionSpec};
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_console::ui::*;
+use starbase_styles::encode_style_tags;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 use tracing::debug;
@@ -91,7 +92,10 @@ pub async fn status(session: ProtoSession, _args: StatusArgs) -> AppResult {
             .map(|(ctx, item)| {
                 vec![
                     format!("<id>{ctx}</id>"),
-                    format!("<invalid>{}</invalid>", item.config_version),
+                    format!(
+                        "<invalid>{}</invalid>",
+                        encode_style_tags(item.config_version.to_string())
+                    ),
                     if let Some(version) = item.resolved_version {
                         format!("<hash>{version}</hash>")
                     } else {

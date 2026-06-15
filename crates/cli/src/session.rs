@@ -6,6 +6,7 @@ use crate::utils::progress_instance::{ProgressInstance, monitor_non_tty_progress
 use crate::utils::tool_record::ToolRecord;
 use async_trait::async_trait;
 use proto_core::flow::resolve::Resolver;
+use proto_core::reporter::ReporterFormat;
 use proto_core::{
     ConfigMode, ProtoConfig, ProtoEnvironment, SCHEMA_PLUGIN_KEY, ToolContext, ToolSpec,
     load_schema_plugin_with_proto, load_tool,
@@ -280,6 +281,10 @@ impl ProtoSession {
 #[async_trait]
 impl AppSession for ProtoSession {
     async fn startup(&mut self) -> AppResult {
+        if self.cli.reporter == ReporterFormat::Ndjson && ai_env::is_ai_agent() {
+            self.console.message("Detected an AI agent environment, printing as NDJSON. Trace logs are written to stderr, while user-facing logs are written to stdout.")?;
+        }
+
         self.env = Arc::new(detect_proto_env(&self.cli)?);
 
         Ok(None)
