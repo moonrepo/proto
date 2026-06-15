@@ -3,17 +3,25 @@ use crate::commands::{
     InstallArgs, McpArgs, MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs, SetupArgs,
     ShellArgs, StatusArgs, UnaliasArgs, UninstallArgs, UnpinArgs, UpgradeArgs, VersionsArgs,
     debug::{DebugConfigArgs, DebugEnvArgs},
-    plugin::{AddPluginArgs, InfoPluginArgs, ListPluginsArgs, RemovePluginArgs, SearchPluginArgs},
+    plugin::{PluginAddArgs, PluginInfoArgs, PluginListArgs, PluginRemoveArgs, PluginSearchArgs},
 };
 use clap::builder::styling::{Color, Style, Styles};
 use clap::{Parser, Subcommand, ValueEnum};
-use proto_core::ConfigMode;
+use proto_core::{ConfigMode, reporter::ReporterFormat};
 use starbase_styles::color::Color as ColorType;
 use std::{
     env,
     fmt::{Display, Error, Formatter},
     path::PathBuf,
 };
+
+fn default_reporter() -> ReporterFormat {
+    if ai_env::is_ai_agent() {
+        ReporterFormat::Ndjson
+    } else {
+        ReporterFormat::Text
+    }
+}
 
 #[derive(ValueEnum, Clone, Debug, Default)]
 pub enum AppTheme {
@@ -109,6 +117,7 @@ pub struct App {
         value_enum,
         default_value_t,
         long,
+        short = 'l',
         global = true,
         env = "PROTO_LOG",
         help = "Lowest log level to output"
@@ -127,14 +136,26 @@ pub struct App {
         long,
         global = true,
         env = "PROTO_JSON",
-        help = "Print as JSON (when applicable)"
+        help = "Print output as JSON (when applicable)"
     )]
     pub json: bool,
 
     #[arg(
         value_enum,
+        default_value_t = default_reporter(),
+        long,
+        short = 'r',
+        global = true,
+        env = "PROTO_REPORTER",
+        help = "Print output in a specific format"
+    )]
+    pub reporter: ReporterFormat,
+
+    #[arg(
+        value_enum,
         default_value_t,
         long,
+        short = 't',
         global = true,
         env = "PROTO_THEME",
         help = "Terminal theme to print with"
@@ -155,7 +176,7 @@ pub struct App {
 }
 
 impl App {
-    pub fn setup_env_vars(&self) {
+    pub fn setup_env_vars(&mut self) {
         unsafe {
             env::set_var("PROTO_APP_LOG", self.log.to_string());
             env::set_var("PROTO_VERSION", env!("CARGO_PKG_VERSION"));
@@ -176,8 +197,17 @@ impl App {
                 },
             );
 
+            // Convenience mapping
+            if self.json && !self.reporter.is_json() {
+                self.reporter = if ai_env::is_ai_agent() {
+                    ReporterFormat::Ndjson
+                } else {
+                    ReporterFormat::Json
+                };
+            }
+
             // Disable ANSI colors in JSON output
-            if self.json {
+            if self.json || self.reporter.is_json() {
                 env::set_var("NO_COLOR", "1");
                 env::remove_var("FORCE_COLOR");
             }
@@ -369,30 +399,30 @@ pub enum PluginCommands {
         about = "Add a plugin.",
         long_about = "Add a plugin to a .prototools config file."
     )]
-    Add(AddPluginArgs),
+    Add(PluginAddArgs),
 
     #[command(
         name = "info",
         about = "Display information about an installed plugin and its inventory."
     )]
-    Info(InfoPluginArgs),
+    Info(PluginInfoArgs),
 
     #[command(
         name = "list",
         about = "List all configured and built-in plugins, and optionally include inventory."
     )]
-    List(ListPluginsArgs),
+    List(PluginListArgs),
 
     #[command(
         name = "remove",
         about = "Remove a plugin.",
         long_about = "Remove a plugin from a .prototools config file."
     )]
-    Remove(RemovePluginArgs),
+    Remove(PluginRemoveArgs),
 
     #[command(
         name = "search",
         about = "Search for available plugins provided by the community."
     )]
-    Search(SearchPluginArgs),
+    Search(PluginSearchArgs),
 }

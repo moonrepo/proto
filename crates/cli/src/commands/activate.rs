@@ -8,11 +8,10 @@ use serde::Serialize;
 use starbase::AppResult;
 use starbase_shell::{Hook, ShellType};
 use starbase_utils::envx::is_test;
-use starbase_utils::json;
 use std::env;
 
 #[derive(Serialize)]
-struct ActivateResult {
+struct ActivateOutput {
     env: IndexMap<String, Option<String>>,
     path: Option<String>,
 }
@@ -47,7 +46,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
     };
 
     // If not exporting data, just print the activation syntax immediately
-    if !args.export && !session.should_print_json() {
+    if !args.export && !session.is_json_format() {
         print_activation_hook(&session, &shell_type, &args)?;
 
         return Ok(None);
@@ -133,19 +132,14 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
         return Ok(None);
     }
 
-    if session.should_print_json() {
-        let result = ActivateResult {
+    if session.is_json_format() {
+        session.console.write_json_for_format(ActivateOutput {
             path: workflow
                 .reset_and_join_paths_for_shell(&session.env.store.dir, &shell_type)?
                 .into_string()
                 .ok(),
             env: workflow.env,
-        };
-
-        session
-            .console
-            .out
-            .write_line(json::format(&result, true)?)?;
+        })?;
     }
 
     Ok(None)

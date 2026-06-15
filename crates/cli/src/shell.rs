@@ -1,5 +1,6 @@
-use crate::{error::ProtoCliError, session::ProtoConsole};
+use crate::error::ProtoCliError;
 use iocraft::prelude::element;
+use proto_core::reporter::ProtoConsole;
 use starbase_console::ui::*;
 use starbase_shell::{BoxedShell, ShellType};
 use starbase_styles::color;

@@ -1,7 +1,7 @@
 use crate::error::ProtoCliError;
 use proto_core::{ProtoEnvironment, is_offline};
 use rustc_hash::FxHashMap;
-use std::env::{self, consts};
+use std::env::consts;
 use tracing::debug;
 
 pub enum Metric {
@@ -85,7 +85,12 @@ pub async fn track_usage(proto: &ProtoEnvironment, metric: Metric) -> Result<(),
     headers.insert("CLI".into(), env!("CARGO_PKG_VERSION").to_owned());
     headers.insert("OS".into(), consts::OS.to_owned());
     headers.insert("Arch".into(), consts::ARCH.to_owned());
-    headers.insert("CI".into(), env::var("CI").is_ok().to_string());
+    headers.insert("AI".into(), ai_env::is_ai_agent().to_string());
+    headers.insert("AI-Agent".into(), ai_env::detect_agent().to_string());
+    headers.insert("CD".into(), cd_env::is_cd().to_string());
+    headers.insert("CD-Provider".into(), cd_env::detect_provider().to_string());
+    headers.insert("CI".into(), ci_env::is_ci().to_string());
+    headers.insert("CI-Provider".into(), ci_env::detect_provider().to_string());
 
     for (key, value) in headers {
         client = client.header(format!("X-Proto-{key}"), value);
