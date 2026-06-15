@@ -22,6 +22,9 @@
 - Added macOS `.pkg` support for downloaded pre-builts.
 - Added a new global `--reporter` option, and `PROTO_REPORTER` environment variable, for changing how proto prints command output. Supported reporters are `text` (default), `json`, and `ndjson`.
 - Added automatic [NDJSON output](https://ndjson.com/) for detected AI agents and bots, making proto easier to consume from automated workflows.
+- Added OpenTelemetry (OTEL) support for exporting traces, logs, and metrics over OTLP.
+  - Added `--otel`, `--otel-logs`, and `--otel-service-name` global options.
+  - Added metrics for tool installs, install steps, tool uninstalls, and plugin loads.
 - **WASM API**
   - Added `DownloadPrebuiltOutput.post_script_args` field, which allows plugins to specify a list of arguments to pass to the post-install script when executing it.
 
