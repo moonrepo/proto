@@ -3,12 +3,12 @@ use crate::error::ProtoCliError;
 use crate::helpers::fetch_latest_version;
 use crate::session::ProtoSession;
 use clap::Args;
-use iocraft::prelude::{FlexDirection, Text, View, element};
+use iocraft::prelude::{FlexDirection, View, element};
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_shell::ShellType;
-use starbase_utils::{envx, json};
+use starbase_utils::envx;
 use std::env;
 use std::path::PathBuf;
 
@@ -19,7 +19,7 @@ pub struct DiagnoseArgs {
 }
 
 #[derive(Serialize)]
-struct DiagnoseResult {
+struct DiagnoseOutput {
     shell: String,
     shell_profile: PathBuf,
     errors: Vec<Issue>,
@@ -39,7 +39,7 @@ pub async fn diagnose(session: ProtoSession, args: DiagnoseArgs) -> AppResult {
     let errors = gather_errors(&session, &paths, &mut tips).await?;
     let warnings = gather_warnings(&session, &paths, &mut tips).await?;
 
-    if session.should_print_json() {
+    if session.is_json_format() {
         let shell = shell_type.build();
         let shell_path = session
             .env
@@ -47,26 +47,22 @@ pub async fn diagnose(session: ProtoSession, args: DiagnoseArgs) -> AppResult {
             .load_preferred_profile()?
             .unwrap_or_else(|| shell.get_env_path(&session.env.home_dir));
 
-        session.console.out.write_line(json::format(
-            &DiagnoseResult {
-                shell: shell_type.to_string(),
-                shell_profile: shell_path,
-                errors,
-                warnings,
-                tips,
-            },
-            true,
-        )?)?;
+        session.console.write_json_for_format(DiagnoseOutput {
+            shell: shell_type.to_string(),
+            shell_profile: shell_path,
+            errors,
+            warnings,
+            tips,
+        })?;
 
         return Ok(None);
     }
 
     if errors.is_empty() && warnings.is_empty() {
-        session.console.render(element! {
-            Notice(variant: Variant::Success) {
-                Text(content: "No issues detected with your proto installation!")
-            }
-        })?;
+        session.console.notice(
+            Variant::Success,
+            "No issues detected with your proto installation!",
+        )?;
 
         return Ok(None);
     }

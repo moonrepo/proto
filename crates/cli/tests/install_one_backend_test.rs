@@ -62,7 +62,7 @@ mod install_one_backend {
                 .versions
                 .get(&ToolContext::parse("asdf:zig").unwrap())
                 .unwrap(),
-            &ToolSpec::new(UnresolvedVersionSpec::parse("0.13.0").unwrap(),)
+            &ToolSpec::new(UnresolvedVersionSpec::parse("0.13.0").unwrap())
         );
     }
 

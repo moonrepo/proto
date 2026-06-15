@@ -1,11 +1,11 @@
 use crate::locator_error::PluginLocatorError;
 use serde::{Deserialize, Serialize};
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 use std::path::PathBuf;
 use std::str::FromStr;
 
 /// An inline data locator.
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Default, Eq, PartialEq)]
 pub struct DataLocator {
     /// Base64 encoded data (with data://).
     pub data: String,
@@ -13,6 +13,19 @@ pub struct DataLocator {
     /// The decoded bytes of the data.
     /// This must be done manually on the host side.
     pub bytes: Option<Vec<u8>>,
+}
+
+impl Debug for DataLocator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // 32 hash characters + 7 prefix characters (data://)
+        let mut data = self.data.chars().take(39).collect::<String>();
+
+        if self.data.len() > 39 {
+            data.push_str("...");
+        }
+
+        f.debug_struct("DataLocator").field("data", &data).finish()
+    }
 }
 
 /// A file system locator.

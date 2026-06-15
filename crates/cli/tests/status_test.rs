@@ -96,7 +96,7 @@ mod status {
         let output = assert.output();
 
         assert!(predicate::str::contains("protostar").eval(&output));
-        assert!(predicate::str::contains(">=20").eval(&output));
+        assert!(predicate::str::contains("＞=20").eval(&output));
     }
 
     #[test]

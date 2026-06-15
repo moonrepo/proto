@@ -1,9 +1,8 @@
 use crate::app::{App as CLI, Commands};
 use crate::helpers::fetch_latest_version;
-use proto_core::{ConfigMode, ProtoConsole, ProtoEnvironment, is_offline, now};
+use proto_core::{ConfigMode, ProtoEnvironment, is_offline, now, reporter::ProtoConsole};
 use proto_shim::get_exe_file_name;
 use semver::Version;
-use starbase_styles::color;
 use starbase_utils::fs;
 use std::env;
 use std::time::Duration;
@@ -89,10 +88,8 @@ pub async fn check_for_new_version(
     env.test_only ||
         // Or when explicitly disabled
         env::var("PROTO_VERSION_CHECK").is_ok_and(|var| var == "0" || var == "false") ||
-            // Or when printing formatted output
-            env::args().any(|arg| arg == "--json") ||
-                // Or when offline
-                is_offline()
+            // Or when offline
+            is_offline()
     {
         return Ok(());
     }
@@ -128,19 +125,13 @@ pub async fn check_for_new_version(
         );
 
         if !console.out.is_quiet() {
-            console.out.write_line(format!(
-                "✨ There's a new version of proto available, {} (currently on {})",
-                color::hash(remote_version.to_string()),
-                color::muted_light(local_version.to_string()),
+            console.message(format!(
+                "✨ There's a new version of proto available, <hash>{remote_version}</hash> (currently on <mutedlight>{local_version}</mutedlight>)",
             ))?;
 
-            console.out.write_line(format!(
-                "✨ Run {} or install from {}",
-                color::shell("proto upgrade"),
-                color::url("https://moonrepo.dev/docs/proto/install"),
-            ))?;
-
-            console.out.write_newline()?;
+            console.message(
+                "✨ Run <shell>proto upgrade</shell> or install from <url>https://moonrepo.dev/docs/proto/install</url>",
+            )?;
         }
     }
 
