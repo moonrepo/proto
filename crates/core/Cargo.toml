@@ -30,6 +30,7 @@ iocraft = { workspace = true }
 miette = { workspace = true }
 minisign-verify = "0.2.5"
 once_cell = { workspace = true }
+opentelemetry = { workspace = true }
 oci-client = { workspace = true }
 docker_credential = { workspace = true }
 regex = { workspace = true }

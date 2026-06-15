@@ -3519,6 +3519,7 @@ dependencies = [
  "minisign-verify",
  "oci-client",
  "once_cell",
+ "opentelemetry",
  "proto_core",
  "proto_pdk_api",
  "proto_shim",

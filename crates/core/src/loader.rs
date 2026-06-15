@@ -2,6 +2,7 @@ use crate::config::{PluginType, SCHEMA_PLUGIN_KEY};
 use crate::env::ProtoEnvironment;
 use crate::id::Id;
 use crate::loader_error::ProtoLoaderError;
+use crate::telemetry::{MetricTimer, cache_status, record_plugin_load, status};
 use crate::tool::Tool;
 use crate::tool_context::ToolContext;
 use convert_case::{Case, Casing};
@@ -126,16 +127,30 @@ pub async fn load_schema_plugin_with_proto(
     let proto = proto.as_ref();
     let config = proto.load_config()?;
     let mut locator = config.builtin_schema_plugin();
+    let timer = MetricTimer::start();
 
     // Rewrite if a URL
     if let PluginLocator::Url(inner) = &mut locator {
         inner.url = config.rewrite_url(&inner.url);
     }
 
-    let path = proto
+    let loaded_result = proto
         .get_plugin_loader()?
-        .load_plugin(Id::raw(SCHEMA_PLUGIN_KEY), locator)
-        .await?;
+        .load_plugin_with_metadata(Id::raw(SCHEMA_PLUGIN_KEY), locator.clone())
+        .await;
+
+    record_plugin_load(
+        SCHEMA_PLUGIN_KEY,
+        &locator,
+        status(&loaded_result),
+        loaded_result
+            .as_ref()
+            .map(|loaded| cache_status(loaded.cached))
+            .unwrap_or("unknown"),
+        timer.elapsed(),
+    );
+
+    let path = loaded_result?.path;
 
     Ok(path)
 }
@@ -216,11 +231,25 @@ pub async fn load_tool_from_locator(
     let context = context.as_ref();
     let proto = proto.as_ref();
     let locator = locator.as_ref();
+    let timer = MetricTimer::start();
 
-    let plugin_path = proto
+    let loaded_result = proto
         .get_plugin_loader()?
-        .load_plugin(&context.id, locator)
-        .await?;
+        .load_plugin_with_metadata(&context.id, locator)
+        .await;
+
+    record_plugin_load(
+        &context,
+        locator,
+        status(&loaded_result),
+        loaded_result
+            .as_ref()
+            .map(|loaded| cache_status(loaded.cached))
+            .unwrap_or("unknown"),
+        timer.elapsed(),
+    );
+
+    let plugin_path = loaded_result?.path;
     let plugin_ext = plugin_path.extension().and_then(|ext| ext.to_str());
 
     let mut manifest = match plugin_ext {

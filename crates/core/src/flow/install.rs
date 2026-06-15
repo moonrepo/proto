@@ -6,6 +6,7 @@ use crate::flow::lock::Locker;
 use crate::helpers::{is_archive_file, is_offline};
 use crate::lockfile::*;
 use crate::reporter::ProtoConsole;
+use crate::telemetry::{MetricTimer, record_tool_install_step, status};
 use crate::tool::Tool;
 use crate::tool_spec::ToolSpec;
 use crate::utils::log::LogWriter;
@@ -114,7 +115,8 @@ impl<'tool> Installer<'tool> {
 
             fs::create_dir_all(&self.product_dir)?;
 
-            let output: NativeInstallOutput = self
+            let timer = MetricTimer::start();
+            let output_result = self
                 .tool
                 .plugin
                 .call_func_with(
@@ -125,7 +127,16 @@ impl<'tool> Installer<'tool> {
                         force: options.force,
                     },
                 )
-                .await?;
+                .await;
+
+            record_tool_install_step(
+                &self.tool.context,
+                "native_install",
+                status(&output_result),
+                timer.elapsed(),
+            );
+
+            let output: NativeInstallOutput = output_result?;
 
             if output.installed {
                 let mut record = self.tool.create_locked_record();
@@ -213,7 +224,8 @@ impl<'tool> Installer<'tool> {
             });
         }
 
-        let output: BuildInstructionsOutput = self
+        let timer = MetricTimer::start();
+        let output_result = self
             .tool
             .plugin
             .cache_func_with(
@@ -223,7 +235,16 @@ impl<'tool> Installer<'tool> {
                     install_dir: self.tool.to_virtual_path(&self.product_dir),
                 },
             )
-            .await?;
+            .await;
+
+        record_tool_install_step(
+            &self.tool.context,
+            "build_instructions",
+            status(&output_result),
+            timer.elapsed(),
+        );
+
+        let output: BuildInstructionsOutput = output_result?;
 
         let mut system = System::default();
         let config = self.tool.proto.load_config()?;
@@ -275,11 +296,29 @@ impl<'tool> Installer<'tool> {
         let mut record = self.tool.create_locked_record();
 
         // Step 0
-        log_build_information(&mut builder, &output)?;
+        let timer = MetricTimer::start();
+        let result = log_build_information(&mut builder, &output);
+        record_tool_install_step(
+            &self.tool.context,
+            "build_information",
+            status(&result),
+            timer.elapsed(),
+        );
+        result?;
 
         // Step 1
         if config.settings.build.install_system_packages {
-            install_system_dependencies(&mut builder, &output).await?;
+            let timer = MetricTimer::start();
+            let result = install_system_dependencies(&mut builder, &output).await;
+
+            record_tool_install_step(
+                &self.tool.context,
+                "install_system_dependencies",
+                status(&result),
+                timer.elapsed(),
+            );
+
+            result?;
         } else {
             debug!(
                 tool = self.tool.context.as_str(),
@@ -289,13 +328,37 @@ impl<'tool> Installer<'tool> {
         }
 
         // Step 2
-        check_requirements(&mut builder, &output).await?;
+        let timer = MetricTimer::start();
+        let result = check_requirements(&mut builder, &output).await;
+        record_tool_install_step(
+            &self.tool.context,
+            "check_requirements",
+            status(&result),
+            timer.elapsed(),
+        );
+        result?;
 
         // Step 3
-        download_sources(&mut builder, &output, &mut record).await?;
+        let timer = MetricTimer::start();
+        let result = download_sources(&mut builder, &output, &mut record).await;
+        record_tool_install_step(
+            &self.tool.context,
+            "download_sources",
+            status(&result),
+            timer.elapsed(),
+        );
+        result?;
 
         // Step 4
-        execute_instructions(&mut builder, &output, &self.tool.proto).await?;
+        let timer = MetricTimer::start();
+        let result = execute_instructions(&mut builder, &output, &self.tool.proto).await;
+        record_tool_install_step(
+            &self.tool.context,
+            "execute_instructions",
+            status(&result),
+            timer.elapsed(),
+        );
+        result?;
 
         Ok(record)
     }
@@ -326,7 +389,8 @@ impl<'tool> Installer<'tool> {
         let client = self.tool.proto.get_plugin_loader()?.get_http_client()?;
         let config = self.tool.proto.load_config()?;
 
-        let output: DownloadPrebuiltOutput = self
+        let timer = MetricTimer::start();
+        let output_result = self
             .tool
             .plugin
             .cache_func_with(
@@ -336,7 +400,16 @@ impl<'tool> Installer<'tool> {
                     install_dir: self.tool.to_virtual_path(&self.product_dir),
                 },
             )
-            .await?;
+            .await;
+
+        record_tool_install_step(
+            &self.tool.context,
+            "resolve_download",
+            status(&output_result),
+            timer.elapsed(),
+        );
+
+        let output: DownloadPrebuiltOutput = output_result?;
 
         let mut record = self.tool.create_locked_record();
 
@@ -360,7 +433,8 @@ impl<'tool> Installer<'tool> {
             "Downloading tool archive"
         );
 
-        net::download_from_url_with_options(
+        let timer = MetricTimer::start();
+        let result = net::download_from_url_with_options(
             &download_url,
             &download_file,
             DownloadOptions {
@@ -371,7 +445,16 @@ impl<'tool> Installer<'tool> {
                 ..Default::default()
             },
         )
-        .await?;
+        .await;
+
+        record_tool_install_step(
+            &self.tool.context,
+            "download_archive",
+            status(&result),
+            timer.elapsed(),
+        );
+
+        result?;
 
         // Verify against a URL that contains the checksum
         if let Some(checksum_url) = output.checksum_url {
@@ -393,12 +476,22 @@ impl<'tool> Installer<'tool> {
                 "Downloading tool checksum"
             );
 
-            net::download_from_url_with_options(
+            let timer = MetricTimer::start();
+            let result = net::download_from_url_with_options(
                 &checksum_url,
                 &checksum_file,
                 DownloadOptions::new(client.create_downloader_with_headers(output.http_headers)),
             )
-            .await?;
+            .await;
+
+            record_tool_install_step(
+                &self.tool.context,
+                "download_checksum",
+                status(&result),
+                timer.elapsed(),
+            );
+
+            result?;
 
             record.checksum = Some(
                 self.verify_checksum(
@@ -415,7 +508,16 @@ impl<'tool> Installer<'tool> {
                 .temp_dir
                 .join(format!("CHECKSUM.{:?}", checksum.algo).to_lowercase());
 
-            fs::write_file(&checksum_file, checksum.hash.as_deref().unwrap_or_default())?;
+            let timer = MetricTimer::start();
+            let result =
+                fs::write_file(&checksum_file, checksum.hash.as_deref().unwrap_or_default());
+            record_tool_install_step(
+                &self.tool.context,
+                "write_checksum",
+                status(&result),
+                timer.elapsed(),
+            );
+            result?;
 
             debug!(
                 tool = self.tool.context.as_str(),
@@ -437,7 +539,15 @@ impl<'tool> Installer<'tool> {
         }
         // No available checksum, so generate one ourselves for the lockfile
         else {
-            record.checksum = Some(Checksum::sha256(hash_file_contents_sha256(&download_file)?));
+            let timer = MetricTimer::start();
+            let result = hash_file_contents_sha256(&download_file);
+            record_tool_install_step(
+                &self.tool.context,
+                "generate_checksum",
+                status(&result),
+                timer.elapsed(),
+            );
+            record.checksum = Some(Checksum::sha256(result?));
         }
 
         // Attempt to unpack the archive
@@ -460,7 +570,9 @@ impl<'tool> Installer<'tool> {
                 });
             });
 
-            self.tool
+            let timer = MetricTimer::start();
+            let result = self
+                .tool
                 .plugin
                 .call_func_without_output(
                     PluginFunction::UnpackArchive,
@@ -470,7 +582,16 @@ impl<'tool> Installer<'tool> {
                         context: self.tool.create_plugin_context(self.spec),
                     },
                 )
-                .await?;
+                .await;
+
+            record_tool_install_step(
+                &self.tool.context,
+                "unpack_archive",
+                status(&result),
+                timer.elapsed(),
+            );
+
+            result?;
         }
         // Is an archive, unpack it
         else if is_archive_file(&download_file) {
@@ -480,13 +601,23 @@ impl<'tool> Installer<'tool> {
                 });
             });
 
-            let (ext, unpacked_path) = archive::unpack(
+            let timer = MetricTimer::start();
+            let result = archive::unpack(
                 &self.product_dir,
                 &self.temp_dir,
                 &download_file,
                 output.archive_prefix.as_deref(),
             )
-            .await?;
+            .await;
+
+            record_tool_install_step(
+                &self.tool.context,
+                "unpack_archive",
+                status(&result),
+                timer.elapsed(),
+            );
+
+            let (ext, unpacked_path) = result?;
 
             // If the archive was `.gz` without tar or other formats,
             // it's a single file, so assume a file and update perms
@@ -500,8 +631,16 @@ impl<'tool> Installer<'tool> {
                 self.tool.get_file_name(),
             )));
 
-            fs::rename(&download_file, &install_path)?;
-            fs::update_perms(install_path, None)?;
+            let timer = MetricTimer::start();
+            let result = fs::rename(&download_file, &install_path)
+                .and_then(|_| fs::update_perms(install_path, None));
+            record_tool_install_step(
+                &self.tool.context,
+                "copy_executable",
+                status(&result),
+                timer.elapsed(),
+            );
+            result?;
         }
 
         // Execute post install script
@@ -536,7 +675,15 @@ impl<'tool> Installer<'tool> {
                 )));
                 command.current_dir(&self.product_dir);
 
-                process::exec_command(&mut command).await?;
+                let timer = MetricTimer::start();
+                let result = process::exec_command(&mut command).await;
+                record_tool_install_step(
+                    &self.tool.context,
+                    "post_install",
+                    status(&result),
+                    timer.elapsed(),
+                );
+                result?;
             }
         }
 
@@ -618,7 +765,15 @@ impl<'tool> Installer<'tool> {
             "Verifying checksum of downloaded file",
         );
 
-        let checksum = generate_checksum(download_file, checksum_file, checksum_public_key)?;
+        let timer = MetricTimer::start();
+        let checksum_result = generate_checksum(download_file, checksum_file, checksum_public_key);
+        record_tool_install_step(
+            &self.tool.context,
+            "generate_checksum",
+            status(&checksum_result),
+            timer.elapsed(),
+        );
+        let checksum = checksum_result?;
         let verified;
 
         // Allow plugin to provide their own checksum verification method
@@ -628,7 +783,8 @@ impl<'tool> Installer<'tool> {
             .has_func(PluginFunction::VerifyChecksum)
             .await
         {
-            let output: VerifyChecksumOutput = self
+            let timer = MetricTimer::start();
+            let output_result = self
                 .tool
                 .plugin
                 .call_func_with(
@@ -640,13 +796,30 @@ impl<'tool> Installer<'tool> {
                         context: self.tool.create_plugin_context(self.spec),
                     },
                 )
-                .await?;
+                .await;
+
+            record_tool_install_step(
+                &self.tool.context,
+                "verify_checksum",
+                status(&output_result),
+                timer.elapsed(),
+            );
+
+            let output: VerifyChecksumOutput = output_result?;
 
             verified = output.verified;
         }
         // Otherwise attempt to verify it ourselves
         else {
-            verified = verify_checksum(download_file, checksum_file, &checksum)?;
+            let timer = MetricTimer::start();
+            let result = verify_checksum(download_file, checksum_file, &checksum);
+            record_tool_install_step(
+                &self.tool.context,
+                "verify_checksum",
+                status(&result),
+                timer.elapsed(),
+            );
+            verified = result?;
         }
 
         if verified {
