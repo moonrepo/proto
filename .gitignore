@@ -6,3 +6,4 @@ target/
 # AI / agents
 .claude/settings.local.json
 .claude/worktrees
+dev/otel/data
