@@ -6,9 +6,7 @@ use crate::flow::lock::Locker;
 use crate::flow::resolve::Resolver;
 use crate::layout::BinManager;
 use crate::lockfile::LockRecord;
-use crate::telemetry::{
-    MetricTimer, cache_status, record_tool_install, record_tool_uninstall, status,
-};
+use crate::telemetry::{MetricTimer, cache_status};
 use crate::tool::Tool;
 use crate::tool_manifest::ToolManifestVersion;
 use crate::tool_spec::ToolSpec;
@@ -36,7 +34,6 @@ impl<'tool> Manager<'tool> {
         options: InstallOptions,
     ) -> Result<Option<LockRecord>, ProtoManageError> {
         let timer = MetricTimer::start();
-        let context = self.tool.context.clone();
         let strategy = install_strategy_name(&options.strategy);
         let mut cache = "unknown";
 
@@ -83,9 +80,7 @@ impl<'tool> Manager<'tool> {
         }
         .await;
 
-        record_tool_install(&context, strategy, status(&result), cache, timer.elapsed());
-
-        result
+        timer.record_tool_install(&self.tool.context, strategy, cache, result)
     }
 
     #[instrument(skip(self))]
@@ -104,7 +99,6 @@ impl<'tool> Manager<'tool> {
     #[instrument(skip(self))]
     pub async fn uninstall(&mut self, spec: &mut ToolSpec) -> Result<bool, ProtoManageError> {
         let timer = MetricTimer::start();
-        let context = self.tool.context.clone();
         let mut cache = "unknown";
 
         let result = async {
@@ -157,15 +151,7 @@ impl<'tool> Manager<'tool> {
         }
         .await;
 
-        let metric_status = match &result {
-            Ok(false) => "skipped",
-            Ok(true) => "success",
-            Err(_) => "error",
-        };
-
-        record_tool_uninstall(&context, "version", metric_status, cache, timer.elapsed());
-
-        result
+        timer.record_tool_uninstall(&self.tool.context, "version", cache, result)
     }
 
     /// Delete temporary files and downloads for the current version.

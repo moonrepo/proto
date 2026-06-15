@@ -1,7 +1,10 @@
+#![allow(unused)]
+
 use crate::tool_context::ToolContext;
+#[cfg(feature = "otel")]
 use opentelemetry::{KeyValue, global};
 use std::time::{Duration, Instant};
-use warpgate::PluginLocator;
+use warpgate::{LoadedPlugin, PluginLocator};
 
 const METER_NAME: &str = "proto";
 
@@ -19,8 +22,104 @@ impl MetricTimer {
     pub fn elapsed(&self) -> Duration {
         self.start.elapsed()
     }
+
+    pub fn record_tool_install<T, R>(
+        self,
+        context: &ToolContext,
+        strategy: &'static str,
+        cache: &'static str,
+        result: Result<T, R>,
+    ) -> Result<T, R> {
+        #[cfg(feature = "otel")]
+        record_tool_install(context, strategy, status(&result), cache, self.elapsed());
+        result
+    }
+
+    pub fn record_tool_install_step<T, R>(
+        self,
+        context: &ToolContext,
+        step: &'static str,
+        result: Result<T, R>,
+    ) -> Result<T, R> {
+        #[cfg(feature = "otel")]
+        record_tool_install_step(context, step, status(&result), self.elapsed());
+        result
+    }
+
+    pub fn record_tool_uninstall<R>(
+        self,
+        context: &ToolContext,
+        scope: &'static str,
+        cache: &'static str,
+        result: Result<bool, R>,
+    ) -> Result<bool, R> {
+        #[cfg(feature = "otel")]
+        record_tool_uninstall(
+            context,
+            scope,
+            match &result {
+                Ok(false) => "skipped",
+                Ok(true) => "success",
+                Err(_) => "error",
+            },
+            cache,
+            self.elapsed(),
+        );
+        result
+    }
+
+    pub fn record_plugin_load<R>(
+        self,
+        context: &ToolContext,
+        locator: &PluginLocator,
+        result: Result<LoadedPlugin, R>,
+    ) -> Result<LoadedPlugin, R> {
+        #[cfg(feature = "otel")]
+        record_plugin_load(
+            context,
+            locator,
+            status(&result),
+            result
+                .as_ref()
+                .map(|loaded| cache_status(loaded.cached))
+                .unwrap_or("unknown"),
+            self.elapsed(),
+        );
+        result
+    }
+
+    pub fn record_plugin_create<T, R>(
+        self,
+        context: &ToolContext,
+        locator: &PluginLocator,
+        result: Result<T, R>,
+    ) -> Result<T, R> {
+        #[cfg(feature = "otel")]
+        record_plugin_create(context, locator, status(&result), self.elapsed());
+        result
+    }
 }
 
+pub fn status<T, E>(result: &Result<T, E>) -> &'static str {
+    if result.is_ok() { "success" } else { "error" }
+}
+
+pub fn cache_status(cached: bool) -> &'static str {
+    if cached { "hit" } else { "miss" }
+}
+
+#[cfg(feature = "otel")]
+fn locator_kind(locator: &PluginLocator) -> &'static str {
+    match locator {
+        PluginLocator::Data(_) => "data",
+        PluginLocator::File(_) => "file",
+        PluginLocator::GitHub(_) => "github",
+        PluginLocator::Registry(_) => "oci",
+        PluginLocator::Url(_) => "url",
+    }
+}
+
+#[cfg(feature = "otel")]
 fn record_counter(name: &'static str, description: &'static str, attrs: Vec<KeyValue>) {
     global::meter(METER_NAME)
         .u64_counter(name)
@@ -29,6 +128,7 @@ fn record_counter(name: &'static str, description: &'static str, attrs: Vec<KeyV
         .add(1, &attrs);
 }
 
+#[cfg(feature = "otel")]
 fn record_duration(
     name: &'static str,
     description: &'static str,
@@ -43,25 +143,8 @@ fn record_duration(
         .record(duration.as_millis() as u64, &attrs);
 }
 
-pub fn status<T, E>(result: &Result<T, E>) -> &'static str {
-    if result.is_ok() { "success" } else { "error" }
-}
-
-pub fn cache_status(cached: bool) -> &'static str {
-    if cached { "hit" } else { "miss" }
-}
-
-fn locator_kind(locator: &PluginLocator) -> &'static str {
-    match locator {
-        PluginLocator::Data(_) => "data",
-        PluginLocator::File(_) => "file",
-        PluginLocator::GitHub(_) => "github",
-        PluginLocator::Registry(_) => "oci",
-        PluginLocator::Url(_) => "url",
-    }
-}
-
-pub fn record_tool_install(
+#[cfg(feature = "otel")]
+fn record_tool_install(
     context: &ToolContext,
     strategy: &'static str,
     status: &'static str,
@@ -88,7 +171,8 @@ pub fn record_tool_install(
     );
 }
 
-pub fn record_tool_install_step(
+#[cfg(feature = "otel")]
+fn record_tool_install_step(
     context: &ToolContext,
     step: &'static str,
     status: &'static str,
@@ -113,7 +197,8 @@ pub fn record_tool_install_step(
     );
 }
 
-pub fn record_tool_uninstall(
+#[cfg(feature = "otel")]
+fn record_tool_uninstall(
     context: &ToolContext,
     scope: &'static str,
     status: &'static str,
@@ -140,28 +225,45 @@ pub fn record_tool_uninstall(
     );
 }
 
-pub fn record_plugin_load(
-    id: impl ToString,
+#[cfg(feature = "otel")]
+fn record_plugin_load(
+    context: &ToolContext,
     locator: &PluginLocator,
     status: &'static str,
     cache: &'static str,
     duration: Duration,
 ) {
     let attrs = vec![
-        KeyValue::new("plugin", id.to_string()),
+        KeyValue::new("plugin", context.to_string()),
         KeyValue::new("locator", locator_kind(locator)),
         KeyValue::new("status", status),
         KeyValue::new("cache", cache),
     ];
 
-    record_counter(
-        "proto.plugin.load.attempts",
-        "Number of proto plugin load attempts",
-        attrs.clone(),
-    );
     record_duration(
         "proto.plugin.load.duration",
         "Duration of proto plugin load",
+        duration,
+        attrs,
+    );
+}
+
+#[cfg(feature = "otel")]
+fn record_plugin_create(
+    context: &ToolContext,
+    locator: &PluginLocator,
+    status: &'static str,
+    duration: Duration,
+) {
+    let attrs = vec![
+        KeyValue::new("plugin", context.to_string()),
+        KeyValue::new("locator", locator_kind(locator)),
+        KeyValue::new("status", status),
+    ];
+
+    record_duration(
+        "proto.plugin.create.duration",
+        "Duration of proto plugin create",
         duration,
         attrs,
     );
