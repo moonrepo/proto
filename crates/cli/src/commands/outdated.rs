@@ -15,7 +15,7 @@ use starbase_styles::color;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 use tokio::task::JoinSet;
-use tracing::{debug, warn};
+use tracing::{debug, instrument, warn};
 
 #[derive(Args, Clone, Debug)]
 pub struct OutdatedArgs {
@@ -55,7 +55,7 @@ fn get_in_major_range(spec: &UnresolvedVersionSpec) -> UnresolvedVersionSpec {
     }
 }
 
-#[tracing::instrument(skip_all)]
+#[instrument(skip(session))]
 pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
     debug!("Determining outdated tools based on config...");
 

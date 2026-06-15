@@ -32,7 +32,7 @@ use system_env::{
 };
 use tokio::process::Command;
 use tokio::sync::{Mutex, OwnedMutexGuard};
-use tracing::{debug, error};
+use tracing::{debug, error, instrument};
 use version_spec::{VersionSpec, get_semver_regex};
 use warpgate::{HttpClient, extract_file_name_from_url};
 
@@ -244,6 +244,7 @@ impl Builder<'_> {
     }
 }
 
+#[instrument(skip(builder))]
 async fn checkout_git_repo(
     git: &GitSource,
     cwd: &Path,
@@ -326,6 +327,7 @@ enum InstallSystemDepsChoice {
     YesButElevated = 3,
 }
 
+#[instrument(skip(builder))]
 pub async fn install_system_dependencies(
     builder: &mut Builder<'_>,
     build: &BuildInstructionsOutput,
@@ -549,6 +551,7 @@ fn get_command_version_regex() -> &'static regex::Regex {
     })
 }
 
+#[instrument(skip(builder))]
 async fn get_command_version(
     cmd: &str,
     version_arg: &str,
@@ -569,6 +572,7 @@ async fn get_command_version(
     })
 }
 
+#[instrument(skip(builder))]
 pub async fn check_requirements(
     builder: &mut Builder<'_>,
     build: &BuildInstructionsOutput,
@@ -723,6 +727,7 @@ pub async fn check_requirements(
 
 // STEP 3
 
+#[instrument(skip(builder))]
 pub async fn download_sources(
     builder: &mut Builder<'_>,
     build: &BuildInstructionsOutput,
@@ -819,6 +824,7 @@ pub async fn download_sources(
 
 // STEP 4
 
+#[instrument(skip(builder))]
 pub async fn execute_instructions(
     builder: &mut Builder<'_>,
     build: &BuildInstructionsOutput,

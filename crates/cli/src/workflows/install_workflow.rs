@@ -29,7 +29,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::task::JoinHandle;
 use tokio::time::sleep;
-use tracing::{debug, warn};
+use tracing::{debug, instrument, warn};
 
 #[derive(Debug)]
 pub enum InstallOutcome {
@@ -38,6 +38,7 @@ pub enum InstallOutcome {
     FailedToInstall(Id),
 }
 
+#[derive(Debug)]
 pub struct InstallWorkflowParams {
     pub force: bool,
     pub log_writer: Option<LogWriter>,
@@ -86,6 +87,7 @@ impl InstallWorkflow {
         )
     }
 
+    #[instrument(skip(self))]
     pub async fn install(
         &mut self,
         spec: &mut ToolSpec,
@@ -156,6 +158,7 @@ impl InstallWorkflow {
         Ok(InstallOutcome::Installed(self.tool.get_id().clone()))
     }
 
+    #[instrument(skip(self))]
     pub async fn install_with_logging(
         &mut self,
         spec: &mut ToolSpec,
@@ -223,6 +226,7 @@ impl InstallWorkflow {
         }
     }
 
+    #[instrument(skip(self))]
     async fn pre_install(
         &self,
         spec: &ToolSpec,
@@ -254,6 +258,7 @@ impl InstallWorkflow {
         Ok(())
     }
 
+    #[instrument(skip(self))]
     async fn do_install(
         &mut self,
         spec: &mut ToolSpec,
@@ -356,6 +361,7 @@ impl InstallWorkflow {
         Ok(record)
     }
 
+    #[instrument(skip(self))]
     async fn post_install(
         &self,
         spec: &ToolSpec,

@@ -141,6 +141,30 @@ pub struct App {
     pub json: bool,
 
     #[arg(
+        long,
+        global = true,
+        env = "PROTO_OTEL",
+        help = "Export traces and metrics over OTLP using OTEL_EXPORTER_OTLP_* settings"
+    )]
+    pub otel: bool,
+
+    #[arg(
+        long,
+        global = true,
+        env = "PROTO_OTEL_LOGS",
+        help = "Export tracing events as OTLP logs using OTEL_EXPORTER_OTLP_* settings"
+    )]
+    pub otel_logs: bool,
+
+    #[arg(
+        long,
+        global = true,
+        env = "PROTO_OTEL_SERVICE_NAME",
+        help = "Service name to report when OTLP tracing is enabled"
+    )]
+    pub otel_service_name: Option<String>,
+
+    #[arg(
         value_enum,
         default_value_t = default_reporter(),
         long,

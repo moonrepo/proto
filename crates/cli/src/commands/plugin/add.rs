@@ -3,6 +3,7 @@ use clap::Args;
 use proto_core::{Id, PinLocation, PluginLocator, PluginType, ProtoConfig, cfg};
 use starbase::AppResult;
 use starbase_console::ui::*;
+use tracing::instrument;
 
 #[derive(Args, Clone, Debug)]
 pub struct PluginAddArgs {
@@ -19,7 +20,7 @@ pub struct PluginAddArgs {
     ty: PluginType,
 }
 
-#[tracing::instrument(skip_all)]
+#[instrument(skip(session))]
 pub async fn add(session: ProtoSession, args: PluginAddArgs) -> AppResult {
     let config_path = ProtoConfig::update_document(session.env.get_config_dir(args.to), |doc| {
         let key = if args.ty == PluginType::Backend {

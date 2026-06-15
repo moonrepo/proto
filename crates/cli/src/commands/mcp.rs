@@ -8,6 +8,7 @@ use rmcp::{ServerHandler, ServiceExt, transport::stdio};
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_console::ui::*;
+use tracing::instrument;
 
 #[derive(Args, Clone, Debug)]
 pub struct McpArgs {
@@ -25,7 +26,7 @@ pub struct McpOutput {
     resources: Vec<rmcp::model::Resource>,
 }
 
-#[tracing::instrument(skip_all)]
+#[instrument(skip(session))]
 pub async fn mcp(session: ProtoSession, args: McpArgs) -> AppResult {
     let console = session.console.clone();
     let server = ProtoMcp::new(session.clone());

@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 use tracing::{debug, instrument, trace, warn};
 use warpgate::{PluginLocator, PluginManifest, Wasm, inject_default_manifest_config};
 
-#[instrument(skip(proto, manifest))]
+#[instrument(skip(manifest))]
 pub fn inject_proto_manifest_config(
     context: &ToolContext,
     proto: &ProtoEnvironment,
@@ -53,7 +53,7 @@ pub fn inject_proto_manifest_config(
     Ok(())
 }
 
-#[instrument(skip(proto))]
+#[instrument]
 pub fn locate_plugin(
     id: &Id,
     proto: &ProtoEnvironment,
@@ -119,8 +119,9 @@ pub fn locate_plugin(
     Ok(locator)
 }
 
+#[instrument]
 pub async fn load_schema_plugin_with_proto(
-    proto: impl AsRef<ProtoEnvironment>,
+    proto: impl AsRef<ProtoEnvironment> + Debug,
 ) -> Result<PathBuf, ProtoLoaderError> {
     let proto = proto.as_ref();
     let config = proto.load_config()?;
@@ -131,14 +132,21 @@ pub async fn load_schema_plugin_with_proto(
         inner.url = config.rewrite_url(&inner.url);
     }
 
-    let path = proto
-        .get_plugin_loader()?
-        .load_plugin(Id::raw(SCHEMA_PLUGIN_KEY), locator)
-        .await?;
+    let context = ToolContext::new(Id::raw(SCHEMA_PLUGIN_KEY));
 
-    Ok(path)
+    let plugin_loaded = proto.create_metric().record_plugin_load(
+        &context,
+        &locator,
+        proto
+            .get_plugin_loader()?
+            .load_plugin_with_metadata(&context.id, locator.clone())
+            .await,
+    )?;
+
+    Ok(plugin_loaded.path)
 }
 
+#[instrument]
 pub fn load_schema_config(plugin_path: &Path) -> Result<json::JsonValue, ProtoLoaderError> {
     let mut is_toml = false;
     let mut schema: json::JsonValue = match plugin_path.extension().and_then(|ext| ext.to_str()) {
@@ -205,56 +213,68 @@ pub fn load_schema_config(plugin_path: &Path) -> Result<json::JsonValue, ProtoLo
     Ok(schema)
 }
 
-#[instrument(name = "load_tool", skip(proto))]
+#[instrument]
 pub async fn load_tool_from_locator(
     context: impl AsRef<ToolContext> + Debug,
-    proto: impl AsRef<ProtoEnvironment>,
+    proto: impl AsRef<ProtoEnvironment> + Debug,
     locator: impl AsRef<PluginLocator> + Debug,
 ) -> Result<Tool, ProtoLoaderError> {
     let context = context.as_ref();
     let proto = proto.as_ref();
     let locator = locator.as_ref();
 
-    let plugin_path = proto
-        .get_plugin_loader()?
-        .load_plugin(&context.id, locator)
-        .await?;
-    let plugin_ext = plugin_path.extension().and_then(|ext| ext.to_str());
+    let plugin_loaded = proto.create_metric().record_plugin_load(
+        context,
+        locator,
+        proto
+            .get_plugin_loader()?
+            .load_plugin_with_metadata(&context.id, locator)
+            .await,
+    )?;
 
-    let mut manifest = match plugin_ext {
-        Some("wasm") => {
-            debug!(source = ?plugin_path, "Loading WASM plugin");
+    let result = async move {
+        let plugin_path = plugin_loaded.path;
+        let plugin_ext = plugin_path.extension().and_then(|ext| ext.to_str());
 
-            Tool::create_plugin_manifest(proto, Wasm::file(plugin_path))?
-        }
-        Some("toml" | "json" | "jsonc" | "yaml" | "yml") => {
-            debug!(format = plugin_ext, source = ?plugin_path, "Loading non-WASM plugin");
+        let mut manifest = match plugin_ext {
+            Some("wasm") => {
+                debug!(source = ?plugin_path, "Loading WASM plugin");
 
-            let mut manifest = Tool::create_plugin_manifest(
-                proto,
-                Wasm::file(load_schema_plugin_with_proto(proto).await?),
-            )?;
+                Tool::create_plugin_manifest(proto, Wasm::file(plugin_path))?
+            }
+            Some("toml" | "json" | "jsonc" | "yaml" | "yml") => {
+                debug!(format = plugin_ext, source = ?plugin_path, "Loading non-WASM plugin");
 
-            let schema = json::format(&load_schema_config(&plugin_path)?, false)?;
+                let mut manifest = Tool::create_plugin_manifest(
+                    proto,
+                    Wasm::file(load_schema_plugin_with_proto(proto).await?),
+                )?;
 
-            trace!(schema = %schema, "Storing schema settings");
+                let schema = json::format(&load_schema_config(&plugin_path)?, false)?;
 
-            manifest.config.insert("proto_schema".to_string(), schema);
-            manifest
-        }
-        // This case is handled by warpgate when loading the plugin
-        _ => unimplemented!(),
+                trace!(schema = %schema, "Storing schema settings");
+
+                manifest.config.insert("proto_schema".to_string(), schema);
+                manifest
+            }
+            // This case is handled by warpgate when loading the plugin
+            _ => unimplemented!(),
+        };
+
+        inject_default_manifest_config(&context.id, &proto.home_dir, &mut manifest)?;
+        inject_proto_manifest_config(context, proto, &mut manifest)?;
+
+        let mut tool = Tool::load_from_manifest(context, proto, manifest).await?;
+        tool.locator = Some(locator.to_owned());
+        Ok(tool)
     };
 
-    inject_default_manifest_config(&context.id, &proto.home_dir, &mut manifest)?;
-    inject_proto_manifest_config(context, proto, &mut manifest)?;
-
-    let mut tool = Tool::load_from_manifest(context, proto, manifest).await?;
-    tool.locator = Some(locator.to_owned());
-
-    Ok(tool)
+    proto
+        .create_metric()
+        .record_plugin_create(context, locator, result.await)
 }
 
+#[instrument]
 pub async fn load_tool(
     context: &ToolContext,
     proto: &ProtoEnvironment,

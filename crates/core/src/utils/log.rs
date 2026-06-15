@@ -1,4 +1,5 @@
 use starbase_utils::fs::{self, FsError};
+use std::fmt::Debug;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, OnceLock};
 
@@ -89,6 +90,12 @@ impl LogWriter {
         }
 
         Ok(())
+    }
+}
+
+impl Debug for LogWriter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "LogWriter")
     }
 }
 

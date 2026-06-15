@@ -66,7 +66,7 @@ fn is_older_than_days(now: u128, other: u128, days: u64) -> bool {
     (now - other) > ((days as u128) * 24 * 60 * 60 * 1000)
 }
 
-#[instrument(skip_all)]
+#[instrument(skip(session))]
 pub async fn clean_tool(
     session: &ProtoSession,
     mut tool: Tool,
@@ -220,7 +220,7 @@ pub async fn clean_tool(
     Ok(cleaned)
 }
 
-#[instrument(skip_all)]
+#[instrument(skip(session))]
 pub async fn clean_proto_tool(session: &ProtoSession, days: u64) -> miette::Result<Vec<StaleTool>> {
     let duration = Duration::from_secs(86400 * days);
     let mut cleaned = vec![];
@@ -269,7 +269,7 @@ pub async fn clean_proto_tool(session: &ProtoSession, days: u64) -> miette::Resu
     Ok(cleaned)
 }
 
-#[instrument(skip_all)]
+#[instrument]
 pub async fn clean_dir(dir: &Path, days: u64) -> miette::Result<Vec<StaleFile>> {
     let duration = Duration::from_secs(86400 * days);
     let mut cleaned = vec![];
@@ -307,7 +307,7 @@ pub async fn clean_dir(dir: &Path, days: u64) -> miette::Result<Vec<StaleFile>> 
     Ok(cleaned)
 }
 
-#[instrument(skip_all)]
+#[instrument(skip(session))]
 pub async fn internal_clean(
     session: &ProtoSession,
     args: &CleanArgs,
@@ -354,7 +354,7 @@ pub async fn internal_clean(
     Ok(result)
 }
 
-#[instrument(skip_all)]
+#[instrument(skip(session))]
 pub async fn clean(session: ProtoSession, args: CleanArgs) -> AppResult {
     let result = internal_clean(&session, &args).await?;
 

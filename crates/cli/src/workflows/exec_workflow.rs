@@ -20,9 +20,9 @@ use std::env;
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use tracing::trace;
+use tracing::{instrument, trace};
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct ExecCommandOptions {
     pub check_shell: bool,
     pub raw_args: bool,
@@ -54,7 +54,7 @@ impl ExecItem {
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct ExecWorkflowParams {
     pub activate_environment: bool,
     pub check_process_env: bool,
@@ -105,6 +105,7 @@ impl<'app> ExecWorkflow<'app> {
         }
     }
 
+    #[instrument(skip(self))]
     pub async fn prepare_environment(
         &mut self,
         mut specs: FxHashMap<ToolContext, ToolSpec>,
@@ -177,6 +178,7 @@ impl<'app> ExecWorkflow<'app> {
         out
     }
 
+    #[instrument(skip(self))]
     pub fn create_command(
         self,
         mut args: Vec<String>,

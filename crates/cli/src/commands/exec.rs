@@ -8,6 +8,7 @@ use proto_shim::exec_command_and_replace;
 use rustc_hash::{FxHashMap, FxHashSet};
 use starbase::AppResult;
 use starbase_shell::ShellType;
+use tracing::instrument;
 
 #[derive(Args, Clone, Debug)]
 pub struct ExecArgs {
@@ -28,7 +29,7 @@ pub struct ExecArgs {
     pub command: Vec<String>,
 }
 
-#[tracing::instrument(skip_all)]
+#[instrument(skip(session))]
 pub async fn exec(session: ProtoSession, args: ExecArgs) -> AppResult {
     if args.command.is_empty() {
         return Err(ProtoCliError::ExecMissingCommand.into());

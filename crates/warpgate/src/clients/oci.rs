@@ -5,7 +5,7 @@ use oci_client::client::{Certificate, CertificateEncoding, ClientConfig};
 use starbase_utils::{envx, fs};
 use std::ops::Deref;
 use std::time::Duration;
-use tracing::{debug, trace, warn};
+use tracing::{debug, instrument, trace, warn};
 
 /// An OCI client that wraps [`oci_client::Client`].
 #[derive(Clone)]
@@ -21,6 +21,7 @@ impl Deref for OciClient {
 
 /// Create an OCI client with the provided options, that'll be
 /// used for interacting with OCI registries.
+#[instrument(skip(options))]
 pub fn create_oci_client_with_options(
     options: &HttpOptions,
 ) -> Result<OciClient, WarpgateHttpClientError> {

@@ -15,11 +15,13 @@ pub fn hash_base64<T: AsRef<[u8]>>(value: T) -> String {
 }
 
 /// Create a SHA256 hash based on the provided value.
+#[instrument(skip(value))]
 pub fn hash_sha256<T: AsRef<[u8]>>(value: T) -> String {
     hex::encode(Sha256::digest(value))
 }
 
 /// Create a SHA512 hash based on the provided value.
+#[instrument(skip(value))]
 pub fn hash_sha512<T: AsRef<[u8]>>(value: T) -> String {
     hex::encode(Sha512::digest(value))
 }

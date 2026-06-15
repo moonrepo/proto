@@ -10,7 +10,7 @@ use starbase_console::ui::*;
 use starbase_styles::encode_style_tags;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
-use tracing::debug;
+use tracing::{debug, instrument};
 
 #[derive(Debug, Default, Serialize)]
 struct StatusItem {
@@ -24,7 +24,7 @@ struct StatusItem {
 #[derive(Args, Clone, Debug)]
 pub struct StatusArgs {}
 
-#[tracing::instrument(skip_all)]
+#[instrument(skip(session))]
 pub async fn status(session: ProtoSession, _args: StatusArgs) -> AppResult {
     debug!("Determining active tools based on config...");
 

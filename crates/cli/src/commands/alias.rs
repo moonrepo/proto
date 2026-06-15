@@ -7,6 +7,7 @@ use proto_core::{
 use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_styles::encode_style_tags;
+use tracing::instrument;
 
 #[derive(Args, Clone, Debug)]
 pub struct AliasArgs {
@@ -23,7 +24,7 @@ pub struct AliasArgs {
     to: PinLocation,
 }
 
-#[tracing::instrument(skip_all)]
+#[instrument(skip(session))]
 pub async fn alias(session: ProtoSession, args: AliasArgs) -> AppResult {
     if let UnresolvedVersionSpec::Alias(inner_alias) = &args.spec.req
         && args.alias == inner_alias

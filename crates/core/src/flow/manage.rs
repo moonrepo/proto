@@ -6,10 +6,11 @@ use crate::flow::lock::Locker;
 use crate::flow::resolve::Resolver;
 use crate::layout::BinManager;
 use crate::lockfile::LockRecord;
+use crate::telemetry::cache_status;
 use crate::tool::Tool;
 use crate::tool_manifest::ToolManifestVersion;
 use crate::tool_spec::ToolSpec;
-use proto_pdk_api::{PluginFunction, SyncManifestInput, SyncManifestOutput};
+use proto_pdk_api::{InstallStrategy, PluginFunction, SyncManifestInput, SyncManifestOutput};
 use starbase_utils::fs;
 use std::collections::{BTreeMap, BTreeSet};
 use tracing::{debug, instrument};
@@ -32,45 +33,57 @@ impl<'tool> Manager<'tool> {
         spec: &mut ToolSpec,
         options: InstallOptions,
     ) -> Result<Option<LockRecord>, ProtoManageError> {
-        let version = Resolver::resolve(self.tool, spec, false).await?;
+        let timer = self.tool.proto.create_metric();
+        let strategy = install_strategy_name(&options.strategy);
+        let mut cache = "unknown";
 
-        let record = match Installer::new(self.tool, spec).install(options).await? {
-            // Update lock record with resolved spec information
-            Some(mut record) => {
-                record.version = Some(version.clone());
-                record.spec = Some(spec.req.clone());
-                record
+        let result = async {
+            let version = Resolver::resolve(self.tool, spec, false).await?;
+            let cache_hit = self.tool.is_installed(spec) && !options.force;
+            cache = cache_status(cache_hit);
+
+            let record = match Installer::new(self.tool, spec).install(options).await? {
+                // Update lock record with resolved spec information
+                Some(mut record) => {
+                    record.version = Some(version.clone());
+                    record.spec = Some(spec.req.clone());
+                    record
+                }
+                // Return an existing lock record if already installed
+                None => {
+                    self.post_install(spec, false).await?;
+
+                    return Ok(Locker::new(self.tool)
+                        .get_resolved_locked_record(spec)
+                        .cloned());
+                }
+            };
+
+            // Add record to lockfile
+            if spec.update_lockfile {
+                Locker::new(self.tool).insert_record_into_lockfile(&record)?;
             }
-            // Return an existing lock record if already installed
-            None => {
-                self.post_install(spec, false).await?;
 
-                return Ok(Locker::new(self.tool)
-                    .get_resolved_locked_record(spec)
-                    .cloned());
-            }
-        };
+            // Add version to manifest
+            self.tool.inventory.manifest.add_version(
+                &version,
+                ToolManifestVersion {
+                    lock: Some(record.for_manifest()),
+                    suffix: self.tool.inventory.config.version_suffix.clone(),
+                    ..Default::default()
+                },
+            );
 
-        // Add record to lockfile
-        if spec.update_lockfile {
-            Locker::new(self.tool).insert_record_into_lockfile(&record)?;
+            self.post_install(spec, true).await?;
+
+            Ok(Some(record))
         }
+        .await;
 
-        // Add version to manifest
-        self.tool.inventory.manifest.add_version(
-            &version,
-            ToolManifestVersion {
-                lock: Some(record.for_manifest()),
-                suffix: self.tool.inventory.config.version_suffix.clone(),
-                ..Default::default()
-            },
-        );
-
-        self.post_install(spec, true).await?;
-
-        Ok(Some(record))
+        timer.record_tool_install(&self.tool.context, strategy, cache, result)
     }
 
+    #[instrument(skip(self))]
     async fn post_install(&self, spec: &mut ToolSpec, force: bool) -> Result<(), ProtoManageError> {
         // Link all the things
         Linker::link(self.tool, spec, force).await?;
@@ -83,57 +96,66 @@ impl<'tool> Manager<'tool> {
 
     /// Teardown the tool by uninstalling the current version, removing the version
     /// from the manifest, and cleaning up temporary files. Return true if the teardown occurred.
-    #[instrument(skip_all)]
+    #[instrument(skip(self))]
     pub async fn uninstall(&mut self, spec: &mut ToolSpec) -> Result<bool, ProtoManageError> {
-        self.cleanup().await?;
+        let timer = self.tool.proto.create_metric();
+        let mut cache = "unknown";
 
-        let version = Resolver::resolve(self.tool, spec, false).await?;
+        let result = async {
+            self.cleanup().await?;
 
-        if !Installer::new(self.tool, spec).uninstall().await? {
-            return Ok(false);
-        }
+            let version = Resolver::resolve(self.tool, spec, false).await?;
+            cache = cache_status(self.tool.is_installed(spec));
 
-        // Remove record from lockfile
-        if spec.update_lockfile {
-            Locker::new(self.tool).remove_version_from_lockfile(&version)?;
-        }
-
-        // Delete bins and shims
-        let mut bin_manager = BinManager::from_manifest(&self.tool.inventory.manifest);
-        let locator = Locator::new(self.tool, spec);
-        let proto = &self.tool.proto;
-
-        // If no more versions in general, delete all
-        if self.tool.inventory.manifest.installed_versions.is_empty()
-            || self.tool.inventory.manifest.is_only_version(&version)
-        {
-            for bin in locator.locate_bins_with_manager(bin_manager, None).await? {
-                proto.store.unlink_bin(&bin.path)?;
+            if !Installer::new(self.tool, spec).uninstall().await? {
+                return Ok(false);
             }
 
-            for shim in locator.locate_shims().await? {
-                proto.store.remove_shim(&shim.path)?;
+            // Remove record from lockfile
+            if spec.update_lockfile {
+                Locker::new(self.tool).remove_version_from_lockfile(&version)?;
             }
-        }
-        // Otherwise, delete bins for this specific version
-        else if bin_manager.remove_version(&version) {
-            for bin in locator
-                .locate_bins_with_manager(bin_manager, Some(&version))
-                .await?
+
+            // Delete bins and shims
+            let mut bin_manager = BinManager::from_manifest(&self.tool.inventory.manifest);
+            let locator = Locator::new(self.tool, spec);
+            let proto = &self.tool.proto;
+
+            // If no more versions in general, delete all
+            if self.tool.inventory.manifest.installed_versions.is_empty()
+                || self.tool.inventory.manifest.is_only_version(&version)
             {
-                proto.store.unlink_bin(&bin.path)?;
+                for bin in locator.locate_bins_with_manager(bin_manager, None).await? {
+                    proto.store.unlink_bin(&bin.path)?;
+                }
+
+                for shim in locator.locate_shims().await? {
+                    proto.store.remove_shim(&shim.path)?;
+                }
             }
+            // Otherwise, delete bins for this specific version
+            else if bin_manager.remove_version(&version) {
+                for bin in locator
+                    .locate_bins_with_manager(bin_manager, Some(&version))
+                    .await?
+                {
+                    proto.store.unlink_bin(&bin.path)?;
+                }
+            }
+
+            // We must do this last because the location resolves above
+            // require `installed_versions` to have values!
+            self.tool.inventory.manifest.remove_version(&version);
+
+            Ok(true)
         }
+        .await;
 
-        // We must do this last because the location resolves above
-        // require `installed_versions` to have values!
-        self.tool.inventory.manifest.remove_version(&version);
-
-        Ok(true)
+        timer.record_tool_uninstall(&self.tool.context, "version", cache, result)
     }
 
     /// Delete temporary files and downloads for the current version.
-    #[instrument(skip_all)]
+    #[instrument(skip(self))]
     pub async fn cleanup(&self) -> Result<(), ProtoManageError> {
         debug!(
             tool = self.tool.context.as_str(),
@@ -148,7 +170,7 @@ impl<'tool> Manager<'tool> {
     }
 
     /// Sync the local tool manifest with changes from the plugin.
-    #[instrument(skip_all)]
+    #[instrument(skip(self))]
     pub async fn sync_manifest(self) -> Result<(), ProtoManageError> {
         if !self
             .tool
@@ -204,5 +226,12 @@ impl<'tool> Manager<'tool> {
         self.tool.inventory.manifest.save()?;
 
         Ok(())
+    }
+}
+
+fn install_strategy_name(strategy: &InstallStrategy) -> &'static str {
+    match strategy {
+        InstallStrategy::BuildFromSource => "build-from-source",
+        InstallStrategy::DownloadPrebuilt => "download-prebuilt",
     }
 }

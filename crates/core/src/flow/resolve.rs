@@ -24,6 +24,7 @@ impl<'tool> Resolver<'tool> {
         }
     }
 
+    #[instrument]
     pub async fn resolve(
         tool: &'tool Tool,
         spec: &mut ToolSpec,

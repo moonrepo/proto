@@ -58,3 +58,9 @@ setup-shims-win:
 	New-Item -ItemType HardLink -Force -Name "shims\node-hard.exe" -Value "target\debug\proto-shim.exe"
 	New-Item -ItemType SymbolicLink -Force -Name "shims\node-soft.exe" -Value "target\debug\proto-shim.exe"
 	Copy-Item "target\debug\proto-shim.exe" -Destination "shims\node.exe"
+
+otel-collector:
+	docker run --rm --name proto-otel -p 3000:3000 -p 4317:4317 -p 4318:4318 -v "$PWD/dev/otel/otel-collector.yaml:/etc/otelcol/config.yaml" -v "$PWD/dev/otel/data:/data" grafana/otel-lgtm:latest
+
+otel-test *args:
+	OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 OTEL_EXPORTER_OTLP_PROTOCOL=grpc cargo run -p proto_cli -- --otel --otel-logs --otel-service-name proto-local --log trace {{args}}

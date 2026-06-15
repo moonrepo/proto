@@ -5,6 +5,7 @@ use proto_pdk_api::{PluginFunction, UnpinVersionInput, UnpinVersionOutput};
 use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_styles::encode_style_tags;
+use tracing::instrument;
 
 #[derive(Args, Clone, Debug)]
 pub struct UnpinArgs {
@@ -21,7 +22,7 @@ pub struct UnpinArgs {
     pub tool_native: bool,
 }
 
-#[tracing::instrument(skip_all)]
+#[instrument(skip(session))]
 pub async fn unpin(session: ProtoSession, args: UnpinArgs) -> AppResult {
     let tool = session.load_tool(&args.context).await?;
     let mut value = None;

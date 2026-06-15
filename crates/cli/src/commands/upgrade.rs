@@ -34,7 +34,7 @@ struct UpgradeOutput {
     target_version: String,
 }
 
-#[tracing::instrument(skip_all)]
+#[instrument(skip(session))]
 pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
     if is_offline() {
         return Err(ProtoCliError::UpgradeRequiresInternet.into());

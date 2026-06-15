@@ -33,7 +33,10 @@ name = "proto-shim"
 path = "src/main_shim.rs"
 
 [dependencies]
-proto_core = { version = "0.57.6", path = "../core", features = ["clap"] }
+proto_core = { version = "0.57.6", path = "../core", features = [
+    "clap",
+    "otel",
+] }
 proto_pdk_api = { version = "0.31.12", path = "../pdk-api" }
 proto_shim = { version = "0.8.2", path = "../shim" }
 system_env = { version = "0.10.0", path = "../system-env" }
@@ -60,7 +63,7 @@ semver = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 shell-words = { workspace = true }
-starbase = { workspace = true }
+starbase = { workspace = true, features = ["otel"] }
 starbase_args = { workspace = true }
 starbase_console = { workspace = true }
 starbase_shell = { workspace = true }

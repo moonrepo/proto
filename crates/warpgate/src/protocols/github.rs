@@ -8,7 +8,7 @@ use std::borrow::Cow;
 use std::env;
 use std::path::PathBuf;
 use std::sync::Arc;
-use tracing::trace;
+use tracing::{instrument, trace};
 use warpgate_api::{GitHubLocator, Id};
 
 #[derive(Clone)]
@@ -17,6 +17,7 @@ pub struct GitHubLoader {
 }
 
 impl GitHubLoader {
+    #[instrument(skip(self))]
     async fn request_api<T: DeserializeOwned>(
         &self,
         url: &str,

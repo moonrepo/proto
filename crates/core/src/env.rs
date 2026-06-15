@@ -5,6 +5,7 @@ use crate::file_manager::{ProtoConfigFile, ProtoDirEntry, ProtoFileManager};
 use crate::helpers::is_offline;
 use crate::layout::Store;
 use crate::lockfile::ProtoLock;
+use crate::telemetry::MetricTimer;
 use once_cell::sync::OnceCell;
 use starbase_utils::dirs::home_dir;
 use starbase_utils::{envx, string_vec};
@@ -14,7 +15,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLockReadGuard, RwLockWriteGuard};
 use std::time::Duration;
 use system_env::{SystemArch, SystemOS};
-use tracing::debug;
+use tracing::{debug, instrument};
 use warpgate::{PluginLoader, sort_virtual_paths};
 
 #[derive(Clone, Default)]
@@ -22,6 +23,7 @@ pub struct ProtoEnvironment {
     pub config_mode: ConfigMode,
     pub env_mode: Option<String>,
     pub home_dir: PathBuf, // ~
+    pub otel_enabled: bool,
     pub store: Store,
     pub test_only: bool,
     pub working_dir: PathBuf,
@@ -69,6 +71,7 @@ impl ProtoEnvironment {
             working_dir: env::current_dir().map_err(|_| ProtoEnvError::MissingWorkingDir)?,
             env_mode: env::var("PROTO_ENV").ok(),
             home_dir: home.to_owned(),
+            otel_enabled: false,
             file_manager: Arc::new(OnceCell::new()),
             plugin_loader: Arc::new(OnceCell::new()),
             test_only: env::var("PROTO_TEST").is_ok(),
@@ -76,6 +79,10 @@ impl ProtoEnvironment {
             os: SystemOS::default(),
             arch: SystemArch::default(),
         })
+    }
+
+    pub fn create_metric(&self) -> MetricTimer {
+        MetricTimer::start(self.otel_enabled)
     }
 
     pub fn get_config_dir(&self, pin: PinLocation) -> &Path {
@@ -185,7 +192,7 @@ impl ProtoEnvironment {
         self.load_file_manager()?.get_lock_mut()
     }
 
-    #[tracing::instrument(name = "load_all", skip_all)]
+    #[instrument(skip_all)]
     pub fn load_file_manager(&self) -> Result<&ProtoFileManager, ProtoConfigError> {
         self.file_manager.get_or_try_init(|| {
             // Don't traverse passed the home directory,
@@ -234,6 +241,7 @@ impl fmt::Debug for ProtoEnvironment {
             .field("config_mode", &self.config_mode)
             .field("env_mode", &self.env_mode)
             .field("home_dir", &self.home_dir)
+            .field("otel_enabled", &self.otel_enabled)
             .field("store", &self.store)
             .field("test_only", &self.test_only)
             .field("working_dir", &self.working_dir)

@@ -1,37 +1,74 @@
 use super::checksum_error::ProtoChecksumError;
+use sha2::{Digest, Sha256, Sha512};
 use starbase_utils::fs::{self, FsError};
-use std::io::{BufRead, BufReader};
+use std::fmt::Debug;
+use std::io::{BufRead, BufReader, Read};
 use std::path::Path;
-use tracing::trace;
-use warpgate::{hash_sha256, hash_sha512};
+use tracing::{instrument, trace};
 
-pub fn hash_file_contents_sha256<P: AsRef<Path>>(path: P) -> Result<String, FsError> {
+#[instrument]
+pub fn hash_file_contents_sha256<P: AsRef<Path> + Debug>(path: P) -> Result<String, FsError> {
     let path = path.as_ref();
 
     trace!(file = ?path, "Calculating SHA256 checksum");
 
-    let bytes = fs::read_file_bytes(path)?;
-    let hash = hash_sha256(bytes);
+    let mut sha = Sha256::new();
+    let mut file = fs::open_file(path)?;
+    let mut buffer = [0u8; 64 * 1024];
+
+    // Read in chunks instead of pulling the entire file into memory
+    loop {
+        let n = file.read(&mut buffer).map_err(|error| FsError::Read {
+            path: path.to_path_buf(),
+            error: Box::new(error),
+        })?;
+
+        if n == 0 {
+            break;
+        }
+
+        sha.update(&buffer[..n]);
+    }
+
+    let hash = hex::encode(sha.finalize());
 
     trace!(file = ?path, hash, "Calculated hash");
 
     Ok(hash)
 }
 
-pub fn hash_file_contents_sha512<P: AsRef<Path>>(path: P) -> Result<String, FsError> {
+#[instrument]
+pub fn hash_file_contents_sha512<P: AsRef<Path> + Debug>(path: P) -> Result<String, FsError> {
     let path = path.as_ref();
 
     trace!(file = ?path, "Calculating SHA512 checksum");
 
-    let bytes = fs::read_file_bytes(path)?;
-    let hash = hash_sha512(bytes);
+    let mut sha = Sha512::new();
+    let mut file = fs::open_file(path)?;
+    let mut buffer = [0u8; 64 * 1024];
+
+    // Read in chunks instead of pulling the entire file into memory
+    loop {
+        let n = file.read(&mut buffer).map_err(|error| FsError::Read {
+            path: path.to_path_buf(),
+            error: Box::new(error),
+        })?;
+
+        if n == 0 {
+            break;
+        }
+
+        sha.update(&buffer[..n]);
+    }
+
+    let hash = hex::encode(sha.finalize());
 
     trace!(file = ?path, hash, "Calculated hash");
 
     Ok(hash)
 }
 
-#[tracing::instrument(name = "verify_sha_checksum")]
+#[instrument(name = "verify_sha_checksum")]
 pub fn verify_checksum(
     download_file: &Path,
     checksum_file: &Path,

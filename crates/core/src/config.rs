@@ -474,7 +474,8 @@ impl ProtoConfig {
         Self::save_to(dir, toml::format(&config, true)?)
     }
 
-    pub fn update<P: AsRef<Path>, F: FnOnce(&mut PartialProtoConfig)>(
+    #[instrument(name = "update_config", skip(op))]
+    pub fn update<P: AsRef<Path> + Debug, F: FnOnce(&mut PartialProtoConfig)>(
         dir: P,
         op: F,
     ) -> Result<PathBuf, ProtoConfigError> {
@@ -486,7 +487,8 @@ impl ProtoConfig {
         Self::save_partial_to(dir, config)
     }
 
-    pub fn update_document<P: AsRef<Path>, F: FnOnce(&mut DocumentMut)>(
+    #[instrument(name = "update_config_document", skip(op))]
+    pub fn update_document<P: AsRef<Path> + Debug, F: FnOnce(&mut DocumentMut)>(
         dir: P,
         op: F,
     ) -> Result<PathBuf, ProtoConfigError> {
@@ -509,6 +511,7 @@ impl ProtoConfig {
         Self::save_to(path, document.to_string())
     }
 
+    #[instrument(skip(self))]
     pub fn get_env_files(&self, options: &ProtoConfigEnvOptions) -> Vec<&PathBuf> {
         let mut paths: Vec<&EnvFile> = vec![];
 
@@ -536,6 +539,7 @@ impl ProtoConfig {
 
     // We don't use a `BTreeMap` for env vars, so that variable interpolation
     // and order of declaration can work correctly!
+    #[instrument(skip(self))]
     pub fn get_env_vars(
         &self,
         options: &ProtoConfigEnvOptions,
@@ -601,6 +605,7 @@ impl ProtoConfig {
         Ok(vars)
     }
 
+    #[instrument(skip(self))]
     pub fn load_env_files(
         &self,
         paths: &[&PathBuf],
@@ -652,7 +657,7 @@ impl ProtoConfig {
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct ProtoConfigEnvOptions<'ctx> {
     pub context: Option<&'ctx ToolContext>,
     pub check_process: bool,

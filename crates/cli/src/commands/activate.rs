@@ -9,6 +9,7 @@ use starbase::AppResult;
 use starbase_shell::{Hook, ShellType};
 use starbase_utils::envx::is_test;
 use std::env;
+use tracing::instrument;
 
 #[derive(Serialize)]
 struct ActivateOutput {
@@ -37,7 +38,7 @@ pub struct ActivateArgs {
     no_shim: bool,
 }
 
-#[tracing::instrument(skip_all)]
+#[instrument(skip(session))]
 pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
     // Detect the shell that we need to activate for
     let shell_type = match args.shell {

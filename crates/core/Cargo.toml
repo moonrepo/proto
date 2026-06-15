@@ -23,14 +23,16 @@ warpgate = { version = "0.32.4", path = "../warpgate", features = [
 ] }
 clap = { workspace = true, optional = true }
 convert_case = "0.11.0"
+docker_credential = { workspace = true }
 dotenvy = "0.15.7"
+hex = { workspace = true }
 indexmap = { workspace = true }
 iocraft = { workspace = true }
 miette = { workspace = true }
 minisign-verify = "0.2.5"
 once_cell = { workspace = true }
+opentelemetry = { workspace = true, optional = true }
 oci-client = { workspace = true }
-docker_credential = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true }
 rustc-hash = { workspace = true }
@@ -44,6 +46,7 @@ schematic = { workspace = true, features = [
     "type_url",
     "validate",
 ] }
+sha2 = { workspace = true }
 semver = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -69,6 +72,7 @@ tokio = { workspace = true }
 [features]
 default = []
 clap = ["dep:clap"]
+otel = ["dep:opentelemetry"]
 
 # Internal only!
 test = ["dep:starbase_sandbox"]

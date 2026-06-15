@@ -22,6 +22,12 @@ use warpgate_api::{Id, PluginLocator};
 
 pub type OfflineChecker = Arc<fn() -> bool>;
 
+#[derive(Debug)]
+pub struct LoadedPlugin {
+    pub cached: bool,
+    pub path: PathBuf,
+}
+
 /// A system for loading plugins from a locator strategy,
 /// and caching the plugin file (`.wasm`) to the host's file system.
 pub struct PluginLoader {
@@ -162,6 +168,19 @@ impl PluginLoader {
         id: I,
         locator: L,
     ) -> Result<PathBuf, WarpgateLoaderError> {
+        Ok(self.load_plugin_with_metadata(id, locator).await?.path)
+    }
+
+    /// Load a plugin using the provided locator and return cache metadata.
+    #[instrument(skip(self))]
+    pub async fn load_plugin_with_metadata<
+        I: AsRef<Id> + Debug,
+        L: AsRef<PluginLocator> + Debug,
+    >(
+        &self,
+        id: I,
+        locator: L,
+    ) -> Result<LoadedPlugin, WarpgateLoaderError> {
         let id = id.as_ref();
         let locator = locator.as_ref();
 
@@ -188,7 +207,10 @@ impl PluginLoader {
                 // File paths are used as-is and completely ignore the locking and caching system,
                 // as it's assumed the user is managing these themselves
                 match loader.load(id, file).await? {
-                    LoadFrom::File(path) => Ok(path),
+                    LoadFrom::File(path) => Ok(LoadedPlugin {
+                        cached: false,
+                        path,
+                    }),
                     _ => unreachable!(),
                 }
             }
@@ -298,7 +320,7 @@ impl PluginLoader {
         locator: &'a T,
         hash: String,
         get_loader: F,
-    ) -> Result<PathBuf, WarpgateLoaderError>
+    ) -> Result<LoadedPlugin, WarpgateLoaderError>
     where
         L: LoaderProtocol<T> + 'a,
         F: FnOnce() -> Result<&'a L, WarpgateLoaderError>,
@@ -332,7 +354,10 @@ impl PluginLoader {
                     fs::acquire_exclusive_lock(lock_path, &lock_file)?;
                 }
 
-                return Ok(cache_path);
+                return Ok(LoadedPlugin {
+                    cached: true,
+                    path: cache_path,
+                });
             }
         }
 
@@ -342,7 +367,10 @@ impl PluginLoader {
             .save_to_cache(id, hash, is_latest, loader.load(id, locator).await?)
             .await?;
 
-        Ok(cache_path)
+        Ok(LoadedPlugin {
+            cached: false,
+            path: cache_path,
+        })
     }
 
     fn determine_cache_extension(&self, value: &str) -> Option<&str> {
