@@ -6,7 +6,6 @@ use crate::flow::lock::Locker;
 use crate::helpers::{is_archive_file, is_offline};
 use crate::lockfile::*;
 use crate::reporter::ProtoConsole;
-use crate::telemetry::MetricTimer;
 use crate::tool::Tool;
 use crate::tool_spec::ToolSpec;
 use crate::utils::log::LogWriter;
@@ -115,21 +114,22 @@ impl<'tool> Installer<'tool> {
 
             fs::create_dir_all(&self.product_dir)?;
 
-            let output: NativeInstallOutput = MetricTimer::start().record_tool_install_step(
-                &self.tool.context,
-                "native_install",
-                self.tool
-                    .plugin
-                    .call_func_with(
-                        PluginFunction::NativeInstall,
-                        NativeInstallInput {
-                            context: self.tool.create_plugin_context(self.spec),
-                            install_dir: self.tool.to_virtual_path(&self.product_dir),
-                            force: options.force,
-                        },
-                    )
-                    .await,
-            )?;
+            let output: NativeInstallOutput =
+                self.tool.proto.create_metric().record_tool_install_step(
+                    &self.tool.context,
+                    "native_install",
+                    self.tool
+                        .plugin
+                        .call_func_with(
+                            PluginFunction::NativeInstall,
+                            NativeInstallInput {
+                                context: self.tool.create_plugin_context(self.spec),
+                                install_dir: self.tool.to_virtual_path(&self.product_dir),
+                                force: options.force,
+                            },
+                        )
+                        .await,
+                )?;
 
             if output.installed {
                 let mut record = self.tool.create_locked_record();
@@ -217,7 +217,9 @@ impl<'tool> Installer<'tool> {
             });
         }
 
-        let output: BuildInstructionsOutput = MetricTimer::start().record_tool_install_step(
+        let proto = &self.tool.proto;
+
+        let output: BuildInstructionsOutput = proto.create_metric().record_tool_install_step(
             &self.tool.context,
             "prepare_build_instructions",
             self.tool
@@ -233,7 +235,7 @@ impl<'tool> Installer<'tool> {
         )?;
 
         let mut system = System::default();
-        let config = self.tool.proto.load_config()?;
+        let config = proto.load_config()?;
 
         if let Some(pm) = config.settings.build.system_package_manager.get(&system.os) {
             if let Some(pm) = pm {
@@ -262,7 +264,7 @@ impl<'tool> Installer<'tool> {
                 .as_ref()
                 .expect("Console required for builder!"),
             install_dir: &self.product_dir,
-            http_client: self.tool.proto.get_plugin_loader()?.get_http_client()?,
+            http_client: proto.get_plugin_loader()?.get_http_client()?,
             log_writer: options
                 .log_writer
                 .as_ref()
@@ -282,7 +284,7 @@ impl<'tool> Installer<'tool> {
         let mut record = self.tool.create_locked_record();
 
         // Step 0
-        MetricTimer::start().record_tool_install_step(
+        proto.create_metric().record_tool_install_step(
             &self.tool.context,
             "build_information",
             log_build_information(&mut builder, &output),
@@ -290,7 +292,7 @@ impl<'tool> Installer<'tool> {
 
         // Step 1
         if config.settings.build.install_system_packages {
-            MetricTimer::start().record_tool_install_step(
+            proto.create_metric().record_tool_install_step(
                 &self.tool.context,
                 "install_system_dependencies",
                 install_system_dependencies(&mut builder, &output).await,
@@ -304,24 +306,24 @@ impl<'tool> Installer<'tool> {
         }
 
         // Step 2
-        MetricTimer::start().record_tool_install_step(
+        proto.create_metric().record_tool_install_step(
             &self.tool.context,
             "check_requirements",
             check_requirements(&mut builder, &output).await,
         )?;
 
         // Step 3
-        MetricTimer::start().record_tool_install_step(
+        proto.create_metric().record_tool_install_step(
             &self.tool.context,
             "download_sources",
             download_sources(&mut builder, &output, &mut record).await,
         )?;
 
         // Step 4
-        MetricTimer::start().record_tool_install_step(
+        proto.create_metric().record_tool_install_step(
             &self.tool.context,
             "execute_instructions",
-            execute_instructions(&mut builder, &output, &self.tool.proto).await,
+            execute_instructions(&mut builder, &output, proto).await,
         )?;
 
         Ok(record)
@@ -350,10 +352,11 @@ impl<'tool> Installer<'tool> {
             });
         }
 
-        let client = self.tool.proto.get_plugin_loader()?.get_http_client()?;
-        let config = self.tool.proto.load_config()?;
+        let proto = &self.tool.proto;
+        let client = proto.get_plugin_loader()?.get_http_client()?;
+        let config = proto.load_config()?;
 
-        let output: DownloadPrebuiltOutput = MetricTimer::start().record_tool_install_step(
+        let output: DownloadPrebuiltOutput = proto.create_metric().record_tool_install_step(
             &self.tool.context,
             "prepare_download_prebuilt",
             self.tool
@@ -390,7 +393,7 @@ impl<'tool> Installer<'tool> {
             "Downloading tool archive"
         );
 
-        MetricTimer::start().record_tool_install_step(
+        proto.create_metric().record_tool_install_step(
             &self.tool.context,
             "download_archive",
             net::download_from_url_with_options(
@@ -427,7 +430,7 @@ impl<'tool> Installer<'tool> {
                 "Downloading tool checksum"
             );
 
-            MetricTimer::start().record_tool_install_step(
+            proto.create_metric().record_tool_install_step(
                 &self.tool.context,
                 "download_checksum",
                 net::download_from_url_with_options(
@@ -478,7 +481,7 @@ impl<'tool> Installer<'tool> {
         // No available checksum, so generate one ourselves for the lockfile
         else {
             record.checksum = Some(Checksum::sha256(
-                MetricTimer::start().record_tool_install_step(
+                proto.create_metric().record_tool_install_step(
                     &self.tool.context,
                     "generate_checksum",
                     hash_file_contents_sha256(&download_file),
@@ -506,7 +509,7 @@ impl<'tool> Installer<'tool> {
                 });
             });
 
-            MetricTimer::start().record_tool_install_step(
+            proto.create_metric().record_tool_install_step(
                 &self.tool.context,
                 "unpack_archive",
                 self.tool
@@ -530,7 +533,7 @@ impl<'tool> Installer<'tool> {
                 });
             });
 
-            let (ext, unpacked_path) = MetricTimer::start().record_tool_install_step(
+            let (ext, unpacked_path) = proto.create_metric().record_tool_install_step(
                 &self.tool.context,
                 "unpack_archive",
                 archive::unpack(
@@ -554,7 +557,7 @@ impl<'tool> Installer<'tool> {
                 self.tool.get_file_name(),
             )));
 
-            MetricTimer::start().record_tool_install_step(
+            proto.create_metric().record_tool_install_step(
                 &self.tool.context,
                 "copy_executable",
                 fs::rename(&download_file, &install_path)
@@ -594,7 +597,7 @@ impl<'tool> Installer<'tool> {
                 )));
                 command.current_dir(&self.product_dir);
 
-                MetricTimer::start().record_tool_install_step(
+                proto.create_metric().record_tool_install_step(
                     &self.tool.context,
                     "post_install_script",
                     process::exec_command(&mut command).await,
@@ -680,12 +683,12 @@ impl<'tool> Installer<'tool> {
             "Verifying checksum of downloaded file",
         );
 
-        let timer = MetricTimer::start();
-        let checksum_result = generate_checksum(download_file, checksum_file, checksum_public_key);
-        let checksum = timer.record_tool_install_step(
+        let proto = &self.tool.proto;
+
+        let checksum = proto.create_metric().record_tool_install_step(
             &self.tool.context,
             "generate_checksum",
-            checksum_result,
+            generate_checksum(download_file, checksum_file, checksum_public_key),
         )?;
         let verified;
 
@@ -696,7 +699,7 @@ impl<'tool> Installer<'tool> {
             .has_func(PluginFunction::VerifyChecksum)
             .await
         {
-            let output: VerifyChecksumOutput = MetricTimer::start().record_tool_install_step(
+            let output: VerifyChecksumOutput = proto.create_metric().record_tool_install_step(
                 &self.tool.context,
                 "verify_checksum",
                 self.tool
@@ -717,7 +720,7 @@ impl<'tool> Installer<'tool> {
         }
         // Otherwise attempt to verify it ourselves
         else {
-            verified = MetricTimer::start().record_tool_install_step(
+            verified = proto.create_metric().record_tool_install_step(
                 &self.tool.context,
                 "verify_checksum",
                 verify_checksum(download_file, checksum_file, &checksum),

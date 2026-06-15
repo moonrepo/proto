@@ -2,7 +2,6 @@ use crate::config::{PluginType, SCHEMA_PLUGIN_KEY};
 use crate::env::ProtoEnvironment;
 use crate::id::Id;
 use crate::loader_error::ProtoLoaderError;
-use crate::telemetry::MetricTimer;
 use crate::tool::Tool;
 use crate::tool_context::ToolContext;
 use convert_case::{Case, Casing};
@@ -135,7 +134,7 @@ pub async fn load_schema_plugin_with_proto(
 
     let context = ToolContext::new(Id::raw(SCHEMA_PLUGIN_KEY));
 
-    let plugin_loaded = MetricTimer::start().record_plugin_load(
+    let plugin_loaded = proto.create_metric().record_plugin_load(
         &context,
         &locator,
         proto
@@ -224,7 +223,7 @@ pub async fn load_tool_from_locator(
     let proto = proto.as_ref();
     let locator = locator.as_ref();
 
-    let plugin_loaded = MetricTimer::start().record_plugin_load(
+    let plugin_loaded = proto.create_metric().record_plugin_load(
         context,
         locator,
         proto
@@ -270,7 +269,9 @@ pub async fn load_tool_from_locator(
         Ok(tool)
     };
 
-    MetricTimer::start().record_plugin_create(context, locator, result.await)
+    proto
+        .create_metric()
+        .record_plugin_create(context, locator, result.await)
 }
 
 #[instrument]

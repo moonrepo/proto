@@ -22,6 +22,7 @@ pub fn detect_proto_env(cli: &CLI) -> miette::Result<ProtoEnvironment> {
     #[cfg(not(debug_assertions))]
     let mut env = ProtoEnvironment::new()?;
 
+    env.otel_enabled = cli.otel;
     env.config_mode = cli.config_mode.unwrap_or(match cli.command {
         Commands::Activate(_)
         | Commands::Install(_)

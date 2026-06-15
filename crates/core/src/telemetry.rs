@@ -9,12 +9,14 @@ use warpgate::{LoadedPlugin, PluginLocator};
 const METER_NAME: &str = "proto";
 
 pub struct MetricTimer {
+    enabled: bool,
     start: Instant,
 }
 
 impl MetricTimer {
-    pub fn start() -> Self {
+    pub fn start(enabled: bool) -> Self {
         Self {
+            enabled,
             start: Instant::now(),
         }
     }
@@ -31,7 +33,10 @@ impl MetricTimer {
         result: Result<T, R>,
     ) -> Result<T, R> {
         #[cfg(feature = "otel")]
-        record_tool_install(context, strategy, status(&result), cache, self.elapsed());
+        if self.enabled {
+            record_tool_install(context, strategy, status(&result), cache, self.elapsed());
+        }
+
         result
     }
 
@@ -42,7 +47,10 @@ impl MetricTimer {
         result: Result<T, R>,
     ) -> Result<T, R> {
         #[cfg(feature = "otel")]
-        record_tool_install_step(context, step, status(&result), self.elapsed());
+        if self.enabled {
+            record_tool_install_step(context, step, status(&result), self.elapsed());
+        }
+
         result
     }
 
@@ -54,17 +62,20 @@ impl MetricTimer {
         result: Result<bool, R>,
     ) -> Result<bool, R> {
         #[cfg(feature = "otel")]
-        record_tool_uninstall(
-            context,
-            scope,
-            match &result {
-                Ok(false) => "skipped",
-                Ok(true) => "success",
-                Err(_) => "error",
-            },
-            cache,
-            self.elapsed(),
-        );
+        if self.enabled {
+            record_tool_uninstall(
+                context,
+                scope,
+                match &result {
+                    Ok(false) => "skipped",
+                    Ok(true) => "success",
+                    Err(_) => "error",
+                },
+                cache,
+                self.elapsed(),
+            );
+        }
+
         result
     }
 
@@ -75,16 +86,19 @@ impl MetricTimer {
         result: Result<LoadedPlugin, R>,
     ) -> Result<LoadedPlugin, R> {
         #[cfg(feature = "otel")]
-        record_plugin_load(
-            context,
-            locator,
-            status(&result),
-            result
-                .as_ref()
-                .map(|loaded| cache_status(loaded.cached))
-                .unwrap_or("unknown"),
-            self.elapsed(),
-        );
+        if self.enabled {
+            record_plugin_load(
+                context,
+                locator,
+                status(&result),
+                result
+                    .as_ref()
+                    .map(|loaded| cache_status(loaded.cached))
+                    .unwrap_or("unknown"),
+                self.elapsed(),
+            );
+        }
+
         result
     }
 
@@ -95,7 +109,10 @@ impl MetricTimer {
         result: Result<T, R>,
     ) -> Result<T, R> {
         #[cfg(feature = "otel")]
-        record_plugin_create(context, locator, status(&result), self.elapsed());
+        if self.enabled {
+            record_plugin_create(context, locator, status(&result), self.elapsed());
+        }
+
         result
     }
 }

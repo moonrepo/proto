@@ -6,7 +6,7 @@ use crate::flow::lock::Locker;
 use crate::flow::resolve::Resolver;
 use crate::layout::BinManager;
 use crate::lockfile::LockRecord;
-use crate::telemetry::{MetricTimer, cache_status};
+use crate::telemetry::cache_status;
 use crate::tool::Tool;
 use crate::tool_manifest::ToolManifestVersion;
 use crate::tool_spec::ToolSpec;
@@ -33,7 +33,7 @@ impl<'tool> Manager<'tool> {
         spec: &mut ToolSpec,
         options: InstallOptions,
     ) -> Result<Option<LockRecord>, ProtoManageError> {
-        let timer = MetricTimer::start();
+        let timer = self.tool.proto.create_metric();
         let strategy = install_strategy_name(&options.strategy);
         let mut cache = "unknown";
 
@@ -98,7 +98,7 @@ impl<'tool> Manager<'tool> {
     /// from the manifest, and cleaning up temporary files. Return true if the teardown occurred.
     #[instrument(skip(self))]
     pub async fn uninstall(&mut self, spec: &mut ToolSpec) -> Result<bool, ProtoManageError> {
-        let timer = MetricTimer::start();
+        let timer = self.tool.proto.create_metric();
         let mut cache = "unknown";
 
         let result = async {

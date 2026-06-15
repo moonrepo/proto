@@ -43,7 +43,8 @@ pub struct ProtoSession {
 
 impl ProtoSession {
     pub fn new(cli: CLI) -> Self {
-        let env = ProtoEnvironment::default();
+        let mut env = ProtoEnvironment::default();
+        env.otel_enabled = cli.otel;
 
         let mut console = Console::<ProtoReporter>::new(false);
         console.set_theme(create_console_theme());
