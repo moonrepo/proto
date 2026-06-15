@@ -138,6 +138,8 @@ fn locator_kind(locator: &PluginLocator) -> &'static str {
 
 #[cfg(feature = "otel")]
 fn record_counter(name: &'static str, description: &'static str, attrs: Vec<KeyValue>) {
+    record_metric_probe(name);
+
     global::meter(METER_NAME)
         .u64_counter(name)
         .with_description(description)
@@ -152,12 +154,31 @@ fn record_duration(
     duration: Duration,
     attrs: Vec<KeyValue>,
 ) {
+    record_metric_probe(name);
+
     global::meter(METER_NAME)
         .u64_histogram(name)
         .with_unit("ms")
         .with_description(description)
         .build()
         .record(duration.as_millis() as u64, &attrs);
+}
+
+#[cfg(feature = "otel")]
+fn record_metric_probe(name: &'static str) {
+    use std::io::Write;
+
+    let Ok(path) = std::env::var("PROTO_TEST_OTEL_METRICS_FILE") else {
+        return;
+    };
+
+    if let Ok(mut file) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(path)
+    {
+        let _ = writeln!(file, "{name}");
+    }
 }
 
 #[cfg(feature = "otel")]
