@@ -20,7 +20,7 @@ use starbase_utils::{envx, path};
 use std::env;
 use std::path::PathBuf;
 use std::process::Command;
-use tracing::debug;
+use tracing::{debug, instrument};
 
 #[derive(Args, Clone, Debug)]
 pub struct RunArgs {
@@ -206,7 +206,7 @@ fn run_global_tool(
     Err(error)
 }
 
-#[tracing::instrument(skip_all)]
+#[instrument(skip(session))]
 pub async fn run(session: ProtoSession, mut args: RunArgs) -> AppResult {
     let tool = match session.load_tool(&args.context).await {
         Ok(tool) => tool,

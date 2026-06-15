@@ -236,7 +236,8 @@ impl PluginContainer {
     }
 
     /// Return true if the plugin has a function with the given id.
-    pub async fn has_func(&self, func: impl AsRef<str>) -> bool {
+    #[instrument(skip(self))]
+    pub async fn has_func(&self, func: impl AsRef<str> + Debug) -> bool {
         let func = func.as_ref();
 
         match self.func_cache.entry_async(func.into()).await {
@@ -261,6 +262,7 @@ impl PluginContainer {
     }
 
     /// Call a function on the plugin with the given raw input and return the raw output.
+    #[instrument(skip(self, input))]
     pub async fn call(
         &self,
         func: &str,

@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 use tracing::{debug, instrument, trace, warn};
 use warpgate::{PluginLocator, PluginManifest, Wasm, inject_default_manifest_config};
 
-#[instrument(skip(proto, manifest))]
+#[instrument(skip(manifest))]
 pub fn inject_proto_manifest_config(
     context: &ToolContext,
     proto: &ProtoEnvironment,
@@ -53,7 +53,7 @@ pub fn inject_proto_manifest_config(
     Ok(())
 }
 
-#[instrument(skip(proto))]
+#[instrument]
 pub fn locate_plugin(
     id: &Id,
     proto: &ProtoEnvironment,
@@ -119,8 +119,9 @@ pub fn locate_plugin(
     Ok(locator)
 }
 
+#[instrument]
 pub async fn load_schema_plugin_with_proto(
-    proto: impl AsRef<ProtoEnvironment>,
+    proto: impl AsRef<ProtoEnvironment> + Debug,
 ) -> Result<PathBuf, ProtoLoaderError> {
     let proto = proto.as_ref();
     let config = proto.load_config()?;
@@ -139,6 +140,7 @@ pub async fn load_schema_plugin_with_proto(
     Ok(path)
 }
 
+#[instrument]
 pub fn load_schema_config(plugin_path: &Path) -> Result<json::JsonValue, ProtoLoaderError> {
     let mut is_toml = false;
     let mut schema: json::JsonValue = match plugin_path.extension().and_then(|ext| ext.to_str()) {
@@ -205,10 +207,10 @@ pub fn load_schema_config(plugin_path: &Path) -> Result<json::JsonValue, ProtoLo
     Ok(schema)
 }
 
-#[instrument(name = "load_tool", skip(proto))]
+#[instrument]
 pub async fn load_tool_from_locator(
     context: impl AsRef<ToolContext> + Debug,
-    proto: impl AsRef<ProtoEnvironment>,
+    proto: impl AsRef<ProtoEnvironment> + Debug,
     locator: impl AsRef<PluginLocator> + Debug,
 ) -> Result<Tool, ProtoLoaderError> {
     let context = context.as_ref();
@@ -255,6 +257,7 @@ pub async fn load_tool_from_locator(
     Ok(tool)
 }
 
+#[instrument]
 pub async fn load_tool(
     context: &ToolContext,
     proto: &ProtoEnvironment,

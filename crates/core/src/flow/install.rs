@@ -544,7 +544,7 @@ impl<'tool> Installer<'tool> {
     }
 
     /// Uninstall the tool by deleting the current install directory.
-    #[instrument(skip_all)]
+    #[instrument(skip(self))]
     pub async fn uninstall(&self) -> Result<bool, ProtoInstallError> {
         if !self.product_dir.exists() {
             debug!(

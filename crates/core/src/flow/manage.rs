@@ -71,6 +71,7 @@ impl<'tool> Manager<'tool> {
         Ok(Some(record))
     }
 
+    #[instrument(skip(self))]
     async fn post_install(&self, spec: &mut ToolSpec, force: bool) -> Result<(), ProtoManageError> {
         // Link all the things
         Linker::link(self.tool, spec, force).await?;
@@ -83,7 +84,7 @@ impl<'tool> Manager<'tool> {
 
     /// Teardown the tool by uninstalling the current version, removing the version
     /// from the manifest, and cleaning up temporary files. Return true if the teardown occurred.
-    #[instrument(skip_all)]
+    #[instrument(skip(self))]
     pub async fn uninstall(&mut self, spec: &mut ToolSpec) -> Result<bool, ProtoManageError> {
         self.cleanup().await?;
 
@@ -133,7 +134,7 @@ impl<'tool> Manager<'tool> {
     }
 
     /// Delete temporary files and downloads for the current version.
-    #[instrument(skip_all)]
+    #[instrument(skip(self))]
     pub async fn cleanup(&self) -> Result<(), ProtoManageError> {
         debug!(
             tool = self.tool.context.as_str(),
@@ -148,7 +149,7 @@ impl<'tool> Manager<'tool> {
     }
 
     /// Sync the local tool manifest with changes from the plugin.
-    #[instrument(skip_all)]
+    #[instrument(skip(self))]
     pub async fn sync_manifest(self) -> Result<(), ProtoManageError> {
         if !self
             .tool

@@ -75,8 +75,8 @@ impl Tool {
         Ok(tool)
     }
 
-    #[instrument(name = "new_tool", skip(proto, wasm))]
-    pub async fn load<I: AsRef<ToolContext> + fmt::Debug, P: AsRef<ProtoEnvironment>>(
+    #[instrument(name = "new_tool", skip(wasm))]
+    pub async fn load<I: AsRef<ToolContext> + Debug, P: AsRef<ProtoEnvironment> + Debug>(
         context: I,
         proto: P,
         wasm: Wasm,
@@ -289,7 +289,7 @@ impl Tool {
     }
 
     /// Register the tool by loading initial metadata and persisting it.
-    #[instrument(skip_all)]
+    #[instrument(skip(self))]
     pub async fn register_tool(&mut self) -> Result<(), ProtoToolError> {
         let metadata: RegisterToolOutput = self
             .plugin
@@ -356,7 +356,7 @@ impl Tool {
     }
 
     /// Register the backend by acquiring necessary source files.
-    #[instrument(skip_all)]
+    #[instrument(skip(self))]
     pub async fn register_backend(&mut self) -> Result<(), ProtoToolError> {
         if !self.plugin.has_func(PluginFunction::RegisterBackend).await || self.backend_registered {
             return Ok(());

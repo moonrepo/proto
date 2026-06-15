@@ -2,8 +2,9 @@ use super::checksum_error::ProtoChecksumError;
 use minisign_verify::*;
 use starbase_utils::fs;
 use std::path::Path;
+use tracing::instrument;
 
-#[tracing::instrument(name = "verify_minisign_checksum")]
+#[instrument(name = "verify_minisign_checksum")]
 pub fn verify_checksum(
     download_file: &Path,
     checksum_file: &Path,

@@ -4,6 +4,7 @@ use proto_core::{PinLocation, ProtoConfig, ToolContext};
 use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_styles::encode_style_tags;
+use tracing::instrument;
 
 #[derive(Args, Clone, Debug)]
 pub struct UnaliasArgs {
@@ -17,7 +18,7 @@ pub struct UnaliasArgs {
     from: PinLocation,
 }
 
-#[tracing::instrument(skip_all)]
+#[instrument(skip(session))]
 pub async fn unalias(session: ProtoSession, args: UnaliasArgs) -> AppResult {
     let tool = session.load_tool(&args.context).await?;
     let mut value = None;

@@ -12,6 +12,7 @@ use starbase::AppResult;
 use starbase_console::ui::*;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
+use tracing::instrument;
 
 #[derive(Serialize)]
 struct PluginInfoOutput {
@@ -36,7 +37,7 @@ pub struct PluginInfoArgs {
     id: Id,
 }
 
-#[tracing::instrument(skip_all)]
+#[instrument(skip(session))]
 pub async fn info(session: ProtoSession, args: PluginInfoArgs) -> AppResult {
     let global_config = session.load_config_with_mode(ConfigMode::Global)?;
     let context = ToolContext::new(args.id.clone());

@@ -7,6 +7,7 @@ use serde::Serialize;
 use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_utils::toml;
+use tracing::instrument;
 
 #[derive(Args, Clone, Debug)]
 pub struct DebugConfigArgs {
@@ -20,7 +21,7 @@ struct DebugConfigOutput<'a> {
     files: Vec<&'a ProtoConfigFile>,
 }
 
-#[tracing::instrument(skip_all)]
+#[instrument(skip(session))]
 pub async fn config(session: ProtoSession, args: DebugConfigArgs) -> AppResult {
     let env = &session.env;
     let manager = env.load_file_manager()?;

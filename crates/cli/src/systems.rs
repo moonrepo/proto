@@ -10,7 +10,7 @@ use tracing::{debug, instrument};
 
 // STARTUP
 
-#[instrument(skip_all)]
+#[instrument]
 pub fn detect_proto_env(cli: &CLI) -> miette::Result<ProtoEnvironment> {
     #[cfg(debug_assertions)]
     let mut env = if let Ok(sandbox) = env::var("PROTO_SANDBOX") {
@@ -34,7 +34,7 @@ pub fn detect_proto_env(cli: &CLI) -> miette::Result<ProtoEnvironment> {
 }
 
 // Temporary!
-#[instrument(skip_all)]
+#[instrument]
 pub fn remove_proto_shims(env: &ProtoEnvironment) -> miette::Result<()> {
     for shim_name in [get_exe_file_name("proto"), get_exe_file_name("proto-shim")] {
         let shim_path = env.store.shims_dir.join(shim_name);
@@ -49,7 +49,7 @@ pub fn remove_proto_shims(env: &ProtoEnvironment) -> miette::Result<()> {
 
 // ANALYZE
 
-#[instrument(skip_all)]
+#[instrument]
 pub fn load_proto_configs(env: &ProtoEnvironment) -> miette::Result<()> {
     debug!(
         working_dir = ?env.working_dir,
@@ -64,7 +64,7 @@ pub fn load_proto_configs(env: &ProtoEnvironment) -> miette::Result<()> {
 
 // EXECUTE
 
-#[instrument(skip_all)]
+#[instrument]
 pub fn clean_proto_backups(env: &ProtoEnvironment) -> miette::Result<()> {
     for bin_name in [get_exe_file_name("proto"), get_exe_file_name("proto-shim")] {
         let backup_path = env.store.bin_dir.join(format!("{bin_name}.backup"));
@@ -77,7 +77,7 @@ pub fn clean_proto_backups(env: &ProtoEnvironment) -> miette::Result<()> {
     Ok(())
 }
 
-#[instrument(skip_all)]
+#[instrument(skip(console))]
 pub async fn check_for_new_version(
     env: &ProtoEnvironment,
     console: &ProtoConsole,

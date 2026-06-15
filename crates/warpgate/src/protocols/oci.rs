@@ -6,7 +6,7 @@ use oci_client::{Reference, errors::OciDistributionError};
 use starbase_styles::color;
 use std::borrow::Cow;
 use std::sync::Arc;
-use tracing::trace;
+use tracing::{instrument, trace};
 use warpgate_api::{Id, RegistryLocator};
 
 #[derive(Clone)]
@@ -16,6 +16,7 @@ pub struct OciLoader {
 }
 
 impl OciLoader {
+    #[instrument(skip(self))]
     async fn pull_image<'a>(
         &self,
         id: &'a str,

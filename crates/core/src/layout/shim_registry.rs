@@ -50,6 +50,7 @@ impl ShimRegistry {
         Ok(Self { shims, path })
     }
 
+    #[instrument(name = "update_shim_registry", skip(entries))]
     pub fn update(shims_dir: &Path, entries: ShimsMap) -> Result<(), ProtoLayoutError> {
         if entries.is_empty() {
             return Ok(());

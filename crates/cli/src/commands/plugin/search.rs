@@ -6,6 +6,7 @@ use proto_core::registry::PluginFormat;
 use proto_core::reporter::NoticeOutput;
 use starbase::AppResult;
 use starbase_console::ui::*;
+use tracing::instrument;
 
 #[derive(Args, Clone, Debug)]
 pub struct PluginSearchArgs {
@@ -13,7 +14,7 @@ pub struct PluginSearchArgs {
     query: String,
 }
 
-#[tracing::instrument(skip_all)]
+#[instrument(skip(session))]
 pub async fn search(session: ProtoSession, args: PluginSearchArgs) -> AppResult {
     let mut registry = session.create_registry();
     let plugins = registry.load_external_plugins().await?;

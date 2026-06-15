@@ -11,6 +11,7 @@ use starbase_shell::ShellType;
 use starbase_utils::envx;
 use std::env;
 use std::path::PathBuf;
+use tracing::instrument;
 
 #[derive(Args, Clone, Debug)]
 pub struct DiagnoseArgs {
@@ -27,7 +28,7 @@ struct DiagnoseOutput {
     tips: Vec<String>,
 }
 
-#[tracing::instrument(skip_all)]
+#[instrument(skip(session))]
 pub async fn diagnose(session: ProtoSession, args: DiagnoseArgs) -> AppResult {
     let shell_type = match args.shell {
         Some(value) => value,

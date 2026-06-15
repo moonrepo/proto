@@ -14,7 +14,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLockReadGuard, RwLockWriteGuard};
 use std::time::Duration;
 use system_env::{SystemArch, SystemOS};
-use tracing::debug;
+use tracing::{debug, instrument};
 use warpgate::{PluginLoader, sort_virtual_paths};
 
 #[derive(Clone, Default)]
@@ -185,7 +185,7 @@ impl ProtoEnvironment {
         self.load_file_manager()?.get_lock_mut()
     }
 
-    #[tracing::instrument(name = "load_all", skip_all)]
+    #[instrument(skip_all)]
     pub fn load_file_manager(&self) -> Result<&ProtoFileManager, ProtoConfigError> {
         self.file_manager.get_or_try_init(|| {
             // Don't traverse passed the home directory,

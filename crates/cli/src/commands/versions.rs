@@ -9,7 +9,7 @@ use serde::Serialize;
 use starbase::AppResult;
 use starbase_console::ui::*;
 use std::collections::BTreeMap;
-use tracing::debug;
+use tracing::{debug, instrument};
 
 #[derive(Args, Clone, Debug)]
 pub struct VersionsArgs {
@@ -40,7 +40,7 @@ pub struct VersionsOutput {
     remote_aliases: BTreeMap<String, ToolSpec>,
 }
 
-#[tracing::instrument(skip_all)]
+#[instrument(skip(session))]
 pub async fn versions(session: ProtoSession, args: VersionsArgs) -> AppResult {
     let tool = session
         .load_tool_with_options(

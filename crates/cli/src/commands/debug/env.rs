@@ -12,6 +12,7 @@ use starbase_console::ui::*;
 use std::collections::BTreeMap;
 use std::env;
 use std::path::PathBuf;
+use tracing::instrument;
 
 #[derive(Args, Clone, Debug)]
 pub struct DebugEnvArgs {
@@ -35,7 +36,7 @@ struct EnvironmentInfo {
     virtual_paths: IndexMap<PathBuf, PathBuf>,
 }
 
-#[tracing::instrument(skip_all)]
+#[instrument(skip(session))]
 pub async fn env(session: ProtoSession, args: DebugEnvArgs) -> AppResult {
     let env = &session.env;
     let manager = env.load_file_manager()?;

@@ -22,6 +22,7 @@ impl<'tool> Detector<'tool> {
         Self { tool, source: None }
     }
 
+    #[instrument]
     pub async fn detect(
         tool: &'tool Tool,
     ) -> Result<(ToolSpec, Option<PathBuf>), ProtoDetectError> {
@@ -187,6 +188,7 @@ impl<'tool> Detector<'tool> {
         Ok(None)
     }
 
+    #[instrument(skip(self))]
     pub async fn detect_version_first_available(
         &mut self,
         config_files: &[&ProtoConfigFile],
@@ -204,6 +206,7 @@ impl<'tool> Detector<'tool> {
         Ok(None)
     }
 
+    #[instrument(skip(self))]
     pub async fn detect_version_only_prototools(
         &mut self,
         config_files: &[&ProtoConfigFile],
@@ -217,7 +220,7 @@ impl<'tool> Detector<'tool> {
         Ok(None)
     }
 
-    #[instrument(skip_all)]
+    #[instrument(skip(self))]
     pub async fn detect_version_prefer_prototools(
         &mut self,
         config_files: &[&ProtoConfigFile],
@@ -237,6 +240,7 @@ impl<'tool> Detector<'tool> {
         Ok(None)
     }
 
+    #[instrument(skip(self))]
     fn detect_from_proto_config(
         &mut self,
         file: &ProtoConfigFile,
@@ -259,6 +263,7 @@ impl<'tool> Detector<'tool> {
         Ok(None)
     }
 
+    #[instrument(skip(self))]
     async fn detect_from_tool_ecosystem(
         &mut self,
         file: &ProtoConfigFile,

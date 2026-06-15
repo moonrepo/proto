@@ -4,6 +4,7 @@ use proto_core::flow::locate::Locator;
 use proto_core::flow::resolve::Resolver;
 use proto_core::{ToolContext, ToolSpec};
 use starbase::AppResult;
+use tracing::instrument;
 
 #[derive(Clone, Debug, ValueEnum)]
 enum BinDirType {
@@ -36,7 +37,7 @@ pub struct BinArgs {
     shim: bool,
 }
 
-#[tracing::instrument(skip_all)]
+#[instrument(skip(session))]
 pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
     let tool = session
         .load_tool_with_options(

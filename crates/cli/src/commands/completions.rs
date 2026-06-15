@@ -6,6 +6,7 @@ use clap_complete_nushell::Nushell;
 use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_shell::ShellType;
+use tracing::instrument;
 
 #[derive(Args, Clone, Debug)]
 pub struct CompletionsArgs {
@@ -13,7 +14,7 @@ pub struct CompletionsArgs {
     shell: Option<ShellType>,
 }
 
-#[tracing::instrument(skip_all)]
+#[instrument(skip(session))]
 pub async fn completions(session: ProtoSession, args: CompletionsArgs) -> AppResult {
     let shell = match args.shell {
         Some(value) => value,

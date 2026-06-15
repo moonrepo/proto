@@ -5,7 +5,7 @@ use proto_core::flow::resolve::Resolver;
 use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_utils::fs;
-use tracing::debug;
+use tracing::{debug, instrument};
 
 #[derive(Args, Clone, Debug)]
 pub struct RegenArgs {
@@ -13,7 +13,7 @@ pub struct RegenArgs {
     bin: bool,
 }
 
-#[tracing::instrument(skip_all)]
+#[instrument(skip(session))]
 pub async fn regen(session: ProtoSession, args: RegenArgs) -> AppResult {
     let store = &session.env.store;
     let progress = session.render_progress_loader().await;

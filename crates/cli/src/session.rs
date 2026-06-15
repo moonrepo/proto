@@ -22,7 +22,7 @@ use starbase_console::ui::{OwnedOrShared, Progress, ProgressDisplay, ProgressRep
 use starbase_utils::envx;
 use std::sync::Arc;
 use tokio::task::JoinSet;
-use tracing::debug;
+use tracing::{debug, instrument};
 
 #[derive(Debug, Default)]
 pub struct LoadToolOptions {
@@ -95,7 +95,7 @@ impl ProtoSession {
             .await
     }
 
-    #[tracing::instrument(name = "load_tool", skip(self))]
+    #[instrument(name = "load_tool", skip(self))]
     pub async fn load_tool_with_options(
         &self,
         context: &ToolContext,
@@ -133,7 +133,7 @@ impl ProtoSession {
             .await
     }
 
-    #[tracing::instrument(name = "load_tools", skip(self))]
+    #[instrument(name = "load_tools", skip(self))]
     pub async fn load_tools_with_options(
         &self,
         mut options: LoadToolOptions,

@@ -2,8 +2,9 @@ use crate::error::ProtoCliError;
 use proto_core::{ProtoEnvironment, is_offline};
 use rustc_hash::FxHashMap;
 use std::env::consts;
-use tracing::debug;
+use tracing::{debug, instrument};
 
+#[derive(Debug)]
 pub enum Metric {
     InstallTool {
         id: String,
@@ -71,6 +72,7 @@ impl Metric {
     }
 }
 
+#[instrument(skip(proto))]
 pub async fn track_usage(proto: &ProtoEnvironment, metric: Metric) -> Result<(), ProtoCliError> {
     let config = proto.load_config()?;
 

@@ -13,7 +13,7 @@ use starbase_utils::{
 };
 use std::path::PathBuf;
 use std::time::Duration;
-use tracing::{debug, trace, warn};
+use tracing::{debug, instrument, trace, warn};
 
 /// A downloader that uses our internal HTTP(S) client.
 pub struct HttpDownloader {
@@ -23,6 +23,7 @@ pub struct HttpDownloader {
 
 #[async_trait]
 impl Downloader for HttpDownloader {
+    #[instrument(skip(self))]
     async fn download(&self, url: Url) -> Result<Response, NetError> {
         let url_string = url.to_string();
 
@@ -136,6 +137,7 @@ pub fn create_http_client() -> Result<HttpClient, WarpgateHttpClientError> {
 
 /// Create an HTTP(S) client with the provided options, that'll be
 /// used for downloading files.
+#[instrument(skip(options))]
 pub fn create_http_client_with_options(
     options: &HttpOptions,
 ) -> Result<HttpClient, WarpgateHttpClientError> {

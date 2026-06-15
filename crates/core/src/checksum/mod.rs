@@ -5,11 +5,12 @@ mod sha;
 use proto_pdk_api::{Checksum, ChecksumAlgorithm};
 use starbase_utils::fs;
 use std::path::Path;
+use tracing::instrument;
 
 pub use checksum_error::*;
 pub use sha::{hash_file_contents_sha256, hash_file_contents_sha512};
 
-#[tracing::instrument(skip_all)]
+#[instrument]
 pub fn verify_checksum(
     download_file: &Path,
     checksum_file: &Path,
@@ -35,7 +36,7 @@ pub fn verify_checksum(
     }
 }
 
-#[tracing::instrument(skip_all)]
+#[instrument]
 pub fn generate_checksum(
     download_file: &Path,
     checksum_file: &Path,
@@ -60,7 +61,7 @@ pub fn generate_checksum(
     }
 }
 
-#[tracing::instrument(skip_all)]
+#[instrument]
 pub fn detect_checksum_algorithm(
     checksum_file: &Path,
 ) -> Result<ChecksumAlgorithm, ProtoChecksumError> {

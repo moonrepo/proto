@@ -24,6 +24,7 @@ warpgate = { version = "0.32.3", path = "../warpgate", features = [
 clap = { workspace = true, optional = true }
 convert_case = "0.11.0"
 dotenvy = "0.15.7"
+hex = { workspace = true }
 indexmap = { workspace = true }
 iocraft = { workspace = true }
 miette = { workspace = true }
@@ -44,6 +45,7 @@ schematic = { workspace = true, features = [
     "type_url",
     "validate",
 ] }
+sha2 = { workspace = true }
 semver = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

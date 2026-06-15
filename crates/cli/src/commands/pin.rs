@@ -10,7 +10,7 @@ use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_styles::encode_style_tags;
 use std::path::PathBuf;
-use tracing::debug;
+use tracing::{debug, instrument};
 
 #[derive(Args, Clone, Debug)]
 pub struct PinArgs {
@@ -54,7 +54,7 @@ pub async fn internal_pin(
     Ok(config_path)
 }
 
-#[tracing::instrument(skip_all)]
+#[instrument(skip(session))]
 pub async fn pin(session: ProtoSession, args: PinArgs) -> AppResult {
     let mut spec = args.spec.clone();
     let tool = session.load_tool(&args.context).await?;

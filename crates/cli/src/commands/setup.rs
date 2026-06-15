@@ -14,7 +14,7 @@ use starbase_styles::color;
 use starbase_utils::envx;
 use std::env;
 use std::path::PathBuf;
-use tracing::debug;
+use tracing::{debug, instrument};
 
 #[cfg(windows)]
 mod windows;
@@ -42,7 +42,7 @@ pub struct SetupArgs {
 
 const DISCORD: &str = "https://discord.gg/qCh9MEynv2";
 
-#[tracing::instrument(skip_all)]
+#[instrument(skip(session))]
 pub async fn setup(session: ProtoSession, args: SetupArgs) -> AppResult {
     let paths = envx::paths();
 

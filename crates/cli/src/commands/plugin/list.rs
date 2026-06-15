@@ -8,6 +8,7 @@ use serde::Serialize;
 use starbase::AppResult;
 use starbase_console::ui::*;
 use std::collections::BTreeMap;
+use tracing::instrument;
 
 #[derive(Serialize)]
 struct PluginItem {
@@ -29,7 +30,7 @@ pub struct PluginListArgs {
     versions: bool,
 }
 
-#[tracing::instrument(skip_all)]
+#[instrument(skip(session))]
 pub async fn list(session: ProtoSession, args: PluginListArgs) -> AppResult {
     let global_config = session.load_config_with_mode(ConfigMode::Global)?;
 

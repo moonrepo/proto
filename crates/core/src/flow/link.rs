@@ -28,6 +28,7 @@ impl<'tool> Linker<'tool> {
         Self { tool, spec }
     }
 
+    #[instrument]
     pub async fn link(
         tool: &'tool Tool,
         spec: &'tool ToolSpec,
@@ -37,6 +38,7 @@ impl<'tool> Linker<'tool> {
     }
 
     /// Link both binaries and shims.
+    #[instrument(skip(self))]
     pub async fn link_all(&self, force: bool) -> Result<LinkerResponse, ProtoLinkError> {
         Ok(LinkerResponse {
             bins: self.link_bins(force).await?,
