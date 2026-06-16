@@ -1,7 +1,6 @@
 use super::{LoadFrom, LoaderProtocol};
-use crate::helpers::hash_sha256;
 use crate::loader_error::WarpgateLoaderError;
-use base64::prelude::*;
+use starbase_utils::hash::{self, base64::native::prelude::*};
 use std::borrow::Cow;
 use tracing::trace;
 use warpgate_api::{DataLocator, Id};
@@ -40,7 +39,7 @@ impl LoaderProtocol<DataLocator> for DataLoader {
         );
 
         Ok(LoadFrom::Blob {
-            hash: Cow::Owned(hash_sha256(&*data)),
+            hash: Cow::Owned(hash::sha256::from_bytes(&*data)),
             ext: "wasm".into(),
             ext_archive: None,
             data,

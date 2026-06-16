@@ -1,6 +1,4 @@
 use crate::loader_error::WarpgateLoaderError;
-use base64::prelude::*;
-use sha2::{Digest, Sha256, Sha512};
 use starbase_archive::{Archiver, is_supported_archive_extension};
 use starbase_utils::net::{self, DownloadOptions, NetError};
 use starbase_utils::{fs, glob};
@@ -8,23 +6,6 @@ use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use tracing::instrument;
 use warpgate_api::{PluginLocator, UrlLocator, VirtualPath};
-
-/// Create a Base64 encoded hash based on the provided value.
-pub fn hash_base64<T: AsRef<[u8]>>(value: T) -> String {
-    BASE64_STANDARD.encode(value)
-}
-
-/// Create a SHA256 hash based on the provided value.
-#[instrument(skip(value))]
-pub fn hash_sha256<T: AsRef<[u8]>>(value: T) -> String {
-    hex::encode(Sha256::digest(value))
-}
-
-/// Create a SHA512 hash based on the provided value.
-#[instrument(skip(value))]
-pub fn hash_sha512<T: AsRef<[u8]>>(value: T) -> String {
-    hex::encode(Sha512::digest(value))
-}
 
 /// Attempt to extract a file name from the provided URL,
 /// which can be used for caching or temporary file creation.

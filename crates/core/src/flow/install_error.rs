@@ -6,6 +6,7 @@ use crate::utils::archive::ProtoArchiveError;
 use crate::utils::process::ProtoProcessError;
 use starbase_styles::{Style, Stylize, apply_style_tags};
 use starbase_utils::fs::FsError;
+use starbase_utils::hash::HashError;
 use starbase_utils::net::NetError;
 use std::path::PathBuf;
 use thiserror::Error;
@@ -32,6 +33,10 @@ pub enum ProtoInstallError {
     #[diagnostic(transparent)]
     #[error(transparent)]
     Fs(#[from] Box<FsError>),
+
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Hash(#[from] Box<HashError>),
 
     #[diagnostic(transparent)]
     #[error(transparent)]
@@ -120,6 +125,12 @@ impl From<ProtoConfigError> for ProtoInstallError {
 impl From<FsError> for ProtoInstallError {
     fn from(e: FsError) -> ProtoInstallError {
         ProtoInstallError::Fs(Box::new(e))
+    }
+}
+
+impl From<HashError> for ProtoInstallError {
+    fn from(e: HashError) -> ProtoInstallError {
+        ProtoInstallError::Hash(Box::new(e))
     }
 }
 

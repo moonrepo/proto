@@ -25,14 +25,13 @@ clap = { workspace = true, optional = true }
 convert_case = "0.11.0"
 docker_credential = { workspace = true }
 dotenvy = "0.15.7"
-hex = { workspace = true }
 indexmap = { workspace = true }
 iocraft = { workspace = true }
 miette = { workspace = true }
 minisign-verify = "0.2.5"
+oci-client = { workspace = true }
 once_cell = { workspace = true }
 opentelemetry = { workspace = true, optional = true }
-oci-client = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true }
 rustc-hash = { workspace = true }
@@ -46,7 +45,6 @@ schematic = { workspace = true, features = [
     "type_url",
     "validate",
 ] }
-sha2 = { workspace = true }
 semver = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -56,7 +54,11 @@ starbase_console = { workspace = true, features = ["serde", "ui"] }
 starbase_sandbox = { workspace = true, optional = true }
 starbase_shell = { workspace = true }
 starbase_styles = { workspace = true }
-starbase_utils = { workspace = true, features = ["yaml"] }
+starbase_utils = { workspace = true, features = [
+    "hash",
+    "hash-base64",
+    "yaml",
+] }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 toml_edit = { workspace = true }

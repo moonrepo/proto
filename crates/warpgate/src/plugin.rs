@@ -1,11 +1,14 @@
-use crate::helpers::{from_virtual_path, hash_base64, sort_virtual_paths, to_virtual_path};
+use crate::helpers::{from_virtual_path, sort_virtual_paths, to_virtual_path};
 use crate::plugin_error::WarpgatePluginError;
 use extism::{Error, Function, Manifest, Plugin};
 use scc::hash_map::Entry;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use starbase_styles::{apply_style_tags, color};
-use starbase_utils::envx::{bool_var, is_ci};
+use starbase_utils::{
+    envx::{bool_var, is_ci},
+    hash,
+};
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, OnceLock};
@@ -175,7 +178,7 @@ impl PluginContainer {
     {
         let func = func.as_ref();
         let input = self.format_input(func, input)?;
-        let cache_key = format!("{func}-{}", hash_base64(&input));
+        let cache_key = format!("{func}-{}", hash::base64::from_bytes(&input));
 
         match self.func_cache.entry_async(cache_key).await {
             // Check if cache exists already

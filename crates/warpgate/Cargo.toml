@@ -11,11 +11,9 @@ rust-version = "1.91.0"
 system_env = { version = "0.10.0", path = "../system-env" }
 warpgate_api = { version = "0.17.4", path = "../warpgate-api" }
 async-trait = { workspace = true }
-base64 = "0.22.1"
 compact_str = { workspace = true }
 docker_credential = { workspace = true }
 extism = { workspace = true, features = ["http"] }
-hex = { workspace = true }
 http-cache-reqwest = { workspace = true }
 miette = { workspace = true, optional = true }
 oci-client = { workspace = true }
@@ -34,11 +32,16 @@ schematic = { workspace = true, optional = true, features = ["schema"] }
 scc = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-sha2 = { workspace = true }
 starbase_archive = { workspace = true }
 starbase_shell = { workspace = true }
 starbase_styles = { workspace = true }
-starbase_utils = { workspace = true, features = ["fs-lock", "glob", "net"] }
+starbase_utils = { workspace = true, features = [
+	"fs-lock",
+	"glob",
+	"hash",
+	"hash-base64",
+	"net",
+] }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }

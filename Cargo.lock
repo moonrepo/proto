@@ -3512,7 +3512,6 @@ dependencies = [
  "convert_case 0.11.0",
  "docker_credential",
  "dotenvy",
- "hex",
  "indexmap",
  "iocraft",
  "miette 7.6.0",
@@ -3531,7 +3530,6 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
- "sha2 0.11.0",
  "shell-words",
  "starbase_archive",
  "starbase_console",
@@ -4924,12 +4922,14 @@ dependencies = [
 
 [[package]]
 name = "starbase_utils"
-version = "0.13.7"
+version = "0.13.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12ccf74b16b45ef15b408d5e55376104b4300a5f395333adad986c83674621ee"
+checksum = "6f8804a32cd7c654c3321022fc1b05314d7d2fbf6781f8d19d6e4c97488cffd8"
 dependencies = [
  "async-trait",
+ "base64 0.22.1",
  "dirs",
+ "hex",
  "json-strip-comments",
  "jwalk",
  "miette 7.6.0",
@@ -4938,6 +4938,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_norway",
+ "sha2 0.11.0",
  "starbase_styles",
  "thiserror 2.0.18",
  "tokio",
@@ -5837,11 +5838,9 @@ name = "warpgate"
 version = "0.32.4"
 dependencies = [
  "async-trait",
- "base64 0.22.1",
  "compact_str 0.9.1",
  "docker_credential",
  "extism",
- "hex",
  "http-cache-reqwest",
  "miette 7.6.0",
  "oci-client",
@@ -5856,7 +5855,6 @@ dependencies = [
  "schematic",
  "serde",
  "serde_json",
- "sha2 0.11.0",
  "starbase_archive",
  "starbase_sandbox",
  "starbase_shell",
