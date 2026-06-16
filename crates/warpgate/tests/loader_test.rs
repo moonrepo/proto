@@ -3,7 +3,7 @@ use base64::prelude::BASE64_STANDARD;
 use starbase_sandbox::{Sandbox, create_empty_sandbox, locate_fixture};
 use starbase_utils::fs;
 use std::path::PathBuf;
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 use warpgate::{
     DataLocator, FileLocator, GitHubLocator, Id, PluginLoader, PluginLocator, RegistryConfig,
     RegistryLocator, UrlLocator, hash_sha256,
@@ -94,6 +94,47 @@ mod loader {
             let mtime2 = path2.metadata().unwrap().modified().unwrap();
 
             assert_eq!(mtime1, mtime2);
+        }
+
+        #[tokio::test]
+        async fn refreshes_stale_cache_file() {
+            let (_sandbox, mut loader) = create_loader();
+            let bytes = b"fresh-plugin-payload".to_vec();
+            let hash = hash_sha256(&bytes);
+            let cache_path = loader.create_cache_path(&Id::raw("test"), &hash, "wasm", false);
+
+            fs::create_dir_all(cache_path.parent().unwrap()).unwrap();
+            fs::write_file(&cache_path, b"stale-plugin-payload").unwrap();
+
+            let stale_time = SystemTime::now() - Duration::from_secs(60 * 60 * 24 * 31);
+            std::fs::OpenOptions::new()
+                .write(true)
+                .open(&cache_path)
+                .unwrap()
+                .set_modified(stale_time)
+                .unwrap();
+
+            loader.set_cache_duration(Duration::from_secs(60 * 60 * 24 * 30));
+
+            let result = loader
+                .load_plugin(
+                    Id::raw("test"),
+                    PluginLocator::Data(Box::new(DataLocator {
+                        data: String::new(),
+                        bytes: Some(bytes.clone()),
+                    })),
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(result, cache_path);
+            assert_eq!(fs::read_file_bytes(&cache_path).unwrap(), bytes);
+
+            let refreshed_mtime = cache_path.metadata().unwrap().modified().unwrap();
+            assert!(
+                refreshed_mtime > stale_time,
+                "expected stale cache mtime to be refreshed",
+            );
         }
 
         // Concurrent calls with the same blob data must all resolve to the same

@@ -261,6 +261,9 @@ impl PluginLoader {
             trace!(id = id.as_str(), path = ?path, "Plugin already acquired and cached");
         } else {
             trace!(id = id.as_str(), path = ?path, "Plugin cached but stale, re-acquiring");
+
+            // Remove it so that subsequent checks don't cache hit
+            let _ = fs::remove_file(path);
         }
 
         Ok(cached)
@@ -326,7 +329,7 @@ impl PluginLoader {
                 if lock_path.exists()
                     && let Ok(lock_file) = fs::open_file(&lock_path)
                 {
-                    let _ = fs::acquire_exclusive_lock(lock_path, &lock_file)?;
+                    fs::acquire_exclusive_lock(lock_path, &lock_file)?;
                 }
 
                 return Ok(cache_path);
