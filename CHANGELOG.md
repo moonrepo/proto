@@ -19,7 +19,7 @@
 
 #### 🚀 Updates
 
-- Added macOS `.pkg` support for downloaded pre-builts.
+- Added macOS `.pkg` and `.dmg` support for downloaded pre-builts.
 - Added a new global `--reporter` option, and `PROTO_REPORTER` environment variable, for changing how proto prints command output. Supported reporters are `text` (default), `json`, and `ndjson`.
 - Added automatic [NDJSON output](https://ndjson.com/) for detected AI agents and bots, making proto easier to consume from automated workflows.
 - Added OpenTelemetry (OTEL) support for exporting traces, logs, and metrics over OTLP.

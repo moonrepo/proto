@@ -6,8 +6,11 @@ use starbase_utils::fs::FsError;
 use starbase_utils::net::{DownloadOptions, NetError};
 use starbase_utils::{fs, net};
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 use thiserror::Error;
 use tokio::process::Command;
+use tokio::time::sleep;
+use tracing::trace;
 use warpgate::extract_file_name_from_url;
 
 #[derive(Error, Debug, miette::Diagnostic)]
@@ -32,13 +35,21 @@ pub enum ProtoArchiveError {
     #[error("Unable to find a payload in macOS package {}.", .path.style(Style::Path))]
     MissingPkgPayload { path: PathBuf },
 
-    #[diagnostic(code(proto::archive::missing_pkg_contents))]
+    #[diagnostic(code(proto::archive::missing_dmg_volume))]
+    #[error("Unable to find a mounted volume for macOS disk image {}.", .path.style(Style::Path))]
+    MissingDmgVolume { path: PathBuf },
+
+    #[diagnostic(code(proto::archive::missing_contents))]
     #[error(
-        "Unable to extract contents from macOS package {}, using directory prefix {}.",
+        "Unable to extract contents from {format} {}, using directory prefix {}.",
         .path.style(Style::Path),
         .prefix.style(Style::Label)
     )]
-    MissingPkgContents { path: PathBuf, prefix: String },
+    MissingArchiveContents {
+        format: String,
+        path: PathBuf,
+        prefix: String,
+    },
 }
 
 impl From<ArchiveError> for ProtoArchiveError {
@@ -139,6 +150,11 @@ pub async fn unpack(
 
             Ok(("pkg".into(), target_dir.to_path_buf()))
         }
+        Some(ext) if ext.eq_ignore_ascii_case("dmg") => {
+            unpack_dmg(target_dir, temp_dir, archive_file, prefix).await?;
+
+            Ok(("dmg".into(), target_dir.to_path_buf()))
+        }
         _ => {
             let mut archiver = Archiver::new(target_dir, archive_file);
 
@@ -182,7 +198,7 @@ async fn unpack_pkg(
             });
         }
 
-        copy_extracted_contents(&payload_dir, target_dir, prefix)
+        copy_extracted_contents("macOS package", &payload_dir, target_dir, prefix)
     }
     .await;
 
@@ -191,7 +207,99 @@ async fn unpack_pkg(
     result
 }
 
+async fn unpack_dmg(
+    target_dir: &Path,
+    temp_dir: &Path,
+    archive_file: &Path,
+    prefix: Option<&str>,
+) -> Result<(), ProtoArchiveError> {
+    let mount_dir = temp_dir.join("dmg");
+
+    fs::create_dir_all(temp_dir)?;
+
+    // Remove mount dir if it exists
+    fs::remove_dir_all(&mount_dir)?;
+
+    let result = async {
+        attach_dmg(archive_file, &mount_dir).await?;
+
+        if !mount_dir.exists() {
+            return Err(ProtoArchiveError::MissingDmgVolume {
+                path: mount_dir.to_path_buf(),
+            });
+        }
+
+        copy_extracted_contents("macOS disk image", &mount_dir, target_dir, prefix)
+    }
+    .await;
+
+    // Always detach the volume, even if extracting the contents failed
+    let _ = detach_dmg(&mount_dir).await;
+    let _ = fs::remove_dir_all(&mount_dir);
+
+    result
+}
+
+async fn attach_dmg(archive_file: &Path, mount_dir: &Path) -> Result<(), ProtoArchiveError> {
+    // macOS DiskArbitration only permits a limited number of concurrent attach
+    // operations. When proto installs multiple tools in parallel, `hdiutil attach`
+    // can transiently fail with "Resource temporarily unavailable", so retry a
+    // handful of times with a backoff before giving up.
+    let max_attempts = 5;
+    let mut attempt = 1;
+
+    loop {
+        let result = handle_exec(
+            exec_command_piped(
+                Command::new("hdiutil")
+                    .arg("attach")
+                    .arg(archive_file)
+                    .arg("-nobrowse")
+                    .arg("-readonly")
+                    .arg("-noautoopen")
+                    .arg("-mountpoint")
+                    .arg(mount_dir),
+            )
+            .await?,
+        );
+
+        match result {
+            Ok(_) => return Ok(()),
+            Err(error) => {
+                if attempt >= max_attempts {
+                    return Err(error.into());
+                }
+
+                trace!(
+                    archive = ?archive_file,
+                    attempt,
+                    error = error.to_string(),
+                    "Failed to attach macOS disk image, retrying",
+                );
+
+                sleep(Duration::from_millis(250 * attempt)).await;
+                attempt += 1;
+            }
+        }
+    }
+}
+
+async fn detach_dmg(mount_dir: &Path) -> Result<(), ProtoArchiveError> {
+    handle_exec(
+        exec_command_piped(
+            Command::new("hdiutil")
+                .arg("detach")
+                .arg(mount_dir)
+                .arg("-force"),
+        )
+        .await?,
+    )?;
+
+    Ok(())
+}
+
 fn copy_extracted_contents(
+    format: &str,
     source_dir: &Path,
     target_dir: &Path,
     prefix: Option<&str>,
@@ -202,7 +310,8 @@ fn copy_extracted_contents(
     };
 
     if !source.exists() {
-        return Err(ProtoArchiveError::MissingPkgContents {
+        return Err(ProtoArchiveError::MissingArchiveContents {
+            format: format.into(),
             path: source_dir.to_path_buf(),
             prefix: prefix.unwrap_or("N/A").into(),
         });
@@ -220,6 +329,16 @@ mod tests {
     use super::*;
     use starbase_sandbox::{Sandbox, create_empty_sandbox};
     use std::process::{Command as StdCommand, Stdio};
+    use std::sync::OnceLock;
+    use tokio::sync::Mutex;
+
+    // hdiutil/DiskArbitration serializes attach operations and transiently fails
+    // under concurrency, and `create_dmg` drives it as well, so run the disk image
+    // tests one at a time to keep them deterministic.
+    fn dmg_test_lock() -> &'static Mutex<()> {
+        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+        LOCK.get_or_init(|| Mutex::new(()))
+    }
 
     fn has_macos_pkg_tools() -> bool {
         ["pkgbuild", "pkgutil"].into_iter().all(|bin| {
@@ -230,6 +349,15 @@ mod tests {
                 .status()
                 .is_ok_and(|status| status.success())
         })
+    }
+
+    fn has_macos_dmg_tools() -> bool {
+        StdCommand::new("which")
+            .arg("hdiutil")
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()
+            .is_ok_and(|status| status.success())
     }
 
     fn create_pkg(sandbox: &Sandbox, name: &str, files: &[(&str, &str, bool)]) -> PathBuf {
@@ -349,5 +477,113 @@ mod tests {
             "https://example.com/proto-tool.pkg"
         );
         assert!(!temp_dir.join("pkg").exists());
+    }
+
+    fn create_dmg(sandbox: &Sandbox, name: &str, files: &[(&str, &str, bool)]) -> PathBuf {
+        let root = sandbox.path().join(format!("{name}-root"));
+
+        for (relative_path, contents, executable) in files {
+            let file = root.join(relative_path);
+
+            fs::create_dir_all(file.parent().unwrap()).unwrap();
+            fs::write_file(&file, contents).unwrap();
+
+            #[cfg(unix)]
+            if *executable {
+                fs::update_perms(&file, Some(0o755)).unwrap();
+            }
+        }
+
+        let image = sandbox.path().join(format!("{name}.dmg"));
+        let output = StdCommand::new("hdiutil")
+            .arg("create")
+            .arg("-volname")
+            .arg(name)
+            .arg("-srcfolder")
+            .arg(&root)
+            .arg("-format")
+            .arg("UDZO")
+            .arg("-ov")
+            .arg(&image)
+            .output()
+            .unwrap();
+
+        assert!(
+            output.status.success(),
+            "hdiutil create failed:\nstdout:\n{}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+
+        image
+    }
+
+    #[tokio::test]
+    async fn unpacks_dmg_volume_with_prefix() {
+        if !has_macos_dmg_tools() {
+            return;
+        }
+
+        let _guard = dmg_test_lock().lock().await;
+        let sandbox = create_empty_sandbox();
+        let target_dir = sandbox.path().join("target");
+        let temp_dir = sandbox.path().join("temp");
+        let image = create_dmg(
+            &sandbox,
+            "prefixed",
+            &[
+                ("swift/bin/swift", "#!/bin/sh\n", true),
+                ("swift/lib/libswift.dylib", "library", false),
+            ],
+        );
+
+        fs::create_dir_all(&target_dir).unwrap();
+
+        let (ext, unpacked_path) = unpack(&target_dir, &temp_dir, &image, Some("swift"))
+            .await
+            .unwrap();
+
+        assert_eq!(ext, "dmg");
+        assert_eq!(unpacked_path, target_dir);
+        assert!(target_dir.join("bin/swift").is_file());
+        assert!(target_dir.join("lib/libswift.dylib").is_file());
+        assert!(!target_dir.join("swift").exists());
+        assert!(!temp_dir.join("dmg").exists());
+    }
+
+    #[tokio::test]
+    async fn unpack_source_writes_archive_url_for_dmg() {
+        if !has_macos_dmg_tools() {
+            return;
+        }
+
+        let _guard = dmg_test_lock().lock().await;
+        let sandbox = create_empty_sandbox();
+        let target_dir = sandbox.path().join("target");
+        let temp_dir = sandbox.path().join("temp");
+        let image = create_dmg(
+            &sandbox,
+            "source",
+            &[("bin/proto-tool", "#!/bin/sh\n", true)],
+        );
+        let source = ArchiveSource {
+            url: "https://example.com/proto-tool.dmg".into(),
+            prefix: Some("bin".into()),
+        };
+
+        fs::create_dir_all(&target_dir).unwrap();
+
+        let (ext, unpacked_path) = unpack_source(&source, &target_dir, &temp_dir, &image)
+            .await
+            .unwrap();
+
+        assert_eq!(ext, "dmg");
+        assert_eq!(unpacked_path, target_dir);
+        assert!(target_dir.join("proto-tool").is_file());
+        assert_eq!(
+            fs::read_file(target_dir.join(".archive-url")).unwrap(),
+            "https://example.com/proto-tool.dmg"
+        );
+        assert!(!temp_dir.join("dmg").exists());
     }
 }
