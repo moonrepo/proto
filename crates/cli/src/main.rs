@@ -87,8 +87,8 @@ async fn main() -> MainResult {
         session.cli_version
     );
 
-    let result = app
-        .run(session.clone(), |session| async {
+    let mut outcome = app
+        .run(session.clone(), |session: ProtoSession| async {
             match session.cli.command.clone() {
                 Commands::Activate(args) => commands::activate(session, args).await,
                 Commands::Alias(args) => commands::alias(session, args).await,
@@ -127,22 +127,23 @@ async fn main() -> MainResult {
         })
         .await;
 
-    match result {
-        Ok(exit_code) => Ok(ExitCode::from(exit_code)),
-        Err(error) => {
-            // If NDJSON format, we must print the error as JSON so
-            // that it parses correctly by the consumer!
-            if session.cli.reporter == ReporterFormat::Ndjson {
-                session.console.main_error(error.to_string())?;
-                session.console.out.flush()?;
+    if let Some(error) = outcome.error {
+        // If NDJSON format, we must print the error as JSON so
+        // that it parses correctly by the consumer!
+        if session.cli.reporter == ReporterFormat::Ndjson {
+            session.console.main_error(error.to_string())?;
+            session.console.out.flush()?;
 
-                Ok(ExitCode::from(1))
-            }
-            // Otherwise bubble up the error so that miette renders
-            // it nicely for the user using the fancy output!
-            else {
-                Err(error)
+            if outcome.exit_code == 0 {
+                outcome.exit_code = 1;
             }
         }
+        // Otherwise bubble up the error so that miette renders
+        // it nicely for the user using the fancy output!
+        else {
+            return Err(error);
+        }
     }
+
+    Ok(ExitCode::from(outcome.exit_code))
 }

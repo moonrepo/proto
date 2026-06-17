@@ -1,5 +1,5 @@
 use crate::error::ProtoCliError;
-use crate::session::{LoadToolOptions, ProtoSession};
+use crate::session::{LoadToolOptions, ProtoSession, SessionResult};
 use clap::Args;
 use iocraft::prelude::{Size, element};
 use miette::IntoDiagnostic;
@@ -9,7 +9,6 @@ use proto_core::{
 };
 use semver::VersionReq;
 use serde::Serialize;
-use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_styles::color;
 use std::collections::BTreeMap;
@@ -56,7 +55,7 @@ fn get_in_major_range(spec: &UnresolvedVersionSpec) -> UnresolvedVersionSpec {
 }
 
 #[instrument(skip(session))]
-pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
+pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> SessionResult {
     debug!("Determining outdated tools based on config...");
 
     let tools = session

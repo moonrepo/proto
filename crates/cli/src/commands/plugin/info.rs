@@ -1,5 +1,5 @@
 use crate::components::*;
-use crate::session::{LoadToolOptions, ProtoSession};
+use crate::session::{LoadToolOptions, ProtoSession, SessionResult};
 use clap::Args;
 use iocraft::prelude::element;
 use proto_core::flow::locate::Locator as LocatorFlow;
@@ -8,7 +8,6 @@ use proto_core::{
     flow::locate::ExecutableLocation,
 };
 use serde::Serialize;
-use starbase::AppResult;
 use starbase_console::ui::*;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -38,7 +37,7 @@ pub struct PluginInfoArgs {
 }
 
 #[instrument(skip(session))]
-pub async fn info(session: ProtoSession, args: PluginInfoArgs) -> AppResult {
+pub async fn info(session: ProtoSession, args: PluginInfoArgs) -> SessionResult {
     let global_config = session.load_config_with_mode(ConfigMode::Global)?;
     let context = ToolContext::new(args.id.clone());
 

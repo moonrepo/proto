@@ -1,14 +1,13 @@
 use crate::commands::install::{InstallArgs, install_one};
 use crate::error::ProtoCliError;
 use crate::helpers::fetch_latest_version;
-use crate::session::ProtoSession;
+use crate::session::{ProtoSession, SessionResult};
 use crate::telemetry::{Metric, track_usage};
 use clap::Args;
 use iocraft::prelude::element;
 use proto_core::{Id, PROTO_PLUGIN_KEY, SemVer, ToolContext, UnresolvedVersionSpec, is_offline};
 use semver::Version;
 use serde::Serialize;
-use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_styles::color;
 use starbase_utils::{fs, fs::FsError, path};
@@ -35,7 +34,7 @@ struct UpgradeOutput {
 }
 
 #[instrument(skip(session))]
-pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
+pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> SessionResult {
     if is_offline() {
         return Err(ProtoCliError::UpgradeRequiresInternet.into());
     }

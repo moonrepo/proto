@@ -2,6 +2,7 @@
 
 use starbase_styles::{Style, Stylize};
 use starbase_utils::fs::FsError;
+use starbase_utils::hash::HashError;
 use std::path::PathBuf;
 use thiserror::Error;
 
@@ -22,7 +23,7 @@ pub enum ProtoChecksumError {
     #[error("Failed to verify SHA checksum.")]
     Sha {
         #[source]
-        error: Box<FsError>,
+        error: Box<HashError>,
     },
 
     #[diagnostic(code(proto::checksum::missing_hash))]

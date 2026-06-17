@@ -1,7 +1,5 @@
 use crate::clients::*;
-use crate::helpers::{
-    download_from_url_to_file, extract_file_name_from_url, hash_sha256, move_or_unpack_file,
-};
+use crate::helpers::{download_from_url_to_file, extract_file_name_from_url, move_or_unpack_file};
 use crate::loader_error::WarpgateLoaderError;
 use crate::protocols::{
     DataLoader, FileLoader, GitHubLoader, HttpLoader, LoadFrom, LoaderProtocol, OciLoader,
@@ -11,7 +9,7 @@ use once_cell::sync::OnceCell;
 use starbase_styles::color;
 use starbase_utils::fs::{self, FileLock};
 use starbase_utils::net::DownloadOptions;
-use starbase_utils::path;
+use starbase_utils::{hash, path};
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -196,7 +194,7 @@ impl PluginLoader {
                 self.check_cache_or_save(
                     id,
                     &**data,
-                    hash_sha256(data.bytes.as_deref().unwrap_or(data.data.as_bytes())),
+                    hash::sha256::from_bytes(data.bytes.as_deref().unwrap_or(data.data.as_bytes())),
                     || self.get_data_loader(),
                 )
                 .await
@@ -215,21 +213,27 @@ impl PluginLoader {
                 }
             }
             PluginLocator::GitHub(github) => {
-                self.check_cache_or_save(id, &**github, hash_sha256(locator.to_string()), || {
-                    self.get_github_loader()
-                })
+                self.check_cache_or_save(
+                    id,
+                    &**github,
+                    hash::sha256::from_bytes(locator.to_string()),
+                    || self.get_github_loader(),
+                )
                 .await
             }
             PluginLocator::Url(url) => {
-                self.check_cache_or_save(id, &**url, hash_sha256(&url.url), || {
+                self.check_cache_or_save(id, &**url, hash::sha256::from_bytes(&url.url), || {
                     self.get_http_loader()
                 })
                 .await
             }
             PluginLocator::Registry(registry) => {
-                self.check_cache_or_save(id, &**registry, hash_sha256(locator.to_string()), || {
-                    self.get_oci_loader()
-                })
+                self.check_cache_or_save(
+                    id,
+                    &**registry,
+                    hash::sha256::from_bytes(locator.to_string()),
+                    || self.get_oci_loader(),
+                )
                 .await
             }
         }

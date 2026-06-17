@@ -1,12 +1,13 @@
-use base64::Engine;
-use base64::prelude::BASE64_STANDARD;
 use starbase_sandbox::{Sandbox, create_empty_sandbox, locate_fixture};
-use starbase_utils::fs;
+use starbase_utils::{
+    fs,
+    hash::{self, base64::native::prelude::*},
+};
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
 use warpgate::{
     DataLocator, FileLocator, GitHubLocator, Id, PluginLoader, PluginLocator, RegistryConfig,
-    RegistryLocator, UrlLocator, hash_sha256,
+    RegistryLocator, UrlLocator,
 };
 
 // A pinned, stable .wasm release to use across URL-based tests.
@@ -28,7 +29,12 @@ fn create_loader_with_registries(registries: Vec<RegistryConfig>) -> (Sandbox, P
 
 // Returns the expected cache path for a URL download with id="test".
 fn url_cache_path(loader: &PluginLoader, url: &str) -> PathBuf {
-    loader.create_cache_path(&Id::raw("test"), &hash_sha256(url), "wasm", false)
+    loader.create_cache_path(
+        &Id::raw("test"),
+        &hash::sha256::from_bytes(url),
+        "wasm",
+        false,
+    )
 }
 
 mod loader {
@@ -100,7 +106,7 @@ mod loader {
         async fn refreshes_stale_cache_file() {
             let (_sandbox, mut loader) = create_loader();
             let bytes = b"fresh-plugin-payload".to_vec();
-            let hash = hash_sha256(&bytes);
+            let hash = hash::sha256::from_bytes(&bytes);
             let cache_path = loader.create_cache_path(&Id::raw("test"), &hash, "wasm", false);
 
             fs::create_dir_all(cache_path.parent().unwrap()).unwrap();
@@ -172,7 +178,7 @@ mod loader {
             loader.add_extensions(vec!["toml".into()]);
 
             let bytes = b"fake-plugin-payload".to_vec();
-            let hash = hash_sha256(&bytes);
+            let hash = hash::sha256::from_bytes(&bytes);
 
             let toml_path = loader.create_cache_path(&Id::raw("test"), &hash, "toml", false);
             fs::create_dir_all(toml_path.parent().unwrap()).unwrap();
@@ -203,7 +209,7 @@ mod loader {
             loader.add_extensions(vec!["toml".into()]);
 
             let bytes = b"fake-plugin-payload".to_vec();
-            let hash = hash_sha256(&bytes);
+            let hash = hash::sha256::from_bytes(&bytes);
 
             let wasm_path = loader.create_cache_path(&Id::raw("test"), &hash, "wasm", false);
             let toml_path = loader.create_cache_path(&Id::raw("test"), &hash, "toml", false);
@@ -231,7 +237,7 @@ mod loader {
             // Default extensions: ["wasm"]
 
             let bytes = b"fake-plugin-payload".to_vec();
-            let hash = hash_sha256(&bytes);
+            let hash = hash::sha256::from_bytes(&bytes);
 
             let toml_path = loader.create_cache_path(&Id::raw("test"), &hash, "toml", false);
             fs::create_dir_all(toml_path.parent().unwrap()).unwrap();
@@ -526,7 +532,7 @@ mod loader {
             let temp_url_dir = sandbox
                 .path()
                 .join("temp")
-                .join(hash_sha256(SYSTEM_TOOLCHAIN_URL));
+                .join(hash::sha256::from_bytes(SYSTEM_TOOLCHAIN_URL));
 
             if temp_url_dir.exists() {
                 let leftover: Vec<_> = temp_url_dir
@@ -633,7 +639,7 @@ mod loader {
                 project_name: None,
             }));
 
-            let hash = hash_sha256(locator.to_string());
+            let hash = hash::sha256::from_bytes(locator.to_string());
             let cache_path = loader.create_cache_path(&Id::raw("test"), &hash, "wasm", false);
             fs::create_dir_all(cache_path.parent().unwrap()).unwrap();
             fs::write_file(&cache_path, b"\0asm fake wasm").unwrap();
@@ -873,7 +879,7 @@ mod loader {
                 Some("v0.0.0-bogus"),
             );
 
-            let hash = hash_sha256(locator.to_string());
+            let hash = hash::sha256::from_bytes(locator.to_string());
             let toml_path = loader.create_cache_path(&Id::raw("test"), &hash, "toml", false);
             fs::create_dir_all(toml_path.parent().unwrap()).unwrap();
             fs::write_file(&toml_path, b"# fake toml plugin").unwrap();
@@ -947,7 +953,7 @@ mod loader {
             let id = Id::raw("test");
 
             let bytes = b"plugin-payload".to_vec();
-            let hash = hash_sha256(&bytes);
+            let hash = hash::sha256::from_bytes(&bytes);
 
             // Pre-populate the cache so `is_cached` is true and the loader takes
             // the wait-on-lock branch instead of downloading.
@@ -1063,7 +1069,7 @@ mod loader {
             let id = Id::raw("test");
 
             let bytes = b"plugin-payload".to_vec();
-            let hash = hash_sha256(&bytes);
+            let hash = hash::sha256::from_bytes(&bytes);
 
             loader
                 .load_plugin(id.clone(), make_locator(bytes))

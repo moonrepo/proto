@@ -7,6 +7,7 @@ use starbase_archive::ArchiveError;
 use starbase_styles::{Style, Stylize};
 use starbase_utils::fs::FsError;
 use starbase_utils::glob::GlobError;
+use starbase_utils::hash::base64::native::DecodeError;
 use starbase_utils::net::NetError;
 use std::path::PathBuf;
 use thiserror::Error;
@@ -149,7 +150,7 @@ pub enum WarpgateLoaderError {
     #[error("Failed to decode base64 data for plugin.")]
     Base64DecodeError {
         #[source]
-        error: Box<base64::DecodeError>,
+        error: Box<DecodeError>,
     },
 }
 

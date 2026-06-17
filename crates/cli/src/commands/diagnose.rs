@@ -1,11 +1,10 @@
 use crate::components::{Issue, IssuesList};
 use crate::error::ProtoCliError;
 use crate::helpers::fetch_latest_version;
-use crate::session::ProtoSession;
+use crate::session::{ProtoSession, SessionResult};
 use clap::Args;
 use iocraft::prelude::{FlexDirection, View, element};
 use serde::Serialize;
-use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_shell::ShellType;
 use starbase_utils::envx;
@@ -29,7 +28,7 @@ struct DiagnoseOutput {
 }
 
 #[instrument(skip(session))]
-pub async fn diagnose(session: ProtoSession, args: DiagnoseArgs) -> AppResult {
+pub async fn diagnose(session: ProtoSession, args: DiagnoseArgs) -> SessionResult {
     let shell_type = match args.shell {
         Some(value) => value,
         None => ShellType::try_detect()?,

@@ -24,6 +24,8 @@ use std::sync::Arc;
 use tokio::task::JoinSet;
 use tracing::{debug, instrument};
 
+pub type SessionResult = AppResult<miette::Report>;
+
 #[derive(Debug, Default)]
 pub struct LoadToolOptions {
     pub all: bool,
@@ -281,7 +283,9 @@ impl ProtoSession {
 
 #[async_trait]
 impl AppSession for ProtoSession {
-    async fn startup(&mut self) -> AppResult {
+    type Error = miette::Report;
+
+    async fn startup(&mut self) -> AppResult<Self::Error> {
         if self.cli.reporter == ReporterFormat::Ndjson && ai_env::is_ai_agent() {
             self.console.message("Detected an AI agent environment, printing as NDJSON. Trace logs are written to stderr, while user-facing logs are written to stdout.")?;
         }
@@ -291,13 +295,13 @@ impl AppSession for ProtoSession {
         Ok(None)
     }
 
-    async fn analyze(&mut self) -> AppResult {
+    async fn analyze(&mut self) -> AppResult<Self::Error> {
         load_proto_configs(&self.env)?;
 
         Ok(None)
     }
 
-    async fn execute(&mut self) -> AppResult {
+    async fn execute(&mut self) -> AppResult<Self::Error> {
         remove_proto_shims(&self.env)?;
         clean_proto_backups(&self.env)?;
 
@@ -308,7 +312,7 @@ impl AppSession for ProtoSession {
         Ok(None)
     }
 
-    async fn shutdown(&mut self) -> AppResult {
+    async fn shutdown(&mut self) -> AppResult<Self::Error> {
         if matches!(
             self.cli.command,
             Commands::Activate(_)

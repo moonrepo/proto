@@ -1,10 +1,9 @@
 use crate::components::CodeBlock;
-use crate::session::ProtoSession;
+use crate::session::{ProtoSession, SessionResult};
 use clap::Args;
 use iocraft::prelude::*;
 use proto_core::{ProtoConfig, ProtoConfigFile};
 use serde::Serialize;
-use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_utils::toml;
 use tracing::instrument;
@@ -22,7 +21,7 @@ struct DebugConfigOutput<'a> {
 }
 
 #[instrument(skip(session))]
-pub async fn config(session: ProtoSession, args: DebugConfigArgs) -> AppResult {
+pub async fn config(session: ProtoSession, args: DebugConfigArgs) -> SessionResult {
     let env = &session.env;
     let manager = env.load_file_manager()?;
     let config = env.load_config()?;

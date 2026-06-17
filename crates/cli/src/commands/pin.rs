@@ -1,4 +1,4 @@
-use crate::session::ProtoSession;
+use crate::session::{ProtoSession, SessionResult};
 use clap::Args;
 use proto_core::flow::resolve::Resolver;
 use proto_core::{
@@ -6,7 +6,6 @@ use proto_core::{
     reporter::NoticeOutput,
 };
 use proto_pdk_api::{PinVersionInput, PinVersionOutput, PluginFunction};
-use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_styles::encode_style_tags;
 use std::path::PathBuf;
@@ -55,7 +54,7 @@ pub async fn internal_pin(
 }
 
 #[instrument(skip(session))]
-pub async fn pin(session: ProtoSession, args: PinArgs) -> AppResult {
+pub async fn pin(session: ProtoSession, args: PinArgs) -> SessionResult {
     let mut spec = args.spec.clone();
     let tool = session.load_tool(&args.context).await?;
 

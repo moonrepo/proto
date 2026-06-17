@@ -14,13 +14,13 @@ use proto_pdk_api::*;
 use starbase_shell::{ShellType, join_exe_args};
 use starbase_styles::color;
 use starbase_utils::net::DownloadOptions;
-use starbase_utils::{fs, net, path};
+use starbase_utils::{fs, hash, net, path};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use system_env::System;
 use tokio::process::Command;
 use tracing::{debug, instrument, warn};
-use warpgate::{extract_file_name_from_url, hash_base64};
+use warpgate::extract_file_name_from_url;
 
 pub use starbase_utils::net::OnChunkFn;
 pub type OnPhaseFn = Arc<dyn Fn(InstallPhase) + Send + Sync>;
@@ -64,7 +64,9 @@ impl<'tool> Installer<'tool> {
     pub fn new(tool: &'tool Tool, spec: &'tool ToolSpec) -> Self {
         Self {
             product_dir: tool.get_product_dir(spec),
-            temp_dir: tool.get_temp_dir().join(hash_base64(spec.req.to_string())),
+            temp_dir: tool
+                .get_temp_dir()
+                .join(hash::base64::from_bytes(spec.req.to_string())),
             tool,
             spec,
         }

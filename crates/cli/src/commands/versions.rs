@@ -1,12 +1,11 @@
 use crate::components::create_datetime;
-use crate::session::{LoadToolOptions, ProtoSession};
+use crate::session::{LoadToolOptions, ProtoSession, SessionResult};
 use clap::Args;
 use indexmap::IndexMap;
 use iocraft::prelude::{View, element};
 use proto_core::{ToolContext, ToolSpec, VersionSpec};
 use semver::VersionReq;
 use serde::Serialize;
-use starbase::AppResult;
 use starbase_console::ui::*;
 use std::collections::BTreeMap;
 use tracing::{debug, instrument};
@@ -41,7 +40,7 @@ pub struct VersionsOutput {
 }
 
 #[instrument(skip(session))]
-pub async fn versions(session: ProtoSession, args: VersionsArgs) -> AppResult {
+pub async fn versions(session: ProtoSession, args: VersionsArgs) -> SessionResult {
     let tool = session
         .load_tool_with_options(
             &args.context,

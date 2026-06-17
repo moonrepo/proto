@@ -1,10 +1,9 @@
 use crate::error::ProtoCliError;
-use crate::session::ProtoSession;
+use crate::session::{ProtoSession, SessionResult};
 use clap::Args;
 use proto_core::{
     PinLocation, ProtoConfig, ToolContext, ToolSpec, UnresolvedVersionSpec, cfg, is_alias_name,
 };
-use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_styles::encode_style_tags;
 use tracing::instrument;
@@ -25,7 +24,7 @@ pub struct AliasArgs {
 }
 
 #[instrument(skip(session))]
-pub async fn alias(session: ProtoSession, args: AliasArgs) -> AppResult {
+pub async fn alias(session: ProtoSession, args: AliasArgs) -> SessionResult {
     if let UnresolvedVersionSpec::Alias(inner_alias) = &args.spec.req
         && args.alias == inner_alias
     {

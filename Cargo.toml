@@ -54,7 +54,7 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_json = { version = "1.0.150", features = ["preserve_order"] }
 sha2 = "0.11.0"
 shell-words = "1.1.1"
-starbase = { version = "0.11.4" }
+starbase = { version = "0.12.2", features = ["miette", "tracing"] }
 starbase_archive = { version = "0.13.2", features = [
     "gz",
     "miette",
@@ -67,7 +67,7 @@ starbase_id = { version = "0.3.3", features = ["miette", "schematic"] }
 starbase_sandbox = { version = "0.11.1" }
 starbase_shell = { version = "0.12.5", features = ["miette"] }
 starbase_styles = { version = "0.6.8" }
-starbase_utils = { version = "0.13.7", default-features = false, features = [
+starbase_utils = { version = "0.13.8", default-features = false, features = [
     "fs-lock",
     "json",
     "miette",

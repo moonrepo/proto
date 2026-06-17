@@ -1,6 +1,6 @@
 use crate::commands::install::{InstallArgs, install_one};
 use crate::error::ProtoCliError;
-use crate::session::ProtoSession;
+use crate::session::{ProtoSession, SessionResult};
 use crate::workflows::{ExecCommandOptions, ExecWorkflow, ExecWorkflowParams};
 use clap::Args;
 use miette::IntoDiagnostic;
@@ -14,7 +14,6 @@ use proto_core::{
 use proto_pdk_api::ExecutableConfig;
 use proto_shim::{exec_command_and_replace, locate_proto_exe};
 use rustc_hash::FxHashMap;
-use starbase::AppResult;
 use starbase_styles::color;
 use starbase_utils::{envx, path};
 use std::env;
@@ -207,7 +206,7 @@ fn run_global_tool(
 }
 
 #[instrument(skip(session))]
-pub async fn run(session: ProtoSession, mut args: RunArgs) -> AppResult {
+pub async fn run(session: ProtoSession, mut args: RunArgs) -> SessionResult {
     let tool = match session.load_tool(&args.context).await {
         Ok(tool) => tool,
         Err(ProtoLoaderError::UnknownTool { id }) => {

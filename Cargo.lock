@@ -2538,9 +2538,9 @@ checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
 name = "leb128"
-version = "0.2.6"
+version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6cc46bac87ef8093eed6f272babb833b6443374399985ac8ed28471ee0918545"
+checksum = "c83bff1d572d6b9aeef67ddfc8448e4a3737909cb28e81f97c791b9018703e52"
 
 [[package]]
 name = "leb128fmt"
@@ -3512,7 +3512,6 @@ dependencies = [
  "convert_case 0.11.0",
  "docker_credential",
  "dotenvy",
- "hex",
  "indexmap",
  "iocraft",
  "miette 7.6.0",
@@ -3531,7 +3530,6 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
- "sha2 0.11.0",
  "shell-words",
  "starbase_archive",
  "starbase_console",
@@ -4800,9 +4798,9 @@ checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
 
 [[package]]
 name = "starbase"
-version = "0.11.4"
+version = "0.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e9845c3cb12424f31c4aa65d55d55da77fff0c585c25962c99872fe51f268063"
+checksum = "5bcd5012790c6798415cd564bbe10ccfbe8949e9bc977a13b1ddaeb1ee2cdbc2"
 dependencies = [
  "async-trait",
  "chrono",
@@ -4812,6 +4810,7 @@ dependencies = [
  "opentelemetry-otlp",
  "opentelemetry_sdk",
  "starbase_styles",
+ "thiserror 2.0.18",
  "tokio",
  "tracing",
  "tracing-chrome",
@@ -4924,12 +4923,14 @@ dependencies = [
 
 [[package]]
 name = "starbase_utils"
-version = "0.13.7"
+version = "0.13.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12ccf74b16b45ef15b408d5e55376104b4300a5f395333adad986c83674621ee"
+checksum = "6f8804a32cd7c654c3321022fc1b05314d7d2fbf6781f8d19d6e4c97488cffd8"
 dependencies = [
  "async-trait",
+ "base64 0.22.1",
  "dirs",
+ "hex",
  "json-strip-comments",
  "jwalk",
  "miette 7.6.0",
@@ -4938,6 +4939,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_norway",
+ "sha2 0.11.0",
  "starbase_styles",
  "thiserror 2.0.18",
  "tokio",
@@ -5006,9 +5008,9 @@ checksum = "b7401a30af6cb5818bb64852270bb722533397edcfc7344954a38f420819ece2"
 
 [[package]]
 name = "syn"
-version = "2.0.117"
+version = "2.0.118"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e665b8803e7b1d2a727f4023456bbbbe74da67099c585258af0ad9c5013b9b99"
+checksum = "1b9ae57f904213ebb649ce6895b8a66c66f0203b9319718f69a5612a065b1422"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5837,11 +5839,9 @@ name = "warpgate"
 version = "0.32.4"
 dependencies = [
  "async-trait",
- "base64 0.22.1",
  "compact_str 0.9.1",
  "docker_credential",
  "extism",
- "hex",
  "http-cache-reqwest",
  "miette 7.6.0",
  "oci-client",
@@ -5856,7 +5856,6 @@ dependencies = [
  "schematic",
  "serde",
  "serde_json",
- "sha2 0.11.0",
  "starbase_archive",
  "starbase_sandbox",
  "starbase_shell",

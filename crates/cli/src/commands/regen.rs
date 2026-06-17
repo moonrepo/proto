@@ -1,8 +1,7 @@
-use crate::session::ProtoSession;
+use crate::session::{ProtoSession, SessionResult};
 use clap::Args;
 use proto_core::flow::link::Linker;
 use proto_core::flow::resolve::Resolver;
-use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_utils::fs;
 use tracing::{debug, instrument};
@@ -14,7 +13,7 @@ pub struct RegenArgs {
 }
 
 #[instrument(skip(session))]
-pub async fn regen(session: ProtoSession, args: RegenArgs) -> AppResult {
+pub async fn regen(session: ProtoSession, args: RegenArgs) -> SessionResult {
     let store = &session.env.store;
     let progress = session.render_progress_loader().await;
 

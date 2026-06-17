@@ -1,11 +1,10 @@
 use crate::error::ProtoCliError;
-use crate::session::{LoadToolOptions, ProtoSession};
+use crate::session::{LoadToolOptions, ProtoSession, SessionResult};
 use clap::Args;
 use iocraft::prelude::Size;
 use proto_core::flow::resolve::Resolver;
 use proto_core::{ToolContext, ToolSpec, VersionSpec};
 use serde::Serialize;
-use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_styles::encode_style_tags;
 use std::collections::BTreeMap;
@@ -25,7 +24,7 @@ struct StatusItem {
 pub struct StatusArgs {}
 
 #[instrument(skip(session))]
-pub async fn status(session: ProtoSession, _args: StatusArgs) -> AppResult {
+pub async fn status(session: ProtoSession, _args: StatusArgs) -> SessionResult {
     debug!("Determining active tools based on config...");
 
     let mut items = BTreeMap::<ToolContext, StatusItem>::default();
