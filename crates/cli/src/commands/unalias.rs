@@ -1,7 +1,6 @@
-use crate::session::ProtoSession;
+use crate::session::{ProtoSession, SessionResult};
 use clap::Args;
 use proto_core::{PinLocation, ProtoConfig, ToolContext};
-use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_styles::encode_style_tags;
 use tracing::instrument;
@@ -19,7 +18,7 @@ pub struct UnaliasArgs {
 }
 
 #[instrument(skip(session))]
-pub async fn unalias(session: ProtoSession, args: UnaliasArgs) -> AppResult {
+pub async fn unalias(session: ProtoSession, args: UnaliasArgs) -> SessionResult {
     let tool = session.load_tool(&args.context).await?;
     let mut value = None;
 

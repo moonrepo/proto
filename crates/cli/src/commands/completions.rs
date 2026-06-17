@@ -1,9 +1,8 @@
 use crate::app::App;
-use crate::session::ProtoSession;
+use crate::session::{ProtoSession, SessionResult};
 use clap::{Args, CommandFactory};
 use clap_complete::{Shell, generate};
 use clap_complete_nushell::Nushell;
-use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_shell::ShellType;
 use tracing::instrument;
@@ -15,7 +14,7 @@ pub struct CompletionsArgs {
 }
 
 #[instrument(skip(session))]
-pub async fn completions(session: ProtoSession, args: CompletionsArgs) -> AppResult {
+pub async fn completions(session: ProtoSession, args: CompletionsArgs) -> SessionResult {
     let shell = match args.shell {
         Some(value) => value,
         None => ShellType::try_detect()?,

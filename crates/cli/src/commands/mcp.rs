@@ -1,12 +1,11 @@
 use crate::mcp::ProtoMcp;
-use crate::session::ProtoSession;
+use crate::session::{ProtoSession, SessionResult};
 use clap::Args;
 use iocraft::prelude::element;
 use miette::IntoDiagnostic;
 use rmcp::model::InitializeResult;
 use rmcp::{ServerHandler, ServiceExt, transport::stdio};
 use serde::Serialize;
-use starbase::AppResult;
 use starbase_console::ui::*;
 use tracing::instrument;
 
@@ -27,7 +26,7 @@ pub struct McpOutput {
 }
 
 #[instrument(skip(session))]
-pub async fn mcp(session: ProtoSession, args: McpArgs) -> AppResult {
+pub async fn mcp(session: ProtoSession, args: McpArgs) -> SessionResult {
     let console = session.console.clone();
     let server = ProtoMcp::new(session.clone());
 

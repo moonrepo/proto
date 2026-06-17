@@ -1,8 +1,7 @@
-use crate::session::ProtoSession;
+use crate::session::{ProtoSession, SessionResult};
 use clap::Args;
 use proto_core::{PinLocation, ProtoConfig, ToolContext, reporter::NoticeOutput};
 use proto_pdk_api::{PluginFunction, UnpinVersionInput, UnpinVersionOutput};
-use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_styles::encode_style_tags;
 use tracing::instrument;
@@ -23,7 +22,7 @@ pub struct UnpinArgs {
 }
 
 #[instrument(skip(session))]
-pub async fn unpin(session: ProtoSession, args: UnpinArgs) -> AppResult {
+pub async fn unpin(session: ProtoSession, args: UnpinArgs) -> SessionResult {
     let tool = session.load_tool(&args.context).await?;
     let mut value = None;
     let config_dir = tool.proto.get_config_dir(args.from);

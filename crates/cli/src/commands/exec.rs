@@ -1,12 +1,11 @@
 use crate::error::ProtoCliError;
-use crate::session::{LoadToolOptions, ProtoSession};
+use crate::session::{LoadToolOptions, ProtoSession, SessionResult};
 use crate::workflows::{ExecCommandOptions, ExecWorkflow, ExecWorkflowParams};
 use clap::Args;
 use miette::IntoDiagnostic;
 use proto_core::{ToolContext, ToolSpec};
 use proto_shim::exec_command_and_replace;
 use rustc_hash::{FxHashMap, FxHashSet};
-use starbase::AppResult;
 use starbase_shell::ShellType;
 use tracing::instrument;
 
@@ -30,7 +29,7 @@ pub struct ExecArgs {
 }
 
 #[instrument(skip(session))]
-pub async fn exec(session: ProtoSession, args: ExecArgs) -> AppResult {
+pub async fn exec(session: ProtoSession, args: ExecArgs) -> SessionResult {
     if args.command.is_empty() {
         return Err(ProtoCliError::ExecMissingCommand.into());
     }

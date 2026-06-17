@@ -1,8 +1,7 @@
 use crate::error::ProtoCliError;
-use crate::session::ProtoSession;
+use crate::session::{ProtoSession, SessionResult};
 use clap::Args;
 use proto_core::{Id, PROTO_CONFIG_NAME, PinLocation, PluginType, ProtoConfig};
-use starbase::AppResult;
 use starbase_console::ui::*;
 use tracing::instrument;
 
@@ -19,7 +18,7 @@ pub struct PluginRemoveArgs {
 }
 
 #[instrument(skip(session))]
-pub async fn remove(session: ProtoSession, args: PluginRemoveArgs) -> AppResult {
+pub async fn remove(session: ProtoSession, args: PluginRemoveArgs) -> SessionResult {
     let config_dir = session.env.get_config_dir(args.from);
     let config_path = config_dir.join(PROTO_CONFIG_NAME);
 

@@ -1,10 +1,9 @@
-use crate::session::ProtoSession;
+use crate::session::{ProtoSession, SessionResult};
 use clap::Args;
 use iocraft::prelude::{FlexDirection, Size, Text, View, element};
 use proto_core::PluginLocator;
 use proto_core::registry::PluginFormat;
 use proto_core::reporter::NoticeOutput;
-use starbase::AppResult;
 use starbase_console::ui::*;
 use tracing::instrument;
 
@@ -15,7 +14,7 @@ pub struct PluginSearchArgs {
 }
 
 #[instrument(skip(session))]
-pub async fn search(session: ProtoSession, args: PluginSearchArgs) -> AppResult {
+pub async fn search(session: ProtoSession, args: PluginSearchArgs) -> SessionResult {
     let mut registry = session.create_registry();
     let plugins = registry.load_external_plugins().await?;
 

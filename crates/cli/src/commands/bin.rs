@@ -1,9 +1,8 @@
-use crate::session::{LoadToolOptions, ProtoSession};
+use crate::session::{LoadToolOptions, ProtoSession, SessionResult};
 use clap::{Args, ValueEnum};
 use proto_core::flow::locate::Locator;
 use proto_core::flow::resolve::Resolver;
 use proto_core::{ToolContext, ToolSpec};
-use starbase::AppResult;
 use tracing::instrument;
 
 #[derive(Clone, Debug, ValueEnum)]
@@ -38,7 +37,7 @@ pub struct BinArgs {
 }
 
 #[instrument(skip(session))]
-pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
+pub async fn bin(session: ProtoSession, args: BinArgs) -> SessionResult {
     let tool = session
         .load_tool_with_options(
             &args.context,

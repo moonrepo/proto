@@ -1,11 +1,10 @@
-use crate::session::{LoadToolOptions, ProtoSession};
+use crate::session::{LoadToolOptions, ProtoSession, SessionResult};
 use crate::workflows::{ExecWorkflow, ExecWorkflowParams};
 use clap::Args;
 use indexmap::IndexMap;
 use proto_core::{Id, PROTO_PLUGIN_KEY, ToolContext, UnresolvedVersionSpec};
 use rustc_hash::FxHashMap;
 use serde::Serialize;
-use starbase::AppResult;
 use starbase_shell::{Hook, ShellType};
 use starbase_utils::envx::is_test;
 use std::env;
@@ -39,7 +38,7 @@ pub struct ActivateArgs {
 }
 
 #[instrument(skip(session))]
-pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
+pub async fn activate(session: ProtoSession, args: ActivateArgs) -> SessionResult {
     // Detect the shell that we need to activate for
     let shell_type = match args.shell {
         Some(value) => value,

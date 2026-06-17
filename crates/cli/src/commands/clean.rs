@@ -1,5 +1,5 @@
 use crate::helpers::join_list;
-use crate::session::ProtoSession;
+use crate::session::{ProtoSession, SessionResult};
 use clap::{Args, ValueEnum};
 use iocraft::prelude::element;
 use proto_core::ToolSpec;
@@ -9,7 +9,6 @@ use proto_core::{PROTO_PLUGIN_KEY, Tool, VersionSpec, flow::resolve::ProtoResolv
 use proto_shim::get_exe_file_name;
 use rustc_hash::FxHashSet;
 use serde::Serialize;
-use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_console::utils::formats::format_bytes_binary;
 use starbase_styles::color;
@@ -355,7 +354,7 @@ pub async fn internal_clean(
 }
 
 #[instrument(skip(session))]
-pub async fn clean(session: ProtoSession, args: CleanArgs) -> AppResult {
+pub async fn clean(session: ProtoSession, args: CleanArgs) -> SessionResult {
     let result = internal_clean(&session, &args).await?;
 
     if session.is_json_format() {

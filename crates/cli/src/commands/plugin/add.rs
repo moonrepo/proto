@@ -1,7 +1,6 @@
-use crate::session::ProtoSession;
+use crate::session::{ProtoSession, SessionResult};
 use clap::Args;
 use proto_core::{Id, PinLocation, PluginLocator, PluginType, ProtoConfig, cfg};
-use starbase::AppResult;
 use starbase_console::ui::*;
 use tracing::instrument;
 
@@ -21,7 +20,7 @@ pub struct PluginAddArgs {
 }
 
 #[instrument(skip(session))]
-pub async fn add(session: ProtoSession, args: PluginAddArgs) -> AppResult {
+pub async fn add(session: ProtoSession, args: PluginAddArgs) -> SessionResult {
     let config_path = ProtoConfig::update_document(session.env.get_config_dir(args.to), |doc| {
         let key = if args.ty == PluginType::Backend {
             "backends"

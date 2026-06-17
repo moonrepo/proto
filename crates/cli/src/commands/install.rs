@@ -1,6 +1,6 @@
 use crate::error::ProtoCliError;
 use crate::helpers::join_list;
-use crate::session::{LoadToolOptions, ProtoSession};
+use crate::session::{LoadToolOptions, ProtoSession, SessionResult};
 use crate::utils::install_graph::*;
 use crate::utils::tool_record::ToolRecord;
 use crate::workflows::{InstallOutcome, InstallWorkflowManager, InstallWorkflowParams};
@@ -10,7 +10,6 @@ use proto_core::{
     ConfigMode, Id, PinLocation, Tool, ToolContext, ToolSpec, reporter::NoticeOutput,
 };
 use proto_pdk_api::{InstallStrategy, PluginFunction};
-use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_console::utils::formats::format_duration;
 use starbase_styles::color;
@@ -139,7 +138,7 @@ pub async fn install_one(
     session: ProtoSession,
     args: InstallArgs,
     context: ToolContext,
-) -> AppResult {
+) -> SessionResult {
     debug!(tool = context.as_str(), "Loading tool");
 
     let tool = session.load_tool(&context).await?;
@@ -251,7 +250,7 @@ pub async fn install_one(
 }
 
 #[instrument(skip(session))]
-async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
+async fn install_all(session: ProtoSession, args: InstallArgs) -> SessionResult {
     debug!("Loading all tools and detecting versions to install");
 
     let mut versions = BTreeMap::default();
@@ -468,7 +467,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
 }
 
 #[instrument(skip(session))]
-pub async fn install(session: ProtoSession, args: InstallArgs) -> AppResult {
+pub async fn install(session: ProtoSession, args: InstallArgs) -> SessionResult {
     match args.context.clone() {
         Some(context) => install_one(session, args, context).await,
         None => install_all(session, args).await,

@@ -1,5 +1,5 @@
 use crate::components::is_path_like;
-use crate::session::ProtoSession;
+use crate::session::{ProtoSession, SessionResult};
 use clap::Args;
 use indexmap::IndexMap;
 use iocraft::prelude::*;
@@ -7,7 +7,6 @@ use proto_core::get_proto_version;
 use proto_core::layout::Store;
 use proto_pdk_api::{HostArch, HostOS};
 use serde::Serialize;
-use starbase::AppResult;
 use starbase_console::ui::*;
 use std::collections::BTreeMap;
 use std::env;
@@ -37,7 +36,7 @@ struct EnvironmentInfo {
 }
 
 #[instrument(skip(session))]
-pub async fn env(session: ProtoSession, args: DebugEnvArgs) -> AppResult {
+pub async fn env(session: ProtoSession, args: DebugEnvArgs) -> SessionResult {
     let env = &session.env;
     let manager = env.load_file_manager()?;
 

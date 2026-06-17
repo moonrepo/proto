@@ -1,11 +1,10 @@
 use crate::components::{Locator, SpecAliasesMap, VersionsMap};
-use crate::session::{LoadToolOptions, ProtoSession};
+use crate::session::{LoadToolOptions, ProtoSession, SessionResult};
 use clap::Args;
 use iocraft::prelude::element;
 use proto_core::{ConfigMode, Id, PluginLocator, ProtoToolConfig, ToolContext, ToolManifest};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Serialize;
-use starbase::AppResult;
 use starbase_console::ui::*;
 use std::collections::BTreeMap;
 use tracing::instrument;
@@ -31,7 +30,7 @@ pub struct PluginListArgs {
 }
 
 #[instrument(skip(session))]
-pub async fn list(session: ProtoSession, args: PluginListArgs) -> AppResult {
+pub async fn list(session: ProtoSession, args: PluginListArgs) -> SessionResult {
     let global_config = session.load_config_with_mode(ConfigMode::Global)?;
 
     let mut tools = session

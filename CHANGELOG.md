@@ -25,6 +25,7 @@
 - Added OpenTelemetry (OTEL) support for exporting traces, logs, and metrics over OTLP.
   - Added `--otel`, `--otel-logs`, and `--otel-service-name` global options.
   - Added metrics for tool installs, install steps, tool uninstalls, and plugin loads.
+- Improved performance of checksum file hashing.
 - **WASM API**
   - Added `DownloadPrebuiltOutput.post_script_args` field, which allows plugins to specify a list of arguments to pass to the post-install script when executing it.
 
