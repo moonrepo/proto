@@ -131,6 +131,54 @@ mod bin_manager {
     }
 
     #[test]
+    fn removing_non_occupying_version_keeps_buckets() {
+        let v1 = VersionSpec::parse("1.2.3").unwrap();
+        let v2 = VersionSpec::parse("1.2.5").unwrap();
+
+        let mut bins = BinManager::default();
+        bins.add_version(&v1);
+        bins.add_version(&v2);
+
+        // v1 never occupies a bucket since v2 is higher in all shared buckets,
+        // so removing it should report no rebuild and leave buckets untouched.
+        assert!(!bins.remove_version(&v1));
+
+        assert_eq!(
+            bins.get_buckets(),
+            FxHashMap::from_iter([
+                (&"*".to_string(), &v2),
+                (&"1".to_string(), &v2),
+                (&"1.2".to_string(), &v2),
+            ])
+        );
+    }
+
+    #[test]
+    fn removing_head_reassigns_shared_buckets() {
+        let v1 = VersionSpec::parse("1.2.3").unwrap();
+        let v2 = VersionSpec::parse("1.2.5").unwrap();
+        let v3 = VersionSpec::parse("1.3.4").unwrap();
+
+        let mut bins = BinManager::default();
+        bins.add_version(&v1);
+        bins.add_version(&v2);
+        bins.add_version(&v3);
+
+        // Removing the head reassigns `*` and `1` to the next highest (1.2.5)
+        // and drops the now-empty `1.3` bucket.
+        assert!(bins.remove_version(&v3));
+
+        assert_eq!(
+            bins.get_buckets(),
+            FxHashMap::from_iter([
+                (&"*".to_string(), &v2),
+                (&"1".to_string(), &v2),
+                (&"1.2".to_string(), &v2),
+            ])
+        );
+    }
+
+    #[test]
     fn removing_rebuilds_buckets() {
         let v1 = VersionSpec::parse("1.2.3").unwrap();
         let v2 = VersionSpec::parse("1.3.4").unwrap();

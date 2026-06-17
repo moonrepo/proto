@@ -29,6 +29,10 @@
 - **WASM API**
   - Added `DownloadPrebuiltOutput.post_script_args` field, which allows plugins to specify a list of arguments to pass to the post-install script when executing it.
 
+#### 🐞 Fixes
+
+- Fixed an issue where uninstalling a tool by version may leave around a stale/dangling bin file in `~/.proto/bin`.
+
 #### ⚙️ Internal
 
 - Updated wasmtime to v43 (from 41).

@@ -1,6 +1,6 @@
 pub use super::locate_error::ProtoLocateError;
 use crate::helpers::ENV_VAR;
-use crate::layout::BinManager;
+use crate::layout::{BinManager, LATEST_BUCKET};
 use crate::tool::Tool;
 use crate::tool_spec::ToolSpec;
 use indexmap::IndexSet;
@@ -164,7 +164,7 @@ impl<'tool> Locator<'tool> {
         focused_version: Option<&VersionSpec>,
     ) -> Result<Vec<ExecutableLocation>, ProtoLocateError> {
         self.locate_bins_with_manager(
-            BinManager::from_manifest(&self.tool.inventory.manifest),
+            &BinManager::from_manifest(&self.tool.inventory.manifest),
             focused_version,
         )
         .await
@@ -172,7 +172,7 @@ impl<'tool> Locator<'tool> {
 
     pub async fn locate_bins_with_manager(
         &self,
-        bin_manager: BinManager,
+        bin_manager: &BinManager,
         focused_version: Option<&VersionSpec>,
     ) -> Result<Vec<ExecutableLocation>, ProtoLocateError> {
         let mut locations = vec![];
@@ -210,7 +210,7 @@ impl<'tool> Locator<'tool> {
                         .or(config.exe_path.as_ref())
                         .is_some()
                 {
-                    let versioned_name = if *bucket_version == "*" {
+                    let versioned_name = if *bucket_version == LATEST_BUCKET {
                         name.clone()
                     } else {
                         format!("{name}-{bucket_version}")

@@ -1,10 +1,11 @@
 pub use super::link_error::ProtoLinkError;
 use crate::flow::locate::Locator;
-use crate::layout::{Shim, ShimRegistry, ShimsMap};
+use crate::layout::{BinManager, Shim, ShimRegistry, ShimsMap};
 use crate::tool::Tool;
 use crate::tool_spec::ToolSpec;
 use proto_pdk_api::*;
 use proto_shim::*;
+use rustc_hash::FxHashMap;
 use serde::Serialize;
 use starbase_utils::{fs, path};
 use std::collections::BTreeMap;
@@ -247,5 +248,98 @@ impl<'tool> Linker<'tool> {
         }
 
         Ok(bins)
+    }
+
+    /// Remove all binaries for the tool across every installed version.
+    #[instrument(skip(self))]
+    pub async fn unlink_bins(&self) -> Result<(), ProtoLinkError> {
+        let bin_manager = BinManager::from_manifest(&self.tool.inventory.manifest);
+
+        for bin in Locator::new(self.tool, self.spec)
+            .locate_bins_with_manager(&bin_manager, None)
+            .await?
+        {
+            self.tool.proto.store.unlink_bin(&bin.path)?;
+        }
+
+        Ok(())
+    }
+
+    /// Reconcile binaries after a version has been removed from the tool. Bins
+    /// whose bucket no longer maps to any version are removed, while bins whose
+    /// bucket is reassigned to a remaining version are re-pointed to it. Must be
+    /// called *before* the version is removed from the manifest, as the buckets
+    /// are recomputed from it.
+    #[instrument(skip(self))]
+    pub async fn unlink_bins_by_version(
+        &self,
+        version: &VersionSpec,
+    ) -> Result<(), ProtoLinkError> {
+        let store = &self.tool.proto.store;
+        let locator = Locator::new(self.tool, self.spec);
+        let mut bin_manager = BinManager::from_manifest(&self.tool.inventory.manifest);
+
+        // Snapshot the affected bins before removal
+        let old_bins = locator
+            .locate_bins_with_manager(&bin_manager, Some(version))
+            .await?;
+
+        // If this version didn't occupy any bucket, there are no bins to change
+        if !bin_manager.remove_version(version) {
+            return Ok(());
+        }
+
+        let new_bins = locator
+            .locate_bins_with_manager(&bin_manager, Some(version))
+            .await?;
+        let new_bins_by_path = new_bins
+            .iter()
+            .map(|bin| (&bin.path, bin))
+            .collect::<FxHashMap<_, _>>();
+
+        for old_bin in &old_bins {
+            match new_bins_by_path.get(&old_bin.path) {
+                // Bucket no longer exists, remove the orphaned bin
+                None => {
+                    store.unlink_bin(&old_bin.path)?;
+                }
+                // Bucket reassigned to another version, re-point it
+                Some(new_bin) if new_bin.version != old_bin.version => {
+                    if let (Some(new_version), Some(exe_path)) = (
+                        new_bin.version.as_ref(),
+                        new_bin
+                            .config
+                            .exe_link_path
+                            .as_ref()
+                            .or(new_bin.config.exe_path.as_ref()),
+                    ) {
+                        let src_path = self
+                            .tool
+                            .inventory
+                            .get_product_dir(new_version)
+                            .join(path::normalize_separators(exe_path));
+
+                        if src_path.exists() {
+                            store.unlink_bin(&new_bin.path)?;
+                            store.link_bin(&new_bin.path, &src_path)?;
+                        }
+                    }
+                }
+                // Bucket unchanged, leave the bin as-is
+                Some(_) => {}
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Remove all shims for the tool.
+    #[instrument(skip(self))]
+    pub async fn unlink_shims(&self) -> Result<(), ProtoLinkError> {
+        for shim in Locator::new(self.tool, self.spec).locate_shims().await? {
+            self.tool.proto.store.remove_shim(&shim.path)?;
+        }
+
+        Ok(())
     }
 }
