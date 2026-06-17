@@ -83,7 +83,7 @@ pub fn is_archive_file<P: AsRef<Path>>(path: P) -> bool {
         || path
             .extension()
             .and_then(|ext| ext.to_str())
-            .is_some_and(|ext| matches!(ext.to_lowercase().as_str(), "pkg"))
+            .is_some_and(|ext| matches!(ext.to_lowercase().as_str(), "pkg" | "dmg"))
 }
 
 pub fn now() -> u128 {
@@ -168,7 +168,8 @@ mod tests {
     }
 
     #[test]
-    fn does_not_detect_dmg_files_as_archives() {
-        assert!(!is_archive_file("tool.dmg"));
+    fn detects_dmg_files_as_archives() {
+        assert!(is_archive_file("tool.dmg"));
+        assert!(is_archive_file("tool.DMG"));
     }
 }
