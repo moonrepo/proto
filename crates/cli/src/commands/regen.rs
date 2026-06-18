@@ -64,7 +64,7 @@ pub async fn regen(session: ProtoSession, args: RegenArgs) -> SessionResult {
 
             Resolver::resolve(&tool, &mut spec, true).await?;
 
-            let linker = Linker::new(&tool, &spec);
+            let mut linker = Linker::new(&tool, &spec)?;
 
             linker.link_shims(true).await?;
 

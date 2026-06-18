@@ -1,6 +1,6 @@
 pub use super::link_error::ProtoLinkError;
 use crate::flow::locate::Locator;
-use crate::layout::{BinManager, Shim, ShimRegistry, ShimsMap};
+use crate::layout::{BinManager, Shim, ShimRegistry};
 use crate::tool::Tool;
 use crate::tool_spec::ToolSpec;
 use proto_pdk_api::*;
@@ -9,7 +9,6 @@ use rustc_hash::FxHashMap;
 use serde::Serialize;
 use starbase_styles::color;
 use starbase_utils::{fs, path};
-use std::collections::BTreeMap;
 use std::path::PathBuf;
 use tracing::{debug, instrument, warn};
 
@@ -23,11 +22,16 @@ pub struct LinkerResponse {
 pub struct Linker<'tool> {
     tool: &'tool Tool,
     spec: &'tool ToolSpec,
+    shim_registry: ShimRegistry,
 }
 
 impl<'tool> Linker<'tool> {
-    pub fn new(tool: &'tool Tool, spec: &'tool ToolSpec) -> Self {
-        Self { tool, spec }
+    pub fn new(tool: &'tool Tool, spec: &'tool ToolSpec) -> Result<Self, ProtoLinkError> {
+        Ok(Self {
+            shim_registry: tool.proto.store.load_shims_registry()?,
+            tool,
+            spec,
+        })
     }
 
     #[instrument]
@@ -36,12 +40,12 @@ impl<'tool> Linker<'tool> {
         spec: &'tool ToolSpec,
         force: bool,
     ) -> Result<LinkerResponse, ProtoLinkError> {
-        Self::new(tool, spec).link_all(force).await
+        Self::new(tool, spec)?.link_all(force).await
     }
 
     /// Link both binaries and shims.
     #[instrument(skip(self))]
-    pub async fn link_all(&self, force: bool) -> Result<LinkerResponse, ProtoLinkError> {
+    pub async fn link_all(&mut self, force: bool) -> Result<LinkerResponse, ProtoLinkError> {
         // Shims are linked first so they populate the executable ownership
         // registry, which bin linking consults to avoid clobbering the
         // binaries of another tool that already owns the same name.
@@ -54,7 +58,7 @@ impl<'tool> Linker<'tool> {
     /// Create shim files for the current tool if they are missing or out of date.
     /// If find only is enabled, will only check if they exist, and not create.
     #[instrument(skip(self))]
-    pub async fn link_shims(&self, force: bool) -> Result<Vec<PathBuf>, ProtoLinkError> {
+    pub async fn link_shims(&mut self, force: bool) -> Result<Vec<PathBuf>, ProtoLinkError> {
         let shims = Locator::new(self.tool, self.spec).locate_shims().await?;
 
         if shims.is_empty() {
@@ -74,7 +78,6 @@ impl<'tool> Linker<'tool> {
             );
         }
 
-        let mut registry: ShimsMap = BTreeMap::default();
         let mut to_create = vec![];
 
         for shim in shims {
@@ -129,7 +132,7 @@ impl<'tool> Linker<'tool> {
             }
 
             // Update the registry
-            registry.insert(shim.name.clone(), shim_entry);
+            self.shim_registry.update(shim.name, shim_entry)?;
         }
 
         // Only create shims if necessary
@@ -153,7 +156,7 @@ impl<'tool> Linker<'tool> {
                 );
             }
 
-            ShimRegistry::update(&store.shims_dir, registry)?;
+            self.shim_registry.save()?;
 
             let mut manifest = self.tool.inventory.manifest.clone();
             manifest.shim_version = SHIM_VERSION;
@@ -189,7 +192,6 @@ impl<'tool> Linker<'tool> {
         // Ownership of an executable name is tracked in the shims registry
         // (populated by `link_shims`, which runs first). Bins are consulted
         // against it so a tool can't clobber a binary owned by another tool.
-        let registry = self.tool.proto.store.load_shims_registry()?;
         let mut to_create = vec![];
 
         for bin in bins {
@@ -200,7 +202,7 @@ impl<'tool> Linker<'tool> {
             // Skip bins for executables owned by a different tool. The registry
             // is keyed by the bare executable name, so this naturally targets
             // the primary `*`-bucket bins; versioned bins are uniquely named.
-            if let Some(entry) = registry.shims.get(&bin.name) {
+            if let Some(entry) = self.shim_registry.shims.get(&bin.name) {
                 let owned_by_this = match &entry.context {
                     Some(owner) => owner == &self.tool.context,
                     None => self.tool.context.id.as_str() == bin.name,

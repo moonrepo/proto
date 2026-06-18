@@ -115,7 +115,7 @@ impl<'tool> Manager<'tool> {
             }
 
             // Delete bins and shims
-            let linker = Linker::new(self.tool, spec);
+            let linker = Linker::new(self.tool, spec)?;
 
             // If no more versions in general, delete everything. Otherwise,
             // reconcile the bins for just this version: orphaned bins are

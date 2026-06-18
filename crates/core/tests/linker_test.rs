@@ -30,7 +30,7 @@ mod linker {
 
         // Use a version that is not installed
         let spec = ToolSpec::new_resolved(VersionSpec::parse("20.0.0").unwrap());
-        let linker = Linker::new(&tool, &spec);
+        let linker = Linker::new(&tool, &spec).unwrap();
 
         // link_bins should not error, but bins may be empty since nothing is installed
         let bins = linker.link_bins(false).await.unwrap();
@@ -46,7 +46,7 @@ mod linker {
         let tool = create_node(sandbox.path()).await;
 
         let spec = ToolSpec::new_resolved(VersionSpec::parse("20.0.0").unwrap());
-        let linker = Linker::new(&tool, &spec);
+        let mut linker = Linker::new(&tool, &spec).unwrap();
 
         // Force create shims
         let shims = linker.link_shims(true).await.unwrap();
