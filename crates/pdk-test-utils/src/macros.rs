@@ -279,7 +279,7 @@ macro_rules! generate_shims_test {
             let sandbox = create_empty_proto_sandbox();
             let mut plugin = create_plugin!(sandbox, $id, $schema, $factory);
 
-            flow::link::Linker::new(&mut plugin.tool, &ToolSpec::default())
+            flow::link::Linker::new(&mut plugin.tool, &ToolSpec::default()).unwrap()
                 .link_shims(false)
                 .await
                 .unwrap();
