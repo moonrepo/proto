@@ -7,6 +7,7 @@ use proto_pdk_api::*;
 use proto_shim::*;
 use rustc_hash::FxHashMap;
 use serde::Serialize;
+use starbase_styles::color;
 use starbase_utils::{fs, path};
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -41,10 +42,13 @@ impl<'tool> Linker<'tool> {
     /// Link both binaries and shims.
     #[instrument(skip(self))]
     pub async fn link_all(&self, force: bool) -> Result<LinkerResponse, ProtoLinkError> {
-        Ok(LinkerResponse {
-            bins: self.link_bins(force).await?,
-            shims: self.link_shims(force).await?,
-        })
+        // Shims are linked first so they populate the executable ownership
+        // registry, which bin linking consults to avoid clobbering the
+        // binaries of another tool that already owns the same name.
+        let shims = self.link_shims(force).await?;
+        let bins = self.link_bins(force).await?;
+
+        Ok(LinkerResponse { bins, shims })
     }
 
     /// Create shim files for the current tool if they are missing or out of date.
@@ -182,12 +186,45 @@ impl<'tool> Linker<'tool> {
             );
         }
 
+        // Ownership of an executable name is tracked in the shims registry
+        // (populated by `link_shims`, which runs first). Bins are consulted
+        // against it so a tool can't clobber a binary owned by another tool.
+        let registry = self.tool.proto.store.load_shims_registry()?;
         let mut to_create = vec![];
 
         for bin in bins {
             let Some(bin_version) = bin.version else {
                 continue;
             };
+
+            // Skip bins for executables owned by a different tool. The registry
+            // is keyed by the bare executable name, so this naturally targets
+            // the primary `*`-bucket bins; versioned bins are uniquely named.
+            if let Some(entry) = registry.shims.get(&bin.name) {
+                let owned_by_this = match &entry.context {
+                    Some(owner) => owner == &self.tool.context,
+                    None => self.tool.context.id.as_str() == bin.name,
+                };
+
+                if !owned_by_this {
+                    let owner = entry
+                        .context
+                        .as_ref()
+                        .map(|ctx| ctx.as_str())
+                        .unwrap_or(bin.name.as_str());
+
+                    warn!(
+                        tool = self.tool.context.as_str(),
+                        exe = bin.name.as_str(),
+                        owner = owner,
+                        "Skipping linking binary {}, already provided by {}",
+                        color::file(&bin.name),
+                        color::id(owner)
+                    );
+
+                    continue;
+                }
+            }
 
             // Create a new product since we need to change the version for each bin
             let tool_dir = self.tool.inventory.get_product_dir(&bin_version);
