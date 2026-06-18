@@ -27,6 +27,7 @@
   - Added metrics for tool installs, install steps, tool uninstalls, and plugin loads.
 - Improved the bin/shim registry layer, so that we can better detect executable name collisions.
 - Improved performance of checksum file hashing.
+- Updated `proto diagnose` to include warnings about executable name collisions.
 - **WASM API**
   - Added `DownloadPrebuiltOutput.post_script_args` field, which allows plugins to specify a list of arguments to pass to the post-install script when executing it.
 

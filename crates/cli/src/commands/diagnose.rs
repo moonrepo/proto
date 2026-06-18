@@ -269,7 +269,7 @@ async fn gather_warnings(
 
         warnings.push(Issue {
             issue: format!(
-                "Multiple configured tools resolve to the executable name <id>{id}</id>: {}",
+                "Multiple configured tools resolve to the executable name <file>{id}</file>: {}",
                 names
                     .into_iter()
                     .map(|name| format!("<id>{name}</id>"))
@@ -277,10 +277,10 @@ async fn gather_warnings(
                     .join(", ")
             ),
             resolution: Some(
-                "Keep only one of these tools, as they cannot share the same shim and binary name"
+                "Keep only one of these tools, as they cannot share the same shim and binary name. Otherwise the tool linked last wins, which is order-dependent."
                     .into(),
             ),
-            comment: Some("Otherwise the tool linked last wins, which is order-dependent".into()),
+            comment: None,
         });
     }
 
