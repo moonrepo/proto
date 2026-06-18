@@ -81,6 +81,10 @@ impl Reporter for ProtoReporter {
 }
 
 impl ProtoReporter {
+    pub fn is_json_format(&self) -> bool {
+        self.format.is_json()
+    }
+
     pub fn append_json<T: Serialize>(&self, value: T) -> Result<(), ConsoleError> {
         if let Ok(mut buffer) = self.json_buffer.write() {
             let content = serde_json::to_string_pretty(&value).map_err(|error| {

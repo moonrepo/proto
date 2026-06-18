@@ -269,7 +269,7 @@ impl ProtoSession {
     }
 
     pub fn is_json_format(&self) -> bool {
-        self.cli.json || self.cli.reporter.is_json()
+        self.cli.json || self.console.is_json_format()
     }
 
     pub fn is_tty(&self) -> bool {

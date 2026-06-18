@@ -259,74 +259,27 @@ impl<'tool> Installer<'tool> {
             }
         }
 
-        let mut builder = Builder::new(BuilderOptions {
-            config,
-            console: options
-                .console
-                .as_ref()
-                .expect("Console required for builder!"),
-            install_dir: &self.product_dir,
-            http_client: proto.get_plugin_loader()?.get_http_client()?,
-            log_writer: options
-                .log_writer
-                .as_ref()
-                .expect("Logger required for builder!"),
-            on_phase_change: options.on_phase_change.clone(),
-            skip_prompts: options.skip_prompts,
-            skip_ui: options.skip_ui,
-            system,
-            temp_dir: &self.temp_dir,
-            version: self.spec.get_resolved_version(),
-        });
-
-        // The build process may require using itself to build itself,
-        // so allow proto to use any available version instead of failing
-        unsafe { std::env::set_var(format!("{}_VERSION", self.tool.get_env_var_prefix()), "*") };
-
-        let mut record = self.tool.create_locked_record();
-
-        // Step 0
-        proto.create_metric().record_tool_install_step(
-            &self.tool.context,
-            "build_information",
-            log_build_information(&mut builder, &output),
-        )?;
-
-        // Step 1
-        if config.settings.build.install_system_packages {
-            proto.create_metric().record_tool_install_step(
-                &self.tool.context,
-                "install_system_dependencies",
-                install_system_dependencies(&mut builder, &output).await,
-            )?;
-        } else {
-            debug!(
-                tool = self.tool.context.as_str(),
-                "Not installing system dependencies because {} was disabled",
-                color::property("settings.build.install-system-packages"),
-            );
-        }
-
-        // Step 2
-        proto.create_metric().record_tool_install_step(
-            &self.tool.context,
-            "check_requirements",
-            check_requirements(&mut builder, &output).await,
-        )?;
-
-        // Step 3
-        proto.create_metric().record_tool_install_step(
-            &self.tool.context,
-            "download_sources",
-            download_sources(&mut builder, &output, &mut record).await,
-        )?;
-
-        // Step 4
-        proto.create_metric().record_tool_install_step(
-            &self.tool.context,
-            "execute_instructions",
-            execute_instructions(&mut builder, &output, proto).await,
-        )?;
+        let record = Builder::new(
+            self.tool,
+            BuilderOptions {
+                config,
+                console: options.console.as_ref(),
+                install_dir: &self.product_dir,
+                http_client: proto.get_plugin_loader()?.get_http_client()?,
+                log_writer: options
+                    .log_writer
+                    .as_ref()
+                    .expect("Logger required for builder!"),
+                on_phase_change: options.on_phase_change.clone(),
+                skip_prompts: options.skip_prompts,
+                skip_ui: options.skip_ui,
+                system,
+                temp_dir: &self.temp_dir,
+                version: self.spec.get_resolved_version(),
+            },
+        )
+        .build(output)
+        .await?;
 
         Ok(record)
     }
