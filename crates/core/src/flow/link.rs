@@ -1,13 +1,14 @@
 pub use super::link_error::ProtoLinkError;
 use crate::flow::locate::Locator;
-use crate::layout::{Shim, ShimRegistry, ShimsMap};
+use crate::layout::{BinManager, Shim, ShimRegistry};
 use crate::tool::Tool;
 use crate::tool_spec::ToolSpec;
 use proto_pdk_api::*;
 use proto_shim::*;
+use rustc_hash::FxHashMap;
 use serde::Serialize;
+use starbase_styles::color;
 use starbase_utils::{fs, path};
-use std::collections::BTreeMap;
 use std::path::PathBuf;
 use tracing::{debug, instrument, warn};
 
@@ -21,11 +22,16 @@ pub struct LinkerResponse {
 pub struct Linker<'tool> {
     tool: &'tool Tool,
     spec: &'tool ToolSpec,
+    shim_registry: ShimRegistry,
 }
 
 impl<'tool> Linker<'tool> {
-    pub fn new(tool: &'tool Tool, spec: &'tool ToolSpec) -> Self {
-        Self { tool, spec }
+    pub fn new(tool: &'tool Tool, spec: &'tool ToolSpec) -> Result<Self, ProtoLinkError> {
+        Ok(Self {
+            shim_registry: tool.proto.store.load_shims_registry()?,
+            tool,
+            spec,
+        })
     }
 
     #[instrument]
@@ -34,22 +40,25 @@ impl<'tool> Linker<'tool> {
         spec: &'tool ToolSpec,
         force: bool,
     ) -> Result<LinkerResponse, ProtoLinkError> {
-        Self::new(tool, spec).link_all(force).await
+        Self::new(tool, spec)?.link_all(force).await
     }
 
     /// Link both binaries and shims.
     #[instrument(skip(self))]
-    pub async fn link_all(&self, force: bool) -> Result<LinkerResponse, ProtoLinkError> {
-        Ok(LinkerResponse {
-            bins: self.link_bins(force).await?,
-            shims: self.link_shims(force).await?,
-        })
+    pub async fn link_all(&mut self, force: bool) -> Result<LinkerResponse, ProtoLinkError> {
+        // Shims are linked first so they populate the executable ownership
+        // registry, which bin linking consults to avoid clobbering the
+        // binaries of another tool that already owns the same name.
+        let shims = self.link_shims(force).await?;
+        let bins = self.link_bins(force).await?;
+
+        Ok(LinkerResponse { bins, shims })
     }
 
     /// Create shim files for the current tool if they are missing or out of date.
     /// If find only is enabled, will only check if they exist, and not create.
     #[instrument(skip(self))]
-    pub async fn link_shims(&self, force: bool) -> Result<Vec<PathBuf>, ProtoLinkError> {
+    pub async fn link_shims(&mut self, force: bool) -> Result<Vec<PathBuf>, ProtoLinkError> {
         let shims = Locator::new(self.tool, self.spec).locate_shims().await?;
 
         if shims.is_empty() {
@@ -69,7 +78,6 @@ impl<'tool> Linker<'tool> {
             );
         }
 
-        let mut registry: ShimsMap = BTreeMap::default();
         let mut to_create = vec![];
 
         for shim in shims {
@@ -124,7 +132,7 @@ impl<'tool> Linker<'tool> {
             }
 
             // Update the registry
-            registry.insert(shim.name.clone(), shim_entry);
+            self.shim_registry.update(shim.name, shim_entry)?;
         }
 
         // Only create shims if necessary
@@ -148,7 +156,7 @@ impl<'tool> Linker<'tool> {
                 );
             }
 
-            ShimRegistry::update(&store.shims_dir, registry)?;
+            self.shim_registry.save()?;
 
             let mut manifest = self.tool.inventory.manifest.clone();
             manifest.shim_version = SHIM_VERSION;
@@ -181,12 +189,44 @@ impl<'tool> Linker<'tool> {
             );
         }
 
+        // Ownership of an executable name is tracked in the shims registry
+        // (populated by `link_shims`, which runs first). Bins are consulted
+        // against it so a tool can't clobber a binary owned by another tool.
         let mut to_create = vec![];
 
         for bin in bins {
             let Some(bin_version) = bin.version else {
                 continue;
             };
+
+            // Skip bins for executables owned by a different tool. The registry
+            // is keyed by the bare executable name, so this naturally targets
+            // the primary `*`-bucket bins; versioned bins are uniquely named.
+            if let Some(entry) = self.shim_registry.shims.get(&bin.name) {
+                let owned_by_this = match &entry.context {
+                    Some(owner) => owner == &self.tool.context,
+                    None => self.tool.context.id.as_str() == bin.name,
+                };
+
+                if !owned_by_this {
+                    let owner = entry
+                        .context
+                        .as_ref()
+                        .map(|ctx| ctx.as_str())
+                        .unwrap_or(bin.name.as_str());
+
+                    warn!(
+                        tool = self.tool.context.as_str(),
+                        exe = bin.name.as_str(),
+                        owner = owner,
+                        "Skipping linking binary {}, already provided by {}",
+                        color::file(&bin.name),
+                        color::id(owner)
+                    );
+
+                    continue;
+                }
+            }
 
             // Create a new product since we need to change the version for each bin
             let tool_dir = self.tool.inventory.get_product_dir(&bin_version);
@@ -247,5 +287,98 @@ impl<'tool> Linker<'tool> {
         }
 
         Ok(bins)
+    }
+
+    /// Remove all binaries for the tool across every installed version.
+    #[instrument(skip(self))]
+    pub async fn unlink_bins(&self) -> Result<(), ProtoLinkError> {
+        let bin_manager = BinManager::from_manifest(&self.tool.inventory.manifest);
+
+        for bin in Locator::new(self.tool, self.spec)
+            .locate_bins_with_manager(&bin_manager, None)
+            .await?
+        {
+            self.tool.proto.store.unlink_bin(&bin.path)?;
+        }
+
+        Ok(())
+    }
+
+    /// Reconcile binaries after a version has been removed from the tool. Bins
+    /// whose bucket no longer maps to any version are removed, while bins whose
+    /// bucket is reassigned to a remaining version are re-pointed to it. Must be
+    /// called *before* the version is removed from the manifest, as the buckets
+    /// are recomputed from it.
+    #[instrument(skip(self))]
+    pub async fn unlink_bins_by_version(
+        &self,
+        version: &VersionSpec,
+    ) -> Result<(), ProtoLinkError> {
+        let store = &self.tool.proto.store;
+        let locator = Locator::new(self.tool, self.spec);
+        let mut bin_manager = BinManager::from_manifest(&self.tool.inventory.manifest);
+
+        // Snapshot the affected bins before removal
+        let old_bins = locator
+            .locate_bins_with_manager(&bin_manager, Some(version))
+            .await?;
+
+        // If this version didn't occupy any bucket, there are no bins to change
+        if !bin_manager.remove_version(version) {
+            return Ok(());
+        }
+
+        let new_bins = locator
+            .locate_bins_with_manager(&bin_manager, Some(version))
+            .await?;
+        let new_bins_by_path = new_bins
+            .iter()
+            .map(|bin| (&bin.path, bin))
+            .collect::<FxHashMap<_, _>>();
+
+        for old_bin in &old_bins {
+            match new_bins_by_path.get(&old_bin.path) {
+                // Bucket no longer exists, remove the orphaned bin
+                None => {
+                    store.unlink_bin(&old_bin.path)?;
+                }
+                // Bucket reassigned to another version, re-point it
+                Some(new_bin) if new_bin.version != old_bin.version => {
+                    if let (Some(new_version), Some(exe_path)) = (
+                        new_bin.version.as_ref(),
+                        new_bin
+                            .config
+                            .exe_link_path
+                            .as_ref()
+                            .or(new_bin.config.exe_path.as_ref()),
+                    ) {
+                        let src_path = self
+                            .tool
+                            .inventory
+                            .get_product_dir(new_version)
+                            .join(path::normalize_separators(exe_path));
+
+                        if src_path.exists() {
+                            store.unlink_bin(&new_bin.path)?;
+                            store.link_bin(&new_bin.path, &src_path)?;
+                        }
+                    }
+                }
+                // Bucket unchanged, leave the bin as-is
+                Some(_) => {}
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Remove all shims for the tool.
+    #[instrument(skip(self))]
+    pub async fn unlink_shims(&self) -> Result<(), ProtoLinkError> {
+        for shim in Locator::new(self.tool, self.spec).locate_shims().await? {
+            self.tool.proto.store.remove_shim(&shim.path)?;
+        }
+
+        Ok(())
     }
 }

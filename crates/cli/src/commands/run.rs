@@ -218,7 +218,7 @@ pub async fn run(session: ProtoSession, mut args: RunArgs) -> SessionResult {
                 "Tool not found, checking shims registry for bin-to-tool mapping"
             );
 
-            let registry = ShimRegistry::load(&session.env.store.shims_dir)?;
+            let registry = ShimRegistry::load_from(&session.env.store.shims_dir)?;
             let mut custom_context: Option<ToolContext> = None;
             let mut before_args: Vec<String> = vec![];
             let mut after_args: Vec<String> = vec![];

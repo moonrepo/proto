@@ -118,7 +118,7 @@ impl Store {
 
     #[instrument(skip(self))]
     pub fn load_shims_registry(&self) -> Result<ShimRegistry, ProtoLayoutError> {
-        ShimRegistry::load(&self.shims_dir)
+        ShimRegistry::load_from(&self.shims_dir)
     }
 
     #[instrument(skip(self))]

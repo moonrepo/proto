@@ -1,10 +1,8 @@
 pub use super::manage_error::ProtoManageError;
 use crate::flow::install::{InstallOptions, Installer, ProtoInstallError};
 use crate::flow::link::Linker;
-use crate::flow::locate::Locator;
 use crate::flow::lock::Locker;
 use crate::flow::resolve::Resolver;
-use crate::layout::BinManager;
 use crate::lockfile::LockRecord;
 use crate::telemetry::cache_status;
 use crate::tool::Tool;
@@ -117,30 +115,18 @@ impl<'tool> Manager<'tool> {
             }
 
             // Delete bins and shims
-            let mut bin_manager = BinManager::from_manifest(&self.tool.inventory.manifest);
-            let locator = Locator::new(self.tool, spec);
-            let proto = &self.tool.proto;
+            let linker = Linker::new(self.tool, spec)?;
 
-            // If no more versions in general, delete all
+            // If no more versions in general, delete everything. Otherwise,
+            // reconcile the bins for just this version: orphaned bins are
+            // removed and shared bins are re-pointed to the next highest version.
             if self.tool.inventory.manifest.installed_versions.is_empty()
                 || self.tool.inventory.manifest.is_only_version(&version)
             {
-                for bin in locator.locate_bins_with_manager(bin_manager, None).await? {
-                    proto.store.unlink_bin(&bin.path)?;
-                }
-
-                for shim in locator.locate_shims().await? {
-                    proto.store.remove_shim(&shim.path)?;
-                }
-            }
-            // Otherwise, delete bins for this specific version
-            else if bin_manager.remove_version(&version) {
-                for bin in locator
-                    .locate_bins_with_manager(bin_manager, Some(&version))
-                    .await?
-                {
-                    proto.store.unlink_bin(&bin.path)?;
-                }
+                linker.unlink_bins().await?;
+                linker.unlink_shims().await?;
+            } else {
+                linker.unlink_bins_by_version(&version).await?;
             }
 
             // We must do this last because the location resolves above

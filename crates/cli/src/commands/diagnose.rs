@@ -4,6 +4,8 @@ use crate::helpers::fetch_latest_version;
 use crate::session::{ProtoSession, SessionResult};
 use clap::Args;
 use iocraft::prelude::{FlexDirection, View, element};
+use proto_core::{Id, ToolContext};
+use rustc_hash::FxHashMap;
 use serde::Serialize;
 use starbase_console::ui::*;
 use starbase_shell::ShellType;
@@ -241,6 +243,45 @@ async fn gather_warnings(
             ),
             comment: None,
         })
+    }
+
+    // Detect tools that resolve to the same executable name (e.g. the same id
+    // provided by different backends). proto links one shim and bin per name,
+    // so the others are silently shadowed — a collision precedence can't resolve.
+    let config = session
+        .env
+        .load_config()
+        .map_err(|error| ProtoCliError::Config(Box::new(error)))?;
+
+    let mut contexts_by_id: FxHashMap<&Id, Vec<&ToolContext>> = FxHashMap::default();
+
+    for context in config.versions.keys() {
+        contexts_by_id.entry(&context.id).or_default().push(context);
+    }
+
+    for (id, contexts) in contexts_by_id {
+        if contexts.len() < 2 {
+            continue;
+        }
+
+        let mut names = contexts.iter().map(|ctx| ctx.as_str()).collect::<Vec<_>>();
+        names.sort_unstable();
+
+        warnings.push(Issue {
+            issue: format!(
+                "Multiple configured tools resolve to the executable name <file>{id}</file>: {}",
+                names
+                    .into_iter()
+                    .map(|name| format!("<id>{name}</id>"))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+            resolution: Some(
+                "Keep only one of these tools, as they cannot share the same shim and binary name. Otherwise the tool linked last wins, which is order-dependent."
+                    .into(),
+            ),
+            comment: None,
+        });
     }
 
     if !warnings.is_empty() {
