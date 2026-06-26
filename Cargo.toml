@@ -5,7 +5,7 @@ default-members = ["crates/cli"]
 
 [workspace.dependencies]
 ai_env = "0.1.1"
-anyhow = "1.0.102"
+anyhow = "1.0.103"
 async-trait = "0.1.89"
 cd_env = "0.4.1"
 ci_env = "0.5.1"
@@ -46,7 +46,7 @@ rmcp = { version = "1.6.0", default-features = false, features = [
     "macros",
 ] }
 rustc-hash = "2.1.2"
-scc = "3.7.3"
+scc = "3.8.3"
 schemars = "1.2.1"
 schematic = { version = "0.19.7", default-features = false }
 semver = { version = "1.0.28", features = ["serde"] }
@@ -80,4 +80,4 @@ toml_edit = "0.25"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", default-features = false }
 url = "2.5.8"
-uuid = { version = "1.23.3", features = ["v4"] }
+uuid = { version = "1.23.4", features = ["v4"] }
