@@ -137,7 +137,7 @@ impl ProtoConfig {
     }
 
     pub fn builtin_schema_plugin(&self) -> PluginLocator {
-        find_debug_locator_with_fallback("schema_tool", "0.17.8")
+        find_debug_locator_with_fallback("schema_tool", "0.18.0")
     }
 
     pub fn inherit_builtin_plugins(&mut self) {
