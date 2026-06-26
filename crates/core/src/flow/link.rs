@@ -156,12 +156,12 @@ impl<'tool> Linker<'tool> {
                 );
             }
 
-            self.shim_registry.save()?;
-
             let mut manifest = self.tool.inventory.manifest.clone();
             manifest.shim_version = SHIM_VERSION;
             manifest.save()?;
         }
+
+        self.shim_registry.save()?;
 
         Ok(to_create)
     }

@@ -4,7 +4,7 @@ members = ["crates/*"]
 default-members = ["crates/cli"]
 
 [workspace.dependencies]
-ai_env = "0.1.1"
+ai_env = "0.1.2"
 anyhow = "1.0.103"
 async-trait = "0.1.89"
 cd_env = "0.4.1"

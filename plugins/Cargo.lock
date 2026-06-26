@@ -55,9 +55,9 @@ checksum = "5192cca8006f1fd4f7237516f40fa183bb07f8fbdfedaa0036de5ea9b0b45e78"
 
 [[package]]
 name = "anyhow"
-version = "1.0.102"
+version = "1.0.103"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f202df86484c868dbad7eaa557ef785d5c66295e41b460ef922eca0723b842c"
+checksum = "2a4385e2e34eb35d6b3efe798b9eb88096925d87726c0798709bf56d9ed84af3"
 
 [[package]]
 name = "arbitrary"
@@ -2991,7 +2991,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.57.6"
+version = "0.58.0"
 dependencies = [
  "convert_case 0.11.0",
  "docker_credential",
@@ -3043,7 +3043,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.32.8"
+version = "0.32.9"
 dependencies = [
  "extism-pdk",
  "proto_pdk_api",
@@ -3054,7 +3054,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.31.12"
+version = "0.31.13"
 dependencies = [
  "derive_setters",
  "rustc-hash",
@@ -3070,7 +3070,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.45.1"
+version = "0.46.0"
 dependencies = [
  "extism",
  "proto_core",
@@ -3655,9 +3655,9 @@ dependencies = [
 
 [[package]]
 name = "scc"
-version = "3.7.3"
+version = "3.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "36b032630cfe931bea2c3316541f04ef0e20357943fbfe0b6ed01c00f87462d8"
+checksum = "5581cd5dd2cb79cbe9d8137071d67f62f0db926e83a07b4d14561c5b7d423776"
 dependencies = [
  "saa",
  "sdd",
@@ -4907,9 +4907,9 @@ checksum = "b6c140620e7ffbb22c2dee59cafe6084a59b5ffc27a8859a5f0d494b5d52b6be"
 
 [[package]]
 name = "uuid"
-version = "1.23.3"
+version = "1.23.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "144d6b123cef80b301b8f72a9e2ca4370ddec21950d0a103dd22c437006d2db7"
+checksum = "bf80a72845275afea99e7f2b434723d3bc7e38470fcd1c7ed39a599c73319a53"
 dependencies = [
  "getrandom 0.4.2",
  "js-sys",
@@ -4977,7 +4977,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.32.4"
+version = "0.33.0"
 dependencies = [
  "async-trait",
  "compact_str 0.9.1",
@@ -5012,7 +5012,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_api"
-version = "0.17.4"
+version = "0.17.5"
 dependencies = [
  "anyhow",
  "derive_setters",
@@ -5027,7 +5027,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_pdk"
-version = "0.16.3"
+version = "0.16.4"
 dependencies = [
  "extism-pdk",
  "serde",

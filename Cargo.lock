@@ -37,9 +37,9 @@ dependencies = [
 
 [[package]]
 name = "ai_env"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "55683950857247f970db5c649623d44cff0f1722eb0af899a511a82910dad9fe"
+checksum = "dd884f65539e41824924ecaa1b5391abc98e6d2980b11739be77895f38aef5b0"
 dependencies = [
  "serde",
 ]

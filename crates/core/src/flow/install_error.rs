@@ -62,6 +62,16 @@ pub enum ProtoInstallError {
     #[error("Failed to install {tool}. {}", apply_style_tags(.error))]
     FailedInstall { tool: String, error: String },
 
+    #[diagnostic(
+        code(proto::install::failed),
+        help("Verify the archive/build manually and try again.")
+    )]
+    #[error(
+        "Failed to install {tool}. The expected directory or executables do not exist at {}.",
+        .dir.style(Style::Path)
+    )]
+    FailedInstallNoFiles { tool: String, dir: PathBuf },
+
     #[diagnostic(code(proto::uninstall::failed))]
     #[error("Failed to uninstall {tool}. {}", apply_style_tags(.error))]
     FailedUninstall { tool: String, error: String },

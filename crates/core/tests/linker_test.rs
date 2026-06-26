@@ -3,6 +3,7 @@ use proto_core::{
     ProtoConfig, ProtoEnvironment, Tool, ToolContext, ToolSpec, flow::link::Linker,
     load_tool_from_locator,
 };
+use std::fs;
 use std::path::Path;
 use version_spec::VersionSpec;
 
@@ -64,6 +65,36 @@ mod linker {
                 assert!(shim_path.starts_with(&shims_dir));
             }
         }
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn link_shims_saves_repaired_registry_when_files_exist() {
+        let sandbox = create_empty_proto_sandbox();
+        let tool = create_node(sandbox.path()).await;
+        let spec = ToolSpec::new_resolved(VersionSpec::parse("20.0.0").unwrap());
+
+        let mut linker = Linker::new(&tool, &spec).unwrap();
+        let shims = linker.link_shims(true).await.unwrap();
+        assert!(!shims.is_empty());
+
+        let registry_path = tool.proto.store.shims_dir.join("registry.json");
+        fs::remove_file(&registry_path).unwrap();
+
+        let tool = create_node(sandbox.path()).await;
+        let mut linker = Linker::new(&tool, &spec).unwrap();
+        let recreated = linker.link_shims(false).await.unwrap();
+
+        assert!(
+            recreated.is_empty(),
+            "existing shim files should not be recreated"
+        );
+
+        let registry = fs::read_to_string(&registry_path).unwrap();
+
+        assert!(
+            registry.contains("\"node\""),
+            "registry should be saved even when no shim files are created"
+        );
     }
 
     #[tokio::test(flavor = "multi_thread")]

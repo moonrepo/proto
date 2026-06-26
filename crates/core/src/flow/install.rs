@@ -152,13 +152,23 @@ impl<'tool> Installer<'tool> {
         }
 
         // Build the tool from source
-        let result = if matches!(options.strategy, InstallStrategy::BuildFromSource) {
+        let mut result = if matches!(options.strategy, InstallStrategy::BuildFromSource) {
             self.build_from_source(options).await
         }
         // Install from a prebuilt archive
         else {
             self.install_from_prebuilt(options).await
         };
+
+        // Ensure that we installed something
+        if result.is_ok()
+            && (!self.product_dir.exists() || fs::read_dir(&self.product_dir)?.is_empty())
+        {
+            result = Err(ProtoInstallError::FailedInstallNoFiles {
+                tool: self.tool.get_name().to_owned(),
+                dir: self.product_dir.clone(),
+            });
+        }
 
         match result {
             Ok(record) => {
