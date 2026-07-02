@@ -10,7 +10,7 @@ async-trait = "0.1.89"
 cd_env = "0.4.1"
 ci_env = "0.5.1"
 clap = "4.6.1"
-clap_complete = "4.6.3"
+clap_complete = "4.6.7"
 compact_str = { version = "0.9.1", default-features = false, features = [
     "serde",
 ] }
@@ -54,7 +54,7 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_json = { version = "1.0.150", features = ["preserve_order"] }
 sha2 = "0.11.0"
 shell-words = "1.1.1"
-starbase = { version = "0.12.2", features = ["miette", "tracing"] }
+starbase = { version = "0.12.3", features = ["miette", "tracing"] }
 starbase_archive = { version = "0.13.2", features = [
     "gz",
     "miette",
@@ -62,10 +62,10 @@ starbase_archive = { version = "0.13.2", features = [
     "zip-all",
 ] }
 starbase_args = { version = "0.1.11" }
-starbase_console = { version = "0.6.29", features = ["miette", "ui"] }
+starbase_console = { version = "0.6.31", features = ["miette", "ui"] }
 starbase_id = { version = "0.3.3", features = ["miette", "schematic"] }
 starbase_sandbox = { version = "0.11.1" }
-starbase_shell = { version = "0.12.5", features = ["miette"] }
+starbase_shell = { version = "0.12.6", features = ["miette"] }
 starbase_styles = { version = "0.6.8" }
 starbase_utils = { version = "0.13.8", default-features = false, features = [
     "fs-lock",

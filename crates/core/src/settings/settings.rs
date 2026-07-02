@@ -1,6 +1,5 @@
-use crate::get_builtin_registry;
-
 use super::{DetectStrategy, PinLocation, merge_iter};
+use crate::helpers::get_builtin_registry;
 use indexmap::{IndexMap, IndexSet};
 use rustc_hash::FxHashMap;
 use schematic::{Config, DefaultValueResult, RegexSetting, env};

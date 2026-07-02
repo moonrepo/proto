@@ -15,6 +15,17 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added `PROTO_BUILTIN_REGISTRY_*` environment variables for overriding the built-in plugin registry.
+- Updated checksum comparison to be case-insensitive, as some tools may provide a checksum in uppercase, while others may provide it in lowercase.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.58.1
 
 #### 🚀 Updates

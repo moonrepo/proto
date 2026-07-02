@@ -36,22 +36,22 @@ pub fn get_proto_version() -> &'static Version {
 }
 
 pub fn get_builtin_registry() -> &'static RegistryConfig {
-    static MOON_BUILTIN_REGISTRY: OnceLock<RegistryConfig> = OnceLock::new();
+    static PROTO_BUILTIN_REGISTRY: OnceLock<RegistryConfig> = OnceLock::new();
 
-    MOON_BUILTIN_REGISTRY.get_or_init(|| {
-        let registry = env::var("MOON_BUILTIN_REGISTRY_HOST")
+    PROTO_BUILTIN_REGISTRY.get_or_init(|| {
+        let registry = env::var("PROTO_BUILTIN_REGISTRY_HOST")
             .ok()
             .filter(|s| !s.is_empty())
             .unwrap_or_else(|| "ghcr.io".to_string());
 
-        let namespace = env::var("MOON_BUILTIN_REGISTRY_NAMESPACE")
+        let namespace = env::var("PROTO_BUILTIN_REGISTRY_NAMESPACE")
             .ok()
             .filter(|s| !s.is_empty())
             .unwrap_or_else(|| "moonrepo".to_string());
 
-        let auth = bool_var("MOON_BUILTIN_REGISTRY_AUTH");
+        let auth = bool_var("PROTO_BUILTIN_REGISTRY_AUTH");
 
-        let default = bool_var("MOON_BUILTIN_REGISTRY_DEFAULT");
+        let default = bool_var("PROTO_BUILTIN_REGISTRY_DEFAULT");
 
         RegistryConfig {
             auth,

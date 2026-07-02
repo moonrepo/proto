@@ -669,7 +669,6 @@ pub fn find_debug_locator_with_fallback(name: &str, version: &str) -> PluginLoca
     static URL_CACHE: OnceLock<bool> = OnceLock::new();
 
     let use_urls = *URL_CACHE.get_or_init(|| bool_var("PROTO_PLUGINS_USE_URL_DIST"));
-    let builtin_registry = get_builtin_registry().to_owned();
 
     find_debug_locator(name).unwrap_or_else(|| {
         if use_urls {
@@ -679,6 +678,8 @@ pub fn find_debug_locator_with_fallback(name: &str, version: &str) -> PluginLoca
                 ),
             }))
         } else {
+            let builtin_registry = get_builtin_registry().to_owned();
+
             PluginLocator::Registry(Box::new(RegistryLocator {
                 registry: Some(builtin_registry.registry),
                 namespace: builtin_registry.namespace,
