@@ -1,3 +1,5 @@
+use crate::get_builtin_registry;
+
 use super::{DetectStrategy, PinLocation, merge_iter};
 use indexmap::{IndexMap, IndexSet};
 use rustc_hash::FxHashMap;
@@ -55,12 +57,8 @@ fn default_builtin_plugins(_context: &()) -> DefaultValueResult<BuiltinPlugins> 
 }
 
 fn default_registries(_context: &()) -> DefaultValueResult<IndexSet<RegistryConfig>> {
-    Ok(Some(IndexSet::from_iter([RegistryConfig {
-        auth: false,
-        default: false,
-        registry: "ghcr.io".into(),
-        namespace: Some("moonrepo".into()),
-    }])))
+    let builtin_registry = get_builtin_registry().to_owned();
+    Ok(Some(IndexSet::from_iter([builtin_registry])))
 }
 
 // `[settings]`

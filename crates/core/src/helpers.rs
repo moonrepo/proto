@@ -4,7 +4,8 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use starbase_archive::is_supported_archive_extension;
 use starbase_utils::{
-    envx, fs,
+    envx::{self, bool_var},
+    fs,
     json::{self, JsonError},
     net,
 };
@@ -12,6 +13,7 @@ use std::env;
 use std::path::Path;
 use std::sync::{LazyLock, OnceLock};
 use std::time::SystemTime;
+use warpgate::RegistryConfig;
 
 pub static ENV_VAR: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\$(?<name>[A-Z0-9_]+)").unwrap());
@@ -30,6 +32,33 @@ pub fn get_proto_version() -> &'static Version {
                 .unwrap_or(env!("CARGO_PKG_VERSION")),
         )
         .unwrap()
+    })
+}
+
+pub fn get_builtin_registry() -> &'static RegistryConfig {
+    static MOON_BUILTIN_REGISTRY: OnceLock<RegistryConfig> = OnceLock::new();
+
+    MOON_BUILTIN_REGISTRY.get_or_init(|| {
+        let registry = env::var("MOON_BUILTIN_REGISTRY_HOST")
+            .ok()
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| "ghcr.io".to_string());
+
+        let namespace = env::var("MOON_BUILTIN_REGISTRY_NAMESPACE")
+            .ok()
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| "moonrepo".to_string());
+
+        let auth = bool_var("MOON_BUILTIN_REGISTRY_AUTH");
+
+        let default = bool_var("MOON_BUILTIN_REGISTRY_DEFAULT");
+
+        RegistryConfig {
+            auth,
+            default,
+            registry,
+            namespace: Some(namespace),
+        }
     })
 }
 
