@@ -224,7 +224,7 @@ impl ProtoConfig {
         if !tools.contains_key("poetry") && is_allowed("poetry") {
             tools.insert(
                 Id::raw("poetry"),
-                find_debug_locator_with_fallback("python_poetry_tool", "0.1.6"),
+                find_debug_locator_with_fallback("python_poetry_tool", "0.1.7"),
             );
         }
 

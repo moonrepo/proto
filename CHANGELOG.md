@@ -22,6 +22,11 @@
 - Added `PROTO_BUILTIN_REGISTRY_*` environment variables for overriding the built-in plugin registry.
 - Updated checksum comparison to be case-insensitive, as some tools may provide a checksum in uppercase, while others may provide it in lowercase.
 
+#### 🧩 Plugins
+
+- **Poetry**
+  - Will now detect a Poetry version from `tool.poetry.requires-poetry` in `pyproject.toml`.
+
 #### ⚙️ Internal
 
 - Updated dependencies.
