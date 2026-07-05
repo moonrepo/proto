@@ -1,6 +1,7 @@
 use crate::helpers::{from_virtual_path, sort_virtual_paths, to_virtual_path};
 use crate::plugin_error::WarpgatePluginError;
-use extism::{Error, Function, Manifest, Plugin};
+use crate::plugin_pool::PluginInstancePool;
+use extism::{Error, Function, Manifest, Plugin, PluginBuilder};
 use scc::hash_map::Entry;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -14,12 +15,12 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, OnceLock};
 use std::time::Instant;
 use system_env::{SystemArch, SystemLibc, SystemOS};
-use tokio::sync::RwLock;
-use tokio::task::block_in_place;
+use tokio::sync::OnceCell;
+use tokio::task::spawn_blocking;
 use tracing::{instrument, trace};
 use warpgate_api::{HostEnvironment, Id, VirtualPath};
 
-fn is_incompatible_runtime(error: &Error) -> bool {
+pub(crate) fn is_incompatible_runtime(error: &Error) -> bool {
     let check = |message: String| {
         // unknown import: `env::exec_command` has not been defined
         message.contains("unknown import") && message.contains("env::")
@@ -32,6 +33,30 @@ fn is_incompatible_runtime(error: &Error) -> bool {
     }
 
     check(error.to_string())
+}
+
+pub(crate) fn map_container_error(id: &Id, error: Error) -> WarpgatePluginError {
+    if is_incompatible_runtime(&error) {
+        WarpgatePluginError::IncompatibleRuntime { id: id.to_owned() }
+    } else {
+        WarpgatePluginError::FailedContainer {
+            id: id.to_owned(),
+            error: Box::new(error),
+        }
+    }
+}
+
+// The trap types are not exposed through Extism's public API,
+// so we must detect them based on known error messages.
+pub(crate) fn is_trap_error(error: &Error) -> bool {
+    error.chain().any(|cause| {
+        let message = cause.to_string();
+
+        message.contains("wasm trap")
+            || message.contains("out of fuel")
+            || message == "timeout"
+            || message == "oom"
+    })
 }
 
 /// Inject our default configuration into the provided plugin manifest.
@@ -81,15 +106,22 @@ pub type OnCallFn = Arc<dyn Fn(&str, Option<&str>, Option<&str>) + Send + Sync>;
 /// A container around Extism's [`Plugin`] and [`Manifest`] types that provides convenience
 /// methods for calling and caching functions from the WASM plugin. It also provides
 /// additional methods for easily working with WASI and virtual paths.
+///
+/// The WASM file is compiled once, while plugin instances are created on demand
+/// and pooled, defaulting to a single instance, which matches the historical
+/// behavior. Consumers can allow parallel execution per plugin with the
+/// `plugin_instances` manifest configuration key, but only for plugins that do
+/// not rely on in-memory guest state (like Extism variables) persisting across
+/// separate calls, as each call may then execute on a different instance.
 pub struct PluginContainer {
     pub id: Id,
     pub manifest: Manifest,
     pub virtual_paths: Vec<(PathBuf, PathBuf)>,
 
     debug_call: bool,
-    func_cache: Arc<scc::HashMap<String, Vec<u8>>>,
+    func_cache: Arc<scc::HashMap<String, Arc<OnceCell<Vec<u8>>>>>,
     on_call_func: Arc<OnceLock<OnCallFn>>,
-    plugin: Arc<RwLock<Plugin>>,
+    instances: Arc<PluginInstancePool>,
 }
 
 impl PluginContainer {
@@ -102,20 +134,21 @@ impl PluginContainer {
     ) -> Result<PluginContainer, WarpgatePluginError> {
         trace!(id = id.as_str(), "Creating plugin container");
 
-        let plugin = Plugin::new(&manifest, functions, true).map_err(|error| {
-            if is_incompatible_runtime(&error) {
-                WarpgatePluginError::IncompatibleRuntime { id: id.clone() }
-            } else {
-                WarpgatePluginError::FailedContainer {
-                    id: id.clone(),
-                    error: Box::new(error),
-                }
-            }
-        })?;
+        let compiled = PluginBuilder::new(&manifest)
+            .with_functions(functions)
+            .with_wasi(true)
+            .compile()
+            .map_err(|error| map_container_error(&id, error))?;
+
+        // Create the first instance eagerly so that runtime incompatibilities,
+        // like missing host functions, error at registration instead of on
+        // the first call.
+        let instance = Plugin::new_from_compiled(&compiled)
+            .map_err(|error| map_container_error(&id, error))?;
 
         trace!(
             id = id.as_str(),
-            plugin = plugin.id.to_string(),
+            plugin = instance.id.to_string(),
             "Created plugin container",
         );
 
@@ -129,10 +162,12 @@ impl PluginContainer {
 
         sort_virtual_paths(&mut virtual_paths);
 
+        let instances = Arc::new(PluginInstancePool::new(compiled, &manifest, vec![instance]));
+
         Ok(PluginContainer {
             virtual_paths,
             manifest,
-            plugin: Arc::new(RwLock::new(plugin)),
+            instances,
             id,
             func_cache: Arc::new(scc::HashMap::new()),
             on_call_func: Arc::new(OnceLock::new()),
@@ -164,7 +199,9 @@ impl PluginContainer {
     }
 
     /// Call a function on the plugin with the given input and cache the output
-    /// before returning it. Subsequent calls with the same input will read from the cache.
+    /// before returning it. Subsequent calls with the same input will read from
+    /// the cache, while concurrent calls with the same input will only execute
+    /// the function once (single-flight).
     #[instrument(skip(self))]
     pub async fn cache_func_with<F, I, O>(
         &self,
@@ -180,19 +217,19 @@ impl PluginContainer {
         let input = self.format_input(func, input)?;
         let cache_key = format!("{func}-{}", hash::base64::from_bytes(&input));
 
-        match self.func_cache.entry_async(cache_key).await {
-            // Check if cache exists already
-            Entry::Occupied(entry) => self.parse_output(func, entry.get()),
-            // Otherwise call the function and cache the result
-            Entry::Vacant(entry) => {
-                let data = self.call(func, input).await?;
-                let output: O = self.parse_output(func, &data)?;
+        // Insert the cell synchronously so that the map's shard lock is never
+        // held while the function is being called (which may take minutes).
+        // The cell itself provides the single-flight semantics.
+        let cell = match self.func_cache.entry_async(cache_key).await {
+            Entry::Occupied(entry) => Arc::clone(entry.get()),
+            Entry::Vacant(entry) => Arc::clone(entry.insert_entry(Arc::new(OnceCell::new())).get()),
+        };
 
-                entry.insert_entry(data);
+        // If the call fails, the cell remains empty, so that
+        // subsequent calls can attempt the function again.
+        let data = cell.get_or_try_init(|| self.call(func, input)).await?;
 
-                Ok(output)
-            }
-        }
+        self.parse_output(func, data)
     }
 
     /// Call a function on the plugin with no input and return the output.
@@ -243,14 +280,25 @@ impl PluginContainer {
     pub async fn has_func(&self, func: impl AsRef<str> + Debug) -> bool {
         let func = func.as_ref();
 
-        match self.func_cache.entry_async(func.into()).await {
-            Entry::Occupied(entry) => entry.get()[0] == 1,
-            Entry::Vacant(entry) => {
-                let exists = self.plugin.read().await.function_exists(func);
-                entry.insert_entry(vec![exists as u8]);
-                exists
-            }
-        }
+        let cell = match self.func_cache.entry_async(func.into()).await {
+            Entry::Occupied(entry) => Arc::clone(entry.get()),
+            Entry::Vacant(entry) => Arc::clone(entry.insert_entry(Arc::new(OnceCell::new())).get()),
+        };
+
+        cell.get_or_try_init(|| async {
+            let (instance, permit) = self.instances.acquire(&self.id).await?;
+
+            // This only inspects module metadata and does not execute
+            // any guest code, so the instance is always reusable.
+            let exists = instance.function_exists(func);
+
+            self.instances.restore(instance, permit, true);
+
+            Ok::<_, WarpgatePluginError>(vec![exists as u8])
+        })
+        .await
+        .map(|data| data[0] == 1)
+        .unwrap_or(false)
     }
 
     /// Convert the provided virtual guest path to an absolute host path.
@@ -271,12 +319,15 @@ impl PluginContainer {
         func: &str,
         input: impl AsRef<[u8]>,
     ) -> Result<Vec<u8>, WarpgatePluginError> {
-        let mut instance = self.plugin.write().await;
-        let input = input.as_ref();
-        let input_string = String::from_utf8_lossy(input);
-        let uuid = instance.id.to_string(); // Copy
+        let input = input.as_ref().to_vec();
+        let input_string = String::from_utf8_lossy(&input).into_owned();
         let instant = Instant::now();
         let truncate_size = 5000;
+
+        // Check out an instance from the pool, waiting when all
+        // instances are busy with other calls
+        let (mut instance, permit) = self.instances.acquire(&self.id).await?;
+        let uuid = instance.id.to_string(); // Copy
 
         trace!(
             id = self.id.as_str(),
@@ -294,7 +345,31 @@ impl PluginContainer {
             callback(func, Some(&input_string), None);
         }
 
-        let output = block_in_place(|| instance.call(func, input)).map_err(|error| {
+        let func_name = func.to_owned();
+        let pool = Arc::clone(&self.instances);
+
+        // Guest calls block the current thread, so execute them on the
+        // blocking pool. The instance is restored within the closure so
+        // that it is never lost if this future is dropped mid-call.
+        let output = spawn_blocking(move || {
+            let result = instance
+                .call::<&[u8], &[u8]>(&func_name, &input)
+                .map(|output| output.to_vec());
+
+            // Keep the instance when the call succeeded or a clean error
+            // was returned, and only discard it when the guest trapped
+            let reusable = match &result {
+                Ok(_) => true,
+                Err(error) => !is_trap_error(error),
+            };
+
+            pool.restore(instance, permit, reusable);
+
+            result
+        })
+        .await
+        .unwrap_or_else(|error| Err(Error::msg(error.to_string())))
+        .map_err(|error| {
             if is_incompatible_runtime(&error) {
                 return WarpgatePluginError::IncompatibleRuntime {
                     id: self.id.clone(),
@@ -329,7 +404,7 @@ impl PluginContainer {
             }
         })?;
 
-        let output_string = String::from_utf8_lossy(output);
+        let output_string = String::from_utf8_lossy(&output);
 
         trace!(
             id = self.id.as_str(),
@@ -348,7 +423,7 @@ impl PluginContainer {
             callback(func, None, Some(&output_string));
         }
 
-        Ok(output.to_vec())
+        Ok(output)
     }
 
     fn format_input<I: Serialize>(

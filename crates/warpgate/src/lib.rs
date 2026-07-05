@@ -5,6 +5,7 @@ mod loader;
 mod loader_error;
 mod plugin;
 mod plugin_error;
+mod plugin_pool;
 mod protocols;
 mod registry;
 pub mod test_utils;
@@ -15,6 +16,7 @@ pub use loader::*;
 pub use loader_error::*;
 pub use plugin::*;
 pub use plugin_error::*;
+pub use plugin_pool::*;
 pub use registry::*;
 
 pub use extism::{Manifest as PluginManifest, Wasm};

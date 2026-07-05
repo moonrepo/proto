@@ -122,6 +122,8 @@ pub fn initialize_tracing() {
 
 /// Initialize `tracing` events to be captured by Extism, with the provided options.
 pub fn initialize_tracing_with_options(options: WarpgateTracingOptions) {
-    set_global_default(Registry::default().with(WarpgateToExtismLayer { options }))
-        .expect("Global tracing subscriber has already been set!")
+    // A plugin instance may invoke an entry point function multiple times
+    // across its lifetime, so ignore duplicate initializations, otherwise
+    // the plugin panics with an `unreachable` trap.
+    let _ = set_global_default(Registry::default().with(WarpgateToExtismLayer { options }));
 }

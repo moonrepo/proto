@@ -112,3 +112,20 @@ pub fn register_tool(_: ()) -> FnResult<Json<RegisterToolOutput>> {
         ..RegisterToolOutput::default()
     }))
 }
+
+#[plugin_fn]
+pub fn set_var_state(input: String) -> FnResult<()> {
+    var::set("state", input)?;
+
+    Ok(())
+}
+
+#[plugin_fn]
+pub fn get_var_state(_: ()) -> FnResult<String> {
+    Ok(var::get::<String>("state")?.unwrap_or_default())
+}
+
+#[plugin_fn]
+pub fn trigger_trap(_: ()) -> FnResult<()> {
+    panic!("This will trap!");
+}
