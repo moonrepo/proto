@@ -66,6 +66,7 @@ async fn main() -> MainResult {
             enabled: cli.otel,
             logs_enabled: cli.otel_logs,
             service_name: cli.otel_service_name.clone(),
+            ..Default::default()
         },
         show_spans: cli.log.is_verbose(),
         // test_env: "PROTO_TEST".into(),
