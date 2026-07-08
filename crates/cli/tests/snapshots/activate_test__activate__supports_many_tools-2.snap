@@ -6,6 +6,7 @@ export __ORIG_PATH="$PATH"
 
 _proto_activate_hook() {
   local previous_exit_status=$?;
+  local output;
   trap '' SIGINT;
   output=$(proto activate bash --export)
   if [ -n "$output" ]; then

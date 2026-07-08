@@ -189,8 +189,6 @@ fn create_command(args: Vec<OsString>, shim_name: &str) -> Result<Command> {
 }
 
 pub fn main() -> Result<()> {
-    sigpipe::reset();
-
     debug!("Running proto shim");
 
     // Extract arguments to pass-through

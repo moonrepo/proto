@@ -5,6 +5,7 @@ expression: "get_activate_output(&assert, &sandbox)"
 export __ORIG_PATH="$PATH"
 
 _proto_activate_hook() {
+  local output
   trap '' SIGINT
   output=$(proto activate zsh --export)
   if [ -n "$output" ]; then

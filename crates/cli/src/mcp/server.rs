@@ -25,9 +25,8 @@ macro_rules! handle_tool_error {
         match $result {
             Ok(inner) => inner,
             Err(error) => {
-                return Ok(CallToolResult::error(vec![Annotated::new(
-                    RawContent::text(error.to_string()),
-                    None,
+                return Ok(CallToolResult::error(vec![ContentBlock::text(
+                    error.to_string(),
                 )]));
             }
         }
@@ -45,9 +44,9 @@ impl ProtoMcp {
     pub fn list_all_resources(&self) -> ListResourcesResult {
         ListResourcesResult {
             resources: vec![
-                RawResource::new("proto://config", "Configuration".to_string()).no_annotation(),
-                RawResource::new("proto://env", "Environment".to_string()).no_annotation(),
-                RawResource::new("proto://tools", "Installed tools".to_string()).no_annotation(),
+                Resource::new("proto://config", "Configuration"),
+                Resource::new("proto://env", "Environment"),
+                Resource::new("proto://tools", "Installed tools"),
             ],
             next_cursor: None,
             meta: None,
