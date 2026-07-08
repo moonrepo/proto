@@ -78,7 +78,6 @@ tracing = { workspace = true }
 
 # For the shim binary
 rust_json = "0.1.6"
-sigpipe = "0.1.3"
 
 # For extism/wasmtime
 extism = "1.30.0"
@@ -87,7 +86,7 @@ wasi-common = "~43.0.2"
 wiggle = "~43.0.2"
 
 # Overrides
-liblzma = { version = "0.4.6", features = ["static"] }
+liblzma = { version = "0.4.7", features = ["static"] }
 
 [dev-dependencies]
 proto_core = { path = "../core", features = ["test"] }

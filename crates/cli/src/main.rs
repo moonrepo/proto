@@ -38,8 +38,6 @@ fn get_tracing_modules() -> Vec<String> {
 
 #[tokio::main]
 async fn main() -> MainResult {
-    sigpipe::reset();
-
     let mut cli = CLI::parse();
     cli.setup_env_vars();
 
