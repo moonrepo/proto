@@ -3454,7 +3454,7 @@ dependencies = [
  "starbase_sandbox",
  "starbase_shell",
  "starbase_styles",
- "starbase_utils",
+ "starbase_utils 0.14.0",
  "sysinfo",
  "system_env",
  "thiserror 2.0.18",
@@ -3508,7 +3508,7 @@ dependencies = [
  "starbase_sandbox",
  "starbase_shell",
  "starbase_styles",
- "starbase_utils",
+ "starbase_utils 0.14.0",
  "system_env",
  "thiserror 2.0.18",
  "tokio",
@@ -4804,7 +4804,7 @@ dependencies = [
  "miette 7.6.0",
  "rustc-hash",
  "starbase_styles",
- "starbase_utils",
+ "starbase_utils 0.13.8",
  "thiserror 2.0.18",
  "tracing",
  "zip",
@@ -4855,16 +4855,16 @@ dependencies = [
 
 [[package]]
 name = "starbase_sandbox"
-version = "0.11.1"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a52a223bc675989a16257e3cc30fd160ba1ac6871596009782758adca038208c"
+checksum = "2b0f10dd659949fc8d5e65f2bfbb9a24a0b49ce633d766d93efadc8e4966fcf7"
 dependencies = [
  "assert_cmd",
  "assert_fs",
  "insta",
  "predicates",
  "pretty_assertions",
- "starbase_utils",
+ "starbase_utils 0.14.0",
 ]
 
 [[package]]
@@ -4899,6 +4899,21 @@ name = "starbase_utils"
 version = "0.13.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6f8804a32cd7c654c3321022fc1b05314d7d2fbf6781f8d19d6e4c97488cffd8"
+dependencies = [
+ "dirs",
+ "jwalk",
+ "reflink-copy",
+ "starbase_styles",
+ "thiserror 2.0.18",
+ "tracing",
+ "wax",
+]
+
+[[package]]
+name = "starbase_utils"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c2e0ae77957de9c75b638c5e07ed8be1e473948a1c2ce618b0797d70206879d2"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -5833,7 +5848,7 @@ dependencies = [
  "starbase_sandbox",
  "starbase_shell",
  "starbase_styles",
- "starbase_utils",
+ "starbase_utils 0.14.0",
  "system_env",
  "thiserror 2.0.18",
  "tokio",
