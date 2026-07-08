@@ -38,8 +38,6 @@ fn get_tracing_modules() -> Vec<String> {
 
 #[tokio::main]
 async fn main() -> MainResult {
-    sigpipe::reset();
-
     let mut cli = CLI::parse();
     cli.setup_env_vars();
 
@@ -68,6 +66,7 @@ async fn main() -> MainResult {
             enabled: cli.otel,
             logs_enabled: cli.otel_logs,
             service_name: cli.otel_service_name.clone(),
+            ..Default::default()
         },
         show_spans: cli.log.is_verbose(),
         // test_env: "PROTO_TEST".into(),

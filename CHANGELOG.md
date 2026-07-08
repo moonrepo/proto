@@ -15,6 +15,21 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added the following codec support to self-compressed binaries (not packed with tar or zip): `bzip2` and `xz`.
+- Updated archive unpacking to be streamed when applicable.
+- Improved our OpenTelemetry (OTEL) implementation to support the following:
+  - Added experimental HTTP support. Can be enabled with `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf`.
+  - Added experimental TLS support for both HTTP and gRPC.
+  - Added support for `OTEL_SERVICE_NAME`, `OTEL_*_EXPORTER`, `OTEL_EXPORTER_OTLP_*_PROTOCOL`, and `OTEL_EXPORTER_OTLP_*_ENDPOINT` environment variables.
+
+#### 🐞 Fixes
+
+- Fixed an issue where `proto clean` would not recursively clean certain directories.
+
 ## 0.58.2
 
 #### 🚀 Updates

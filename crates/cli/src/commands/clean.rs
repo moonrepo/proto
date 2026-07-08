@@ -290,9 +290,9 @@ pub fn clean_dir(dir: &Path, days: u64, recurse: bool) -> miette::Result<Vec<Sta
         };
 
         if file_type.is_file() {
-            let bytes = fs::remove_file_if_stale(&path, duration)?;
-
-            if bytes > 0 {
+            if let Some(bytes) = fs::remove_file_if_stale(&path, duration)?
+                && bytes > 0
+            {
                 debug!(
                     "File {} hasn't been used in over {} days, removing",
                     color::path(&path),
