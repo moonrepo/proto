@@ -285,21 +285,20 @@ pub async fn clean_dir(dir: &Path, days: u64) -> miette::Result<Vec<StaleFile>> 
             continue;
         }
 
-        if path.is_file() {
-            if let Some(bytes) = fs::remove_file_if_stale(&path, duration)?
-                && bytes > 0
-            {
-                debug!(
-                    "File {} hasn't been used in over {} days, removing",
-                    color::path(&path),
-                    days
-                );
+        if path.is_file()
+            && let Some(bytes) = fs::remove_file_if_stale(&path, duration)?
+            && bytes > 0
+        {
+            debug!(
+                "File {} hasn't been used in over {} days, removing",
+                color::path(&path),
+                days
+            );
 
-                cleaned.push(StaleFile {
-                    file: path,
-                    size: bytes,
-                })
-            }
+            cleaned.push(StaleFile {
+                file: path,
+                size: bytes,
+            })
         }
     }
 

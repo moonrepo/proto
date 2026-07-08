@@ -1,4 +1,5 @@
 use starbase_archive::Archiver;
+use starbase_archive::codecs::Gz;
 use starbase_archive::tar::TarPacker;
 use starbase_sandbox::create_empty_sandbox;
 use starbase_utils::fs;
@@ -26,7 +27,9 @@ fn pack_tar_gz(source_root: &Path, archive_path: &Path, files: &[(&str, &[u8])])
         archiver.add_source_file(rel, None);
     }
 
-    archiver.pack(TarPacker::new_gz).unwrap();
+    archiver
+        .pack(|path| Ok(TarPacker::new(Gz::new(fs::create_file(path).unwrap()))))
+        .unwrap();
 }
 
 #[test]
