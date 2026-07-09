@@ -323,12 +323,12 @@ impl UnresolvedParser {
     fn reset_state(&mut self) {
         self.kind = ParseKind::Unknown;
         self.in_part = ParsePart::Start;
-        self.req_op.truncate(0);
-        self.major_year.truncate(0);
-        self.minor_month.truncate(0);
-        self.patch_day.truncate(0);
-        self.pre_id.truncate(0);
-        self.build_id.truncate(0);
+        self.req_op.clear();
+        self.major_year.clear();
+        self.minor_month.clear();
+        self.patch_day.clear();
+        self.pre_id.clear();
+        self.build_id.clear();
     }
 }
 
