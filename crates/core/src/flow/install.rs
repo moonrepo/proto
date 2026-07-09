@@ -11,6 +11,7 @@ use crate::tool_spec::ToolSpec;
 use crate::utils::log::LogWriter;
 use crate::utils::{archive, process};
 use proto_pdk_api::*;
+use starbase_archive::get_compression_extensions;
 use starbase_shell::{ShellType, join_exe_args};
 use starbase_styles::color;
 use starbase_utils::net::DownloadOptions;
@@ -510,9 +511,9 @@ impl<'tool> Installer<'tool> {
                 .await,
             )?;
 
-            // If the archive was `.gz` without tar or other formats,
+            // If the archive was compressed without tar or other formats,
             // it's a single file, so assume a file and update perms
-            if ext == "gz" && unpacked_path.is_file() {
+            if get_compression_extensions().contains(&ext) && unpacked_path.is_file() {
                 fs::update_perms(unpacked_path, None)?;
             }
         }
