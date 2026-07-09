@@ -30,6 +30,11 @@
 
 - Fixed an issue where `proto clean` would not recursively clean certain directories.
 
+#### ⚙️ Internal
+
+- Updated Rust to v1.97.0.
+- Updated dependencies.
+
 ## 0.58.2
 
 #### 🚀 Updates
