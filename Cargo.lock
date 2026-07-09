@@ -4809,9 +4809,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_archive"
-version = "0.14.0"
+version = "0.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0738605d827b76dccbf4d92680a072ae661583e9aecad1b140cfc2d50f64099b"
+checksum = "cce14beecb66e6345d0fec839ed8ebd8adeefc3599f0f1df3dd05c6651924a20"
 dependencies = [
  "binstall-tar",
  "bzip2",
@@ -4839,9 +4839,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_console"
-version = "0.6.32"
+version = "0.6.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f56a3d06645690816f9afaa22a5ed90f912d5500d8507645ac62c10637afc760"
+checksum = "6530b0f4bd6cef5c945dcb277cc91f980dac23d322832bc0dfbd2c4457d5f600"
 dependencies = [
  "crossterm",
  "iocraft",
@@ -4912,9 +4912,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_utils"
-version = "0.14.0"
+version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c2e0ae77957de9c75b638c5e07ed8be1e473948a1c2ce618b0797d70206879d2"
+checksum = "068a9cf0dd7252c656d26ceca3b146c4d3baf13d0a683169952e4badea60925e"
 dependencies = [
  "async-trait",
  "base64 0.22.1",

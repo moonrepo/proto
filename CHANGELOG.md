@@ -26,6 +26,11 @@
   - Added experimental TLS support for both HTTP and gRPC.
   - Added support for `OTEL_SERVICE_NAME`, `OTEL_*_EXPORTER`, `OTEL_EXPORTER_OTLP_*_PROTOCOL`, and `OTEL_EXPORTER_OTLP_*_ENDPOINT` environment variables.
 
+#### ⚙️ Internal
+
+- Updated Rust to v1.97.0.
+- Updated dependencies.
+
 ## 0.58.2
 
 #### 🚀 Updates

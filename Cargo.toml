@@ -55,22 +55,24 @@ serde_json = { version = "1.0.150", features = ["preserve_order"] }
 sha2 = "0.11.0"
 shell-words = "1.1.1"
 starbase = { version = "0.13.0", features = ["miette", "tracing"] }
-starbase_archive = { version = "0.14.0", features = [
+starbase_archive = { version = "0.14.2", features = [
     "bz2",
+    "dmg",
     "gz",
-    "xz",
-    "zstd",
     "miette",
+    "pkg",
     "tar-all",
+    "xz",
     "zip-all",
+    "zstd",
 ] }
 starbase_args = { version = "0.1.12" }
-starbase_console = { version = "0.6.32", features = ["miette", "ui"] }
+starbase_console = { version = "0.6.33", features = ["miette", "ui"] }
 starbase_id = { version = "0.3.4", features = ["miette", "schematic"] }
 starbase_sandbox = { version = "0.12.0" }
 starbase_shell = { version = "0.12.7", features = ["miette"] }
 starbase_styles = { version = "0.6.9" }
-starbase_utils = { version = "0.14.0", default-features = false, features = [
+starbase_utils = { version = "0.14.1", default-features = false, features = [
     "fs-lock",
     "json",
     "miette",
