@@ -13,6 +13,7 @@ use starbase_console::ui::*;
 use starbase_console::utils::formats::format_bytes_binary;
 use starbase_styles::color;
 use starbase_utils::fs;
+use std::io;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 use tracing::{debug, instrument};
@@ -269,23 +270,26 @@ pub async fn clean_proto_tool(session: &ProtoSession, days: u64) -> miette::Resu
 }
 
 #[instrument]
-pub async fn clean_dir(dir: &Path, days: u64) -> miette::Result<Vec<StaleFile>> {
+pub fn clean_dir(dir: &Path, days: u64, recurse: bool) -> miette::Result<Vec<StaleFile>> {
     let duration = Duration::from_secs(86400 * days);
     let mut cleaned = vec![];
 
-    for file in fs::read_dir(dir)? {
-        let path = file.path();
+    for entry in fs::read_dir(dir)? {
+        let path = entry.path();
 
         // Don't delete dot files/folders
         if path
             .file_name()
-            .and_then(|name| name.to_str())
-            .is_some_and(|name| name.starts_with('.'))
+            .is_some_and(|name| name.as_encoded_bytes().starts_with(b"."))
         {
             continue;
         }
 
-        if path.is_file() {
+        let Ok(file_type) = entry.file_type() else {
+            continue;
+        };
+
+        if file_type.is_file() {
             let bytes = fs::remove_file_if_stale(&path, duration)?;
 
             if bytes > 0 {
@@ -299,6 +303,27 @@ pub async fn clean_dir(dir: &Path, days: u64) -> miette::Result<Vec<StaleFile>> 
                     file: path,
                     size: bytes,
                 })
+            }
+        } else if recurse && file_type.is_dir() {
+            cleaned.extend(clean_dir(&path, days, recurse)?);
+
+            // Prune the subdirectory if empty; a concurrent clean or write is not an error
+            match std::fs::remove_dir(&path) {
+                Ok(_) => {
+                    debug!("Directory {} is now empty, removing", color::path(&path));
+                }
+                Err(error)
+                    if matches!(
+                        error.kind(),
+                        io::ErrorKind::NotFound | io::ErrorKind::DirectoryNotEmpty
+                    ) => {}
+                Err(error) => {
+                    return Err(fs::FsError::Remove {
+                        path,
+                        error: Box::new(error),
+                    }
+                    .into());
+                }
             }
         }
     }
@@ -335,19 +360,24 @@ pub async fn internal_clean(
     if matches!(args.target, CleanTarget::All | CleanTarget::Plugins) {
         debug!("Cleaning downloaded plugins...");
 
-        result.plugins = clean_dir(&session.env.store.plugins_dir, days).await?;
+        // Plugins are stored as flat files, so no recursion is needed
+        result.plugins = clean_dir(&session.env.store.plugins_dir, days, false)?;
     }
 
     if matches!(args.target, CleanTarget::All | CleanTarget::Temp) {
         debug!("Cleaning temporary directory...");
 
-        result.temp = clean_dir(&session.env.store.temp_dir, days).await?;
+        // Temp contents are coordinated through the install and plugin download
+        // locks, and both flows remove their own directories when they finish;
+        // recursive cleanup would have to participate in those lock protocols,
+        // so keep the previous top-level behavior here
+        result.temp = clean_dir(&session.env.store.temp_dir, days, false)?;
     }
 
     if matches!(args.target, CleanTarget::All | CleanTarget::Cache) {
         debug!("Cleaning cache directory...");
 
-        result.cache = clean_dir(&session.env.store.cache_dir, days).await?;
+        result.cache = clean_dir(&session.env.store.cache_dir, days, true)?;
     }
 
     Ok(result)

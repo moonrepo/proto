@@ -4,6 +4,34 @@ use std::time::{Duration, SystemTime};
 
 mod clean {
     use super::*;
+    use std::path::Path;
+
+    fn make_stale(path: impl AsRef<Path>) {
+        fs::File::options()
+            .write(true)
+            .open(path)
+            .unwrap()
+            .set_times(
+                fs::FileTimes::new().set_accessed(
+                    SystemTime::now()
+                        .checked_sub(Duration::from_secs(86400 * 2))
+                        .unwrap(),
+                ),
+            )
+            .unwrap();
+    }
+
+    fn run_clean(sandbox: &ProtoSandbox, target: &str) {
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("clean")
+                    .arg("--yes")
+                    .arg(target)
+                    .arg("--days")
+                    .arg("1");
+            })
+            .success();
+    }
 
     #[test]
     fn cleans_without_issue() {
@@ -24,31 +52,109 @@ mod clean {
         sandbox.create_file(".proto/plugins/a_plugin.wasm", "{}");
         sandbox.create_file(".proto/plugins/b_plugin.wasm", "{}");
 
-        fs::File::options()
-            .write(true)
-            .open(sandbox.path().join(".proto/plugins/a_plugin.wasm"))
-            .unwrap()
-            .set_times(
-                fs::FileTimes::new().set_accessed(
-                    SystemTime::now()
-                        .checked_sub(Duration::from_secs(86400 * 2))
-                        .unwrap(),
-                ),
-            )
-            .unwrap();
+        make_stale(sandbox.path().join(".proto/plugins/a_plugin.wasm"));
 
-        sandbox
-            .run_bin(|cmd| {
-                cmd.arg("clean")
-                    .arg("--yes")
-                    .arg("plugins")
-                    .arg("--days")
-                    .arg("1");
-            })
-            .success();
+        run_clean(&sandbox, "plugins");
 
         assert!(!sandbox.path().join(".proto/plugins/a_plugin.wasm").exists());
         assert!(sandbox.path().join(".proto/plugins/b_plugin.wasm").exists());
+    }
+
+    #[test]
+    fn cleans_cache_subdirectories() {
+        let sandbox = create_empty_proto_sandbox();
+        sandbox.create_file(".proto/cache/requests-v2/nested/stale.json", "{}");
+
+        make_stale(
+            sandbox
+                .path()
+                .join(".proto/cache/requests-v2/nested/stale.json"),
+        );
+
+        run_clean(&sandbox, "cache");
+
+        assert!(!sandbox.path().join(".proto/cache/requests-v2").exists());
+
+        // But never the cache directory itself
+        assert!(sandbox.path().join(".proto/cache").exists());
+    }
+
+    #[test]
+    fn keeps_fresh_files_in_cache_subdirectories() {
+        let sandbox = create_empty_proto_sandbox();
+        sandbox.create_file(".proto/cache/registry/fresh.json", "{}");
+
+        run_clean(&sandbox, "cache");
+
+        assert!(
+            sandbox
+                .path()
+                .join(".proto/cache/registry/fresh.json")
+                .exists()
+        );
+    }
+
+    #[test]
+    fn doesnt_clean_dot_directories_in_cache() {
+        let sandbox = create_empty_proto_sandbox();
+        sandbox.create_file(".proto/cache/.internal/stale.json", "{}");
+
+        make_stale(sandbox.path().join(".proto/cache/.internal/stale.json"));
+
+        run_clean(&sandbox, "cache");
+
+        assert!(
+            sandbox
+                .path()
+                .join(".proto/cache/.internal/stale.json")
+                .exists()
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn doesnt_follow_or_delete_symlinks_in_cache() {
+        let sandbox = create_empty_proto_sandbox();
+        sandbox.create_file("external/stale.json", "{}");
+
+        make_stale(sandbox.path().join("external/stale.json"));
+
+        fs::create_dir_all(sandbox.path().join(".proto/cache")).unwrap();
+
+        std::os::unix::fs::symlink(
+            sandbox.path().join("external"),
+            sandbox.path().join(".proto/cache/linked"),
+        )
+        .unwrap();
+
+        std::os::unix::fs::symlink(
+            sandbox.path().join("external/stale.json"),
+            sandbox.path().join(".proto/cache/linked.json"),
+        )
+        .unwrap();
+
+        run_clean(&sandbox, "cache");
+
+        assert!(sandbox.path().join("external/stale.json").exists());
+        assert!(sandbox.path().join(".proto/cache/linked").is_symlink());
+        assert!(sandbox.path().join(".proto/cache/linked.json").is_symlink());
+    }
+
+    #[test]
+    fn doesnt_recurse_into_temp() {
+        let sandbox = create_empty_proto_sandbox();
+        sandbox.create_file(".proto/temp/tool/hash/leftover.bin", "");
+
+        make_stale(sandbox.path().join(".proto/temp/tool/hash/leftover.bin"));
+
+        run_clean(&sandbox, "temp");
+
+        assert!(
+            sandbox
+                .path()
+                .join(".proto/temp/tool/hash/leftover.bin")
+                .exists()
+        );
     }
 
     #[test]
