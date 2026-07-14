@@ -25,6 +25,8 @@
   - Added experimental HTTP support. Can be enabled with `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf`.
   - Added experimental TLS support for both HTTP and gRPC.
   - Added support for `OTEL_SERVICE_NAME`, `OTEL_*_EXPORTER`, `OTEL_EXPORTER_OTLP_*_PROTOCOL`, and `OTEL_EXPORTER_OTLP_*_ENDPOINT` environment variables.
+- **WASM API**
+  - Added `DownloadPrebuiltOutput.archive_prefix_rewrites` field, which allows plugins to rewrite directory prefixes when unpacking archives.
 
 #### ⚙️ Internal
 

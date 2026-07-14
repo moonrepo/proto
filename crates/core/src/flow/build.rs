@@ -875,13 +875,8 @@ impl Builder<'_> {
                         self.options.install_dir.display()
                     ))?;
 
-                    archive::unpack_source(
-                        &archive,
-                        self.options.install_dir,
-                        self.options.temp_dir,
-                        &download_file,
-                    )
-                    .await?;
+                    archive::unpack_source(&archive, self.options.install_dir, &download_file)
+                        .await?;
                 }
             }
             SourceLocation::Git(git) => {

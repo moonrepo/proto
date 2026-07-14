@@ -318,6 +318,12 @@ impl<'tool> Installer<'tool> {
             });
         }
 
+        if options.force {
+            fs::remove_dir_all(&self.product_dir)?;
+        }
+
+        fs::create_dir_all(&self.product_dir)?;
+
         let proto = &self.tool.proto;
         let client = proto.get_plugin_loader()?.get_http_client()?;
         let config = proto.load_config()?;
@@ -499,16 +505,12 @@ impl<'tool> Installer<'tool> {
                 });
             });
 
+            let out_dir = self.temp_dir.join("unpacked");
+
             let (ext, unpacked_path) = proto.create_metric().record_tool_install_step(
                 &self.tool.context,
                 "unpack_archive",
-                archive::unpack(
-                    &self.product_dir,
-                    &self.temp_dir,
-                    &download_file,
-                    output.archive_prefix.as_deref(),
-                )
-                .await,
+                archive::unpack(&out_dir, &download_file, output.archive_prefix.as_deref()).await,
             )?;
 
             // If the archive was compressed without tar or other formats,
@@ -516,6 +518,13 @@ impl<'tool> Installer<'tool> {
             if get_compression_extensions().contains(&ext) && unpacked_path.is_file() {
                 fs::update_perms(unpacked_path, None)?;
             }
+
+            // Move and rewrite the unpackged files after applying permissions
+            archive::move_and_rewrite(
+                &out_dir,
+                &self.product_dir,
+                &output.archive_prefix_rewrites,
+            )?;
         }
         // Not an archive, assume a file and copy
         else {

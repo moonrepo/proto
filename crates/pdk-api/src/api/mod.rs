@@ -632,9 +632,16 @@ api_struct!(
     /// Output returned by the `download_prebuilt` function.
     pub struct DownloadPrebuiltOutput {
         /// Name of the direct folder within the archive that contains the tool,
-        /// and will be removed when unpacking the archive.
+        /// and will be removed when unpacking the archive. If you need more control,
+        /// or want to utilize globs, use `archive_prefix_rewrites` instead.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub archive_prefix: Option<String>,
+
+        /// A mapping of relative directory prefixes (supports globs) within the archive
+        /// to their rewritten destination paths after unpacking. Only directories can
+        /// be rewritten, NOT files.
+        #[serde(default, skip_serializing_if = "FxHashMap::is_empty")]
+        pub archive_prefix_rewrites: FxHashMap<String, String>,
 
         /// The checksum hash itself.
         #[serde(default, skip_serializing_if = "Option::is_none")]
