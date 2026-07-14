@@ -71,7 +71,7 @@ impl From<ProtoProcessError> for ProtoArchiveError {
     }
 }
 
-pub fn should_unpack(src: &ArchiveSource, target_dir: &Path) -> Result<bool, ProtoArchiveError> {
+pub fn should_unpack(source: &ArchiveSource, target_dir: &Path) -> Result<bool, ProtoArchiveError> {
     let url_file = target_dir.join(".archive-url");
     let mut unpack = true;
 
@@ -80,7 +80,7 @@ pub fn should_unpack(src: &ArchiveSource, target_dir: &Path) -> Result<bool, Pro
     if url_file.exists() {
         let previous_url = fs::read_file(&url_file)?;
 
-        if src.url.trim() == previous_url.trim() {
+        if source.url.trim() == previous_url.trim() {
             unpack = false;
         } else {
             fs::remove_dir_all(target_dir)?;
@@ -93,41 +93,41 @@ pub fn should_unpack(src: &ArchiveSource, target_dir: &Path) -> Result<bool, Pro
 }
 
 pub async fn download(
-    src: &ArchiveSource,
+    source: &ArchiveSource,
     temp_dir: &Path,
     options: DownloadOptions,
 ) -> Result<PathBuf, ProtoArchiveError> {
-    let filename = extract_file_name_from_url(&src.url);
+    let filename = extract_file_name_from_url(&source.url);
     let archive_file = temp_dir.join(&filename);
 
-    net::download_from_url_with_options(&src.url, &archive_file, options).await?;
+    net::download_from_url_with_options(&source.url, &archive_file, options).await?;
 
     Ok(archive_file)
 }
 
 pub async fn download_and_unpack(
-    src: &ArchiveSource,
+    source: &ArchiveSource,
     target_dir: &Path,
     temp_dir: &Path,
     options: DownloadOptions,
 ) -> Result<(), ProtoArchiveError> {
-    if should_unpack(src, target_dir)? {
-        let archive_file = download(src, temp_dir, options).await?;
+    if should_unpack(source, target_dir)? {
+        let archive_file = download(source, temp_dir, options).await?;
 
-        unpack_source(src, target_dir, &archive_file).await?;
+        unpack_source(source, target_dir, &archive_file).await?;
     }
 
     Ok(())
 }
 
 pub async fn unpack_source(
-    src: &ArchiveSource,
+    source: &ArchiveSource,
     target_dir: &Path,
     archive_file: &Path,
 ) -> Result<(String, PathBuf), ProtoArchiveError> {
-    let result = unpack(target_dir, archive_file, src.prefix.as_deref()).await;
+    let result = unpack(target_dir, archive_file, source.prefix.as_deref()).await;
 
-    fs::write_file(target_dir.join(".archive-url"), &src.url)?;
+    fs::write_file(target_dir.join(".archive-url"), &source.url)?;
 
     result
 }

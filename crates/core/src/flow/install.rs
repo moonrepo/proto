@@ -519,7 +519,7 @@ impl<'tool> Installer<'tool> {
                 fs::update_perms(unpacked_path, None)?;
             }
 
-            // Move and rewrite the unpackged files after applying permissions
+            // Move and rewrite the unpacked files after applying permissions
             archive::move_and_rewrite(
                 &out_dir,
                 &self.product_dir,
