@@ -1,5 +1,6 @@
 use version_spec::{
-    Op, Requirement, Version, parse_calver, parse_calver_req, parse_semver, parse_semver_req,
+    Clause, Op, Range, Requirement, Version, parse_calver, parse_calver_req, parse_semver,
+    parse_semver_range, parse_semver_req,
 };
 
 mod syntax {
@@ -699,6 +700,266 @@ mod syntax {
             let error = parse_semver_req("18446744073709551616").unwrap_err();
 
             assert!(error.to_string().contains("failed to parse major version"));
+        }
+    }
+
+    mod semver_range {
+        use super::*;
+
+        fn req(input: &str) -> Requirement {
+            parse_semver_req(input).unwrap()
+        }
+
+        fn ver(input: &str) -> Version {
+            parse_semver(input).unwrap()
+        }
+
+        #[test]
+        fn parses_single() {
+            assert_eq!(
+                parse_semver_range("^1.2").unwrap(),
+                Range {
+                    clauses: vec![Clause::Only(Requirement {
+                        op: Op::Caret,
+                        major: Some(1),
+                        minor: Some(2),
+                        ..Default::default()
+                    })]
+                }
+            );
+
+            assert_eq!(
+                parse_semver_range("1.2.3").unwrap(),
+                Range {
+                    clauses: vec![Clause::Only(req("1.2.3"))]
+                }
+            );
+        }
+
+        #[test]
+        fn parses_wildcard() {
+            for input in ["", "*", "  *  ", "x", "X"] {
+                assert_eq!(
+                    parse_semver_range(input).unwrap(),
+                    Range::default(),
+                    "input: {input:?}"
+                );
+            }
+        }
+
+        #[test]
+        fn parses_and() {
+            // " ", "&&", and "," are supported
+            for input in [
+                "^1 && <1.5",
+                "^1, <1.5",
+                "^1,<1.5",
+                "^1&&<1.5",
+                "^1  &&  <1.5",
+                "^1 <1.5",
+                "^1  <1.5",
+                "^1   <1.5",
+            ] {
+                assert_eq!(
+                    parse_semver_range(input).unwrap(),
+                    Range {
+                        clauses: vec![Clause::And(req("^1"), req("<1.5"))]
+                    },
+                    "input: {input}"
+                );
+            }
+
+            assert_eq!(
+                parse_semver_range(">=1.2.7 <1.3.0").unwrap(),
+                Range {
+                    clauses: vec![Clause::And(req(">=1.2.7"), req("<1.3.0"))]
+                }
+            );
+        }
+
+        #[test]
+        fn parses_or() {
+            assert_eq!(
+                parse_semver_range("^1 || ^2 || ~3").unwrap(),
+                Range {
+                    clauses: vec![
+                        Clause::Only(req("^1")),
+                        Clause::Only(req("^2")),
+                        Clause::Only(req("~3")),
+                    ]
+                }
+            );
+
+            assert_eq!(
+                parse_semver_range("1||2").unwrap(),
+                Range {
+                    clauses: vec![Clause::Only(req("1")), Clause::Only(req("2"))]
+                }
+            );
+        }
+
+        #[test]
+        fn parses_and_or() {
+            assert_eq!(
+                parse_semver_range("^1 && <1.5 || >=2, <2.5 || 3.x").unwrap(),
+                Range {
+                    clauses: vec![
+                        Clause::And(req("^1"), req("<1.5")),
+                        Clause::And(req(">=2"), req("<2.5")),
+                        Clause::Only(req("3.x")),
+                    ]
+                }
+            );
+        }
+
+        #[test]
+        fn parses_full_reqs() {
+            // Requirements keep their pre/build/scope support within ranges
+            assert_eq!(
+                parse_semver_range(">=1.2.3-alpha && <2.0.0+build || node-16-1.2").unwrap(),
+                Range {
+                    clauses: vec![
+                        Clause::And(req(">=1.2.3-alpha"), req("<2.0.0+build")),
+                        Clause::Only(req("node-16-1.2")),
+                    ]
+                }
+            );
+
+            // Scoped requirements are not limited to the final clause
+            assert_eq!(
+                parse_semver_range("node-1.2 || node-*").unwrap(),
+                Range {
+                    clauses: vec![Clause::Only(req("node-1.2")), Clause::Only(req("node-*"))]
+                }
+            );
+        }
+
+        #[test]
+        fn parses_and_trims_whitespace() {
+            assert_eq!(
+                parse_semver_range("  ^1 || ^2  ").unwrap(),
+                Range {
+                    clauses: vec![Clause::Only(req("^1")), Clause::Only(req("^2"))]
+                }
+            );
+        }
+
+        #[test]
+        fn parses_between() {
+            for input in ["1.2.3 - 2.3.4", "1.2.3  -  2.3.4"] {
+                assert_eq!(
+                    parse_semver_range(input).unwrap(),
+                    Range {
+                        clauses: vec![Clause::Between(ver("1.2.3"), ver("2.3.4"))]
+                    },
+                    "input: {input}"
+                );
+            }
+        }
+
+        #[test]
+        fn parses_between_with_pre_and_build() {
+            assert_eq!(
+                parse_semver_range("1.2.3-alpha - 2.3.4-beta.1").unwrap(),
+                Range {
+                    clauses: vec![Clause::Between(ver("1.2.3-alpha"), ver("2.3.4-beta.1"))]
+                }
+            );
+
+            assert_eq!(
+                parse_semver_range("1.2.3+build - 2.3.4").unwrap(),
+                Range {
+                    clauses: vec![Clause::Between(ver("1.2.3+build"), ver("2.3.4"))]
+                }
+            );
+        }
+
+        #[test]
+        fn parses_between_with_or() {
+            assert_eq!(
+                parse_semver_range("1.2.3 - 2.3.4 || ^3").unwrap(),
+                Range {
+                    clauses: vec![
+                        Clause::Between(ver("1.2.3"), ver("2.3.4")),
+                        Clause::Only(req("^3")),
+                    ]
+                }
+            );
+
+            assert_eq!(
+                parse_semver_range("^0.5 || 1.2.3 - 2.3.4").unwrap(),
+                Range {
+                    clauses: vec![
+                        Clause::Only(req("^0.5")),
+                        Clause::Between(ver("1.2.3"), ver("2.3.4")),
+                    ]
+                }
+            );
+        }
+
+        #[test]
+        fn prefers_pre_over_between() {
+            // Without whitespace, the hyphen starts a pre-release
+            assert_eq!(
+                parse_semver_range("1.2.3-2.3.4").unwrap(),
+                Range {
+                    clauses: vec![Clause::Only(req("1.2.3-2.3.4"))]
+                }
+            );
+        }
+
+        #[test]
+        fn errors_incomplete_clauses() {
+            assert!(parse_semver_range("||").is_err());
+            assert!(parse_semver_range("^1 ||").is_err());
+            assert!(parse_semver_range("|| ^1").is_err());
+            assert!(parse_semver_range("^1 &&").is_err());
+            assert!(parse_semver_range("&& ^1").is_err());
+            assert!(parse_semver_range("^1 && || ^2").is_err());
+        }
+
+        #[test]
+        fn errors_too_many_ands() {
+            // Only a left and right value are supported per clause
+            assert!(parse_semver_range("^1 && <1.5 && <1.8").is_err());
+            assert!(parse_semver_range("^1, <1.5, <1.8").is_err());
+            assert!(parse_semver_range("^1 <1.5 <1.8").is_err());
+        }
+
+        #[test]
+        fn errors_invalid_separators() {
+            assert!(parse_semver_range("^1 | ^2").is_err());
+            assert!(parse_semver_range("^1 or ^2").is_err());
+        }
+
+        #[test]
+        fn errors_between_with_partial_versions() {
+            // Both sides must be fully qualified
+            assert!(parse_semver_range("1.2 - 2.3.4").is_err());
+            assert!(parse_semver_range("1.2.3 - 2.3").is_err());
+            assert!(parse_semver_range("1 - 2").is_err());
+            assert!(parse_semver_range("1.2.3 - x").is_err());
+        }
+
+        #[test]
+        fn errors_between_with_ops() {
+            assert!(parse_semver_range("^1.0.0 - 2.0.0").is_err());
+            assert!(parse_semver_range(">=1.2.3 - 2.3.4").is_err());
+        }
+
+        #[test]
+        fn errors_between_with_and() {
+            // A bounded range cannot be combined with an "and"
+            assert!(parse_semver_range("^1 && 1.2.3 - 2.0.0").is_err());
+            assert!(parse_semver_range("1.2.3 - 2.0.0 && <3").is_err());
+        }
+
+        #[test]
+        fn errors_between_incomplete() {
+            assert!(parse_semver_range("1.2.3 -").is_err());
+            assert!(parse_semver_range("- 2.3.4").is_err());
+            assert!(parse_semver_range("1.2.3 -2.3.4").is_err());
+            assert!(parse_semver_range("1.2.3- 2.3.4").is_err());
         }
     }
 
@@ -1415,6 +1676,5 @@ mod syntax {
             assert!(parse_calver_req("2000.2, 2001.2").is_err());
             assert!(parse_calver_req(">=2000.1 <2001.1").is_err());
         }
-
     }
 }

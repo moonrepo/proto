@@ -37,6 +37,23 @@ pub fn parse_semver_req<T: AsRef<str>>(input: T) -> Result<Requirement, pest::er
     Ok(req)
 }
 
+pub fn parse_semver_range<T: AsRef<str>>(input: T) -> Result<Range, pest::error::Error<Rule>> {
+    let input = input.as_ref().trim();
+    let mut range = Range::default();
+
+    if matches!(input, "" | "*" | "x" | "X") {
+        return Ok(range);
+    }
+
+    let pairs = SyntaxParser::parse(Rule::parse_semver_range, input)?;
+
+    for pair in pairs {
+        handle_range(pair, &mut range)?;
+    }
+
+    Ok(range)
+}
+
 pub fn parse_calver<T: AsRef<str>>(input: T) -> Result<Version, pest::error::Error<Rule>> {
     let pairs = SyntaxParser::parse(Rule::parse_calver, input.as_ref().trim())?;
     let mut version = Version::default();
@@ -120,7 +137,7 @@ fn handle_version(pair: Pair<Rule>, version: &mut Version) -> Result<(), pest::e
             }
 
             // Continue parsing
-            Rule::parse_semver | Rule::parse_calver => {
+            Rule::parse_semver | Rule::parse_calver | Rule::semver | Rule::calver => {
                 handle_version(inner, version)?;
             }
 
@@ -199,8 +216,110 @@ fn handle_requirement(
             }
 
             // Continue parsing
-            Rule::parse_semver_req | Rule::parse_calver_req => {
+            Rule::parse_semver_req
+            | Rule::parse_calver_req
+            | Rule::semver_req
+            | Rule::calver_req => {
                 handle_requirement(inner, req)?;
+            }
+
+            // End of input
+            Rule::EOI => {}
+
+            // Error for unhandled rules
+            _ => {
+                unreachable!();
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn handle_between(pair: Pair<Rule>) -> Result<Clause, pest::error::Error<Rule>> {
+    let mut left = None;
+    let mut right = None;
+
+    for inner in pair.into_inner() {
+        match inner.as_rule() {
+            // Extract information
+            Rule::semver => {
+                let mut version = Version::default();
+
+                handle_version(inner, &mut version)?;
+
+                if left.is_none() {
+                    left = Some(version);
+                } else {
+                    right = Some(version);
+                }
+            }
+
+            // Error for unhandled rules
+            _ => {
+                unreachable!();
+            }
+        }
+    }
+
+    // The grammar requires both versions
+    match (left, right) {
+        (Some(left), Some(right)) => Ok(Clause::Between(left, right)),
+        _ => unreachable!(),
+    }
+}
+
+fn handle_clause(pair: Pair<Rule>) -> Result<Clause, pest::error::Error<Rule>> {
+    let mut left = None;
+    let mut right = None;
+
+    for inner in pair.into_inner() {
+        match inner.as_rule() {
+            // Extract information
+            Rule::semver_between => {
+                return handle_between(inner);
+            }
+
+            Rule::semver_req => {
+                let mut req = Requirement::default();
+
+                handle_requirement(inner, &mut req)?;
+
+                if left.is_none() {
+                    left = Some(req);
+                } else {
+                    right = Some(req);
+                }
+            }
+
+            Rule::and => {}
+
+            // Error for unhandled rules
+            _ => {
+                unreachable!();
+            }
+        }
+    }
+
+    // The grammar requires a left value, with an optional right value
+    Ok(match (left, right) {
+        (Some(left), Some(right)) => Clause::And(left, right),
+        (Some(left), None) => Clause::Only(left),
+        _ => unreachable!(),
+    })
+}
+
+fn handle_range(pair: Pair<Rule>, range: &mut Range) -> Result<(), pest::error::Error<Rule>> {
+    for inner in pair.into_inner() {
+        match inner.as_rule() {
+            // Extract information
+            Rule::semver_clause => range.clauses.push(handle_clause(inner)?),
+
+            Rule::or => {}
+
+            // Continue parsing
+            Rule::parse_semver_range | Rule::semver_range => {
+                handle_range(inner, range)?;
             }
 
             // End of input

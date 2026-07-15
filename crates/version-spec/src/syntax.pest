@@ -12,6 +12,10 @@ pre_anchor_fixed = _{ "-" ~ &ASCII_ALPHA ~ pre }
 build        =  { ASCII_ALPHANUMERIC ~ id* }
 build_anchor = _{ "+" ~ build }
 
+// Separators consume their own surrounding spaces, as a preceding greedy
+// " "* would otherwise swallow the space that a space-only "and" matches
+and      = { " "* ~ ("&&" | ",") ~ " "* | " "+ }
+or       = { " "* ~ "||" ~ " "* }
 op       = { "==" | ">=" | "<=" | ">" | "<" | "~" | "^" | "=" }
 req_wild = { "*" | "x" | "X" }
 
@@ -29,9 +33,13 @@ scope_anchor = _{ scope ~ "-" }
 // Requirement scopes stop on requirement tails instead, which support partial
 // versions. The lookahead requires pre-releases to start with a letter, so
 // that a trailing partial version, like the "1.2" in "node-16-1.2", is not
-// consumed as a digit-based pre-release, ending the scope too early
-semver_req_tail = _{ semver_req_version ~ pre_anchor_fixed? ~ build_anchor? ~ EOI }
-calver_req_tail = _{ calver_req_version ~ pre_anchor_fixed? ~ build_anchor? ~ EOI }
+// consumed as a digit-based pre-release, ending the scope too early. Unlike
+// versions, a requirement may also end at a range separator, and not just
+// the end of the input
+req_end = _{ EOI | " " | and | or }
+
+semver_req_tail = _{ semver_req_version ~ pre_anchor_fixed? ~ build_anchor? ~ req_end }
+calver_req_tail = _{ calver_req_version ~ pre_anchor_fixed? ~ build_anchor? ~ req_end }
 
 req_scope        =  { ASCII_ALPHANUMERIC ~ (!("-" ~ (semver_req_tail | calver_req_tail)) ~ id)* }
 req_scope_anchor = _{ req_scope ~ "-" }
@@ -44,10 +52,9 @@ minor =  { num }
 patch =  { num }
 
 semver_version = _{ major ~ "." ~ minor ~ "." ~ patch }
+semver         =  { (semver_version | scope_anchor ~ semver_version) ~ pre_anchor? ~ build_anchor? }
 
-// Try without a scope first, so that "1.2.3-4.5.6" is a version + pre-release,
-// and not a scope + version
-parse_semver = { SOI ~ (semver_version | scope_anchor ~ semver_version) ~ pre_anchor? ~ build_anchor? ~ EOI }
+parse_semver = { SOI ~ semver ~ EOI }
 
 // ----- SEMANTIC REQUIREMENTS -----
 
@@ -57,10 +64,17 @@ minor_req =  { num_req }
 patch_req =  { num_req }
 
 semver_req_version = _{ major_req ~ ("." ~ minor_req)? ~ ("." ~ patch_req)? }
+semver_req         =  { op? ~ " "* ~ (semver_req_version | req_scope_anchor ~ semver_req_version) ~ pre_anchor? ~ build_anchor? }
 
-// Try without a scope first, so that "1.2-alpha" is a version + pre-release,
-// and not a scope + version
-parse_semver_req = { SOI ~ op? ~ " "* ~ (semver_req_version | req_scope_anchor ~ semver_req_version) ~ pre_anchor? ~ build_anchor? ~ EOI }
+parse_semver_req = { SOI ~ semver_req ~ EOI }
+
+// ----- SEMANTIC RANGES -----
+
+semver_between = { semver ~ " "+ ~ "-" ~ " "+ ~ semver }
+semver_clause  = { semver_between | semver_req ~ (and ~ semver_req)? }
+semver_range   = { semver_clause ~ (or ~ semver_clause)* }
+
+parse_semver_range = { SOI ~ semver_range ~ EOI }
 
 // ----- CALENDAR VERSIONS -----
 
@@ -73,10 +87,9 @@ day   = { "0" ~ ASCII_NONZERO_DIGIT | "1" ~ ASCII_DIGIT | "2" ~ ASCII_DIGIT | "3
 calver_version_dot  = _{ year ~ "." ~ month ~ ("." ~ day)? }
 calver_version_dash = _{ year ~ "-" ~ month ~ ("-" ~ day)? }
 calver_version      = _{ calver_version_dot | calver_version_dash }
+calver              =  { (calver_version | scope_anchor ~ calver_version) ~ pre_anchor_fixed? ~ build_anchor? }
 
-// Try without a scope first, so that "2024-5-1" is a version,
-// and not a scope + version
-parse_calver = { SOI ~ (calver_version | scope_anchor ~ calver_version) ~ pre_anchor_fixed? ~ build_anchor? ~ EOI }
+parse_calver = { SOI ~ calver ~ EOI }
 
 // ----- CALENDAR REQUIREMENTS -----
 
@@ -87,7 +100,6 @@ day_req   = { day | req_wild }
 calver_req_dot     = _{ "." ~ month_req ~ ("." ~ day_req)? }
 calver_req_dash    = _{ "-" ~ month_req ~ ("-" ~ day_req)? }
 calver_req_version = _{ year_req ~ (calver_req_dot | calver_req_dash)? }
+calver_req         =  { op? ~ " "* ~ (calver_req_version | req_scope_anchor ~ calver_req_version) ~ pre_anchor_fixed? ~ build_anchor? }
 
-// Try without a scope first, so that "2000-2" is a version,
-// and not a scope + version
-parse_calver_req = { SOI ~ op? ~ " "* ~ (calver_req_version | req_scope_anchor ~ calver_req_version) ~ pre_anchor_fixed? ~ build_anchor? ~ EOI }
+parse_calver_req = { SOI ~ calver_req ~ EOI }

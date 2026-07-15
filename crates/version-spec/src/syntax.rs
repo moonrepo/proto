@@ -32,3 +32,15 @@ pub struct Requirement {
     pub prerelease: Option<String>,
     pub build: Option<String>,
 }
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Clause {
+    And(Requirement, Requirement),
+    Between(Version, Version),
+    Only(Requirement),
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct Range {
+    pub clauses: Vec<Clause>,
+}
