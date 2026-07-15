@@ -166,6 +166,11 @@ fn handle_requirement(
 
             Rule::major_req => {
                 req.major = parse_int_opt(inner, "failed to parse major version")?;
+
+                // A wildcard-only version, like "node-*", is a wildcard match
+                if req.major.is_none() {
+                    req.op = Op::Wildcard;
+                }
             }
 
             Rule::minor_req => {
@@ -178,6 +183,11 @@ fn handle_requirement(
 
             Rule::year_req => {
                 req.major = parse_int_opt(inner, "failed to parse year")?;
+
+                // A wildcard-only version, like "node-*", is a wildcard match
+                if req.major.is_none() {
+                    req.op = Op::Wildcard;
+                }
             }
 
             Rule::month_req => {

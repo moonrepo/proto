@@ -655,6 +655,21 @@ mod syntax {
         }
 
         #[test]
+        fn parses_scope_with_wildcard() {
+            for input in ["node-*", "node-x", "node-X"] {
+                assert_eq!(
+                    parse_semver_req(input).unwrap(),
+                    Requirement {
+                        op: Op::Wildcard,
+                        scope: Some("node".into()),
+                        ..Default::default()
+                    },
+                    "input: {input}"
+                );
+            }
+        }
+
+        #[test]
         fn errors_v_prefix() {
             // A leading "v" is removed by `clean_version_string` before parsing
             assert!(parse_semver_req("v1.2.3").is_err());
@@ -996,7 +1011,9 @@ mod syntax {
                 ("24.3", 24, 3),
                 ("4.1", 4, 1),
                 ("04.10", 4, 10),
+                ("2000.02", 2000, 2),
                 ("2000-2", 2000, 2),
+                ("2000-02", 2000, 2),
                 ("2000-12", 2000, 12),
                 ("24-3", 24, 3),
                 ("04-10", 4, 10),
@@ -1017,9 +1034,11 @@ mod syntax {
         fn parses_day() {
             for (input, day) in [
                 ("2024.1.1", 1),
+                ("2024.1.09", 9),
                 ("2024.1.18", 18),
                 ("2024.1.31", 31),
                 ("2024-1-1", 1),
+                ("2024-1-09", 9),
                 ("2024-1-18", 18),
                 ("2024-1-31", 31),
             ] {
@@ -1037,35 +1056,23 @@ mod syntax {
         }
 
         #[test]
-        fn parses_unbounded_parts() {
-            // Month/day ranges are not validated on requirements
-            assert_eq!(
-                parse_calver_req("2000.0").unwrap(),
-                Requirement {
-                    major: Some(2000),
-                    minor: Some(0),
-                    ..Default::default()
-                }
-            );
+        fn errors_invalid_months() {
+            assert!(parse_calver_req("2000.0").is_err());
+            assert!(parse_calver_req("2000.00").is_err());
+            assert!(parse_calver_req("2000.13").is_err());
+            assert!(parse_calver_req("2000.20").is_err());
+            assert!(parse_calver_req("2000.2024").is_err());
+            assert!(parse_calver_req("2000-13").is_err());
+        }
 
-            assert_eq!(
-                parse_calver_req("2000.13").unwrap(),
-                Requirement {
-                    major: Some(2000),
-                    minor: Some(13),
-                    ..Default::default()
-                }
-            );
-
-            assert_eq!(
-                parse_calver_req("2000.2.42").unwrap(),
-                Requirement {
-                    major: Some(2000),
-                    minor: Some(2),
-                    micro: Some(42),
-                    ..Default::default()
-                }
-            );
+        #[test]
+        fn errors_invalid_days() {
+            assert!(parse_calver_req("2000.10.0").is_err());
+            assert!(parse_calver_req("2000.10.00").is_err());
+            assert!(parse_calver_req("2000.10.32").is_err());
+            assert!(parse_calver_req("2000.10.40").is_err());
+            assert!(parse_calver_req("2000.2.42").is_err());
+            assert!(parse_calver_req("2000-1-32").is_err());
         }
 
         #[test]
@@ -1289,14 +1296,6 @@ mod syntax {
         }
 
         #[test]
-        fn errors_leading_zeros() {
-            // Leading zeros are only allowed on years
-            assert!(parse_calver_req("2000.02").is_err());
-            assert!(parse_calver_req("2000.2.03").is_err());
-            assert!(parse_calver_req("2000-02").is_err());
-        }
-
-        #[test]
         fn errors_too_many_parts() {
             assert!(parse_calver_req("2000.1.2.3").is_err());
             assert!(parse_calver_req("2000-1-2-3").is_err());
@@ -1322,6 +1321,7 @@ mod syntax {
                 ("node-2024", "node", 2024, None, None),
                 ("foo-bar-2024-5-12", "foo-bar", 2024, Some(5), Some(12)),
                 ("foo_bar-24-1", "foo_bar", 24, Some(1), None),
+                ("node-16-2024-2", "node-16", 2024, Some(2), None),
             ] {
                 assert_eq!(
                     parse_calver_req(input).unwrap(),
@@ -1389,6 +1389,21 @@ mod syntax {
         }
 
         #[test]
+        fn parses_scope_with_wildcard() {
+            for input in ["node-*", "node-x", "node-X"] {
+                assert_eq!(
+                    parse_calver_req(input).unwrap(),
+                    Requirement {
+                        op: Op::Wildcard,
+                        scope: Some("node".into()),
+                        ..Default::default()
+                    },
+                    "input: {input}"
+                );
+            }
+        }
+
+        #[test]
         fn errors_v_prefix() {
             // A leading "v" is removed by `clean_version_string` before parsing
             assert!(parse_calver_req("v2000.2").is_err());
@@ -1401,12 +1416,5 @@ mod syntax {
             assert!(parse_calver_req(">=2000.1 <2001.1").is_err());
         }
 
-        #[test]
-        fn errors_number_overflow() {
-            // u64::MAX + 1
-            let error = parse_calver_req("2000.18446744073709551616").unwrap_err();
-
-            assert!(error.to_string().contains("failed to parse month"));
-        }
     }
 }

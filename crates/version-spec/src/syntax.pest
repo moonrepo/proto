@@ -81,8 +81,8 @@ parse_calver = { SOI ~ (calver_version | scope_anchor ~ calver_version) ~ pre_an
 // ----- CALENDAR REQUIREMENTS -----
 
 year_req  = { year | req_wild }
-month_req = { num_req }
-day_req   = { num_req }
+month_req = { month | req_wild }
+day_req   = { day | req_wild }
 
 calver_req_dot     = _{ "." ~ month_req ~ ("." ~ day_req)? }
 calver_req_dash    = _{ "-" ~ month_req ~ ("-" ~ day_req)? }
