@@ -537,6 +537,7 @@ mod syntax {
             assert!(parse_semver_req("~").is_err());
             assert!(parse_semver_req("^").is_err());
             assert!(parse_semver_req("1.").is_err());
+            assert!(parse_semver_req("node-").is_err());
         }
 
         #[test]
@@ -564,9 +565,93 @@ mod syntax {
         }
 
         #[test]
-        fn errors_scope() {
-            // Requirements do not support scopes
-            assert!(parse_semver_req("node-1.2.3").is_err());
+        fn parses_scope() {
+            for (input, scope, major, minor, micro) in [
+                ("node-1.2.3", "node", Some(1), Some(2), Some(3)),
+                ("node-1", "node", Some(1), None, None),
+                ("node-1.x", "node", Some(1), None, None),
+                ("gcc-12", "gcc", Some(12), None, None),
+                ("foo-bar-1.2", "foo-bar", Some(1), Some(2), None),
+                ("foo_bar-1.2", "foo_bar", Some(1), Some(2), None),
+                ("v8-10.1", "v8", Some(10), Some(1), None),
+                ("node-16-1.2", "node-16", Some(1), Some(2), None),
+            ] {
+                assert_eq!(
+                    parse_semver_req(input).unwrap(),
+                    Requirement {
+                        scope: Some(scope.into()),
+                        major,
+                        minor,
+                        micro,
+                        ..Default::default()
+                    },
+                    "input: {input}"
+                );
+            }
+        }
+
+        #[test]
+        fn parses_scope_with_trailing_dash() {
+            assert_eq!(
+                parse_semver_req("foo--1.2").unwrap(),
+                Requirement {
+                    scope: Some("foo-".into()),
+                    major: Some(1),
+                    minor: Some(2),
+                    ..Default::default()
+                }
+            );
+        }
+
+        #[test]
+        fn parses_scope_with_op() {
+            assert_eq!(
+                parse_semver_req(">=node-1.2").unwrap(),
+                Requirement {
+                    op: Op::GreaterEq,
+                    scope: Some("node".into()),
+                    major: Some(1),
+                    minor: Some(2),
+                    ..Default::default()
+                }
+            );
+
+            assert_eq!(
+                parse_semver_req("~ node-16").unwrap(),
+                Requirement {
+                    op: Op::Tilde,
+                    scope: Some("node".into()),
+                    major: Some(16),
+                    ..Default::default()
+                }
+            );
+        }
+
+        #[test]
+        fn parses_scope_with_pre_and_build() {
+            assert_eq!(
+                parse_semver_req("node-1.2.3-alpha").unwrap(),
+                Requirement {
+                    scope: Some("node".into()),
+                    major: Some(1),
+                    minor: Some(2),
+                    micro: Some(3),
+                    prerelease: Some("alpha".into()),
+                    ..Default::default()
+                }
+            );
+
+            assert_eq!(
+                parse_semver_req("node-1.2-rc.1+build").unwrap(),
+                Requirement {
+                    scope: Some("node".into()),
+                    major: Some(1),
+                    minor: Some(2),
+                    prerelease: Some("rc.1".into()),
+                    build: Some("build".into()),
+                    ..Default::default()
+                }
+            );
         }
 
         #[test]
@@ -1178,6 +1263,7 @@ mod syntax {
             assert!(parse_calver_req("^").is_err());
             assert!(parse_calver_req("2000.").is_err());
             assert!(parse_calver_req("2000-").is_err());
+            assert!(parse_calver_req("node-").is_err());
         }
 
         #[test]
@@ -1229,9 +1315,77 @@ mod syntax {
         }
 
         #[test]
-        fn errors_scope() {
-            // Requirements do not support scopes
-            assert!(parse_calver_req("node-2000.2").is_err());
+        fn parses_scope() {
+            for (input, scope, year, month, day) in [
+                ("node-2024-2", "node", 2024, Some(2), None),
+                ("node-2024.2", "node", 2024, Some(2), None),
+                ("node-2024", "node", 2024, None, None),
+                ("foo-bar-2024-5-12", "foo-bar", 2024, Some(5), Some(12)),
+                ("foo_bar-24-1", "foo_bar", 24, Some(1), None),
+            ] {
+                assert_eq!(
+                    parse_calver_req(input).unwrap(),
+                    Requirement {
+                        scope: Some(scope.into()),
+                        major: Some(year),
+                        minor: month,
+                        micro: day,
+                        ..Default::default()
+                    },
+                    "input: {input}"
+                );
+            }
+        }
+
+        #[test]
+        fn parses_scope_with_trailing_dash() {
+            assert_eq!(
+                parse_calver_req("foo--2024-2").unwrap(),
+                Requirement {
+                    scope: Some("foo-".into()),
+                    major: Some(2024),
+                    minor: Some(2),
+                    ..Default::default()
+                }
+            );
+        }
+
+        #[test]
+        fn parses_scope_with_op() {
+            assert_eq!(
+                parse_calver_req(">=node-2024-2").unwrap(),
+                Requirement {
+                    op: Op::GreaterEq,
+                    scope: Some("node".into()),
+                    major: Some(2024),
+                    minor: Some(2),
+                    ..Default::default()
+                }
+            );
+
+            assert_eq!(
+                parse_calver_req("~ node-24").unwrap(),
+                Requirement {
+                    op: Op::Tilde,
+                    scope: Some("node".into()),
+                    major: Some(24),
+                    ..Default::default()
+                }
+            );
+        }
+
+        #[test]
+        fn parses_scope_with_pre() {
+            assert_eq!(
+                parse_calver_req("temurin-2024-1-rc.2").unwrap(),
+                Requirement {
+                    scope: Some("temurin".into()),
+                    major: Some(2024),
+                    minor: Some(1),
+                    prerelease: Some("rc.2".into()),
+                    ..Default::default()
+                }
+            );
         }
 
         #[test]

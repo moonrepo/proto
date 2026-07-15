@@ -144,7 +144,7 @@ fn handle_requirement(
     for inner in pair.into_inner() {
         match inner.as_rule() {
             // Extract information
-            Rule::scope => req.scope = Some(inner.as_str().to_string()),
+            Rule::req_scope => req.scope = Some(inner.as_str().to_string()),
 
             Rule::pre => req.prerelease = Some(inner.as_str().to_string()),
 
