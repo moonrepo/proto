@@ -38,7 +38,7 @@ scope_anchor = _{ scope ~ "-" }
 // the end of the input
 req_end = _{ EOI | " " | and | or }
 
-semver_req_tail = _{ semver_req_version ~ pre_anchor_fixed? ~ build_anchor? ~ req_end }
+semver_req_tail = _{ semver_req_body ~ build_anchor? ~ req_end }
 calver_req_tail = _{ calver_req_version ~ pre_anchor_fixed? ~ build_anchor? ~ req_end }
 
 req_scope        =  { ASCII_ALPHANUMERIC ~ (!("-" ~ (semver_req_tail | calver_req_tail)) ~ id)* }
@@ -64,7 +64,12 @@ minor_req =  { num_req }
 patch_req =  { num_req }
 
 semver_req_version = _{ major_req ~ ("." ~ minor_req)? ~ ("." ~ patch_req)? }
-semver_req         =  { op? ~ " "* ~ (semver_req_version | req_scope_anchor ~ semver_req_version) ~ pre_anchor? ~ build_anchor? }
+semver_req_full    = _{ major_req ~ "." ~ minor_req ~ "." ~ patch_req }
+
+// A pre-release on a partial version must start with a letter, so that a
+// dashed calver, like "2000-2", is not consumed as a digit pre-release
+semver_req_body = _{ semver_req_full ~ pre_anchor? | semver_req_version ~ pre_anchor_fixed? }
+semver_req      =  { op? ~ " "* ~ (semver_req_body | req_scope_anchor ~ semver_req_body) ~ build_anchor? }
 
 parse_semver_req = { SOI ~ semver_req ~ EOI }
 
@@ -80,7 +85,7 @@ parse_semver_range = { SOI ~ semver_range ~ EOI }
 
 // Two-digit alternatives must be tried before single digits,
 // as choices never backtrack
-year  = { ASCII_DIGIT{1, 4} }
+year  = { ASCII_DIGIT{2, 4} }
 month = { "0" ~ ASCII_NONZERO_DIGIT | "1" ~ ("0" | "1" | "2") | ASCII_NONZERO_DIGIT }
 day   = { "0" ~ ASCII_NONZERO_DIGIT | "1" ~ ASCII_DIGIT | "2" ~ ASCII_DIGIT | "3" ~ ("0" | "1") | ASCII_NONZERO_DIGIT }
 

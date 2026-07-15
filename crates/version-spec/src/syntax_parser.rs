@@ -11,6 +11,14 @@ fn is_wildcard(input: &str) -> bool {
     matches!(input, "" | "*" | "x" | "X")
 }
 
+pub(crate) fn calendar_year(year: u64) -> u64 {
+    if year.to_string().len() < 4 {
+        year + 2000
+    } else {
+        year
+    }
+}
+
 pub fn parse_semver<T: AsRef<str>>(input: T) -> Result<Version, pest::error::Error<Rule>> {
     let pairs = SyntaxParser::parse(Rule::parse_semver, input.as_ref().trim())?;
     let mut version = Version::default();
@@ -149,7 +157,7 @@ fn handle_version(pair: Pair<Rule>, version: &mut Version) -> Result<(), pest::e
 
             Rule::year => {
                 version.kind = VersionKind::Calendar;
-                version.major = parse_int(inner, "failed to parse year")?;
+                version.major = parse_int(inner, "failed to parse year").map(calendar_year)?;
             }
 
             Rule::month => {
@@ -225,7 +233,8 @@ fn handle_requirement(
 
             Rule::year_req => {
                 req.kind = VersionKind::Calendar;
-                req.major = parse_int_opt(inner, "failed to parse year")?;
+                req.major = parse_int_opt(inner, "failed to parse year")
+                    .map(|year| year.map(calendar_year))?;
 
                 // A wildcard-only version, like "node-*", is a wildcard match
                 if req.major.is_none() {

@@ -1,3 +1,5 @@
+use crate::spec_error::SpecError;
+use crate::syntax_parser::*;
 use serde::{Deserialize, Serialize};
 use std::fmt::{self, Display};
 
@@ -9,7 +11,8 @@ pub enum VersionKind {
     Semantic,
 }
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(try_from = "String", into = "String")]
 pub struct Version {
     pub kind: VersionKind,
     pub scope: Option<String>,
@@ -18,6 +21,42 @@ pub struct Version {
     pub micro: u64, // day
     pub prerelease: Option<String>,
     pub build: Option<String>,
+}
+
+impl Version {
+    pub fn calendar(year: u64, month: u64, day: u64) -> Self {
+        Self {
+            kind: VersionKind::Calendar,
+            major: calendar_year(year),
+            minor: month.clamp(1, 12),
+            micro: day.clamp(1, 31),
+            ..Default::default()
+        }
+    }
+
+    pub fn semantic(major: u64, minor: u64, patch: u64) -> Self {
+        Self {
+            kind: VersionKind::Semantic,
+            major,
+            minor,
+            micro: patch,
+            ..Default::default()
+        }
+    }
+
+    pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, SpecError> {
+        let value = value.as_ref().trim();
+
+        // Attempt semantic first, as calendar would consume dotted triples
+        // with small numbers, like "1.2.3", as the year 2001. Dashed and
+        // partial dotted calendars never match a full semantic version
+        if let Ok(semantic) = parse_semver(value) {
+            return Ok(semantic);
+        }
+
+        // Then attempt calendar
+        parse_calver(value).map_err(|error| SpecError::FailedVersionParse { error })
+    }
 }
 
 impl Display for Version {
@@ -31,7 +70,12 @@ impl Display for Version {
             VersionKind::Semantic => ".",
         };
 
-        write!(f, "{}{sep}{}{sep}{}", self.major, self.minor, self.micro)?;
+        write!(f, "{}{sep}{}", self.major, self.minor)?;
+
+        // A calendar day of 0 means it was not defined
+        if self.kind != VersionKind::Calendar || self.micro > 0 {
+            write!(f, "{sep}{}", self.micro)?;
+        }
 
         if let Some(pre) = &self.prerelease {
             write!(f, "-{pre}")?;
@@ -42,6 +86,20 @@ impl Display for Version {
         }
 
         Ok(())
+    }
+}
+
+impl From<Version> for String {
+    fn from(value: Version) -> Self {
+        value.to_string()
+    }
+}
+
+impl TryFrom<String> for Version {
+    type Error = SpecError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::parse(&value)
     }
 }
 
@@ -74,7 +132,8 @@ impl Display for Op {
     }
 }
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(try_from = "String", into = "String")]
 pub struct Requirement {
     pub kind: VersionKind,
     pub op: Op,
@@ -84,6 +143,21 @@ pub struct Requirement {
     pub micro: Option<u64>, // day
     pub prerelease: Option<String>,
     pub build: Option<String>,
+}
+
+impl Requirement {
+    pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, SpecError> {
+        let value = value.as_ref().trim();
+
+        // Attempt semantic first, as calendar would consume partial dotted
+        // versions with small numbers, like "1.2", as the year 2001
+        if let Ok(semantic) = parse_semver_req(value) {
+            return Ok(semantic);
+        }
+
+        parse_calver_req(value)
+            .map_err(|error| SpecError::FailedVersionRequirementParse { error })
+    }
 }
 
 impl Display for Requirement {
@@ -108,13 +182,13 @@ impl Display for Requirement {
                 if let Some(micro) = &self.micro {
                     write!(f, "{sep}{micro}")?;
                 } else if self.op == Op::Wildcard {
-                    f.write_str("{sep}*")?;
+                    write!(f, "{sep}*")?;
                 }
             } else if self.op == Op::Wildcard {
-                f.write_str("{sep}*")?;
+                write!(f, "{sep}*")?;
             }
         } else if self.op == Op::Wildcard {
-            f.write_str("{sep}*")?;
+            f.write_str("*")?;
         }
 
         if let Some(pre) = &self.prerelease {
@@ -126,6 +200,20 @@ impl Display for Requirement {
         }
 
         Ok(())
+    }
+}
+
+impl From<Requirement> for String {
+    fn from(value: Requirement) -> Self {
+        value.to_string()
+    }
+}
+
+impl TryFrom<String> for Requirement {
+    type Error = SpecError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::parse(&value)
     }
 }
 
@@ -146,9 +234,24 @@ impl Display for Clause {
     }
 }
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(try_from = "String", into = "String")]
 pub struct Range {
     pub clauses: Vec<Clause>,
+}
+
+impl Range {
+    pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, SpecError> {
+        let value = value.as_ref().trim();
+
+        // Attempt semantic first, as calendar would consume partial dotted
+        // versions with small numbers, like "1.2", as the year 2001
+        if let Ok(semantic) = parse_semver_range(value) {
+            return Ok(semantic);
+        }
+
+        parse_calver_range(value).map_err(|error| SpecError::FailedVersionRangeParse { error })
+    }
 }
 
 impl Display for Range {
@@ -166,5 +269,19 @@ impl Display for Range {
         }
 
         Ok(())
+    }
+}
+
+impl From<Range> for String {
+    fn from(value: Range) -> Self {
+        value.to_string()
+    }
+}
+
+impl TryFrom<String> for Range {
+    type Error = SpecError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::parse(&value)
     }
 }

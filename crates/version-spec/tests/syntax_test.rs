@@ -969,16 +969,14 @@ mod syntax {
 
         #[test]
         fn parses() {
-            // Short years are kept as-is, expansion (24 -> 2024)
-            // is handled upstream
+            // Short years are expanded to 4 digits, from the year 2000
             for (input, year, month) in [
                 ("2024-02", 2024, 2),
                 ("2024-2", 2024, 2),
                 ("2024-12", 2024, 12),
-                ("224-3", 224, 3),
-                ("24-03", 24, 3),
-                ("4-1", 4, 1),
-                ("04-10", 4, 10),
+                ("224-3", 2224, 3),
+                ("24-03", 2024, 3),
+                ("04-10", 2004, 10),
             ] {
                 assert_eq!(
                     parse_calver(input).unwrap(),
@@ -1046,7 +1044,7 @@ mod syntax {
                 parse_calver("24.12").unwrap(),
                 Version {
                     kind: VersionKind::Calendar,
-                    major: 24,
+                    major: 2024,
                     minor: 12,
                     ..Default::default()
                 }
@@ -1133,7 +1131,7 @@ mod syntax {
                 Version {
                     kind: VersionKind::Calendar,
                     scope: Some("foo_bar".into()),
-                    major: 24,
+                    major: 2024,
                     minor: 1,
                     ..Default::default()
                 }
@@ -1206,6 +1204,13 @@ mod syntax {
         }
 
         #[test]
+        fn errors_year_too_short() {
+            assert!(parse_calver("4-1").is_err());
+            assert!(parse_calver("4.1").is_err());
+            assert!(parse_calver("0-2-3").is_err());
+        }
+
+        #[test]
         fn errors_invalid_months() {
             assert!(parse_calver("2024-0").is_err());
             assert!(parse_calver("2024-00").is_err());
@@ -1266,8 +1271,8 @@ mod syntax {
         #[test]
         fn parses_partial() {
             // No operator defaults to an exact match, and short years
-            // are kept as-is, expansion (24 -> 2024) is handled upstream
-            for (input, year) in [("2000", 2000), ("224", 224), ("24", 24), ("0", 0)] {
+            // are expanded to 4 digits, from the year 2000
+            for (input, year) in [("2000", 2000), ("224", 2224), ("24", 2024), ("00", 2000)] {
                 assert_eq!(
                     parse_calver_req(input).unwrap(),
                     Requirement {
@@ -1286,16 +1291,15 @@ mod syntax {
             for (input, year, month) in [
                 ("2000.2", 2000, 2),
                 ("2000.12", 2000, 12),
-                ("224.3", 224, 3),
-                ("24.3", 24, 3),
-                ("4.1", 4, 1),
-                ("04.10", 4, 10),
+                ("224.3", 2224, 3),
+                ("24.3", 2024, 3),
+                ("04.10", 2004, 10),
                 ("2000.02", 2000, 2),
                 ("2000-2", 2000, 2),
                 ("2000-02", 2000, 2),
                 ("2000-12", 2000, 12),
-                ("24-3", 24, 3),
-                ("04-10", 4, 10),
+                ("24-3", 2024, 3),
+                ("04-10", 2004, 10),
             ] {
                 assert_eq!(
                     parse_calver_req(input).unwrap(),
@@ -1452,7 +1456,7 @@ mod syntax {
                 Requirement {
                     kind: VersionKind::Calendar,
                     op: Op::Tilde,
-                    major: Some(24),
+                    major: Some(2024),
                     ..Default::default()
                 }
             );
@@ -1602,6 +1606,14 @@ mod syntax {
         }
 
         #[test]
+        fn errors_year_too_short() {
+            assert!(parse_calver_req("0").is_err());
+            assert!(parse_calver_req("4").is_err());
+            assert!(parse_calver_req("4.1").is_err());
+            assert!(parse_calver_req("4-1").is_err());
+        }
+
+        #[test]
         fn errors_digit_pre() {
             // A calver pre-release must start with a letter
             assert!(parse_calver_req("2000.10-0").is_err());
@@ -1614,7 +1626,7 @@ mod syntax {
                 ("node-2024.2", "node", 2024, Some(2), None),
                 ("node-2024", "node", 2024, None, None),
                 ("foo-bar-2024-5-12", "foo-bar", 2024, Some(5), Some(12)),
-                ("foo_bar-24-1", "foo_bar", 24, Some(1), None),
+                ("foo_bar-24-1", "foo_bar", 2024, Some(1), None),
                 ("node-16-2024-2", "node-16", 2024, Some(2), None),
             ] {
                 assert_eq!(
@@ -1666,7 +1678,7 @@ mod syntax {
                     kind: VersionKind::Calendar,
                     op: Op::Tilde,
                     scope: Some("node".into()),
-                    major: Some(24),
+                    major: Some(2024),
                     ..Default::default()
                 }
             );
@@ -1982,6 +1994,110 @@ mod syntax {
             assert!(parse_calver_range("- 2001-3").is_err());
             assert!(parse_calver_range("2000-2 -2001-3").is_err());
             assert!(parse_calver_range("2000-2- 2001-3").is_err());
+        }
+    }
+
+    mod serde {
+        use super::*;
+
+        #[test]
+        fn version_to_from_string() {
+            for value in [
+                "1.2.3",
+                "node-1.2.3-alpha.1+build.5",
+                "2024.2.26",
+                "2024-2",
+                "2024-2-26",
+                "node-2024-2-alpha",
+            ] {
+                let version = Version::parse(value).unwrap();
+
+                assert_eq!(
+                    serde_json::to_string(&version).unwrap(),
+                    format!("\"{value}\""),
+                    "input: {value}"
+                );
+                assert_eq!(
+                    serde_json::from_str::<Version>(&format!("\"{value}\"")).unwrap(),
+                    version,
+                    "input: {value}"
+                );
+            }
+        }
+
+        #[test]
+        fn requirement_to_from_string() {
+            for value in [
+                "*",
+                "=1",
+                "=1.2.3",
+                ">=1.2",
+                "~1",
+                "^1.2.3-beta.1+build.5",
+                "node-*",
+                "=node-16-1.2",
+                "=2000-2",
+                ">=2000-2-3",
+            ] {
+                let req = Requirement::parse(value).unwrap();
+
+                assert_eq!(
+                    serde_json::to_string(&req).unwrap(),
+                    format!("\"{value}\""),
+                    "input: {value}"
+                );
+                assert_eq!(
+                    serde_json::from_str::<Requirement>(&format!("\"{value}\"")).unwrap(),
+                    req,
+                    "input: {value}"
+                );
+            }
+        }
+
+        #[test]
+        fn range_to_from_string() {
+            for value in [
+                "*",
+                "=1.2.3",
+                "^1 && <1.5",
+                "^1 || ^2 || ~3",
+                "1.2.3 - 2.3.4",
+                "=2000-2 || =2001-3",
+                "2000-2 - 2001-3",
+            ] {
+                let range = Range::parse(value).unwrap();
+
+                assert_eq!(
+                    serde_json::to_string(&range).unwrap(),
+                    format!("\"{value}\""),
+                    "input: {value}"
+                );
+                assert_eq!(
+                    serde_json::from_str::<Range>(&format!("\"{value}\"")).unwrap(),
+                    range,
+                    "input: {value}"
+                );
+            }
+        }
+
+        #[test]
+        fn serializes_normalized() {
+            // Short years, wildcard parts, and separators are normalized
+            let version = Version::parse("24-1").unwrap();
+
+            assert_eq!(serde_json::to_string(&version).unwrap(), "\"2024-1\"");
+
+            let req = Requirement::parse("1.x").unwrap();
+
+            assert_eq!(serde_json::to_string(&req).unwrap(), "\"=1\"");
+
+            let range = Range::parse("^1, <1.5").unwrap();
+
+            assert_eq!(serde_json::to_string(&range).unwrap(), "\"^1 && <1.5\"");
+
+            let range = Range::parse("").unwrap();
+
+            assert_eq!(serde_json::to_string(&range).unwrap(), "\"*\"");
         }
     }
 }
