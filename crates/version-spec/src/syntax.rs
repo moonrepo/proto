@@ -77,6 +77,78 @@ fn handle_semver(pair: Pair<Rule>, version: &mut Version) -> Result<(), pest::er
     Ok(())
 }
 
+fn handle_calver(pair: Pair<Rule>, version: &mut Version) -> Result<(), pest::error::Error<Rule>> {
+    for inner in pair.into_inner() {
+        match inner.as_rule() {
+            // Extract information
+            Rule::scope => version.scope = Some(inner.as_str().to_string()),
+
+            Rule::pre => version.prerelease = Some(inner.as_str().to_string()),
+
+            Rule::build => version.build = Some(inner.as_str().to_string()),
+
+            Rule::year => {
+                version.major = inner.as_str().parse::<u64>().map_err(|e| {
+                    Error::new_from_span(
+                        ErrorVariant::CustomError {
+                            message: format!("failed to parse year: {e}"),
+                        },
+                        inner.as_span(),
+                    )
+                })?
+            }
+
+            Rule::month => {
+                version.minor = inner.as_str().parse::<u64>().map_err(|e| {
+                    Error::new_from_span(
+                        ErrorVariant::CustomError {
+                            message: format!("failed to parse month: {e}"),
+                        },
+                        inner.as_span(),
+                    )
+                })?
+            }
+
+            Rule::day => {
+                version.micro = inner.as_str().parse::<u64>().map_err(|e| {
+                    Error::new_from_span(
+                        ErrorVariant::CustomError {
+                            message: format!("failed to parse day: {e}"),
+                        },
+                        inner.as_span(),
+                    )
+                })?
+            }
+
+            // Continue parsing
+            Rule::calver | Rule::calver_version => {
+                handle_calver(inner, version)?;
+            }
+
+            // End of input
+            Rule::EOI => {}
+
+            // Error for unhandled rules
+            _ => {
+                unreachable!();
+            }
+        }
+    }
+
+    Ok(())
+}
+
+pub fn parse_calver<T: AsRef<str>>(input: T) -> Result<Version, pest::error::Error<Rule>> {
+    let pairs = SyntaxParser::parse(Rule::calver, input.as_ref().trim())?;
+    let mut version = Version::default();
+
+    for pair in pairs {
+        handle_calver(pair, &mut version)?;
+    }
+
+    Ok(version)
+}
+
 pub fn parse_semver<T: AsRef<str>>(input: T) -> Result<Version, pest::error::Error<Rule>> {
     let pairs = SyntaxParser::parse(Rule::semver, input.as_ref().trim())?;
     let mut version = Version::default();

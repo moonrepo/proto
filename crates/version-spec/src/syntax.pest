@@ -1,10 +1,16 @@
-// SHARED
+// ----- SHARED -----
 
 id = _{ ASCII_ALPHANUMERIC | "-" | "_" | "." }
 
 // Repetition never backtracks, so stop before a "-" that leads into the
-// version itself, otherwise the scope consumes the entire input
-scope        =  { ASCII_ALPHANUMERIC ~ (!("-" ~ semver_version) ~ id)* }
+// version itself, otherwise the scope consumes the entire input. The tails
+// must check the entire remaining input (mirroring the suffix of the `semver`
+// and `calver` rules), otherwise a scope segment that looks like the start of
+// a version, like the "16-" in "node-16-1.2.3", ends the scope too early
+semver_tail = _{ semver_version ~ pre_anchor? ~ build_anchor? ~ EOI }
+calver_tail = _{ calver_version ~ calver_pre_anchor? ~ build_anchor? ~ EOI }
+
+scope        =  { ASCII_ALPHANUMERIC ~ (!("-" ~ (semver_tail | calver_tail)) ~ id)* }
 scope_anchor = _{ scope ~ "-" }
 
 pre        =  { ASCII_ALPHANUMERIC ~ id* }
@@ -13,7 +19,7 @@ pre_anchor = _{ "-" ~ pre }
 build        =  { ASCII_ALPHANUMERIC ~ id* }
 build_anchor = _{ "+" ~ build }
 
-// SEMANTIC VERSIONS
+// ----- SEMANTIC VERSIONS -----
 
 num   = _{ "0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT* }
 major =  { num }
@@ -26,13 +32,22 @@ semver_version = { major ~ "." ~ minor ~ "." ~ patch }
 // and not a scope + version
 semver = { SOI ~ (semver_version | scope_anchor ~ semver_version) ~ pre_anchor? ~ build_anchor? ~ EOI }
 
-// CALENDAR VERSIONS
+// ----- CALENDAR VERSIONS -----
 
-year  = { ASCII_DIGIT{2, 4} }
-month = { ASCII_NONZERO_DIGIT | "0" ~ ASCII_NONZERO_DIGIT | "1" ~ ("0" | "1" | "2") }
-day   = { ASCII_NONZERO_DIGIT | "0" ~ ASCII_NONZERO_DIGIT | "1" ~ ASCII_DIGIT | "2" ~ ASCII_DIGIT | "3" ~ ("0" | "1") }
+// Two-digit alternatives must be tried before single digits,
+// as choices never backtrack
+year  = { ASCII_DIGIT{1, 4} }
+month = { "0" ~ ASCII_NONZERO_DIGIT | "1" ~ ("0" | "1" | "2") | ASCII_NONZERO_DIGIT }
+day   = { "0" ~ ASCII_NONZERO_DIGIT | "1" ~ ASCII_DIGIT | "2" ~ ASCII_DIGIT | "3" ~ ("0" | "1") | ASCII_NONZERO_DIGIT }
+
+// A calver pre-release must start with a letter, so that invalid
+// month/day numbers are not parsed as pre-releases
+calver_pre_anchor = _{ "-" ~ &ASCII_ALPHA ~ pre }
 
 calver_version_dot  = _{ year ~ "." ~ month ~ ("." ~ day)? }
 calver_version_dash = _{ year ~ "-" ~ month ~ ("-" ~ day)? }
 calver_version      =  { calver_version_dot | calver_version_dash }
-calver              =  { scope_anchor? ~ calver_version ~ pre_anchor? ~ build_anchor? }
+
+// Try without a scope first, so that "2024-5-1" is a version,
+// and not a scope + version
+calver = { SOI ~ (calver_version | scope_anchor ~ calver_version) ~ calver_pre_anchor? ~ build_anchor? ~ EOI }
