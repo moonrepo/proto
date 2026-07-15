@@ -1,11 +1,13 @@
 mod resolved_spec;
 mod spec_error;
+mod syntax;
 mod unresolved_parser;
 mod unresolved_spec;
 mod version_types;
 
 pub use resolved_spec::*;
 pub use spec_error::*;
+pub use syntax::*;
 pub use unresolved_parser::*;
 pub use unresolved_spec::*;
 pub use version_types::*;

@@ -5790,6 +5790,8 @@ version = "0.10.3"
 dependencies = [
  "compact_str 0.9.1",
  "human-sort",
+ "pest",
+ "pest_derive",
  "regex",
  "schematic",
  "semver",

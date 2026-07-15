@@ -1,0 +1,38 @@
+// SHARED
+
+id = _{ ASCII_ALPHANUMERIC | "-" | "_" | "." }
+
+// Repetition never backtracks, so stop before a "-" that leads into the
+// version itself, otherwise the scope consumes the entire input
+scope        =  { ASCII_ALPHANUMERIC ~ (!("-" ~ semver_version) ~ id)* }
+scope_anchor = _{ scope ~ "-" }
+
+pre        =  { ASCII_ALPHANUMERIC ~ id* }
+pre_anchor = _{ "-" ~ pre }
+
+build        =  { ASCII_ALPHANUMERIC ~ id* }
+build_anchor = _{ "+" ~ build }
+
+// SEMANTIC VERSIONS
+
+num   = _{ "0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT* }
+major =  { num }
+minor =  { num }
+patch =  { num }
+
+semver_version = { major ~ "." ~ minor ~ "." ~ patch }
+
+// Try without a scope first, so that "1.2.3-4.5.6" is a version + pre-release,
+// and not a scope + version
+semver = { SOI ~ (semver_version | scope_anchor ~ semver_version) ~ pre_anchor? ~ build_anchor? ~ EOI }
+
+// CALENDAR VERSIONS
+
+year  = { ASCII_DIGIT{2, 4} }
+month = { ASCII_NONZERO_DIGIT | "0" ~ ASCII_NONZERO_DIGIT | "1" ~ ("0" | "1" | "2") }
+day   = { ASCII_NONZERO_DIGIT | "0" ~ ASCII_NONZERO_DIGIT | "1" ~ ASCII_DIGIT | "2" ~ ASCII_DIGIT | "3" ~ ("0" | "1") }
+
+calver_version_dot  = _{ year ~ "." ~ month ~ ("." ~ day)? }
+calver_version_dash = _{ year ~ "-" ~ month ~ ("-" ~ day)? }
+calver_version      =  { calver_version_dot | calver_version_dash }
+calver              =  { scope_anchor? ~ calver_version ~ pre_anchor? ~ build_anchor? }
