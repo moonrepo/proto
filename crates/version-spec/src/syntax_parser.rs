@@ -7,6 +7,10 @@ use pest_derive::Parser;
 #[grammar = "syntax.pest"]
 pub struct SyntaxParser;
 
+fn is_wildcard(input: &str) -> bool {
+    matches!(input, "" | "*" | "x" | "X")
+}
+
 pub fn parse_semver<T: AsRef<str>>(input: T) -> Result<Version, pest::error::Error<Rule>> {
     let pairs = SyntaxParser::parse(Rule::parse_semver, input.as_ref().trim())?;
     let mut version = Version::default();
@@ -22,7 +26,7 @@ pub fn parse_semver_req<T: AsRef<str>>(input: T) -> Result<Requirement, pest::er
     let input = input.as_ref().trim();
     let mut req = Requirement::default();
 
-    if matches!(input, "" | "*" | "x" | "X") {
+    if is_wildcard(input) {
         req.op = Op::Wildcard;
 
         return Ok(req);
@@ -41,7 +45,7 @@ pub fn parse_semver_range<T: AsRef<str>>(input: T) -> Result<Range, pest::error:
     let input = input.as_ref().trim();
     let mut range = Range::default();
 
-    if matches!(input, "" | "*" | "x" | "X") {
+    if is_wildcard(input) {
         return Ok(range);
     }
 
@@ -69,7 +73,7 @@ pub fn parse_calver_req<T: AsRef<str>>(input: T) -> Result<Requirement, pest::er
     let input = input.as_ref().trim();
     let mut req = Requirement::default();
 
-    if matches!(input, "" | "*" | "x" | "X") {
+    if is_wildcard(input) {
         req.op = Op::Wildcard;
 
         return Ok(req);
@@ -82,6 +86,23 @@ pub fn parse_calver_req<T: AsRef<str>>(input: T) -> Result<Requirement, pest::er
     }
 
     Ok(req)
+}
+
+pub fn parse_calver_range<T: AsRef<str>>(input: T) -> Result<Range, pest::error::Error<Rule>> {
+    let input = input.as_ref().trim();
+    let mut range = Range::default();
+
+    if is_wildcard(input) {
+        return Ok(range);
+    }
+
+    let pairs = SyntaxParser::parse(Rule::parse_calver_range, input)?;
+
+    for pair in pairs {
+        handle_range(pair, &mut range)?;
+    }
+
+    Ok(range)
 }
 
 fn parse_int(pair: Pair<Rule>, message: &str) -> Result<u64, Error<Rule>> {
@@ -243,7 +264,7 @@ fn handle_between(pair: Pair<Rule>) -> Result<Clause, pest::error::Error<Rule>> 
     for inner in pair.into_inner() {
         match inner.as_rule() {
             // Extract information
-            Rule::semver => {
+            Rule::semver | Rule::calver => {
                 let mut version = Version::default();
 
                 handle_version(inner, &mut version)?;
@@ -276,11 +297,11 @@ fn handle_clause(pair: Pair<Rule>) -> Result<Clause, pest::error::Error<Rule>> {
     for inner in pair.into_inner() {
         match inner.as_rule() {
             // Extract information
-            Rule::semver_between => {
+            Rule::semver_between | Rule::calver_between => {
                 return handle_between(inner);
             }
 
-            Rule::semver_req => {
+            Rule::semver_req | Rule::calver_req => {
                 let mut req = Requirement::default();
 
                 handle_requirement(inner, &mut req)?;
@@ -313,12 +334,17 @@ fn handle_range(pair: Pair<Rule>, range: &mut Range) -> Result<(), pest::error::
     for inner in pair.into_inner() {
         match inner.as_rule() {
             // Extract information
-            Rule::semver_clause => range.clauses.push(handle_clause(inner)?),
+            Rule::semver_clause | Rule::calver_clause => {
+                range.clauses.push(handle_clause(inner)?);
+            }
 
             Rule::or => {}
 
             // Continue parsing
-            Rule::parse_semver_range | Rule::semver_range => {
+            Rule::parse_semver_range
+            | Rule::parse_calver_range
+            | Rule::semver_range
+            | Rule::calver_range => {
                 handle_range(inner, range)?;
             }
 

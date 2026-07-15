@@ -1,6 +1,6 @@
 use version_spec::{
-    Clause, Op, Range, Requirement, Version, parse_calver, parse_calver_req, parse_semver,
-    parse_semver_range, parse_semver_req,
+    Clause, Op, Range, Requirement, Version, parse_calver, parse_calver_range, parse_calver_req,
+    parse_semver, parse_semver_range, parse_semver_req,
 };
 
 mod syntax {
@@ -1675,6 +1675,273 @@ mod syntax {
             // Comma/space separated requirement lists are split upstream
             assert!(parse_calver_req("2000.2, 2001.2").is_err());
             assert!(parse_calver_req(">=2000.1 <2001.1").is_err());
+        }
+    }
+
+    mod calver_range {
+        use super::*;
+
+        fn req(input: &str) -> Requirement {
+            parse_calver_req(input).unwrap()
+        }
+
+        fn ver(input: &str) -> Version {
+            parse_calver(input).unwrap()
+        }
+
+        #[test]
+        fn parses_single() {
+            assert_eq!(
+                parse_calver_range("~2000-2").unwrap(),
+                Range {
+                    clauses: vec![Clause::Only(Requirement {
+                        op: Op::Tilde,
+                        major: Some(2000),
+                        minor: Some(2),
+                        ..Default::default()
+                    })]
+                }
+            );
+
+            assert_eq!(
+                parse_calver_range("2024.1.15").unwrap(),
+                Range {
+                    clauses: vec![Clause::Only(req("2024.1.15"))]
+                }
+            );
+        }
+
+        #[test]
+        fn parses_wildcard() {
+            for input in ["", "*", "  *  ", "x", "X"] {
+                assert_eq!(
+                    parse_calver_range(input).unwrap(),
+                    Range::default(),
+                    "input: {input:?}"
+                );
+            }
+        }
+
+        #[test]
+        fn parses_and() {
+            // " ", "&&", and "," are supported
+            for input in [
+                "2000-2 && 2001-3",
+                "2000-2, 2001-3",
+                "2000-2,2001-3",
+                "2000-2&&2001-3",
+                "2000-2 2001-3",
+                "2000-2  2001-3",
+            ] {
+                assert_eq!(
+                    parse_calver_range(input).unwrap(),
+                    Range {
+                        clauses: vec![Clause::And(req("2000-2"), req("2001-3"))]
+                    },
+                    "input: {input}"
+                );
+            }
+
+            assert_eq!(
+                parse_calver_range(">=2000-1 <2001-1").unwrap(),
+                Range {
+                    clauses: vec![Clause::And(req(">=2000-1"), req("<2001-1"))]
+                }
+            );
+        }
+
+        #[test]
+        fn parses_or() {
+            assert_eq!(
+                parse_calver_range("2000 || 2001 || 2002").unwrap(),
+                Range {
+                    clauses: vec![
+                        Clause::Only(req("2000")),
+                        Clause::Only(req("2001")),
+                        Clause::Only(req("2002")),
+                    ]
+                }
+            );
+
+            assert_eq!(
+                parse_calver_range("2000-2||2001-3").unwrap(),
+                Range {
+                    clauses: vec![Clause::Only(req("2000-2")), Clause::Only(req("2001-3"))]
+                }
+            );
+        }
+
+        #[test]
+        fn parses_and_or() {
+            assert_eq!(
+                parse_calver_range(">=2000-1 && <2000-6 || >=2001, <2002 || 2003.x").unwrap(),
+                Range {
+                    clauses: vec![
+                        Clause::And(req(">=2000-1"), req("<2000-6")),
+                        Clause::And(req(">=2001"), req("<2002")),
+                        Clause::Only(req("2003.x")),
+                    ]
+                }
+            );
+        }
+
+        #[test]
+        fn parses_full_reqs() {
+            // Requirements keep their pre/scope support within ranges
+            assert_eq!(
+                parse_calver_range(">=2000-1-alpha && <2001-1 || node-16-2024-2").unwrap(),
+                Range {
+                    clauses: vec![
+                        Clause::And(req(">=2000-1-alpha"), req("<2001-1")),
+                        Clause::Only(req("node-16-2024-2")),
+                    ]
+                }
+            );
+
+            // Scoped requirements are not limited to the final clause
+            assert_eq!(
+                parse_calver_range("node-2000-2 || node-*").unwrap(),
+                Range {
+                    clauses: vec![Clause::Only(req("node-2000-2")), Clause::Only(req("node-*"))]
+                }
+            );
+        }
+
+        #[test]
+        fn parses_and_trims_whitespace() {
+            assert_eq!(
+                parse_calver_range("  2000 || 2001  ").unwrap(),
+                Range {
+                    clauses: vec![Clause::Only(req("2000")), Clause::Only(req("2001"))]
+                }
+            );
+        }
+
+        #[test]
+        fn parses_between() {
+            for input in ["2000-2 - 2001-3", "2000-2  -  2001-3"] {
+                assert_eq!(
+                    parse_calver_range(input).unwrap(),
+                    Range {
+                        clauses: vec![Clause::Between(ver("2000-2"), ver("2001-3"))]
+                    },
+                    "input: {input}"
+                );
+            }
+
+            // dot format
+            assert_eq!(
+                parse_calver_range("2000.2 - 2001.3").unwrap(),
+                Range {
+                    clauses: vec![Clause::Between(ver("2000.2"), ver("2001.3"))]
+                }
+            );
+
+            // with days
+            assert_eq!(
+                parse_calver_range("2024-1-15 - 2024-6-30").unwrap(),
+                Range {
+                    clauses: vec![Clause::Between(ver("2024-1-15"), ver("2024-6-30"))]
+                }
+            );
+        }
+
+        #[test]
+        fn parses_between_with_pre() {
+            assert_eq!(
+                parse_calver_range("2000-2-alpha - 2001-3-beta.1").unwrap(),
+                Range {
+                    clauses: vec![Clause::Between(ver("2000-2-alpha"), ver("2001-3-beta.1"))]
+                }
+            );
+        }
+
+        #[test]
+        fn parses_between_with_or() {
+            assert_eq!(
+                parse_calver_range("2000-2 - 2001-3 || >=2002").unwrap(),
+                Range {
+                    clauses: vec![
+                        Clause::Between(ver("2000-2"), ver("2001-3")),
+                        Clause::Only(req(">=2002")),
+                    ]
+                }
+            );
+
+            assert_eq!(
+                parse_calver_range("~2000 || 2000-2 - 2001-3").unwrap(),
+                Range {
+                    clauses: vec![
+                        Clause::Only(req("~2000")),
+                        Clause::Between(ver("2000-2"), ver("2001-3")),
+                    ]
+                }
+            );
+        }
+
+        #[test]
+        fn prefers_version_over_between() {
+            // Without whitespace, hyphens are version separators
+            assert_eq!(
+                parse_calver_range("2000-2-3").unwrap(),
+                Range {
+                    clauses: vec![Clause::Only(req("2000-2-3"))]
+                }
+            );
+        }
+
+        #[test]
+        fn errors_incomplete_clauses() {
+            assert!(parse_calver_range("||").is_err());
+            assert!(parse_calver_range("2000 ||").is_err());
+            assert!(parse_calver_range("|| 2000").is_err());
+            assert!(parse_calver_range("2000 &&").is_err());
+            assert!(parse_calver_range("&& 2000").is_err());
+            assert!(parse_calver_range("2000 && || 2001").is_err());
+        }
+
+        #[test]
+        fn errors_too_many_ands() {
+            // Only a left and right value are supported per clause
+            assert!(parse_calver_range("2000 && 2001 && 2002").is_err());
+            assert!(parse_calver_range("2000, 2001, 2002").is_err());
+            assert!(parse_calver_range("2000 2001 2002").is_err());
+        }
+
+        #[test]
+        fn errors_invalid_separators() {
+            assert!(parse_calver_range("2000 | 2001").is_err());
+            assert!(parse_calver_range("2000 or 2001").is_err());
+        }
+
+        #[test]
+        fn errors_between_with_partial_versions() {
+            // Both sides must be fully qualified, requiring at least a month
+            assert!(parse_calver_range("2000 - 2001").is_err());
+            assert!(parse_calver_range("2000-2 - 2001").is_err());
+            assert!(parse_calver_range("2000 - 2001-2").is_err());
+            assert!(parse_calver_range("2000-2 - x").is_err());
+        }
+
+        #[test]
+        fn errors_between_with_ops() {
+            assert!(parse_calver_range("^2000-1 - 2001-1").is_err());
+            assert!(parse_calver_range(">=2000-2 - 2001-3").is_err());
+        }
+
+        #[test]
+        fn errors_between_with_and() {
+            // A bounded range cannot be combined with an "and"
+            assert!(parse_calver_range("2000-1 && 2000-2 - 2001-1").is_err());
+            assert!(parse_calver_range("2000-2 - 2001-1 && <2002-1").is_err());
+        }
+
+        #[test]
+        fn errors_between_incomplete() {
+            assert!(parse_calver_range("2000-2 -").is_err());
+            assert!(parse_calver_range("- 2001-3").is_err());
+            assert!(parse_calver_range("2000-2 -2001-3").is_err());
+            assert!(parse_calver_range("2000-2- 2001-3").is_err());
         }
     }
 }

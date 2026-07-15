@@ -103,3 +103,11 @@ calver_req_version = _{ year_req ~ (calver_req_dot | calver_req_dash)? }
 calver_req         =  { op? ~ " "* ~ (calver_req_version | req_scope_anchor ~ calver_req_version) ~ pre_anchor_fixed? ~ build_anchor? }
 
 parse_calver_req = { SOI ~ calver_req ~ EOI }
+
+// ----- CALENDAR RANGES -----
+
+calver_between = { calver ~ " "+ ~ "-" ~ " "+ ~ calver }
+calver_clause  = { calver_between | calver_req ~ (and ~ calver_req)? }
+calver_range   = { calver_clause ~ (or ~ calver_clause)* }
+
+parse_calver_range = { SOI ~ calver_range ~ EOI }
