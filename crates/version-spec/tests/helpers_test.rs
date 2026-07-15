@@ -24,6 +24,17 @@ fn cleans_version() {
     assert_eq!(clean_version_string("1.2.3"), "1.2.3");
     assert_eq!(clean_version_string("v1.2.3"), "1.2.3");
     assert_eq!(clean_version_string("V1.2.3"), "1.2.3");
+    assert_eq!(clean_version_string("v2024-02"), "2024-02");
+}
+
+#[test]
+fn doesnt_clean_scoped_versions() {
+    assert_eq!(clean_version_string("v8-1.2.3"), "v8-1.2.3");
+    assert_eq!(clean_version_string("V8-1.2.3"), "V8-1.2.3");
+    assert_eq!(clean_version_string("v1-2024-02"), "v1-2024-02");
+
+    // "v" followed by a non-digit is never stripped
+    assert_eq!(clean_version_string("vale-1.2.3"), "vale-1.2.3");
 }
 
 #[test]

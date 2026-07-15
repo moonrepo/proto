@@ -1,12 +1,12 @@
 use crate::spec_error::SpecError;
 use crate::{get_calver_regex, get_semver_regex};
 use semver::Version;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 use std::fmt;
 use std::ops::Deref;
 
 /// Container for a semantic version.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct SemVer(pub Version, pub Option<String>);
 
 impl SemVer {
@@ -19,8 +19,23 @@ impl SemVer {
         Ok(Self(
             Version::parse(caps.name("version").unwrap().as_str())?,
             caps.name("scope")
-                .map(|cap| cap.as_str().trim_end_matches('-').to_string()),
+                .and_then(|cap| cap.as_str().strip_suffix('-'))
+                .map(|scope| scope.to_owned()),
         ))
+    }
+}
+
+impl Serialize for SemVer {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.collect_str(self)
+    }
+}
+
+impl<'de> Deserialize<'de> for SemVer {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let value = String::deserialize(deserializer)?;
+
+        Self::parse(&value).map_err(de::Error::custom)
     }
 }
 
@@ -43,7 +58,7 @@ impl fmt::Display for SemVer {
 }
 
 /// Container for a calendar version.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct CalVer(pub Version, pub Option<String>);
 
 impl CalVer {
@@ -99,8 +114,23 @@ impl CalVer {
         Ok(Self(
             Version::parse(&version)?,
             caps.name("scope")
-                .map(|cap| cap.as_str().trim_end_matches('-').to_string()),
+                .and_then(|cap| cap.as_str().strip_suffix('-'))
+                .map(|scope| scope.to_owned()),
         ))
+    }
+}
+
+impl Serialize for CalVer {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.collect_str(self)
+    }
+}
+
+impl<'de> Deserialize<'de> for CalVer {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let value = String::deserialize(deserializer)?;
+
+        Self::parse(&value).map_err(de::Error::custom)
     }
 }
 

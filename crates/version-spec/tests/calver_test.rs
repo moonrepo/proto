@@ -262,6 +262,28 @@ mod calver {
     }
 
     #[test]
+    fn parse_scope_with_trailing_dash() {
+        let ver = CalVer::parse("foo--2024-02").unwrap();
+
+        assert_eq!(ver.0, Version::new(2024, 2, 0));
+        assert_eq!(ver.1, Some("foo-".to_owned()));
+        assert_eq!(ver.to_string(), "foo--2024-02");
+    }
+
+    #[test]
+    fn serializes_to_string() {
+        for value in ["2024-02", "2024-02-26", "node-2024-02"] {
+            let ver = CalVer::parse(value).unwrap();
+
+            assert_eq!(serde_json::to_string(&ver).unwrap(), format!("\"{value}\""));
+            assert_eq!(
+                serde_json::from_str::<CalVer>(&format!("\"{value}\"")).unwrap(),
+                ver
+            );
+        }
+    }
+
+    #[test]
     fn parse_errors() {
         assert!(matches!(
             CalVer::parse("abc"),

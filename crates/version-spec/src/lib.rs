@@ -45,17 +45,31 @@ pub fn is_semver<T: AsRef<str>>(value: T) -> bool {
     get_semver_regex().is_match(value.as_ref())
 }
 
+/// Returns true if the provided value is a calendar or semantic
+/// version string that contains a scope prefix.
+fn has_version_scope(value: &str) -> bool {
+    [get_calver_regex(), get_semver_regex()]
+        .into_iter()
+        .any(|regex| {
+            regex
+                .captures(value)
+                .is_some_and(|caps| caps.name("scope").is_some())
+        })
+}
+
 /// Cleans a potential version string by removing a leading `v` or `V`.
 pub fn clean_version_string<T: AsRef<str>>(value: T) -> String {
     let mut version = value.as_ref().trim();
 
-    // Remove a leading "v" or "V" from a version string
+    // Remove a leading "v" or "V" from a version string,
+    // but not when it's part of a scope, like "v8-1.2.3"
     #[allow(clippy::assigning_clones)]
     if (version.starts_with('v') || version.starts_with('V'))
         && version
             .as_bytes()
             .get(1)
             .is_some_and(|c| c.is_ascii_digit())
+        && !has_version_scope(version)
     {
         version = &version[1..];
     }
@@ -93,7 +107,7 @@ pub fn get_semver_regex() -> &'static Regex {
 
     // https://semver.org/#backusnaur-form-grammar-for-valid-semver-versions
     SEMVER_REGEX.get_or_init(|| {
-        Regex::new(r"^(?<scope>[-0-9a-zA-Z_]+?-)??(?<version>(?<major>[0-9]+).(?<minor>[0-9]+).(?<patch>[0-9]+)(?<pre>-[-0-9a-zA-Z.]+)?(?<build>\+[-0-9a-zA-Z.]+)?)$")
+        Regex::new(r"^(?<scope>[-0-9a-zA-Z_]+?-)??(?<version>(?<major>[0-9]+)\.(?<minor>[0-9]+)\.(?<patch>[0-9]+)(?<pre>-[-0-9a-zA-Z.]+)?(?<build>\+[-0-9a-zA-Z.]+)?)$")
         .unwrap()
     })
 }

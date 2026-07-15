@@ -65,6 +65,47 @@ mod resolved_spec {
     }
 
     #[test]
+    fn scoped_versions() {
+        assert_eq!(
+            VersionSpec::parse("node-1.2.3").unwrap(),
+            VersionSpec::Semantic(SemVer(Version::new(1, 2, 3), Some("node".into())))
+        );
+        assert_eq!(
+            VersionSpec::parse("v8-1.2.3").unwrap(),
+            VersionSpec::Semantic(SemVer(Version::new(1, 2, 3), Some("v8".into())))
+        );
+
+        // calver
+        assert_eq!(
+            VersionSpec::parse("node-2024-02").unwrap(),
+            VersionSpec::Calendar(CalVer(Version::new(2024, 2, 0), Some("node".into())))
+        );
+        assert_eq!(
+            VersionSpec::parse("foo-bar-2024-2-26").unwrap(),
+            VersionSpec::Calendar(CalVer(Version::new(2024, 2, 26), Some("foo-bar".into())))
+        );
+    }
+
+    #[test]
+    fn serde_roundtrip() {
+        for value in [
+            "canary",
+            "latest",
+            "legacy-2023",
+            "1.2.3",
+            "1.2.3-alpha.1",
+            "node-1.2.3",
+            "2024-02-26",
+            "node-2024-02",
+        ] {
+            let spec = VersionSpec::parse(value).unwrap();
+            let json = serde_json::to_string(&spec).unwrap();
+
+            assert_eq!(serde_json::from_str::<VersionSpec>(&json).unwrap(), spec);
+        }
+    }
+
+    #[test]
     #[should_panic(expected = "UnknownResolvedFormat")]
     fn error_invalid_char() {
         VersionSpec::parse("%").unwrap();

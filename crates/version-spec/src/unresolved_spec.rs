@@ -1,7 +1,10 @@
 use crate::spec_error::SpecError;
 use crate::unresolved_parser::*;
 use crate::version_types::*;
-use crate::{VersionSpec, clean_version_req_string, clean_version_string, is_alias_name};
+use crate::{
+    VersionSpec, clean_version_req_string, clean_version_string, get_calver_regex,
+    get_semver_regex, is_alias_name,
+};
 use compact_str::CompactString;
 use human_sort::compare;
 use semver::Prerelease;
@@ -134,10 +137,20 @@ impl UnresolvedVersionSpec {
             }
             UnresolvedVersionSpec::ReqAny(_) => "latest".into(),
             UnresolvedVersionSpec::Calendar(ver) => {
-                from_parts(ver.major, Some(ver.minor), Some(ver.patch), &ver.pre)
+                let version = from_parts(ver.major, Some(ver.minor), Some(ver.patch), &ver.pre);
+
+                match &ver.1 {
+                    Some(scope) => format!("{scope}-{version}"),
+                    None => version,
+                }
             }
             UnresolvedVersionSpec::Semantic(ver) => {
-                from_parts(ver.major, Some(ver.minor), Some(ver.patch), &ver.pre)
+                let version = from_parts(ver.major, Some(ver.minor), Some(ver.patch), &ver.pre);
+
+                match &ver.1 {
+                    Some(scope) => format!("{scope}-{version}"),
+                    None => version,
+                }
             }
         }
     }
@@ -171,6 +184,25 @@ impl FromStr for UnresolvedVersionSpec {
         }
 
         let value = clean_version_string(value);
+
+        // Scoped versions, like "node-1.2.3", are also valid alias names,
+        // and are not supported by the requirement parser, so they must be
+        // handled before both. Unscoped versions continue to flow through
+        // the requirement parser, so that partial versions, like "2024-02",
+        // are still mapped as requirements.
+        if get_calver_regex()
+            .captures(&value)
+            .is_some_and(|caps| caps.name("scope").is_some())
+        {
+            return Ok(UnresolvedVersionSpec::Calendar(CalVer::parse(&value)?));
+        }
+
+        if get_semver_regex()
+            .captures(&value)
+            .is_some_and(|caps| caps.name("scope").is_some())
+        {
+            return Ok(UnresolvedVersionSpec::Semantic(SemVer::parse(&value)?));
+        }
 
         if is_alias_name(&value) {
             return Ok(UnresolvedVersionSpec::Alias(CompactString::new(value)));

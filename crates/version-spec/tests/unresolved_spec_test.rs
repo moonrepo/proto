@@ -56,6 +56,55 @@ mod unresolved_spec {
     }
 
     #[test]
+    fn scoped_versions() {
+        assert_eq!(
+            UnresolvedVersionSpec::parse("node-1.2.3").unwrap(),
+            UnresolvedVersionSpec::Semantic(SemVer(Version::new(1, 2, 3), Some("node".into())))
+        );
+        assert_eq!(
+            UnresolvedVersionSpec::parse("node-1.2.3-alpha.1").unwrap(),
+            UnresolvedVersionSpec::Semantic(SemVer(
+                Version::parse("1.2.3-alpha.1").unwrap(),
+                Some("node".into())
+            ))
+        );
+
+        // calver, always fully-qualified, unlike unscoped partials
+        assert_eq!(
+            UnresolvedVersionSpec::parse("node-2024-02").unwrap(),
+            UnresolvedVersionSpec::Calendar(CalVer(Version::new(2024, 2, 0), Some("node".into())))
+        );
+
+        // scoped partials are not supported, and remain aliases
+        assert_eq!(
+            UnresolvedVersionSpec::parse("temurin-21").unwrap(),
+            UnresolvedVersionSpec::Alias(CompactString::new("temurin-21"))
+        );
+    }
+
+    #[test]
+    fn serde_roundtrip() {
+        for value in [
+            "canary",
+            "latest",
+            "lts-2014",
+            "^1.2",
+            "1.2.3",
+            "node-1.2.3",
+            "2024-2-26",
+            "node-2024-02",
+        ] {
+            let spec = UnresolvedVersionSpec::parse(value).unwrap();
+            let json = serde_json::to_string(&spec).unwrap();
+
+            assert_eq!(
+                serde_json::from_str::<UnresolvedVersionSpec>(&json).unwrap(),
+                spec
+            );
+        }
+    }
+
+    #[test]
     fn requirements() {
         assert_eq!(
             UnresolvedVersionSpec::parse("1.2").unwrap(),
@@ -308,6 +357,18 @@ mod unresolved_spec {
                 .unwrap()
                 .to_partial_string(),
             "1.2.3"
+        );
+        assert_eq!(
+            UnresolvedVersionSpec::parse("node-1.2.3")
+                .unwrap()
+                .to_partial_string(),
+            "node-1.2.3"
+        );
+        assert_eq!(
+            UnresolvedVersionSpec::parse("node-2024-02")
+                .unwrap()
+                .to_partial_string(),
+            "node-2024.2.0"
         );
     }
 }

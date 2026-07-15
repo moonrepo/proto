@@ -108,16 +108,18 @@ impl FromStr for VersionSpec {
 
         let value = clean_version_string(value);
 
-        if is_alias_name(&value) {
-            return Ok(VersionSpec::Alias(CompactString::new(value)));
-        }
-
+        // Versions must be checked before aliases, as scoped versions,
+        // like "node-1.2.3", are also valid alias names!
         if is_calver(&value) {
             return Ok(VersionSpec::Calendar(CalVer::parse(&value)?));
         }
 
         if is_semver(&value) {
             return Ok(VersionSpec::Semantic(SemVer::parse(&value)?));
+        }
+
+        if is_alias_name(&value) {
+            return Ok(VersionSpec::Alias(CompactString::new(value)));
         }
 
         Err(SpecError::UnknownResolvedFormat(value.to_owned()))

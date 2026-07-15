@@ -46,6 +46,11 @@ mod semver {
         assert!(!is_semver("1.2.3.4"));
         assert!(!is_semver("v1.2.3"));
 
+        // invalid separators
+        assert!(!is_semver("1-2-3"));
+        assert!(!is_semver("1x2x3"));
+        assert!(!is_semver("1.2-3"));
+
         // aliases
         assert!(!is_semver("latest"));
         assert!(!is_semver("node"));
@@ -127,6 +132,28 @@ mod semver {
         assert_eq!(ver.0, Version::parse("1.2.3-alpha").unwrap());
         assert_eq!(ver.1, None);
         assert_eq!(ver.to_string(), "1.2.3-alpha");
+    }
+
+    #[test]
+    fn parse_scope_with_trailing_dash() {
+        let ver = SemVer::parse("foo--1.2.3").unwrap();
+
+        assert_eq!(ver.0, Version::new(1, 2, 3));
+        assert_eq!(ver.1, Some("foo-".to_owned()));
+        assert_eq!(ver.to_string(), "foo--1.2.3");
+    }
+
+    #[test]
+    fn serializes_to_string() {
+        for value in ["1.2.3", "1.2.3-alpha.1+build.5", "node-1.2.3"] {
+            let ver = SemVer::parse(value).unwrap();
+
+            assert_eq!(serde_json::to_string(&ver).unwrap(), format!("\"{value}\""));
+            assert_eq!(
+                serde_json::from_str::<SemVer>(&format!("\"{value}\"")).unwrap(),
+                ver
+            );
+        }
     }
 
     #[test]
