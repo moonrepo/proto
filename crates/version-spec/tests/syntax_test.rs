@@ -1,4 +1,4 @@
-use version_spec::{Version, parse_calver, parse_semver};
+use version_spec::{Op, Requirement, Version, parse_calver, parse_semver, parse_semver_req};
 
 mod syntax {
     use super::*;
@@ -287,6 +287,314 @@ mod syntax {
         fn errors_number_overflow() {
             // u64::MAX + 1
             let error = parse_semver("18446744073709551616.0.0").unwrap_err();
+
+            assert!(error.to_string().contains("failed to parse major version"));
+        }
+    }
+
+    mod semver_req {
+        use super::*;
+
+        #[test]
+        fn parses_wildcard() {
+            for input in ["", "*", "  *  ", "x", "X"] {
+                assert_eq!(
+                    parse_semver_req(input).unwrap(),
+                    Requirement {
+                        op: Op::Wildcard,
+                        ..Default::default()
+                    },
+                    "input: {input:?}"
+                );
+            }
+        }
+
+        #[test]
+        fn parses_partial() {
+            // No operator defaults to an exact match
+            assert_eq!(
+                parse_semver_req("1").unwrap(),
+                Requirement {
+                    major: Some(1),
+                    ..Default::default()
+                }
+            );
+
+            assert_eq!(
+                parse_semver_req("0").unwrap(),
+                Requirement {
+                    major: Some(0),
+                    ..Default::default()
+                }
+            );
+
+            assert_eq!(
+                parse_semver_req("1.2").unwrap(),
+                Requirement {
+                    major: Some(1),
+                    minor: Some(2),
+                    ..Default::default()
+                }
+            );
+        }
+
+        #[test]
+        fn parses_full() {
+            assert_eq!(
+                parse_semver_req("1.2.3").unwrap(),
+                Requirement {
+                    major: Some(1),
+                    minor: Some(2),
+                    micro: Some(3),
+                    ..Default::default()
+                }
+            );
+
+            assert_eq!(
+                parse_semver_req("10.20.30").unwrap(),
+                Requirement {
+                    major: Some(10),
+                    minor: Some(20),
+                    micro: Some(30),
+                    ..Default::default()
+                }
+            );
+        }
+
+        #[test]
+        fn parses_part_wildcards() {
+            // A wildcard part is equivalent to an omitted part
+            for (input, major, minor) in [
+                ("1.*", Some(1), None),
+                ("1.x", Some(1), None),
+                ("1.X", Some(1), None),
+                ("1.2.*", Some(1), Some(2)),
+                ("1.2.x", Some(1), Some(2)),
+                ("1.2.X", Some(1), Some(2)),
+            ] {
+                assert_eq!(
+                    parse_semver_req(input).unwrap(),
+                    Requirement {
+                        major,
+                        minor,
+                        ..Default::default()
+                    },
+                    "input: {input}"
+                );
+            }
+        }
+
+        #[test]
+        fn parses_ops() {
+            for (input, op) in [
+                ("=1.2.3", Op::Exact),
+                ("==1.2.3", Op::Exact),
+                (">1.2.3", Op::Greater),
+                (">=1.2.3", Op::GreaterEq),
+                ("<1.2.3", Op::Less),
+                ("<=1.2.3", Op::LessEq),
+                ("~1.2.3", Op::Tilde),
+                ("^1.2.3", Op::Caret),
+            ] {
+                assert_eq!(
+                    parse_semver_req(input).unwrap(),
+                    Requirement {
+                        op,
+                        major: Some(1),
+                        minor: Some(2),
+                        micro: Some(3),
+                        ..Default::default()
+                    },
+                    "input: {input}"
+                );
+            }
+        }
+
+        #[test]
+        fn parses_ops_with_partial() {
+            assert_eq!(
+                parse_semver_req(">=1").unwrap(),
+                Requirement {
+                    op: Op::GreaterEq,
+                    major: Some(1),
+                    ..Default::default()
+                }
+            );
+
+            assert_eq!(
+                parse_semver_req("~1.2").unwrap(),
+                Requirement {
+                    op: Op::Tilde,
+                    major: Some(1),
+                    minor: Some(2),
+                    ..Default::default()
+                }
+            );
+
+            assert_eq!(
+                parse_semver_req("^0.5").unwrap(),
+                Requirement {
+                    op: Op::Caret,
+                    major: Some(0),
+                    minor: Some(5),
+                    ..Default::default()
+                }
+            );
+
+            // with a wildcard part
+            assert_eq!(
+                parse_semver_req(">=1.x").unwrap(),
+                Requirement {
+                    op: Op::GreaterEq,
+                    major: Some(1),
+                    ..Default::default()
+                }
+            );
+        }
+
+        #[test]
+        fn parses_op_with_whitespace() {
+            for (input, op) in [
+                ("= 1.2.3", Op::Exact),
+                ("> 1.2.3", Op::Greater),
+                (">= 1.2.3", Op::GreaterEq),
+                ("<  1.2.3", Op::Less),
+                ("<=  1.2.3", Op::LessEq),
+                ("~ 1.2.3", Op::Tilde),
+                ("^ 1.2.3", Op::Caret),
+            ] {
+                assert_eq!(
+                    parse_semver_req(input).unwrap(),
+                    Requirement {
+                        op,
+                        major: Some(1),
+                        minor: Some(2),
+                        micro: Some(3),
+                        ..Default::default()
+                    },
+                    "input: {input}"
+                );
+            }
+        }
+
+        #[test]
+        fn parses_pre_and_build() {
+            assert_eq!(
+                parse_semver_req("1.2.3-alpha").unwrap(),
+                Requirement {
+                    major: Some(1),
+                    minor: Some(2),
+                    micro: Some(3),
+                    prerelease: Some("alpha".into()),
+                    ..Default::default()
+                }
+            );
+
+            assert_eq!(
+                parse_semver_req("<2.4.0-0").unwrap(),
+                Requirement {
+                    op: Op::Less,
+                    major: Some(2),
+                    minor: Some(4),
+                    micro: Some(0),
+                    prerelease: Some("0".into()),
+                    ..Default::default()
+                }
+            );
+
+            assert_eq!(
+                parse_semver_req("^1.2.3-beta.1+build.5").unwrap(),
+                Requirement {
+                    op: Op::Caret,
+                    major: Some(1),
+                    minor: Some(2),
+                    micro: Some(3),
+                    prerelease: Some("beta.1".into()),
+                    build: Some("build.5".into()),
+                    ..Default::default()
+                }
+            );
+        }
+
+        #[test]
+        fn parses_and_trims_whitespace() {
+            assert_eq!(
+                parse_semver_req("  >=1.2  ").unwrap(),
+                Requirement {
+                    op: Op::GreaterEq,
+                    major: Some(1),
+                    minor: Some(2),
+                    ..Default::default()
+                }
+            );
+        }
+
+        #[test]
+        fn errors_missing_version() {
+            assert!(parse_semver_req(">=").is_err());
+            assert!(parse_semver_req("~").is_err());
+            assert!(parse_semver_req("^").is_err());
+            assert!(parse_semver_req("1.").is_err());
+        }
+
+        #[test]
+        fn errors_invalid_ops() {
+            assert!(parse_semver_req("=>1.2").is_err());
+            assert!(parse_semver_req("=<1.2").is_err());
+            assert!(parse_semver_req(">>1.2").is_err());
+            assert!(parse_semver_req("!=1.2").is_err());
+        }
+
+        #[test]
+        fn errors_interior_whitespace() {
+            // Whitespace is only allowed after the operator
+            assert!(parse_semver_req("1.2 .3").is_err());
+            assert!(parse_semver_req("1 .2.3").is_err());
+            assert!(parse_semver_req("> =1.2").is_err());
+        }
+
+        #[test]
+        fn errors_multiple_reqs() {
+            // Comma/space separated requirement lists are split upstream
+            assert!(parse_semver_req("1.2, 3.4").is_err());
+            assert!(parse_semver_req(">=1.2.7 <1.3.0").is_err());
+            assert!(parse_semver_req("1.2 || 3.4").is_err());
+        }
+
+        #[test]
+        fn errors_scope() {
+            // Requirements do not support scopes
+            assert!(parse_semver_req("node-1.2.3").is_err());
+        }
+
+        #[test]
+        fn errors_v_prefix() {
+            // A leading "v" is removed by `clean_version_string` before parsing
+            assert!(parse_semver_req("v1.2.3").is_err());
+        }
+
+        #[test]
+        fn errors_leading_zeros() {
+            assert!(parse_semver_req("01").is_err());
+            assert!(parse_semver_req("1.02").is_err());
+            assert!(parse_semver_req("1.2.03").is_err());
+        }
+
+        #[test]
+        fn errors_too_many_parts() {
+            assert!(parse_semver_req("1.2.3.4").is_err());
+        }
+
+        #[test]
+        fn errors_dangling_anchors() {
+            assert!(parse_semver_req("1.2.3-").is_err());
+            assert!(parse_semver_req("1.2.3+").is_err());
+        }
+
+        #[test]
+        fn errors_number_overflow() {
+            // u64::MAX + 1
+            let error = parse_semver_req("18446744073709551616").unwrap_err();
 
             assert!(error.to_string().contains("failed to parse major version"));
         }

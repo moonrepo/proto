@@ -19,6 +19,8 @@ pre_anchor = _{ "-" ~ pre }
 build        =  { ASCII_ALPHANUMERIC ~ id* }
 build_anchor = _{ "+" ~ build }
 
+op = { "==" | ">=" | "<=" | ">" | "<" | "~" | "^" | "=" }
+
 // ----- SEMANTIC VERSIONS -----
 
 num   = _{ "0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT* }
@@ -26,11 +28,20 @@ major =  { num }
 minor =  { num }
 patch =  { num }
 
-semver_version = { major ~ "." ~ minor ~ "." ~ patch }
+semver_version = _{ major ~ "." ~ minor ~ "." ~ patch }
 
 // Try without a scope first, so that "1.2.3-4.5.6" is a version + pre-release,
 // and not a scope + version
-semver = { SOI ~ (semver_version | scope_anchor ~ semver_version) ~ pre_anchor? ~ build_anchor? ~ EOI }
+parse_semver = { SOI ~ (semver_version | scope_anchor ~ semver_version) ~ pre_anchor? ~ build_anchor? ~ EOI }
+
+// ----- SEMANTIC REQUIREMENTS -----
+
+num_req   = _{ num | "*" | "x" | "X" }
+major_req =  { num_req }
+minor_req =  { num_req }
+patch_req =  { num_req }
+
+parse_semver_req = { SOI ~ op? ~ " "* ~ major_req ~ ("." ~ minor_req)? ~ ("." ~ patch_req)? ~ pre_anchor? ~ build_anchor? ~ EOI }
 
 // ----- CALENDAR VERSIONS -----
 
@@ -46,8 +57,8 @@ calver_pre_anchor = _{ "-" ~ &ASCII_ALPHA ~ pre }
 
 calver_version_dot  = _{ year ~ "." ~ month ~ ("." ~ day)? }
 calver_version_dash = _{ year ~ "-" ~ month ~ ("-" ~ day)? }
-calver_version      =  { calver_version_dot | calver_version_dash }
+calver_version      = _{ calver_version_dot | calver_version_dash }
 
 // Try without a scope first, so that "2024-5-1" is a version,
 // and not a scope + version
-calver = { SOI ~ (calver_version | scope_anchor ~ calver_version) ~ calver_pre_anchor? ~ build_anchor? ~ EOI }
+parse_calver = { SOI ~ (calver_version | scope_anchor ~ calver_version) ~ calver_pre_anchor? ~ build_anchor? ~ EOI }
