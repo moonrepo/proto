@@ -34,33 +34,33 @@ mod resolved_spec {
     fn versions() {
         assert_eq!(
             VersionSpec::parse("v1.2.3").unwrap(),
-            VersionSpec::Semantic(SemVer(Version::new(1, 2, 3)))
+            VersionSpec::Semantic(SemVer(Version::new(1, 2, 3), None))
         );
         assert_eq!(
             VersionSpec::parse("1.2.3").unwrap(),
-            VersionSpec::Semantic(SemVer(Version::new(1, 2, 3)))
+            VersionSpec::Semantic(SemVer(Version::new(1, 2, 3), None))
         );
         assert_eq!(
             VersionSpec::parse("1.2.3-0").unwrap(),
-            VersionSpec::Semantic(SemVer(Version::parse("1.2.3-0").unwrap()))
+            VersionSpec::Semantic(SemVer(Version::parse("1.2.3-0").unwrap(), None))
         );
         assert_eq!(
             VersionSpec::parse("1.2.3-alpha").unwrap(),
-            VersionSpec::Semantic(SemVer(Version::parse("1.2.3-alpha").unwrap()))
+            VersionSpec::Semantic(SemVer(Version::parse("1.2.3-alpha").unwrap(), None))
         );
         assert_eq!(
             VersionSpec::parse("1.2.3-alpha.1").unwrap(),
-            VersionSpec::Semantic(SemVer(Version::parse("1.2.3-alpha.1").unwrap()))
+            VersionSpec::Semantic(SemVer(Version::parse("1.2.3-alpha.1").unwrap(), None))
         );
 
         // calver
         assert_eq!(
             VersionSpec::parse("2024-02").unwrap(),
-            VersionSpec::Calendar(CalVer(Version::new(2024, 2, 0)))
+            VersionSpec::Calendar(CalVer(Version::new(2024, 2, 0), None))
         );
         assert_eq!(
             VersionSpec::parse("2024-2-26").unwrap(),
-            VersionSpec::Calendar(CalVer(Version::new(2024, 2, 26)))
+            VersionSpec::Calendar(CalVer(Version::new(2024, 2, 26), None))
         );
     }
 
@@ -68,5 +68,30 @@ mod resolved_spec {
     #[should_panic(expected = "UnknownResolvedFormat")]
     fn error_invalid_char() {
         VersionSpec::parse("%").unwrap();
+    }
+
+    #[test]
+    fn compares_against_version() {
+        let version = Version::new(1, 2, 3);
+
+        assert_eq!(
+            VersionSpec::Semantic(SemVer(version.clone(), None)),
+            version
+        );
+        assert_ne!(
+            VersionSpec::Semantic(SemVer(version.clone(), Some("scope".into()))),
+            version
+        );
+
+        let version = Version::new(2024, 2, 26);
+
+        assert_eq!(
+            VersionSpec::Calendar(CalVer(version.clone(), None)),
+            version
+        );
+        assert_ne!(
+            VersionSpec::Calendar(CalVer(version.clone(), Some("scope".into()))),
+            version
+        );
     }
 }

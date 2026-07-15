@@ -1,5 +1,5 @@
-use crate::get_calver_regex;
 use crate::spec_error::SpecError;
+use crate::{get_calver_regex, get_semver_regex};
 use semver::Version;
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -7,12 +7,20 @@ use std::ops::Deref;
 
 /// Container for a semantic version.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-pub struct SemVer(pub Version);
+pub struct SemVer(pub Version, pub Option<String>);
 
 impl SemVer {
     /// Parse the string into a [`semver::Version`] type.
     pub fn parse(value: &str) -> Result<Self, SpecError> {
-        Ok(Self(Version::parse(value)?))
+        let Some(caps) = get_semver_regex().captures(value) else {
+            return Err(SpecError::InvalidSemverFormat);
+        };
+
+        Ok(Self(
+            Version::parse(caps.name("version").unwrap().as_str())?,
+            caps.name("scope")
+                .map(|cap| cap.as_str().trim_end_matches('-').to_string()),
+        ))
     }
 }
 
@@ -26,13 +34,17 @@ impl Deref for SemVer {
 
 impl fmt::Display for SemVer {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(scope) = &self.1 {
+            write!(f, "{scope}-")?;
+        }
+
         write!(f, "{}", self.0)
     }
 }
 
 /// Container for a calendar version.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-pub struct CalVer(pub Version);
+pub struct CalVer(pub Version, pub Option<String>);
 
 impl CalVer {
     /// If the provided value is a calver-like version string,
@@ -84,7 +96,11 @@ impl CalVer {
             version.push_str(micro.as_str());
         }
 
-        Ok(Self(Version::parse(&version)?))
+        Ok(Self(
+            Version::parse(&version)?,
+            caps.name("scope")
+                .map(|cap| cap.as_str().trim_end_matches('-').to_string()),
+        ))
     }
 }
 
@@ -98,6 +114,10 @@ impl Deref for CalVer {
 
 impl fmt::Display for CalVer {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(scope) = &self.1 {
+            write!(f, "{scope}-")?;
+        }
+
         let version = &self.0;
 
         write!(f, "{:0>4}-{:0>2}", version.major, version.minor)?;

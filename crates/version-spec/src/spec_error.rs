@@ -3,6 +3,9 @@ pub enum SpecError {
     #[error("Invalid calver (calendar version) format.")]
     InvalidCalverFormat,
 
+    #[error("Invalid semver (semantic version) format.")]
+    InvalidSemverFormat,
+
     #[error("Requirement operator found in an invalid position.")]
     InvalidParseRequirement,
 

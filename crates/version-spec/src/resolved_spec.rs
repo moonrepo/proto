@@ -169,8 +169,8 @@ impl PartialEq<&str> for VersionSpec {
 impl PartialEq<semver::Version> for VersionSpec {
     fn eq(&self, other: &semver::Version) -> bool {
         match self {
-            Self::Calendar(version) => &version.0 == other,
-            Self::Semantic(version) => &version.0 == other,
+            Self::Calendar(version) => &version.0 == other && version.1.is_none(),
+            Self::Semantic(version) => &version.0 == other && version.1.is_none(),
             _ => false,
         }
     }

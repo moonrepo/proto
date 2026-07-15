@@ -82,7 +82,7 @@ pub fn get_calver_regex() -> &'static Regex {
     static CALVER_REGEX: OnceLock<Regex> = OnceLock::new();
 
     CALVER_REGEX.get_or_init(|| {
-        Regex::new(r"^(?<year>[0-9]{1,4})-(?<month>((0?[1-9]{1})|10|11|12))(-(?<day>(0?[1-9]{1}|[1-3]{1}[0-9]{1})))?((_|\.)(?<micro>[0-9]+))?(?<pre>-[a-zA-Z]{1}[-0-9a-zA-Z.]+)?$").unwrap()
+        Regex::new(r"^(?<scope>[-0-9a-zA-Z_]+?-)??(?<version>(?<year>[0-9]{1,4})-(?<month>((0?[1-9]{1})|10|11|12))(-(?<day>(0?[1-9]{1}|[1-3]{1}[0-9]{1})))?((_|\.)(?<micro>[0-9]+))?(?<pre>-[a-zA-Z]{1}[-0-9a-zA-Z.]+)?)$").unwrap()
     })
 }
 
@@ -93,7 +93,7 @@ pub fn get_semver_regex() -> &'static Regex {
 
     // https://semver.org/#backusnaur-form-grammar-for-valid-semver-versions
     SEMVER_REGEX.get_or_init(|| {
-        Regex::new(r"^(?<major>[0-9]+).(?<minor>[0-9]+).(?<patch>[0-9]+)(?<pre>-[-0-9a-zA-Z.]+)?(?<build>\+[-0-9a-zA-Z.]+)?$")
+        Regex::new(r"^(?<scope>[-0-9a-zA-Z_]+?-)??(?<version>(?<major>[0-9]+).(?<minor>[0-9]+).(?<patch>[0-9]+)(?<pre>-[-0-9a-zA-Z.]+)?(?<build>\+[-0-9a-zA-Z.]+)?)$")
         .unwrap()
     })
 }

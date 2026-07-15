@@ -1,5 +1,5 @@
 use semver::{BuildMetadata, Prerelease, Version};
-use version_spec::{CalVer, is_calver};
+use version_spec::{CalVer, SpecError, is_calver};
 
 mod calver {
     use super::*;
@@ -38,6 +38,24 @@ mod calver {
                 }
             }
         }
+    }
+
+    #[test]
+    fn matches_scoped() {
+        assert!(is_calver("node-2024-02"));
+        assert!(is_calver("foo-bar-2024-02-26"));
+        assert!(is_calver("foo_bar-24-1"));
+        assert!(is_calver("temurin-2024-1-3_456-rc.2"));
+    }
+
+    #[test]
+    fn doesnt_match_scoped() {
+        // missing month
+        assert!(!is_calver("node-2024"));
+
+        // missing version
+        assert!(!is_calver("node-"));
+        assert!(!is_calver("foo-bar"));
     }
 
     #[test]
@@ -184,5 +202,78 @@ mod calver {
             }
         );
         assert_eq!(ver.to_string(), "2024-05-01-alpha.1");
+    }
+
+    #[test]
+    fn parse_with_scope() {
+        let ver = CalVer::parse("node-2024-02").unwrap();
+
+        assert_eq!(ver.0, Version::new(2024, 2, 0));
+        assert_eq!(ver.1, Some("node".to_owned()));
+        assert_eq!(ver.to_string(), "node-2024-02");
+
+        // multi-part scope
+        let ver = CalVer::parse("foo-bar-2024-5-12").unwrap();
+
+        assert_eq!(ver.0, Version::new(2024, 5, 12));
+        assert_eq!(ver.1, Some("foo-bar".to_owned()));
+        assert_eq!(ver.to_string(), "foo-bar-2024-05-12");
+
+        // short year
+        let ver = CalVer::parse("foo_bar-24-1").unwrap();
+
+        assert_eq!(ver.0, Version::new(2024, 1, 0));
+        assert_eq!(ver.1, Some("foo_bar".to_owned()));
+        assert_eq!(ver.to_string(), "foo_bar-2024-01");
+
+        // build + pre
+        let ver = CalVer::parse("temurin-2024-1-3_456-rc.2").unwrap();
+
+        assert_eq!(
+            ver.0,
+            Version {
+                major: 2024,
+                minor: 1,
+                patch: 3,
+                pre: Prerelease::new("rc.2").unwrap(),
+                build: BuildMetadata::new("456").unwrap(),
+            }
+        );
+        assert_eq!(ver.1, Some("temurin".to_owned()));
+        assert_eq!(ver.to_string(), "temurin-2024-01-03.456-rc.2");
+    }
+
+    #[test]
+    fn parse_prefers_version_over_scope() {
+        // The year is not extracted as a scope, even though
+        // the string could also match as scope + year-month-pre
+        let ver = CalVer::parse("2024-05-1-alpha.1").unwrap();
+
+        assert_eq!(ver.0, Version::parse("2024.5.1-alpha.1").unwrap());
+        assert_eq!(ver.1, None);
+        assert_eq!(ver.to_string(), "2024-05-01-alpha.1");
+
+        // And with a scope, the longest version match wins
+        let ver = CalVer::parse("foo-2024-05-1-alpha.1").unwrap();
+
+        assert_eq!(ver.0, Version::parse("2024.5.1-alpha.1").unwrap());
+        assert_eq!(ver.1, Some("foo".to_owned()));
+        assert_eq!(ver.to_string(), "foo-2024-05-01-alpha.1");
+    }
+
+    #[test]
+    fn parse_errors() {
+        assert!(matches!(
+            CalVer::parse("abc"),
+            Err(SpecError::InvalidCalverFormat)
+        ));
+        assert!(matches!(
+            CalVer::parse("2024"),
+            Err(SpecError::InvalidCalverFormat)
+        ));
+        assert!(matches!(
+            CalVer::parse(""),
+            Err(SpecError::InvalidCalverFormat)
+        ));
     }
 }

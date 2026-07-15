@@ -37,11 +37,11 @@ mod unresolved_spec {
     fn versions() {
         assert_eq!(
             UnresolvedVersionSpec::parse("v1.2.3").unwrap(),
-            UnresolvedVersionSpec::Semantic(SemVer(Version::new(1, 2, 3)))
+            UnresolvedVersionSpec::Semantic(SemVer(Version::new(1, 2, 3), None))
         );
         assert_eq!(
             UnresolvedVersionSpec::parse("1.2.3").unwrap(),
-            UnresolvedVersionSpec::Semantic(SemVer(Version::new(1, 2, 3)))
+            UnresolvedVersionSpec::Semantic(SemVer(Version::new(1, 2, 3), None))
         );
 
         // calver
@@ -51,7 +51,7 @@ mod unresolved_spec {
         );
         assert_eq!(
             UnresolvedVersionSpec::parse("2024-2-26").unwrap(),
-            UnresolvedVersionSpec::Calendar(CalVer(Version::new(2024, 2, 26)))
+            UnresolvedVersionSpec::Calendar(CalVer(Version::new(2024, 2, 26), None))
         );
     }
 
@@ -248,7 +248,7 @@ mod unresolved_spec {
         for req in ["1.2.3", "4.5.6", "7.8.9-alpha", "10.11.12+build"] {
             assert_eq!(
                 UnresolvedVersionSpec::parse(req).unwrap(),
-                UnresolvedVersionSpec::Semantic(SemVer(Version::parse(req).unwrap()))
+                UnresolvedVersionSpec::Semantic(SemVer(Version::parse(req).unwrap(), None))
             );
         }
     }
@@ -257,7 +257,7 @@ mod unresolved_spec {
     fn parses_version_with_v() {
         assert_eq!(
             UnresolvedVersionSpec::parse("v1.2.3").unwrap(),
-            UnresolvedVersionSpec::Semantic(SemVer(Version::parse("1.2.3").unwrap()))
+            UnresolvedVersionSpec::Semantic(SemVer(Version::parse("1.2.3").unwrap(), None))
         );
     }
 

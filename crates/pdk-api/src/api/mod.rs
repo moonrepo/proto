@@ -942,9 +942,9 @@ impl LoadVersionsOutput {
         }
 
         output.latest = Some(if calver {
-            UnresolvedVersionSpec::Calendar(CalVer(latest))
+            UnresolvedVersionSpec::Calendar(CalVer(latest, None))
         } else {
-            UnresolvedVersionSpec::Semantic(SemVer(latest))
+            UnresolvedVersionSpec::Semantic(SemVer(latest, None))
         });
 
         output
