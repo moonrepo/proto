@@ -1,4 +1,6 @@
-use version_spec::{Op, Requirement, Version, parse_calver, parse_semver, parse_semver_req};
+use version_spec::{
+    Op, Requirement, Version, parse_calver, parse_calver_req, parse_semver, parse_semver_req,
+};
 
 mod syntax {
     use super::*;
@@ -863,6 +865,394 @@ mod syntax {
         fn errors_v_prefix() {
             // A leading "v" is removed by `clean_version_string` before parsing
             assert!(parse_calver("v2024-02").is_err());
+        }
+    }
+
+    mod calver_req {
+        use super::*;
+
+        #[test]
+        fn parses_wildcard() {
+            for input in ["", "*", "  *  ", "x", "X"] {
+                assert_eq!(
+                    parse_calver_req(input).unwrap(),
+                    Requirement {
+                        op: Op::Wildcard,
+                        ..Default::default()
+                    },
+                    "input: {input:?}"
+                );
+            }
+        }
+
+        #[test]
+        fn parses_partial() {
+            // No operator defaults to an exact match, and short years
+            // are kept as-is, expansion (24 -> 2024) is handled upstream
+            for (input, year) in [("2000", 2000), ("224", 224), ("24", 24), ("0", 0)] {
+                assert_eq!(
+                    parse_calver_req(input).unwrap(),
+                    Requirement {
+                        major: Some(year),
+                        ..Default::default()
+                    },
+                    "input: {input}"
+                );
+            }
+        }
+
+        #[test]
+        fn parses() {
+            // Both dot and dash separators are supported
+            for (input, year, month) in [
+                ("2000.2", 2000, 2),
+                ("2000.12", 2000, 12),
+                ("224.3", 224, 3),
+                ("24.3", 24, 3),
+                ("4.1", 4, 1),
+                ("04.10", 4, 10),
+                ("2000-2", 2000, 2),
+                ("2000-12", 2000, 12),
+                ("24-3", 24, 3),
+                ("04-10", 4, 10),
+            ] {
+                assert_eq!(
+                    parse_calver_req(input).unwrap(),
+                    Requirement {
+                        major: Some(year),
+                        minor: Some(month),
+                        ..Default::default()
+                    },
+                    "input: {input}"
+                );
+            }
+        }
+
+        #[test]
+        fn parses_day() {
+            for (input, day) in [
+                ("2024.1.1", 1),
+                ("2024.1.18", 18),
+                ("2024.1.31", 31),
+                ("2024-1-1", 1),
+                ("2024-1-18", 18),
+                ("2024-1-31", 31),
+            ] {
+                assert_eq!(
+                    parse_calver_req(input).unwrap(),
+                    Requirement {
+                        major: Some(2024),
+                        minor: Some(1),
+                        micro: Some(day),
+                        ..Default::default()
+                    },
+                    "input: {input}"
+                );
+            }
+        }
+
+        #[test]
+        fn parses_unbounded_parts() {
+            // Month/day ranges are not validated on requirements
+            assert_eq!(
+                parse_calver_req("2000.0").unwrap(),
+                Requirement {
+                    major: Some(2000),
+                    minor: Some(0),
+                    ..Default::default()
+                }
+            );
+
+            assert_eq!(
+                parse_calver_req("2000.13").unwrap(),
+                Requirement {
+                    major: Some(2000),
+                    minor: Some(13),
+                    ..Default::default()
+                }
+            );
+
+            assert_eq!(
+                parse_calver_req("2000.2.42").unwrap(),
+                Requirement {
+                    major: Some(2000),
+                    minor: Some(2),
+                    micro: Some(42),
+                    ..Default::default()
+                }
+            );
+        }
+
+        #[test]
+        fn parses_part_wildcards() {
+            // A wildcard part is equivalent to an omitted part
+            for (input, month, day) in [
+                ("2000.*", None, None),
+                ("2000.x", None, None),
+                ("2000.X", None, None),
+                ("2000.*.*", None, None),
+                ("2000.2.*", Some(2), None),
+                ("2000.2.x", Some(2), None),
+                ("2000-*", None, None),
+                ("2000-*-*", None, None),
+                ("2000-2-*", Some(2), None),
+            ] {
+                assert_eq!(
+                    parse_calver_req(input).unwrap(),
+                    Requirement {
+                        major: Some(2000),
+                        minor: month,
+                        micro: day,
+                        ..Default::default()
+                    },
+                    "input: {input}"
+                );
+            }
+        }
+
+        #[test]
+        fn parses_ops() {
+            for (input, op) in [
+                ("=2000.10", Op::Exact),
+                ("==2000.10", Op::Exact),
+                (">2000.10", Op::Greater),
+                (">=2000.10", Op::GreaterEq),
+                ("<2000.10", Op::Less),
+                ("<=2000.10", Op::LessEq),
+                ("~2000.10", Op::Tilde),
+                ("^2000.10", Op::Caret),
+            ] {
+                assert_eq!(
+                    parse_calver_req(input).unwrap(),
+                    Requirement {
+                        op,
+                        major: Some(2000),
+                        minor: Some(10),
+                        ..Default::default()
+                    },
+                    "input: {input}"
+                );
+            }
+        }
+
+        #[test]
+        fn parses_op_with_whitespace() {
+            for (input, op) in [
+                ("= 2000.10", Op::Exact),
+                ("> 2000.10", Op::Greater),
+                (">= 2000.10", Op::GreaterEq),
+                ("<  2000.10", Op::Less),
+                ("<=  2000.10", Op::LessEq),
+                ("~ 2000.10", Op::Tilde),
+                ("^ 2000.10", Op::Caret),
+            ] {
+                assert_eq!(
+                    parse_calver_req(input).unwrap(),
+                    Requirement {
+                        op,
+                        major: Some(2000),
+                        minor: Some(10),
+                        ..Default::default()
+                    },
+                    "input: {input}"
+                );
+            }
+        }
+
+        #[test]
+        fn parses_ops_with_partial() {
+            assert_eq!(
+                parse_calver_req(">=2000").unwrap(),
+                Requirement {
+                    op: Op::GreaterEq,
+                    major: Some(2000),
+                    ..Default::default()
+                }
+            );
+
+            assert_eq!(
+                parse_calver_req("~24").unwrap(),
+                Requirement {
+                    op: Op::Tilde,
+                    major: Some(24),
+                    ..Default::default()
+                }
+            );
+
+            // with a wildcard part
+            assert_eq!(
+                parse_calver_req(">=2000.x").unwrap(),
+                Requirement {
+                    op: Op::GreaterEq,
+                    major: Some(2000),
+                    ..Default::default()
+                }
+            );
+
+            // with a dash separator
+            assert_eq!(
+                parse_calver_req(">=2000-10").unwrap(),
+                Requirement {
+                    op: Op::GreaterEq,
+                    major: Some(2000),
+                    minor: Some(10),
+                    ..Default::default()
+                }
+            );
+        }
+
+        #[test]
+        fn parses_pre_and_build() {
+            assert_eq!(
+                parse_calver_req("2000.10-rc.1").unwrap(),
+                Requirement {
+                    major: Some(2000),
+                    minor: Some(10),
+                    prerelease: Some("rc.1".into()),
+                    ..Default::default()
+                }
+            );
+
+            assert_eq!(
+                parse_calver_req("2024.2.3-beta.1").unwrap(),
+                Requirement {
+                    major: Some(2024),
+                    minor: Some(2),
+                    micro: Some(3),
+                    prerelease: Some("beta.1".into()),
+                    ..Default::default()
+                }
+            );
+
+            // with a dash separator
+            assert_eq!(
+                parse_calver_req("2000-10-rc.1").unwrap(),
+                Requirement {
+                    major: Some(2000),
+                    minor: Some(10),
+                    prerelease: Some("rc.1".into()),
+                    ..Default::default()
+                }
+            );
+
+            assert_eq!(
+                parse_calver_req("2000.2+build").unwrap(),
+                Requirement {
+                    major: Some(2000),
+                    minor: Some(2),
+                    build: Some("build".into()),
+                    ..Default::default()
+                }
+            );
+
+            assert_eq!(
+                parse_calver_req(">=2024.2-alpha+build.5").unwrap(),
+                Requirement {
+                    op: Op::GreaterEq,
+                    major: Some(2024),
+                    minor: Some(2),
+                    prerelease: Some("alpha".into()),
+                    build: Some("build.5".into()),
+                    ..Default::default()
+                }
+            );
+        }
+
+        #[test]
+        fn parses_and_trims_whitespace() {
+            assert_eq!(
+                parse_calver_req("  >= 2000.10  ").unwrap(),
+                Requirement {
+                    op: Op::GreaterEq,
+                    major: Some(2000),
+                    minor: Some(10),
+                    ..Default::default()
+                }
+            );
+        }
+
+        #[test]
+        fn errors_missing_version() {
+            assert!(parse_calver_req(">=").is_err());
+            assert!(parse_calver_req("~").is_err());
+            assert!(parse_calver_req("^").is_err());
+            assert!(parse_calver_req("2000.").is_err());
+            assert!(parse_calver_req("2000-").is_err());
+        }
+
+        #[test]
+        fn errors_invalid_ops() {
+            assert!(parse_calver_req("=>2000").is_err());
+            assert!(parse_calver_req(">>2000").is_err());
+            assert!(parse_calver_req("!=2000").is_err());
+        }
+
+        #[test]
+        fn errors_interior_whitespace() {
+            // Whitespace is only allowed after the operator
+            assert!(parse_calver_req("2000 .2").is_err());
+            assert!(parse_calver_req("2000. 2").is_err());
+            assert!(parse_calver_req("> =2000").is_err());
+        }
+
+        #[test]
+        fn errors_mixed_separators() {
+            // Dot and dash separators cannot be mixed
+            assert!(parse_calver_req("2000.2-3").is_err());
+            assert!(parse_calver_req("2000-2.3").is_err());
+        }
+
+        #[test]
+        fn errors_leading_zeros() {
+            // Leading zeros are only allowed on years
+            assert!(parse_calver_req("2000.02").is_err());
+            assert!(parse_calver_req("2000.2.03").is_err());
+            assert!(parse_calver_req("2000-02").is_err());
+        }
+
+        #[test]
+        fn errors_too_many_parts() {
+            assert!(parse_calver_req("2000.1.2.3").is_err());
+            assert!(parse_calver_req("2000-1-2-3").is_err());
+        }
+
+        #[test]
+        fn errors_year_too_long() {
+            assert!(parse_calver_req("20000").is_err());
+            assert!(parse_calver_req("20000.2").is_err());
+        }
+
+        #[test]
+        fn errors_digit_pre() {
+            // A calver pre-release must start with a letter
+            assert!(parse_calver_req("2000.10-0").is_err());
+        }
+
+        #[test]
+        fn errors_scope() {
+            // Requirements do not support scopes
+            assert!(parse_calver_req("node-2000.2").is_err());
+        }
+
+        #[test]
+        fn errors_v_prefix() {
+            // A leading "v" is removed by `clean_version_string` before parsing
+            assert!(parse_calver_req("v2000.2").is_err());
+        }
+
+        #[test]
+        fn errors_multiple_reqs() {
+            // Comma/space separated requirement lists are split upstream
+            assert!(parse_calver_req("2000.2, 2001.2").is_err());
+            assert!(parse_calver_req(">=2000.1 <2001.1").is_err());
+        }
+
+        #[test]
+        fn errors_number_overflow() {
+            // u64::MAX + 1
+            let error = parse_calver_req("2000.18446744073709551616").unwrap_err();
+
+            assert!(error.to_string().contains("failed to parse month"));
         }
     }
 }

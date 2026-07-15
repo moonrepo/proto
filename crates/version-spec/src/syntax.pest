@@ -19,7 +19,8 @@ pre_anchor = _{ "-" ~ pre }
 build        =  { ASCII_ALPHANUMERIC ~ id* }
 build_anchor = _{ "+" ~ build }
 
-op = { "==" | ">=" | "<=" | ">" | "<" | "~" | "^" | "=" }
+op       = { "==" | ">=" | "<=" | ">" | "<" | "~" | "^" | "=" }
+req_wild = { "*" | "x" | "X" }
 
 // ----- SEMANTIC VERSIONS -----
 
@@ -36,7 +37,7 @@ parse_semver = { SOI ~ (semver_version | scope_anchor ~ semver_version) ~ pre_an
 
 // ----- SEMANTIC REQUIREMENTS -----
 
-num_req   = _{ num | "*" | "x" | "X" }
+num_req   = _{ num | req_wild }
 major_req =  { num_req }
 minor_req =  { num_req }
 patch_req =  { num_req }
@@ -62,3 +63,15 @@ calver_version      = _{ calver_version_dot | calver_version_dash }
 // Try without a scope first, so that "2024-5-1" is a version,
 // and not a scope + version
 parse_calver = { SOI ~ (calver_version | scope_anchor ~ calver_version) ~ calver_pre_anchor? ~ build_anchor? ~ EOI }
+
+// ----- CALENDAR REQUIREMENTS -----
+
+year_req  = { year | req_wild }
+month_req = { num_req }
+day_req   = { num_req }
+
+calver_req_dot  = _{ "." ~ month_req ~ ("." ~ day_req)? }
+calver_req_dash = _{ "-" ~ month_req ~ ("-" ~ day_req)? }
+
+// Dot and dash separators cannot be mixed within the same requirement
+parse_calver_req = { SOI ~ op? ~ " "* ~ year_req ~ (calver_req_dot | calver_req_dash)? ~ calver_pre_anchor? ~ build_anchor? ~ EOI }

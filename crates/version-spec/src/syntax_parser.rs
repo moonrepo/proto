@@ -48,6 +48,25 @@ pub fn parse_calver<T: AsRef<str>>(input: T) -> Result<Version, pest::error::Err
     Ok(version)
 }
 
+pub fn parse_calver_req<T: AsRef<str>>(input: T) -> Result<Requirement, pest::error::Error<Rule>> {
+    let input = input.as_ref().trim();
+    let mut req = Requirement::default();
+
+    if matches!(input, "" | "*" | "x" | "X") {
+        req.op = Op::Wildcard;
+
+        return Ok(req);
+    }
+
+    let pairs = SyntaxParser::parse(Rule::parse_calver_req, input)?;
+
+    for pair in pairs {
+        handle_requirement(pair, &mut req)?;
+    }
+
+    Ok(req)
+}
+
 fn parse_int(pair: Pair<Rule>, message: &str) -> Result<u64, Error<Rule>> {
     pair.as_str().parse::<u64>().map_err(|error| {
         Error::new_from_span(
@@ -157,20 +176,20 @@ fn handle_requirement(
                 req.micro = parse_int_opt(inner, "failed to parse patch version")?;
             }
 
-            Rule::year => {
+            Rule::year_req => {
                 req.major = parse_int_opt(inner, "failed to parse year")?;
             }
 
-            Rule::month => {
+            Rule::month_req => {
                 req.minor = parse_int_opt(inner, "failed to parse month")?;
             }
 
-            Rule::day => {
+            Rule::day_req => {
                 req.micro = parse_int_opt(inner, "failed to parse day")?;
             }
 
             // Continue parsing
-            Rule::parse_semver_req => {
+            Rule::parse_semver_req | Rule::parse_calver_req => {
                 handle_requirement(inner, req)?;
             }
 
