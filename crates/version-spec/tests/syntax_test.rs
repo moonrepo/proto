@@ -1,6 +1,6 @@
 use version_spec::{
-    Clause, Op, Range, Requirement, Version, parse_calver, parse_calver_range, parse_calver_req,
-    parse_semver, parse_semver_range, parse_semver_req,
+    Clause, Op, Range, Requirement, Version, VersionKind, parse_calver, parse_calver_range,
+    parse_calver_req, parse_semver, parse_semver_range, parse_semver_req,
 };
 
 mod syntax {
@@ -194,6 +194,7 @@ mod syntax {
                     micro: 3,
                     prerelease: Some("alpha.1".into()),
                     build: Some("build.5".into()),
+                    ..Default::default()
                 }
             );
         }
@@ -982,6 +983,7 @@ mod syntax {
                 assert_eq!(
                     parse_calver(input).unwrap(),
                     Version {
+                        kind: VersionKind::Calendar,
                         major: year,
                         minor: month,
                         ..Default::default()
@@ -1005,6 +1007,7 @@ mod syntax {
                 assert_eq!(
                     parse_calver(input).unwrap(),
                     Version {
+                        kind: VersionKind::Calendar,
                         major: 2024,
                         minor: 2,
                         micro: day,
@@ -1021,6 +1024,7 @@ mod syntax {
             assert_eq!(
                 parse_calver("2024.02").unwrap(),
                 Version {
+                    kind: VersionKind::Calendar,
                     major: 2024,
                     minor: 2,
                     ..Default::default()
@@ -1030,6 +1034,7 @@ mod syntax {
             assert_eq!(
                 parse_calver("2024.2.26").unwrap(),
                 Version {
+                    kind: VersionKind::Calendar,
                     major: 2024,
                     minor: 2,
                     micro: 26,
@@ -1040,6 +1045,7 @@ mod syntax {
             assert_eq!(
                 parse_calver("24.12").unwrap(),
                 Version {
+                    kind: VersionKind::Calendar,
                     major: 24,
                     minor: 12,
                     ..Default::default()
@@ -1052,6 +1058,7 @@ mod syntax {
             assert_eq!(
                 parse_calver("  2024-02  ").unwrap(),
                 Version {
+                    kind: VersionKind::Calendar,
                     major: 2024,
                     minor: 2,
                     ..Default::default()
@@ -1064,6 +1071,7 @@ mod syntax {
             assert_eq!(
                 parse_calver("2024-02+build").unwrap(),
                 Version {
+                    kind: VersionKind::Calendar,
                     major: 2024,
                     minor: 2,
                     build: Some("build".into()),
@@ -1082,6 +1090,7 @@ mod syntax {
                 assert_eq!(
                     parse_calver(input).unwrap(),
                     Version {
+                        kind: VersionKind::Calendar,
                         major: 2024,
                         minor: 2,
                         micro: day,
@@ -1098,6 +1107,7 @@ mod syntax {
             assert_eq!(
                 parse_calver("node-2024-02").unwrap(),
                 Version {
+                    kind: VersionKind::Calendar,
                     scope: Some("node".into()),
                     major: 2024,
                     minor: 2,
@@ -1108,6 +1118,7 @@ mod syntax {
             assert_eq!(
                 parse_calver("foo-bar-2024-5-12").unwrap(),
                 Version {
+                    kind: VersionKind::Calendar,
                     scope: Some("foo-bar".into()),
                     major: 2024,
                     minor: 5,
@@ -1120,6 +1131,7 @@ mod syntax {
             assert_eq!(
                 parse_calver("foo_bar-24-1").unwrap(),
                 Version {
+                    kind: VersionKind::Calendar,
                     scope: Some("foo_bar".into()),
                     major: 24,
                     minor: 1,
@@ -1131,6 +1143,7 @@ mod syntax {
             assert_eq!(
                 parse_calver("node-16-2024-02").unwrap(),
                 Version {
+                    kind: VersionKind::Calendar,
                     scope: Some("node-16".into()),
                     major: 2024,
                     minor: 2,
@@ -1144,6 +1157,7 @@ mod syntax {
             assert_eq!(
                 parse_calver("foo--2024-02").unwrap(),
                 Version {
+                    kind: VersionKind::Calendar,
                     scope: Some("foo-".into()),
                     major: 2024,
                     minor: 2,
@@ -1159,6 +1173,7 @@ mod syntax {
             assert_eq!(
                 parse_calver("2024-05-1-alpha.1").unwrap(),
                 Version {
+                    kind: VersionKind::Calendar,
                     major: 2024,
                     minor: 5,
                     micro: 1,
@@ -1171,6 +1186,7 @@ mod syntax {
             assert_eq!(
                 parse_calver("foo-2024-05-1-alpha.1").unwrap(),
                 Version {
+                    kind: VersionKind::Calendar,
                     scope: Some("foo".into()),
                     major: 2024,
                     minor: 5,
@@ -1238,6 +1254,7 @@ mod syntax {
                 assert_eq!(
                     parse_calver_req(input).unwrap(),
                     Requirement {
+                        kind: VersionKind::Calendar,
                         op: Op::Wildcard,
                         ..Default::default()
                     },
@@ -1254,6 +1271,7 @@ mod syntax {
                 assert_eq!(
                     parse_calver_req(input).unwrap(),
                     Requirement {
+                        kind: VersionKind::Calendar,
                         major: Some(year),
                         ..Default::default()
                     },
@@ -1282,6 +1300,7 @@ mod syntax {
                 assert_eq!(
                     parse_calver_req(input).unwrap(),
                     Requirement {
+                        kind: VersionKind::Calendar,
                         major: Some(year),
                         minor: Some(month),
                         ..Default::default()
@@ -1306,6 +1325,7 @@ mod syntax {
                 assert_eq!(
                     parse_calver_req(input).unwrap(),
                     Requirement {
+                        kind: VersionKind::Calendar,
                         major: Some(2024),
                         minor: Some(1),
                         micro: Some(day),
@@ -1353,6 +1373,7 @@ mod syntax {
                 assert_eq!(
                     parse_calver_req(input).unwrap(),
                     Requirement {
+                        kind: VersionKind::Calendar,
                         major: Some(2000),
                         minor: month,
                         micro: day,
@@ -1378,6 +1399,7 @@ mod syntax {
                 assert_eq!(
                     parse_calver_req(input).unwrap(),
                     Requirement {
+                        kind: VersionKind::Calendar,
                         op,
                         major: Some(2000),
                         minor: Some(10),
@@ -1402,6 +1424,7 @@ mod syntax {
                 assert_eq!(
                     parse_calver_req(input).unwrap(),
                     Requirement {
+                        kind: VersionKind::Calendar,
                         op,
                         major: Some(2000),
                         minor: Some(10),
@@ -1417,6 +1440,7 @@ mod syntax {
             assert_eq!(
                 parse_calver_req(">=2000").unwrap(),
                 Requirement {
+                    kind: VersionKind::Calendar,
                     op: Op::GreaterEq,
                     major: Some(2000),
                     ..Default::default()
@@ -1426,6 +1450,7 @@ mod syntax {
             assert_eq!(
                 parse_calver_req("~24").unwrap(),
                 Requirement {
+                    kind: VersionKind::Calendar,
                     op: Op::Tilde,
                     major: Some(24),
                     ..Default::default()
@@ -1436,6 +1461,7 @@ mod syntax {
             assert_eq!(
                 parse_calver_req(">=2000.x").unwrap(),
                 Requirement {
+                    kind: VersionKind::Calendar,
                     op: Op::GreaterEq,
                     major: Some(2000),
                     ..Default::default()
@@ -1446,6 +1472,7 @@ mod syntax {
             assert_eq!(
                 parse_calver_req(">=2000-10").unwrap(),
                 Requirement {
+                    kind: VersionKind::Calendar,
                     op: Op::GreaterEq,
                     major: Some(2000),
                     minor: Some(10),
@@ -1459,6 +1486,7 @@ mod syntax {
             assert_eq!(
                 parse_calver_req("2000.10-rc.1").unwrap(),
                 Requirement {
+                    kind: VersionKind::Calendar,
                     major: Some(2000),
                     minor: Some(10),
                     prerelease: Some("rc.1".into()),
@@ -1469,6 +1497,7 @@ mod syntax {
             assert_eq!(
                 parse_calver_req("2024.2.3-beta.1").unwrap(),
                 Requirement {
+                    kind: VersionKind::Calendar,
                     major: Some(2024),
                     minor: Some(2),
                     micro: Some(3),
@@ -1481,6 +1510,7 @@ mod syntax {
             assert_eq!(
                 parse_calver_req("2000-10-rc.1").unwrap(),
                 Requirement {
+                    kind: VersionKind::Calendar,
                     major: Some(2000),
                     minor: Some(10),
                     prerelease: Some("rc.1".into()),
@@ -1491,6 +1521,7 @@ mod syntax {
             assert_eq!(
                 parse_calver_req("2000.2+build").unwrap(),
                 Requirement {
+                    kind: VersionKind::Calendar,
                     major: Some(2000),
                     minor: Some(2),
                     build: Some("build".into()),
@@ -1501,6 +1532,7 @@ mod syntax {
             assert_eq!(
                 parse_calver_req(">=2024.2-alpha+build.5").unwrap(),
                 Requirement {
+                    kind: VersionKind::Calendar,
                     op: Op::GreaterEq,
                     major: Some(2024),
                     minor: Some(2),
@@ -1516,6 +1548,7 @@ mod syntax {
             assert_eq!(
                 parse_calver_req("  >= 2000.10  ").unwrap(),
                 Requirement {
+                    kind: VersionKind::Calendar,
                     op: Op::GreaterEq,
                     major: Some(2000),
                     minor: Some(10),
@@ -1587,6 +1620,7 @@ mod syntax {
                 assert_eq!(
                     parse_calver_req(input).unwrap(),
                     Requirement {
+                        kind: VersionKind::Calendar,
                         scope: Some(scope.into()),
                         major: Some(year),
                         minor: month,
@@ -1603,6 +1637,7 @@ mod syntax {
             assert_eq!(
                 parse_calver_req("foo--2024-2").unwrap(),
                 Requirement {
+                    kind: VersionKind::Calendar,
                     scope: Some("foo-".into()),
                     major: Some(2024),
                     minor: Some(2),
@@ -1616,6 +1651,7 @@ mod syntax {
             assert_eq!(
                 parse_calver_req(">=node-2024-2").unwrap(),
                 Requirement {
+                    kind: VersionKind::Calendar,
                     op: Op::GreaterEq,
                     scope: Some("node".into()),
                     major: Some(2024),
@@ -1627,6 +1663,7 @@ mod syntax {
             assert_eq!(
                 parse_calver_req("~ node-24").unwrap(),
                 Requirement {
+                    kind: VersionKind::Calendar,
                     op: Op::Tilde,
                     scope: Some("node".into()),
                     major: Some(24),
@@ -1640,6 +1677,7 @@ mod syntax {
             assert_eq!(
                 parse_calver_req("temurin-2024-1-rc.2").unwrap(),
                 Requirement {
+                    kind: VersionKind::Calendar,
                     scope: Some("temurin".into()),
                     major: Some(2024),
                     minor: Some(1),
@@ -1655,6 +1693,7 @@ mod syntax {
                 assert_eq!(
                     parse_calver_req(input).unwrap(),
                     Requirement {
+                        kind: VersionKind::Calendar,
                         op: Op::Wildcard,
                         scope: Some("node".into()),
                         ..Default::default()
@@ -1695,6 +1734,7 @@ mod syntax {
                 parse_calver_range("~2000-2").unwrap(),
                 Range {
                     clauses: vec![Clause::Only(Requirement {
+                        kind: VersionKind::Calendar,
                         op: Op::Tilde,
                         major: Some(2000),
                         minor: Some(2),

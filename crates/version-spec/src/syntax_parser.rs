@@ -74,6 +74,7 @@ pub fn parse_calver_req<T: AsRef<str>>(input: T) -> Result<Requirement, pest::er
     let mut req = Requirement::default();
 
     if is_wildcard(input) {
+        req.kind = VersionKind::Calendar;
         req.op = Op::Wildcard;
 
         return Ok(req);
@@ -134,6 +135,7 @@ fn handle_version(pair: Pair<Rule>, version: &mut Version) -> Result<(), pest::e
             Rule::build => version.build = Some(inner.as_str().to_string()),
 
             Rule::major => {
+                version.kind = VersionKind::Semantic;
                 version.major = parse_int(inner, "failed to parse major version")?;
             }
 
@@ -146,6 +148,7 @@ fn handle_version(pair: Pair<Rule>, version: &mut Version) -> Result<(), pest::e
             }
 
             Rule::year => {
+                version.kind = VersionKind::Calendar;
                 version.major = parse_int(inner, "failed to parse year")?;
             }
 
@@ -203,6 +206,7 @@ fn handle_requirement(
             }
 
             Rule::major_req => {
+                req.kind = VersionKind::Semantic;
                 req.major = parse_int_opt(inner, "failed to parse major version")?;
 
                 // A wildcard-only version, like "node-*", is a wildcard match
@@ -220,6 +224,7 @@ fn handle_requirement(
             }
 
             Rule::year_req => {
+                req.kind = VersionKind::Calendar;
                 req.major = parse_int_opt(inner, "failed to parse year")?;
 
                 // A wildcard-only version, like "node-*", is a wildcard match

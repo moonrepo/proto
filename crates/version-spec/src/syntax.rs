@@ -1,8 +1,17 @@
 use serde::{Deserialize, Serialize};
 use std::fmt::{self, Display};
 
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum VersionKind {
+    Calendar,
+    #[default]
+    Semantic,
+}
+
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Version {
+    pub kind: VersionKind,
     pub scope: Option<String>,
     pub major: u64, // year
     pub minor: u64, // month
@@ -17,7 +26,12 @@ impl Display for Version {
             write!(f, "{scope}-")?;
         }
 
-        write!(f, "{}.{}.{}", self.major, self.minor, self.micro)?;
+        let sep = match self.kind {
+            VersionKind::Calendar => "-",
+            VersionKind::Semantic => ".",
+        };
+
+        write!(f, "{}{sep}{}{sep}{}", self.major, self.minor, self.micro)?;
 
         if let Some(pre) = &self.prerelease {
             write!(f, "-{pre}")?;
@@ -62,6 +76,7 @@ impl Display for Op {
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Requirement {
+    pub kind: VersionKind,
     pub op: Op,
     pub scope: Option<String>,
     pub major: Option<u64>, // year
@@ -79,22 +94,27 @@ impl Display for Requirement {
             write!(f, "{scope}-")?;
         }
 
+        let sep = match self.kind {
+            VersionKind::Calendar => "-",
+            VersionKind::Semantic => ".",
+        };
+
         if let Some(major) = &self.major {
             write!(f, "{major}")?;
 
             if let Some(minor) = &self.minor {
-                write!(f, ".{minor}")?;
+                write!(f, "{sep}{minor}")?;
 
                 if let Some(micro) = &self.micro {
-                    write!(f, ".{micro}")?;
+                    write!(f, "{sep}{micro}")?;
                 } else if self.op == Op::Wildcard {
-                    f.write_str(".*")?;
+                    f.write_str("{sep}*")?;
                 }
             } else if self.op == Op::Wildcard {
-                f.write_str(".*")?;
+                f.write_str("{sep}*")?;
             }
         } else if self.op == Op::Wildcard {
-            f.write_str(".*")?;
+            f.write_str("{sep}*")?;
         }
 
         if let Some(pre) = &self.prerelease {
