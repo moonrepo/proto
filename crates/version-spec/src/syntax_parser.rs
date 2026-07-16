@@ -19,6 +19,7 @@ pub(crate) fn calendar_year(year: u64) -> u64 {
     }
 }
 
+#[doc(hidden)]
 pub fn parse_semver<T: AsRef<str>>(input: T) -> Result<Version, pest::error::Error<Rule>> {
     let pairs = SyntaxParser::parse(Rule::parse_semver, input.as_ref().trim())?;
     let mut version = Version::default();
@@ -30,6 +31,7 @@ pub fn parse_semver<T: AsRef<str>>(input: T) -> Result<Version, pest::error::Err
     Ok(version)
 }
 
+#[doc(hidden)]
 pub fn parse_semver_req<T: AsRef<str>>(input: T) -> Result<Requirement, pest::error::Error<Rule>> {
     let input = input.as_ref().trim();
     let mut req = Requirement::default();
@@ -49,6 +51,7 @@ pub fn parse_semver_req<T: AsRef<str>>(input: T) -> Result<Requirement, pest::er
     Ok(req)
 }
 
+#[doc(hidden)]
 pub fn parse_semver_range<T: AsRef<str>>(input: T) -> Result<Range, pest::error::Error<Rule>> {
     let input = input.as_ref().trim();
     let mut range = Range::default();
@@ -66,6 +69,7 @@ pub fn parse_semver_range<T: AsRef<str>>(input: T) -> Result<Range, pest::error:
     Ok(range)
 }
 
+#[doc(hidden)]
 pub fn parse_calver<T: AsRef<str>>(input: T) -> Result<Version, pest::error::Error<Rule>> {
     let pairs = SyntaxParser::parse(Rule::parse_calver, input.as_ref().trim())?;
     let mut version = Version::default();
@@ -77,6 +81,7 @@ pub fn parse_calver<T: AsRef<str>>(input: T) -> Result<Version, pest::error::Err
     Ok(version)
 }
 
+#[doc(hidden)]
 pub fn parse_calver_req<T: AsRef<str>>(input: T) -> Result<Requirement, pest::error::Error<Rule>> {
     let input = input.as_ref().trim();
     let mut req = Requirement::default();
@@ -97,6 +102,7 @@ pub fn parse_calver_req<T: AsRef<str>>(input: T) -> Result<Requirement, pest::er
     Ok(req)
 }
 
+#[doc(hidden)]
 pub fn parse_calver_range<T: AsRef<str>>(input: T) -> Result<Range, pest::error::Error<Rule>> {
     let input = input.as_ref().trim();
     let mut range = Range::default();
@@ -217,6 +223,9 @@ fn handle_requirement(
             Rule::req_scope => req.scope = Some(inner.as_str().to_string()),
 
             Rule::pre => req.prerelease = Some(inner.as_str().to_string()),
+
+            // Build metadata is accepted for compatibility, but ignored
+            Rule::build => {}
 
             Rule::op => {
                 has_op = true;

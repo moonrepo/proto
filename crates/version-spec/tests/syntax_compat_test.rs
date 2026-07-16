@@ -324,12 +324,8 @@ mod version_req {
         assert_match_all(r, &["0.1.0-beta2.a"]);
         assert_match_none(r, &["0.9.1", "0.1.0", "0.1.1-beta2.a", "0.1.0-beta2"]);
 
-        // upstream: build metadata is accepted and ignored in
-        // requirements, while ours rejects it entirely
-        req_err("=0.1.0+meta");
-
-        // Build metadata is still ignored when matching
-        let r = &req("=0.1.0");
+        let r = &req("=0.1.0+meta");
+        assert_to_string(r, "=0.1.0");
         assert_match_all(r, &["0.1.0", "0.1.0+meta", "0.1.0+any"]);
     }
 
@@ -616,9 +612,9 @@ mod version_req {
         // identifiers, while our grammar allows them
         comparator("1.2.3-01");
 
-        // upstream: empty build metadata identifier,
-        // while ours rejects all build metadata
-        comparator_err("1.2.3+4.");
+        // upstream: errors on the empty identifier segment, while our
+        // grammar is loose, and the metadata is ignored anyway
+        comparator("1.2.3+4.");
 
         comparator_err(">");
         comparator_err("1.");
@@ -661,17 +657,17 @@ mod version_req {
         for op in ["=", ">", ">=", "<", "<=", "~", "^"] {
             // digit then alpha
             req(&format!("{op} 1.2.3-1a"));
+            req(&format!("{op} 1.2.3+1a"));
 
             // digit then alpha (leading zero)
             req(&format!("{op} 1.2.3-01a"));
+            req(&format!("{op} 1.2.3+01"));
 
             // multiple
-            req(&format!("{op} 1.2.3-1-1"));
-
-            // upstream: build metadata is accepted in requirements,
-            // while ours rejects it entirely
-            req_err(&format!("{op} 1.2.3+1a"));
-            req_err(&format!("{op} 1.2.3-1+1"));
+            req(&format!("{op} 1.2.3-1+1"));
+            req(&format!("{op} 1.2.3-1-1+1-1-1"));
+            req(&format!("{op} 1.2.3-1a+1a"));
+            req(&format!("{op} 1.2.3-1a-1a+1a-1a-1a"));
         }
     }
 

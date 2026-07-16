@@ -708,10 +708,19 @@ mod syntax {
         }
 
         #[test]
-        fn errors_build_metadata() {
-            // Requirements do not support build metadata
-            assert!(parse_semver_req("1.2.3+build").is_err());
-            assert!(parse_semver_req(">=1.2.3-alpha+build").is_err());
+        fn parses_and_ignores_build_metadata() {
+            assert_eq!(
+                parse_semver_req("1.2.3+build").unwrap(),
+                parse_semver_req("1.2.3").unwrap()
+            );
+            assert_eq!(
+                parse_semver_req(">=1.2.3-alpha+build").unwrap(),
+                parse_semver_req(">=1.2.3-alpha").unwrap()
+            );
+            assert_eq!(
+                parse_semver_req("node-1.2+build.5").unwrap(),
+                parse_semver_req("node-1.2").unwrap()
+            );
         }
 
         #[test]
@@ -1628,10 +1637,15 @@ mod syntax {
         }
 
         #[test]
-        fn errors_build_metadata() {
-            // Requirements do not support build metadata
-            assert!(parse_calver_req("2000.2+build").is_err());
-            assert!(parse_calver_req(">=2024.2-alpha+build.5").is_err());
+        fn parses_and_ignores_build_metadata() {
+            assert_eq!(
+                parse_calver_req("2000.2+build").unwrap(),
+                parse_calver_req("2000.2").unwrap()
+            );
+            assert_eq!(
+                parse_calver_req(">=2024.2-alpha+build.5").unwrap(),
+                parse_calver_req(">=2024.2-alpha").unwrap()
+            );
         }
 
         #[test]
@@ -2117,6 +2131,10 @@ mod syntax {
             let req = Requirement::parse("1.x").unwrap();
 
             assert_eq!(serde_json::to_string(&req).unwrap(), "\"1.*\"");
+
+            let req = Requirement::parse("=1.2.3+build").unwrap();
+
+            assert_eq!(serde_json::to_string(&req).unwrap(), "\"=1.2.3\"");
 
             let range = Range::parse("^1, <1.5").unwrap();
 

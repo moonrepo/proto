@@ -229,7 +229,8 @@ impl Display for Op {
 }
 
 /// A version requirement composed of a comparison operator and a full
-/// or partial version to match against.
+/// or partial version to match against. Build metadata is accepted
+/// when parsing, but is otherwise ignored.
 #[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(try_from = "String", into = "String")]
 pub struct Requirement {
@@ -549,15 +550,15 @@ impl TryFrom<String> for Requirement {
 /// A single clause within a version range.
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum Clause {
+    /// A single requirement.
+    Only(Requirement),
+
     /// A list of requirements that must all match, for example `>=1.2 && <2`.
     All(Vec<Requirement>),
 
     /// A bounded range between two fully qualified versions, inclusive
     /// on both ends, for example `1.2.3 - 2.3.4`.
     Between(Version, Version),
-
-    /// A single requirement.
-    Only(Requirement),
 }
 
 impl Clause {
