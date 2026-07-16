@@ -1,6 +1,7 @@
 use crate::is_calver_like;
 use crate::spec_error::SpecError;
 use crate::syntax_parser::*;
+use crate::syntax_traits::{FormatOptions, FormatsVersion};
 use compact_str::CompactString;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
@@ -128,42 +129,17 @@ impl Version {
 
 impl Display for Version {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if let Some(scope) = &self.scope {
-            write!(f, "{scope}-")?;
-        }
-
-        let pad = |f2: &mut fmt::Formatter, value: u64, width: usize| {
-            if self.kind == VersionKind::Calendar {
-                write!(f2, "{value:0>width$}")
-            } else {
-                write!(f2, "{value}")
-            }
-        };
-
-        let sep = match self.kind {
-            VersionKind::Calendar => "-",
-            VersionKind::Semantic => ".",
-        };
-
-        pad(f, self.major, 4)?;
-        write!(f, "{sep}")?;
-        pad(f, self.minor, 2)?;
-
-        // A calendar day of 0 means it was not defined
-        if self.kind != VersionKind::Calendar || self.patch > 0 {
-            write!(f, "{sep}")?;
-            pad(f, self.patch, 2)?;
-        }
-
-        if let Some(pre) = &self.prerelease {
-            write!(f, "-{pre}")?;
-        }
-
-        if let Some(build) = &self.build {
-            write!(f, "+{build}")?;
-        }
-
-        Ok(())
+        write!(
+            f,
+            "{}",
+            self.to_formatted_string(&match self.kind {
+                VersionKind::Calendar => FormatOptions {
+                    include_patch: self.patch > 0,
+                    ..FormatOptions::calendar()
+                },
+                VersionKind::Semantic => FormatOptions::semantic(),
+            })
+        )
     }
 }
 
@@ -508,50 +484,14 @@ impl Requirement {
 
 impl Display for Requirement {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.op)?;
-
-        if let Some(scope) = &self.scope {
-            write!(f, "{scope}-")?;
-        }
-
-        let pad = |f2: &mut fmt::Formatter, value: &u64, width: usize| {
-            if self.kind == VersionKind::Calendar {
-                write!(f2, "{value:0>width$}")
-            } else {
-                write!(f2, "{value}")
-            }
-        };
-
-        let sep = match self.kind {
-            VersionKind::Calendar => "-",
-            VersionKind::Semantic => ".",
-        };
-
-        if let Some(major) = &self.major {
-            pad(f, major, 4)?;
-
-            if let Some(minor) = &self.minor {
-                write!(f, "{sep}")?;
-                pad(f, minor, 2)?;
-
-                if let Some(micro) = &self.patch {
-                    write!(f, "{sep}")?;
-                    pad(f, micro, 2)?;
-                } else if self.op == Op::Wildcard {
-                    write!(f, "{sep}*")?;
-                }
-            } else if self.op == Op::Wildcard {
-                write!(f, "{sep}*")?;
-            }
-        } else if self.op == Op::Wildcard {
-            f.write_str("*")?;
-        }
-
-        if let Some(pre) = &self.prerelease {
-            write!(f, "-{pre}")?;
-        }
-
-        Ok(())
+        write!(
+            f,
+            "{}",
+            self.to_formatted_string(&match self.kind {
+                VersionKind::Calendar => FormatOptions::calendar(),
+                VersionKind::Semantic => FormatOptions::semantic(),
+            })
+        )
     }
 }
 

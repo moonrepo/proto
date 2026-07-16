@@ -34,7 +34,7 @@ pub fn monitor_non_tty_progress(
     reporter: ProgressReporter,
     id: Option<String>,
 ) -> JoinHandle<Result<(), ConsoleError>> {
-    tokio::spawn(async move {
+    tokio::spawn(Box::pin(async move {
         let mut receiver = reporter.subscribe();
 
         while let Ok(state) = receiver.recv().await {
@@ -50,5 +50,5 @@ pub fn monitor_non_tty_progress(
         }
 
         Ok(())
-    })
+    }))
 }

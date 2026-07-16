@@ -246,7 +246,7 @@ impl ProtoSession {
         let handle = if self.is_tty() {
             let reporter_clone = OwnedOrShared::Owned(reporter.clone());
 
-            tokio::spawn(async move {
+            tokio::spawn(Box::pin(async move {
                 console
                     .render_interactive(element! {
                         Progress(
@@ -255,7 +255,7 @@ impl ProtoSession {
                         )
                     })
                     .await
-            })
+            }))
         } else {
             monitor_non_tty_progress(console, reporter.clone(), None)
         };

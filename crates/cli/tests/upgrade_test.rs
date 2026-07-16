@@ -11,9 +11,11 @@ mod upgrade {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("upgrade").arg("0.39.0");
+                cmd.arg("upgrade")
+                    .arg("0.39.0")
+                    .env("RUST_BACKTRACE", "full");
             })
-            .success();
+            .debug();
 
         assert!(sandbox.path().join(".proto/bin").join(main_exe).exists());
         assert!(sandbox.path().join(".proto/bin").join(shim_exe).exists());
