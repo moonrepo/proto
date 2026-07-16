@@ -1,7 +1,6 @@
 use crate::config::ProtoToolConfig;
 use crate::tool_manifest::ToolManifest;
 use proto_pdk_api::LoadVersionsOutput;
-use semver::VersionReq;
 use std::collections::BTreeMap;
 use tracing::trace;
 use version_spec::*;
@@ -71,7 +70,7 @@ impl<'tool> VersionResolver<'tool> {
     }
 }
 
-pub fn match_highest_version(req: &VersionReq, specs: &[&VersionSpec]) -> Option<VersionSpec> {
+pub fn match_highest_version(req: &Requirement, specs: &[&VersionSpec]) -> Option<VersionSpec> {
     let mut highest_match: Option<VersionSpec> = None;
 
     for spec in specs {
@@ -146,7 +145,7 @@ pub fn resolve_version(
                 );
             }
         }
-        UnresolvedVersionSpec::Req(req) => {
+        UnresolvedVersionSpec::Requirement(req) => {
             trace!(
                 requirement = req.to_string(),
                 "Found a requirement, resolving further"
@@ -179,9 +178,9 @@ pub fn resolve_version(
                 "No match for requirement, trying others"
             );
         }
-        UnresolvedVersionSpec::ReqAny(reqs) => {
+        UnresolvedVersionSpec::Range(range) => {
             trace!(
-                range = ?reqs.iter().map(|req| req.to_string()).collect::<Vec<_>>(),
+                range = ?range.to_string(),
                 "Found a range, resolving further"
             );
 
@@ -212,7 +211,7 @@ pub fn resolve_version(
             }
 
             trace!(
-                range = ?reqs.iter().map(|req| req.to_string()).collect::<Vec<_>>(),
+                range = ?range.to_string(),
                 "No match for range, trying others",
             );
         }

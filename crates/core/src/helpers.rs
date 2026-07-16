@@ -1,5 +1,4 @@
 use regex::Regex;
-use semver::Version;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use starbase_archive::is_supported_archive_extension;
@@ -13,6 +12,7 @@ use std::env;
 use std::path::Path;
 use std::sync::{LazyLock, OnceLock};
 use std::time::SystemTime;
+use version_spec::Version;
 use warpgate::RegistryConfig;
 
 pub static ENV_VAR: LazyLock<Regex> =

@@ -120,3 +120,7 @@ calver_clause  = { calver_between | calver_req ~ (and ~ calver_req)* }
 calver_range   = { calver_clause ~ (or ~ calver_clause)* }
 
 parse_calver_range = { SOI ~ calver_range ~ EOI }
+
+// ----- ALIASING -----
+
+alias = { ASCII_ALPHA ~ (id | "*" | "/")* }

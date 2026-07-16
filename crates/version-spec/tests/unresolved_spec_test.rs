@@ -1,6 +1,9 @@
 use compact_str::CompactString;
-use semver::{Version, VersionReq};
-use version_spec::{CalVer, SemVer, UnresolvedVersionSpec};
+use version_spec::{Clause, Op, Range, Requirement, UnresolvedVersionSpec, Version, VersionKind};
+
+fn req(input: &str) -> Requirement {
+    Requirement::parse(input).unwrap()
+}
 
 mod unresolved_spec {
     use super::*;
@@ -37,21 +40,26 @@ mod unresolved_spec {
     fn versions() {
         assert_eq!(
             UnresolvedVersionSpec::parse("v1.2.3").unwrap(),
-            UnresolvedVersionSpec::Semantic(SemVer(Version::new(1, 2, 3), None))
+            UnresolvedVersionSpec::Version(Version::semantic(1, 2, 3))
         );
         assert_eq!(
             UnresolvedVersionSpec::parse("1.2.3").unwrap(),
-            UnresolvedVersionSpec::Semantic(SemVer(Version::new(1, 2, 3), None))
+            UnresolvedVersionSpec::Version(Version::semantic(1, 2, 3))
         );
 
-        // calver
+        // calver, in which a year-month is fully-qualified
         assert_eq!(
             UnresolvedVersionSpec::parse("2024-02").unwrap(),
-            UnresolvedVersionSpec::Req(VersionReq::parse("~2024.2").unwrap())
+            UnresolvedVersionSpec::Version(Version {
+                kind: VersionKind::Calendar,
+                major: 2024,
+                minor: 2,
+                ..Default::default()
+            })
         );
         assert_eq!(
             UnresolvedVersionSpec::parse("2024-2-26").unwrap(),
-            UnresolvedVersionSpec::Calendar(CalVer(Version::new(2024, 2, 26), None))
+            UnresolvedVersionSpec::Version(Version::calendar(2024, 2, 26))
         );
     }
 
@@ -59,23 +67,33 @@ mod unresolved_spec {
     fn scoped_versions() {
         assert_eq!(
             UnresolvedVersionSpec::parse("node-1.2.3").unwrap(),
-            UnresolvedVersionSpec::Semantic(SemVer(Version::new(1, 2, 3), Some("node".into())))
+            UnresolvedVersionSpec::Version(Version {
+                scope: Some("node".into()),
+                ..Version::semantic(1, 2, 3)
+            })
         );
         assert_eq!(
             UnresolvedVersionSpec::parse("node-1.2.3-alpha.1").unwrap(),
-            UnresolvedVersionSpec::Semantic(SemVer(
-                Version::parse("1.2.3-alpha.1").unwrap(),
-                Some("node".into())
-            ))
+            UnresolvedVersionSpec::Version(Version {
+                scope: Some("node".into()),
+                prerelease: Some("alpha.1".into()),
+                ..Version::semantic(1, 2, 3)
+            })
         );
 
-        // calver, always fully-qualified, unlike unscoped partials
+        // calver
         assert_eq!(
             UnresolvedVersionSpec::parse("node-2024-02").unwrap(),
-            UnresolvedVersionSpec::Calendar(CalVer(Version::new(2024, 2, 0), Some("node".into())))
+            UnresolvedVersionSpec::Version(Version {
+                kind: VersionKind::Calendar,
+                scope: Some("node".into()),
+                major: 2024,
+                minor: 2,
+                ..Default::default()
+            })
         );
 
-        // scoped partials are not supported, and remain aliases
+        // scoped partials are not versions, and remain aliases
         assert_eq!(
             UnresolvedVersionSpec::parse("temurin-21").unwrap(),
             UnresolvedVersionSpec::Alias(CompactString::new("temurin-21"))
@@ -108,91 +126,130 @@ mod unresolved_spec {
     fn requirements() {
         assert_eq!(
             UnresolvedVersionSpec::parse("1.2").unwrap(),
-            UnresolvedVersionSpec::Req(VersionReq::parse("~1.2").unwrap())
+            UnresolvedVersionSpec::Requirement(Requirement {
+                major: Some(1),
+                minor: Some(2),
+                ..Default::default()
+            })
         );
         assert_eq!(
             UnresolvedVersionSpec::parse("~2000-2").unwrap(),
-            UnresolvedVersionSpec::Req(VersionReq::parse("~2000.2").unwrap())
+            UnresolvedVersionSpec::Requirement(Requirement {
+                kind: VersionKind::Calendar,
+                op: Op::Tilde,
+                major: Some(2000),
+                minor: Some(2),
+                ..Default::default()
+            })
         );
         assert_eq!(
             UnresolvedVersionSpec::parse("1").unwrap(),
-            UnresolvedVersionSpec::Req(VersionReq::parse("~1").unwrap())
+            UnresolvedVersionSpec::Requirement(Requirement {
+                major: Some(1),
+                ..Default::default()
+            })
         );
+
+        // a year alone is not calver-like, so parses as semantic
         assert_eq!(
             UnresolvedVersionSpec::parse("2000").unwrap(),
-            UnresolvedVersionSpec::Req(VersionReq::parse("~2000").unwrap())
+            UnresolvedVersionSpec::Requirement(Requirement {
+                major: Some(2000),
+                ..Default::default()
+            })
         );
-        assert_eq!(
-            UnresolvedVersionSpec::parse("1.2.*").unwrap(),
-            UnresolvedVersionSpec::Req(VersionReq::parse("~1.2").unwrap())
-        );
-        assert_eq!(
-            UnresolvedVersionSpec::parse("2000.02.*").unwrap(),
-            UnresolvedVersionSpec::Req(VersionReq::parse("~2000.2").unwrap())
-        );
-        assert_eq!(
-            UnresolvedVersionSpec::parse("1.*").unwrap(),
-            UnresolvedVersionSpec::Req(VersionReq::parse("~1").unwrap())
-        );
-        assert_eq!(
-            UnresolvedVersionSpec::parse("2000.*").unwrap(),
-            UnresolvedVersionSpec::Req(VersionReq::parse("~2000").unwrap())
-        );
-        assert_eq!(
-            UnresolvedVersionSpec::parse("1.x").unwrap(),
-            UnresolvedVersionSpec::Req(VersionReq::parse("~1").unwrap())
-        );
-        assert_eq!(
-            UnresolvedVersionSpec::parse("2000.x").unwrap(),
-            UnresolvedVersionSpec::Req(VersionReq::parse("~2000").unwrap())
-        );
-        assert_eq!(
-            UnresolvedVersionSpec::parse("1.x.x").unwrap(),
-            UnresolvedVersionSpec::Req(VersionReq::parse("~1").unwrap())
-        );
-        assert_eq!(
-            UnresolvedVersionSpec::parse("2000.x.x").unwrap(),
-            UnresolvedVersionSpec::Req(VersionReq::parse("~2000").unwrap())
-        );
-        assert_eq!(
-            UnresolvedVersionSpec::parse("1.2.X").unwrap(),
-            UnresolvedVersionSpec::Req(VersionReq::parse("~1.2").unwrap())
-        );
-        assert_eq!(
-            UnresolvedVersionSpec::parse("2000.02.X").unwrap(),
-            UnresolvedVersionSpec::Req(VersionReq::parse("~2000.2").unwrap())
-        );
+
         assert_eq!(
             UnresolvedVersionSpec::parse(">1").unwrap(),
-            UnresolvedVersionSpec::Req(VersionReq::parse(">1").unwrap())
+            UnresolvedVersionSpec::Requirement(Requirement {
+                op: Op::Greater,
+                major: Some(1),
+                ..Default::default()
+            })
         );
         assert_eq!(
             UnresolvedVersionSpec::parse(">2000-10").unwrap(),
-            UnresolvedVersionSpec::Req(VersionReq::parse(">2000.10").unwrap())
+            UnresolvedVersionSpec::Requirement(Requirement {
+                kind: VersionKind::Calendar,
+                op: Op::Greater,
+                major: Some(2000),
+                minor: Some(10),
+                ..Default::default()
+            })
         );
         assert_eq!(
             UnresolvedVersionSpec::parse("<=1").unwrap(),
-            UnresolvedVersionSpec::Req(VersionReq::parse("<=1").unwrap())
+            UnresolvedVersionSpec::Requirement(Requirement {
+                op: Op::LessEq,
+                major: Some(1),
+                ..Default::default()
+            })
         );
         assert_eq!(
             UnresolvedVersionSpec::parse("<=2000-12-12").unwrap(),
-            UnresolvedVersionSpec::Req(VersionReq::parse("<=2000.12.12").unwrap())
+            UnresolvedVersionSpec::Requirement(Requirement {
+                kind: VersionKind::Calendar,
+                op: Op::LessEq,
+                major: Some(2000),
+                minor: Some(12),
+                micro: Some(12),
+                ..Default::default()
+            })
         );
+    }
+
+    #[test]
+    fn wildcard_requirements() {
+        for (input, major, minor) in [
+            ("1.2.*", Some(1), Some(2)),
+            ("1.2.X", Some(1), Some(2)),
+            ("1.*", Some(1), None),
+            ("1.x", Some(1), None),
+            ("1.x.x", Some(1), None),
+        ] {
+            assert_eq!(
+                UnresolvedVersionSpec::parse(input).unwrap(),
+                UnresolvedVersionSpec::Requirement(Requirement {
+                    op: Op::Wildcard,
+                    major,
+                    minor,
+                    ..Default::default()
+                }),
+                "input: {input}"
+            );
+        }
+
+        // dotted date-like parts parse as calendar
         assert_eq!(
-            UnresolvedVersionSpec::parse("1, 2").unwrap(),
-            UnresolvedVersionSpec::Req(VersionReq::parse("1, 2").unwrap())
+            UnresolvedVersionSpec::parse("2000.02.*").unwrap(),
+            UnresolvedVersionSpec::Requirement(Requirement {
+                kind: VersionKind::Calendar,
+                op: Op::Wildcard,
+                major: Some(2000),
+                minor: Some(2),
+                ..Default::default()
+            })
         );
+    }
+
+    #[test]
+    fn requirement_lists() {
+        // comma and space separated lists become a range clause
+        for input in ["1, 2", "1,2", "1 2"] {
+            assert_eq!(
+                UnresolvedVersionSpec::parse(input).unwrap(),
+                UnresolvedVersionSpec::Range(Range {
+                    clauses: vec![Clause::All(vec![req("1"), req("2")])]
+                }),
+                "input: {input}"
+            );
+        }
+
         assert_eq!(
             UnresolvedVersionSpec::parse("2000-05, 3000-01").unwrap(),
-            UnresolvedVersionSpec::Req(VersionReq::parse("2000.5, 3000.1").unwrap())
-        );
-        assert_eq!(
-            UnresolvedVersionSpec::parse("1,2").unwrap(),
-            UnresolvedVersionSpec::Req(VersionReq::parse("1,2").unwrap())
-        );
-        assert_eq!(
-            UnresolvedVersionSpec::parse("1 2").unwrap(),
-            UnresolvedVersionSpec::Req(VersionReq::parse("1, 2").unwrap())
+            UnresolvedVersionSpec::Range(Range {
+                clauses: vec![Clause::All(vec![req("2000-05"), req("3000-01")])]
+            })
         );
     }
 
@@ -200,20 +257,30 @@ mod unresolved_spec {
     fn any_requirements() {
         assert_eq!(
             UnresolvedVersionSpec::parse("^1.2 || ~1 || 3,4").unwrap(),
-            UnresolvedVersionSpec::ReqAny(vec![
-                VersionReq::parse("~1").unwrap(),
-                VersionReq::parse("^1.2").unwrap(),
-                VersionReq::parse("3,4").unwrap(),
-            ])
+            UnresolvedVersionSpec::Range(Range {
+                clauses: vec![
+                    Clause::Only(req("^1.2")),
+                    Clause::Only(req("~1")),
+                    Clause::All(vec![req("3"), req("4")]),
+                ]
+            })
         );
 
         assert_eq!(
             UnresolvedVersionSpec::parse("^2000-10 || ~1000 || 3000-05-12,4000-09-09").unwrap(),
-            UnresolvedVersionSpec::ReqAny(vec![
-                VersionReq::parse("~1000").unwrap(),
-                VersionReq::parse("^2000.10").unwrap(),
-                VersionReq::parse("3000.5.12,4000.9.9").unwrap(),
-            ])
+            UnresolvedVersionSpec::Range(Range {
+                clauses: vec![
+                    Clause::Only(req("^2000-10")),
+                    // Inherits the calendar kind from the range
+                    Clause::Only(Requirement {
+                        kind: VersionKind::Calendar,
+                        op: Op::Tilde,
+                        major: Some(1000),
+                        ..Default::default()
+                    }),
+                    Clause::All(vec![req("3000-05-12"), req("4000-09-09")]),
+                ]
+            })
         );
     }
 
@@ -235,78 +302,88 @@ mod unresolved_spec {
 
     #[test]
     fn parses_req() {
-        for req in ["=1.2.3", "^1.2", "~1", ">1.2.0", "<1", "*", ">1, <=1.5"] {
+        for input in ["=1.2.3", "^1.2", "~1", ">1.2.0", "<1", "*"] {
             assert_eq!(
-                UnresolvedVersionSpec::parse(req).unwrap(),
-                UnresolvedVersionSpec::Req(VersionReq::parse(req).unwrap())
+                UnresolvedVersionSpec::parse(input).unwrap(),
+                UnresolvedVersionSpec::Requirement(req(input)),
+                "input: {input}"
             );
         }
+
+        // multiple values become a range clause
+        assert_eq!(
+            UnresolvedVersionSpec::parse(">1, <=1.5").unwrap(),
+            UnresolvedVersionSpec::Range(Range {
+                clauses: vec![Clause::All(vec![req(">1"), req("<=1.5")])]
+            })
+        );
     }
 
     #[test]
     fn parses_req_spaces() {
         assert_eq!(
             UnresolvedVersionSpec::parse("> 10").unwrap(),
-            UnresolvedVersionSpec::Req(VersionReq::parse(">10").unwrap())
+            UnresolvedVersionSpec::Range(Range {
+                clauses: vec![Clause::Only(req(">10"))]
+            })
         );
         assert_eq!(
             UnresolvedVersionSpec::parse("1.2 , 2").unwrap(),
-            UnresolvedVersionSpec::Req(VersionReq::parse("1.2, 2").unwrap())
+            UnresolvedVersionSpec::Range(Range {
+                clauses: vec![Clause::All(vec![req("1.2"), req("2")])]
+            })
         );
         assert_eq!(
             UnresolvedVersionSpec::parse(">= 1.2 < 2").unwrap(),
-            UnresolvedVersionSpec::Req(VersionReq::parse(">=1.2, <2").unwrap())
+            UnresolvedVersionSpec::Range(Range {
+                clauses: vec![Clause::All(vec![req(">=1.2"), req("<2")])]
+            })
         );
     }
 
     #[test]
     fn parses_req_any() {
+        // clause order is preserved
         assert_eq!(
             UnresolvedVersionSpec::parse("^1 || ~2 || =3").unwrap(),
-            UnresolvedVersionSpec::ReqAny(vec![
-                VersionReq::parse("~2").unwrap(),
-                VersionReq::parse("^1").unwrap(),
-                VersionReq::parse("=3").unwrap(),
-            ])
-        );
-    }
-
-    #[test]
-    fn sorts_any_req() {
-        assert_eq!(
-            UnresolvedVersionSpec::parse("^1 || ^2 || ^3").unwrap(),
-            UnresolvedVersionSpec::ReqAny(vec![
-                VersionReq::parse("^3").unwrap(),
-                VersionReq::parse("^2").unwrap(),
-                VersionReq::parse("^1").unwrap(),
-            ])
-        );
-        assert_eq!(
-            UnresolvedVersionSpec::parse("^1.1 || ^1.10 || ^1.10.1 || ^1.2").unwrap(),
-            UnresolvedVersionSpec::ReqAny(vec![
-                VersionReq::parse("^1.10.1").unwrap(),
-                VersionReq::parse("^1.10").unwrap(),
-                VersionReq::parse("^1.2").unwrap(),
-                VersionReq::parse("^1.1").unwrap(),
-            ])
+            UnresolvedVersionSpec::Range(Range {
+                clauses: vec![
+                    Clause::Only(req("^1")),
+                    Clause::Only(req("~2")),
+                    Clause::Only(req("=3")),
+                ]
+            })
         );
     }
 
     #[test]
     fn parses_version() {
-        for req in ["1.2.3", "4.5.6", "7.8.9-alpha", "10.11.12+build"] {
+        for input in ["1.2.3", "4.5.6", "7.8.9-alpha", "10.20.30+build"] {
             assert_eq!(
-                UnresolvedVersionSpec::parse(req).unwrap(),
-                UnresolvedVersionSpec::Semantic(SemVer(Version::parse(req).unwrap(), None))
+                UnresolvedVersionSpec::parse(input).unwrap(),
+                UnresolvedVersionSpec::Version(Version::parse(input).unwrap()),
+                "input: {input}"
             );
         }
+
+        // a dotted version that looks like a date parses as calendar
+        assert_eq!(
+            UnresolvedVersionSpec::parse("10.11.12").unwrap(),
+            UnresolvedVersionSpec::Version(Version {
+                kind: VersionKind::Calendar,
+                major: 2010,
+                minor: 11,
+                micro: 12,
+                ..Default::default()
+            })
+        );
     }
 
     #[test]
     fn parses_version_with_v() {
         assert_eq!(
             UnresolvedVersionSpec::parse("v1.2.3").unwrap(),
-            UnresolvedVersionSpec::Semantic(SemVer(Version::parse("1.2.3").unwrap(), None))
+            UnresolvedVersionSpec::Version(Version::semantic(1, 2, 3))
         );
     }
 
@@ -314,7 +391,11 @@ mod unresolved_spec {
     fn no_patch_becomes_req() {
         assert_eq!(
             UnresolvedVersionSpec::parse("1.2").unwrap(),
-            UnresolvedVersionSpec::Req(VersionReq::parse("~1.2").unwrap())
+            UnresolvedVersionSpec::Requirement(Requirement {
+                major: Some(1),
+                minor: Some(2),
+                ..Default::default()
+            })
         );
     }
 
@@ -322,7 +403,10 @@ mod unresolved_spec {
     fn no_minor_becomes_req() {
         assert_eq!(
             UnresolvedVersionSpec::parse("1").unwrap(),
-            UnresolvedVersionSpec::Req(VersionReq::parse("~1").unwrap())
+            UnresolvedVersionSpec::Requirement(Requirement {
+                major: Some(1),
+                ..Default::default()
+            })
         );
     }
 

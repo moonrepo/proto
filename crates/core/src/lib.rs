@@ -44,7 +44,9 @@ pub use version_resolver::*;
 pub use version_spec::*;
 
 // Only export things consumers will actually need
-pub use semver::{Version, VersionReq};
+pub use version_spec::{
+    Range, Requirement, UnresolvedVersionSpec, Version, VersionKind, VersionSpec,
+};
 pub use warpgate;
 pub use warpgate::{
     DataLocator, FileLocator, GitHubLocator, PluginLocator, RegistryConfig, RegistryLocator,

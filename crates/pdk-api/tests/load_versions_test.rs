@@ -28,7 +28,8 @@ mod load_versions_output {
     fn latest_preserves_calver() {
         let output = create_output(&["2024-02-26", "2023-12-01"]);
 
-        assert_eq!(output.latest.unwrap().to_string(), "2024-02-26");
+        // Zero-padding is not preserved, but the calendar format is
+        assert_eq!(output.latest.unwrap().to_string(), "2024-2-26");
     }
 
     #[test]

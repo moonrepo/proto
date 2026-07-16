@@ -79,8 +79,10 @@ impl Version {
     pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, SpecError> {
         let value = value.as_ref();
 
-        if is_calver_like().is_match(value) {
-            parse_calver(value)
+        // The calendar check may false-positive on inner version parts,
+        // like the "20.3" in "10.20.30", so fall back to semantic
+        if is_calver_like(value) {
+            parse_calver(value).or_else(|_| parse_semver(value))
         } else {
             parse_semver(value)
         }
@@ -180,6 +182,17 @@ impl TryFrom<String> for Version {
     }
 }
 
+#[cfg(feature = "schematic")]
+impl schematic::Schematic for Version {
+    fn schema_name() -> Option<String> {
+        Some("Version".into())
+    }
+
+    fn build_schema(mut schema: schematic::SchemaBuilder) -> schematic::Schema {
+        schema.string_default()
+    }
+}
+
 /// The comparison operator of a requirement.
 #[derive(Copy, Clone, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[non_exhaustive]
@@ -263,8 +276,10 @@ impl Requirement {
     pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, SpecError> {
         let value = value.as_ref();
 
-        if is_calver_like().is_match(value) {
-            parse_calver_req(value)
+        // The calendar check may false-positive on inner version parts,
+        // like the "16-1" in "node-16-1.2", so fall back to semantic
+        if is_calver_like(value) {
+            parse_calver_req(value).or_else(|_| parse_semver_req(value))
         } else {
             parse_semver_req(value)
         }
@@ -543,6 +558,17 @@ impl TryFrom<String> for Requirement {
     }
 }
 
+#[cfg(feature = "schematic")]
+impl schematic::Schematic for Requirement {
+    fn schema_name() -> Option<String> {
+        Some("Requirement".into())
+    }
+
+    fn build_schema(mut schema: schematic::SchemaBuilder) -> schematic::Schema {
+        schema.string_default()
+    }
+}
+
 /// A single clause within a version range.
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum Clause {
@@ -622,8 +648,10 @@ impl Range {
     pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, SpecError> {
         let value = value.as_ref();
 
-        if is_calver_like().is_match(value) {
-            parse_calver_range(value)
+        // The calendar check may false-positive on inner version parts,
+        // like the "20.3" in "10.20.30", so fall back to semantic
+        if is_calver_like(value) {
+            parse_calver_range(value).or_else(|_| parse_semver_range(value))
         } else {
             parse_semver_range(value)
         }
@@ -671,6 +699,17 @@ impl TryFrom<String> for Range {
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         Self::parse(&value)
+    }
+}
+
+#[cfg(feature = "schematic")]
+impl schematic::Schematic for Range {
+    fn schema_name() -> Option<String> {
+        Some("Range".into())
+    }
+
+    fn build_schema(mut schema: schematic::SchemaBuilder) -> schematic::Schema {
+        schema.string_default()
     }
 }
 

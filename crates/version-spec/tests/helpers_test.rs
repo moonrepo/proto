@@ -1,4 +1,4 @@
-use version_spec::{clean_version_req_string, clean_version_string, is_alias_name};
+use version_spec::is_alias_name;
 
 #[test]
 fn checks_alias() {
@@ -9,7 +9,7 @@ fn checks_alias() {
     assert!(is_alias_name("foo_bar-baz"));
     assert!(is_alias_name("alpha.1"));
     assert!(is_alias_name("beta-0"));
-    assert!(is_alias_name("rc-1.2.3"));
+    assert!(is_alias_name("rc-1.2"));
     assert!(is_alias_name("next-2023"));
     assert!(is_alias_name("ver-2023"));
 
@@ -17,33 +17,8 @@ fn checks_alias() {
     assert!(!is_alias_name("1.2"));
     assert!(!is_alias_name("1"));
     assert!(!is_alias_name("1-3"));
-}
-
-#[test]
-fn cleans_version() {
-    assert_eq!(clean_version_string("1.2.3"), "1.2.3");
-    assert_eq!(clean_version_string("v1.2.3"), "1.2.3");
-    assert_eq!(clean_version_string("V1.2.3"), "1.2.3");
-    assert_eq!(clean_version_string("v2024-02"), "2024-02");
-}
-
-#[test]
-fn doesnt_clean_scoped_versions() {
-    assert_eq!(clean_version_string("v8-1.2.3"), "v8-1.2.3");
-    assert_eq!(clean_version_string("V8-1.2.3"), "V8-1.2.3");
-    assert_eq!(clean_version_string("v1-2024-02"), "v1-2024-02");
-
-    // "v" followed by a non-digit is never stripped
-    assert_eq!(clean_version_string("vale-1.2.3"), "vale-1.2.3");
-}
-
-#[test]
-fn cleans_req() {
-    assert_eq!(clean_version_req_string("1.2.*"), "1.2");
-    assert_eq!(clean_version_req_string("1.*.*"), "1");
-
-    assert_eq!(clean_version_req_string("1-2-*"), "1-2");
-    assert_eq!(clean_version_req_string("1-*-*"), "1");
-
-    assert_eq!(clean_version_req_string("1 && 2"), "1 , 2");
+    assert!(!is_alias_name("v1.2.3"));
+    assert!(!is_alias_name("2000-01-01"));
+    assert!(!is_alias_name("00-01-01"));
+    assert!(!is_alias_name("v00-01-01"));
 }

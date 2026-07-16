@@ -7,12 +7,11 @@ use derive_setters::Setters;
 use rustc_hash::FxHashMap;
 use schematic::Schema;
 use std::path::PathBuf;
-use version_spec::{SemVer, SpecError, UnresolvedVersionSpec, VersionSpec};
+use version_spec::*;
 use warpgate_api::*;
 
 pub use build::*;
 pub use checksum::*;
-pub use semver::{Version, VersionReq};
 pub use source::*;
 
 /// Enumeration of all available plugin functions that can be implemented by plugins.
@@ -931,8 +930,8 @@ impl LoadVersionsOutput {
 
         for version in &versions {
             if let Some(inner) = version.as_version() {
-                if inner.pre.is_empty()
-                    && inner.build.is_empty()
+                if inner.prerelease.is_none()
+                    && inner.build.is_none()
                     && latest
                         .and_then(|spec| spec.as_version())
                         .is_none_or(|max| inner > max)
@@ -944,7 +943,7 @@ impl LoadVersionsOutput {
 
         output.latest = Some(match latest {
             Some(spec) => spec.to_unresolved_spec(),
-            None => UnresolvedVersionSpec::Semantic(SemVer(Version::new(0, 0, 0), None)),
+            None => UnresolvedVersionSpec::parse("0.0.0").unwrap(),
         });
 
         output
