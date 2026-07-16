@@ -4,27 +4,53 @@ use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::fmt::{self, Display};
 
+/// The kind of version, either calendar or semantic.
 #[derive(Copy, Clone, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
 #[non_exhaustive]
 pub enum VersionKind {
+    /// A calendar version, typically in the form of `YYYY-MM-DD` or `YYYY-MM`.
     Calendar,
+
+    /// A semantic version, typically in the form of `MAJOR.MINOR.PATCH`.
     #[default]
     Semantic,
 }
 
+/// A version in either calendar or semantic format, with support for
+/// scopes, pre-releases, and build metadata.
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(try_from = "String", into = "String")]
 pub struct Version {
+    /// The kind of version.
     pub kind: VersionKind,
+
+    /// An optional scope prefix, for example the "vendor" in `vendor-1.2.3`.
+    /// Does not include the trailing `-`.
     pub scope: Option<String>,
-    pub major: u64, // year
-    pub minor: u64, // month
-    pub micro: u64, // day
+
+    /// The major version number, or the year for calendar versions.
+    pub major: u64,
+
+    /// The minor version number, or the month for calendar versions.
+    pub minor: u64,
+
+    /// The patch version number, or the day for calendar versions,
+    /// in which a day of 0 means it was not defined.
+    pub micro: u64,
+
+    /// Optional pre-release identifier, for example the "alpha.1"
+    /// in `1.2.3-alpha.1`. Does not include the leading `-`.
     pub prerelease: Option<String>,
+
+    /// Optional build metadata, for example the "build.5" in `1.2.3+build.5`.
+    /// Does not include the leading `+`.
     pub build: Option<String>,
 }
 
 impl Version {
+    /// Creates a calendar version from the provided year, month, and day.
+    /// Short years are expanded from the year 2000, while months and days
+    /// are clamped to valid ranges.
     pub fn calendar(year: u64, month: u64, day: u64) -> Self {
         Self {
             kind: VersionKind::Calendar,
@@ -35,6 +61,8 @@ impl Version {
         }
     }
 
+    /// Creates a semantic version from the provided major, minor,
+    /// and patch numbers.
     pub fn semantic(major: u64, minor: u64, patch: u64) -> Self {
         Self {
             kind: VersionKind::Semantic,
@@ -45,6 +73,8 @@ impl Version {
         }
     }
 
+    /// Parses the provided value into a version, attempting the semantic
+    /// format first, and the calendar format second.
     pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, SpecError> {
         let value = value.as_ref().trim();
 
@@ -59,9 +89,18 @@ impl Version {
         parse_calver(value).map_err(|error| SpecError::FailedVersionParse { error })
     }
 
-    // Convert into a requirement bound for range matching. A calendar
-    // version without a day (0) becomes a month-granular bound
-    fn to_requirement(&self, op: Op) -> Requirement {
+    /// Return true if the version is a calendar version.
+    pub fn is_calendar(&self) -> bool {
+        self.kind == VersionKind::Calendar
+    }
+
+    /// Return true if the version is a semantic version.
+    pub fn is_semantic(&self) -> bool {
+        self.kind == VersionKind::Semantic
+    }
+
+    /// Converts this version into a requirement with the provided operator.
+    pub fn to_requirement(&self, op: Op) -> Requirement {
         Requirement {
             kind: self.kind,
             op,
@@ -74,7 +113,6 @@ impl Version {
                 Some(self.micro)
             },
             prerelease: self.prerelease.clone(),
-            build: None,
         }
     }
 }
@@ -109,8 +147,6 @@ impl Display for Version {
     }
 }
 
-// Group by kind and scope first, then compare version numbers,
-// pre-releases, and build metadata per the semver spec
 impl Ord for Version {
     fn cmp(&self, other: &Self) -> Ordering {
         self.kind
@@ -146,17 +182,33 @@ impl TryFrom<String> for Version {
     }
 }
 
+/// The comparison operator of a requirement.
 #[derive(Copy, Clone, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[non_exhaustive]
 pub enum Op {
+    /// An exact match (`=` or `==`).
     #[default]
     Exact,
+
+    /// A greater than match (`>`).
     Greater,
+
+    /// A greater than or equal match (`>=`).
     GreaterEq,
+
+    /// A less than match (`<`).
     Less,
+
+    /// A less than or equal match (`<=`).
     LessEq,
+
+    /// A patch-level match (`~`).
     Tilde,
+
+    /// A compatible, up to the next major version, match (`^`).
     Caret,
+
+    /// Matches any version (`*`, `x`, or `X`).
     Wildcard,
 }
 
@@ -175,20 +227,40 @@ impl Display for Op {
     }
 }
 
+/// A version requirement composed of a comparison operator and a full
+/// or partial version to match against.
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(try_from = "String", into = "String")]
 pub struct Requirement {
+    /// The kind of version.
     pub kind: VersionKind,
+
+    /// The comparison operator.
     pub op: Op,
+
+    /// An optional scope prefix, for example the "vendor" in `vendor-1.2`.
     pub scope: Option<String>,
-    pub major: Option<u64>, // year
-    pub minor: Option<u64>, // month
-    pub micro: Option<u64>, // day
+
+    /// The major version number, or the year for calendar versions.
+    /// A `None` is either an omitted part or a wildcard.
+    pub major: Option<u64>,
+
+    /// The minor version number, or the month for calendar versions.
+    /// A `None` is either an omitted part or a wildcard.
+    pub minor: Option<u64>,
+
+    /// The patch version number, or the day for calendar versions.
+    /// A `None` is either an omitted part or a wildcard.
+    pub micro: Option<u64>,
+
+    /// Optional pre-release identifier, for example the "alpha.1"
+    /// in `>=1.2.3-alpha.1`.
     pub prerelease: Option<String>,
-    pub build: Option<String>,
 }
 
 impl Requirement {
+    /// Parses the provided value into a requirement, attempting the semantic
+    /// format first, and the calendar format second.
     pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, SpecError> {
         let value = value.as_ref().trim();
 
@@ -198,21 +270,22 @@ impl Requirement {
             return Ok(semantic);
         }
 
-        parse_calver_req(value)
-            .map_err(|error| SpecError::FailedVersionRequirementParse { error })
+        parse_calver_req(value).map_err(|error| SpecError::FailedVersionRequirementParse { error })
     }
 
-    // Return true if the provided version satisfies this requirement,
-    // following the same rules as the semver crate. A version with a
-    // pre-release only matches when the requirement also has a
-    // pre-release on the same version numbers
+    /// Returns true if the provided version satisfies this requirement,
+    /// following the same rules as the [`semver`] crate. A version with a
+    /// pre-release only matches when the requirement also has a
+    /// pre-release on the same version numbers.
     pub fn matches(&self, version: &Version) -> bool {
         self.matches_op(version) && (version.prerelease.is_none() || self.matches_pre(version))
     }
 
-    fn matches_op(&self, version: &Version) -> bool {
-        // A scoped requirement only matches the same scope,
-        // while an unscoped requirement matches any scope
+    /// Returns true if the provided version satisfies the requirement's
+    /// operator, without checking pre-release compatibility. A scoped
+    /// requirement only matches versions with the same scope, while an
+    /// unscoped requirement matches any scope.
+    pub fn matches_op(&self, version: &Version) -> bool {
         if self.scope.is_some() && self.scope != version.scope {
             return false;
         }
@@ -228,7 +301,10 @@ impl Requirement {
         }
     }
 
-    fn matches_exact(&self, version: &Version) -> bool {
+    /// Returns true if the provided version exactly matches all defined
+    /// parts of this requirement, including the pre-release. Omitted
+    /// parts match any value.
+    pub fn matches_exact(&self, version: &Version) -> bool {
         if let Some(major) = self.major {
             if version.major != major {
                 return false;
@@ -250,7 +326,10 @@ impl Requirement {
         self.prerelease == version.prerelease
     }
 
-    fn matches_greater(&self, version: &Version) -> bool {
+    /// Returns true if the provided version is greater (`>`) than this
+    /// requirement. A partial requirement only matches versions beyond
+    /// the defined parts, for example `>1` does not match `1.5.0`.
+    pub fn matches_greater(&self, version: &Version) -> bool {
         let Some(major) = self.major else {
             return false;
         };
@@ -279,7 +358,9 @@ impl Requirement {
             == Ordering::Greater
     }
 
-    fn matches_less(&self, version: &Version) -> bool {
+    /// Returns true if the provided version is less (`<`) than this requirement.
+    /// A partial requirement only matches versions below the defined parts.
+    pub fn matches_less(&self, version: &Version) -> bool {
         let Some(major) = self.major else {
             return false;
         };
@@ -308,7 +389,9 @@ impl Requirement {
             == Ordering::Less
     }
 
-    fn matches_tilde(&self, version: &Version) -> bool {
+    /// Returns true for a patch-level (`~`) match: the defined major and
+    /// minor parts must be equal, while the remaining parts may drift higher.
+    pub fn matches_tilde(&self, version: &Version) -> bool {
         let Some(major) = self.major else {
             return true;
         };
@@ -333,7 +416,10 @@ impl Requirement {
             != Ordering::Less
     }
 
-    fn matches_caret(&self, version: &Version) -> bool {
+    /// Returns true for a compatible (`^`) match: parts may drift up to
+    /// the next major version, or the next minor or patch version when
+    /// the major or minor is 0.
+    pub fn matches_caret(&self, version: &Version) -> bool {
         let Some(major) = self.major else {
             return true;
         };
@@ -374,7 +460,10 @@ impl Requirement {
             != Ordering::Less
     }
 
-    fn matches_pre(&self, version: &Version) -> bool {
+    /// Returns true if this requirement has a pre-release on the same
+    /// version numbers as the provided version, allowing a pre-release
+    /// version to be matched.
+    pub fn matches_pre(&self, version: &Version) -> bool {
         self.prerelease.is_some()
             && self.major == Some(version.major)
             && self.minor == Some(version.minor)
@@ -417,16 +506,10 @@ impl Display for Requirement {
             write!(f, "-{pre}")?;
         }
 
-        if let Some(build) = &self.build {
-            write!(f, "+{build}")?;
-        }
-
         Ok(())
     }
 }
 
-// Same ordering as versions, with wildcard (none) parts ordered
-// first, and the operator as the final tiebreaker
 impl Ord for Requirement {
     fn cmp(&self, other: &Self) -> Ordering {
         self.kind
@@ -438,7 +521,6 @@ impl Ord for Requirement {
             .then_with(|| {
                 compare_prerelease(self.prerelease.as_deref(), other.prerelease.as_deref())
             })
-            .then_with(|| compare_build(self.build.as_deref(), other.build.as_deref()))
             .then_with(|| self.op.cmp(&other.op))
     }
 }
@@ -463,16 +545,24 @@ impl TryFrom<String> for Requirement {
     }
 }
 
+/// A single clause within a version range.
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum Clause {
+    /// Two requirements that must both match, for example `>=1.2 && <2`.
     And(Requirement, Requirement),
+
+    /// A bounded range between two fully qualified versions, inclusive
+    /// on both ends, for example `1.2.3 - 2.3.4`.
     Between(Version, Version),
+
+    /// A single requirement.
     Only(Requirement),
 }
 
 impl Clause {
-    // Return true if the provided version satisfies this clause. Pre-release
-    // compatibility only needs to be satisfied by one of the requirements
+    /// Returns true if the provided version satisfies this clause.
+    /// Pre-release compatibility only needs to be satisfied by one
+    /// of the requirements.
     pub fn matches(&self, version: &Version) -> bool {
         match self {
             Clause::And(left, right) => {
@@ -510,13 +600,18 @@ impl Display for Clause {
     }
 }
 
+/// A version range composed of clauses, in which any clause may match,
+/// for example `^1 || 2.3.4 - 3.0.0 || >=4, <5`.
 #[derive(Clone, Debug, Default, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(try_from = "String", into = "String")]
 pub struct Range {
+    /// The list of clauses. An empty list is a wildcard match.
     pub clauses: Vec<Clause>,
 }
 
 impl Range {
+    /// Parses the provided value into a range, attempting the semantic
+    /// format first, and the calendar format second.
     pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, SpecError> {
         let value = value.as_ref().trim();
 
@@ -529,9 +624,9 @@ impl Range {
         parse_calver_range(value).map_err(|error| SpecError::FailedVersionRangeParse { error })
     }
 
-    // Return true if the provided version satisfies any clause within
-    // this range. An empty (wildcard) range matches all versions,
-    // except pre-releases
+    /// Returns true if the provided version satisfies any clause within
+    /// this range. An empty (wildcard) range matches all versions,
+    /// except pre-releases.
     pub fn matches(&self, version: &Version) -> bool {
         if self.clauses.is_empty() {
             return version.prerelease.is_none();

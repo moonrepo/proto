@@ -197,8 +197,6 @@ fn handle_requirement(
 
             Rule::pre => req.prerelease = Some(inner.as_str().to_string()),
 
-            Rule::build => req.build = Some(inner.as_str().to_string()),
-
             Rule::op => {
                 req.op = match inner.as_str() {
                     "=" | "==" => Op::Exact,

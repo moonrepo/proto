@@ -482,7 +482,7 @@ mod syntax {
         }
 
         #[test]
-        fn parses_pre_and_build() {
+        fn parses_pre() {
             assert_eq!(
                 parse_semver_req("1.2.3-alpha").unwrap(),
                 Requirement {
@@ -507,14 +507,13 @@ mod syntax {
             );
 
             assert_eq!(
-                parse_semver_req("^1.2.3-beta.1+build.5").unwrap(),
+                parse_semver_req("^1.2.3-beta.1").unwrap(),
                 Requirement {
                     op: Op::Caret,
                     major: Some(1),
                     minor: Some(2),
                     micro: Some(3),
                     prerelease: Some("beta.1".into()),
-                    build: Some("build.5".into()),
                     ..Default::default()
                 }
             );
@@ -630,7 +629,7 @@ mod syntax {
         }
 
         #[test]
-        fn parses_scope_with_pre_and_build() {
+        fn parses_scope_with_pre() {
             assert_eq!(
                 parse_semver_req("node-1.2.3-alpha").unwrap(),
                 Requirement {
@@ -644,13 +643,12 @@ mod syntax {
             );
 
             assert_eq!(
-                parse_semver_req("node-1.2-rc.1+build").unwrap(),
+                parse_semver_req("node-1.2-rc.1").unwrap(),
                 Requirement {
                     scope: Some("node".into()),
                     major: Some(1),
                     minor: Some(2),
                     prerelease: Some("rc.1".into()),
-                    build: Some("build".into()),
                     ..Default::default()
                 }
             );
@@ -693,6 +691,13 @@ mod syntax {
         fn errors_dangling_anchors() {
             assert!(parse_semver_req("1.2.3-").is_err());
             assert!(parse_semver_req("1.2.3+").is_err());
+        }
+
+        #[test]
+        fn errors_build_metadata() {
+            // Requirements do not support build metadata
+            assert!(parse_semver_req("1.2.3+build").is_err());
+            assert!(parse_semver_req(">=1.2.3-alpha+build").is_err());
         }
 
         #[test]
@@ -815,12 +820,12 @@ mod syntax {
 
         #[test]
         fn parses_full_reqs() {
-            // Requirements keep their pre/build/scope support within ranges
+            // Requirements keep their pre/scope support within ranges
             assert_eq!(
-                parse_semver_range(">=1.2.3-alpha && <2.0.0+build || node-16-1.2").unwrap(),
+                parse_semver_range(">=1.2.3-alpha && <2.0.0 || node-16-1.2").unwrap(),
                 Range {
                     clauses: vec![
-                        Clause::And(req(">=1.2.3-alpha"), req("<2.0.0+build")),
+                        Clause::And(req(">=1.2.3-alpha"), req("<2.0.0")),
                         Clause::Only(req("node-16-1.2")),
                     ]
                 }
@@ -1486,7 +1491,7 @@ mod syntax {
         }
 
         #[test]
-        fn parses_pre_and_build() {
+        fn parses_pre() {
             assert_eq!(
                 parse_calver_req("2000.10-rc.1").unwrap(),
                 Requirement {
@@ -1523,25 +1528,13 @@ mod syntax {
             );
 
             assert_eq!(
-                parse_calver_req("2000.2+build").unwrap(),
-                Requirement {
-                    kind: VersionKind::Calendar,
-                    major: Some(2000),
-                    minor: Some(2),
-                    build: Some("build".into()),
-                    ..Default::default()
-                }
-            );
-
-            assert_eq!(
-                parse_calver_req(">=2024.2-alpha+build.5").unwrap(),
+                parse_calver_req(">=2024.2-alpha").unwrap(),
                 Requirement {
                     kind: VersionKind::Calendar,
                     op: Op::GreaterEq,
                     major: Some(2024),
                     minor: Some(2),
                     prerelease: Some("alpha".into()),
-                    build: Some("build.5".into()),
                     ..Default::default()
                 }
             );
@@ -1611,6 +1604,13 @@ mod syntax {
             assert!(parse_calver_req("4").is_err());
             assert!(parse_calver_req("4.1").is_err());
             assert!(parse_calver_req("4-1").is_err());
+        }
+
+        #[test]
+        fn errors_build_metadata() {
+            // Requirements do not support build metadata
+            assert!(parse_calver_req("2000.2+build").is_err());
+            assert!(parse_calver_req(">=2024.2-alpha+build.5").is_err());
         }
 
         #[test]
@@ -2033,7 +2033,7 @@ mod syntax {
                 "=1.2.3",
                 ">=1.2",
                 "~1",
-                "^1.2.3-beta.1+build.5",
+                "^1.2.3-beta.1",
                 "node-*",
                 "=node-16-1.2",
                 "=2000-2",
