@@ -115,10 +115,12 @@ impl Version {
             prerelease: self.prerelease.clone(),
         }
     }
+}
 
-    fn write_parts(&self, out: &mut impl fmt::Write) -> fmt::Result {
+impl Display for Version {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if let Some(scope) = &self.scope {
-            write!(out, "{scope}-")?;
+            write!(f, "{scope}-")?;
         }
 
         let sep = match self.kind {
@@ -126,35 +128,22 @@ impl Version {
             VersionKind::Semantic => ".",
         };
 
-        write!(out, "{}{sep}{}", self.major, self.minor)?;
+        write!(f, "{}{sep}{}", self.major, self.minor)?;
 
         // A calendar day of 0 means it was not defined
         if self.kind != VersionKind::Calendar || self.micro > 0 {
-            write!(out, "{sep}{}", self.micro)?;
+            write!(f, "{sep}{}", self.micro)?;
         }
 
         if let Some(pre) = &self.prerelease {
-            write!(out, "-{pre}")?;
+            write!(f, "-{pre}")?;
         }
 
         if let Some(build) = &self.build {
-            write!(out, "+{build}")?;
+            write!(f, "+{build}")?;
         }
 
         Ok(())
-    }
-}
-
-impl Display for Version {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // Support fill, alignment, and width, for example "{:*^20}"
-        if f.width().is_none() {
-            self.write_parts(f)
-        } else {
-            let mut out = String::new();
-            self.write_parts(&mut out)?;
-            f.pad(&out)
-        }
     }
 }
 
