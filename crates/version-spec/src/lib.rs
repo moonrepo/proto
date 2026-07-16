@@ -24,6 +24,17 @@ use std::sync::OnceLock;
 pub fn is_alias_name<T: AsRef<str>>(value: T) -> bool {
     let value = value.as_ref();
 
+    // A leading "v" or "V" followed by a digit is a version prefix (e.g. "v8"), not an alias
+    if value.len() == 2 {
+        let bytes = value.as_bytes();
+
+        if matches!(bytes.first(), Some(b'v' | b'V'))
+            && bytes.get(1).is_some_and(u8::is_ascii_digit)
+        {
+            return false;
+        }
+    }
+
     value.chars().enumerate().all(|(i, c)| {
         if i == 0 {
             char::is_ascii_alphabetic(&c)
