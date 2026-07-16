@@ -178,7 +178,7 @@ fn handle_version(pair: Pair<Rule>, version: &mut Version) -> Result<(), pest::e
             }
 
             Rule::patch => {
-                version.micro = parse_int(inner, "failed to parse patch version")?;
+                version.patch = parse_int(inner, "failed to parse patch version")?;
             }
 
             Rule::year => {
@@ -191,7 +191,7 @@ fn handle_version(pair: Pair<Rule>, version: &mut Version) -> Result<(), pest::e
             }
 
             Rule::day => {
-                version.micro = parse_int(inner, "failed to parse day")?;
+                version.patch = parse_int(inner, "failed to parse day")?;
             }
 
             // Continue parsing
@@ -269,11 +269,11 @@ fn handle_requirement(
             Rule::patch_req => {
                 let span = inner.as_span();
 
-                req.micro = parse_int_opt(inner, "failed to parse patch version")?;
+                req.patch = parse_int_opt(inner, "failed to parse patch version")?;
 
-                verify_wildcard_order(req.minor, req.micro, span)?;
+                verify_wildcard_order(req.minor, req.patch, span)?;
 
-                if !has_op && req.micro.is_none() {
+                if !has_op && req.patch.is_none() {
                     req.op = Op::Wildcard;
                 }
             }
@@ -305,11 +305,11 @@ fn handle_requirement(
             Rule::day_req => {
                 let span = inner.as_span();
 
-                req.micro = parse_int_opt(inner, "failed to parse day")?;
+                req.patch = parse_int_opt(inner, "failed to parse day")?;
 
-                verify_wildcard_order(req.minor, req.micro, span)?;
+                verify_wildcard_order(req.minor, req.patch, span)?;
 
-                if !has_op && req.micro.is_none() {
+                if !has_op && req.patch.is_none() {
                     req.op = Op::Wildcard;
                 }
             }

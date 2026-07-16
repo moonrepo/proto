@@ -622,7 +622,7 @@ impl Builder<'_> {
 fn get_command_version_regex() -> &'static regex::Regex {
     static VERSION_REGEX: OnceLock<regex::Regex> = OnceLock::new();
 
-    VERSION_REGEX.get_or_init(|| regex::Regex::new(r"\d+\.\d+\.\d+").unwrap())
+    VERSION_REGEX.get_or_init(|| regex::Regex::new(r"[0-9]+\.[0-9]+\.[0-9]+").unwrap())
 }
 
 impl Builder<'_> {

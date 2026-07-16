@@ -95,7 +95,7 @@ mod version {
             Version {
                 major: 1,
                 minor: 2,
-                micro: 3,
+                patch: 3,
                 ..Default::default()
             }
         );
@@ -105,7 +105,7 @@ mod version {
             Version {
                 major: 1,
                 minor: 2,
-                micro: 3,
+                patch: 3,
                 prerelease: Some("alpha1".into()),
                 ..Default::default()
             }
@@ -116,7 +116,7 @@ mod version {
             Version {
                 major: 1,
                 minor: 2,
-                micro: 3,
+                patch: 3,
                 build: Some("build5".into()),
                 ..Default::default()
             }
@@ -127,7 +127,7 @@ mod version {
             Version {
                 major: 1,
                 minor: 2,
-                micro: 3,
+                patch: 3,
                 build: Some("5build".into()),
                 ..Default::default()
             }
@@ -138,7 +138,7 @@ mod version {
             Version {
                 major: 1,
                 minor: 2,
-                micro: 3,
+                patch: 3,
                 prerelease: Some("alpha1".into()),
                 build: Some("build5".into()),
                 ..Default::default()
@@ -150,7 +150,7 @@ mod version {
             Version {
                 major: 1,
                 minor: 2,
-                micro: 3,
+                patch: 3,
                 prerelease: Some("1.alpha1.9".into()),
                 build: Some("build5.7.3aedf".into()),
                 ..Default::default()
@@ -162,7 +162,7 @@ mod version {
             Version {
                 major: 1,
                 minor: 2,
-                micro: 3,
+                patch: 3,
                 prerelease: Some("0a.alpha1.9".into()),
                 build: Some("05build.7.3aedf".into()),
                 ..Default::default()
@@ -174,7 +174,7 @@ mod version {
             Version {
                 major: 0,
                 minor: 4,
-                micro: 0,
+                patch: 0,
                 prerelease: Some("beta.1".into()),
                 build: Some("0851523".into()),
                 ..Default::default()
@@ -187,7 +187,7 @@ mod version {
             Version {
                 major: 1,
                 minor: 1,
-                micro: 0,
+                patch: 0,
                 prerelease: Some("beta-10".into()),
                 ..Default::default()
             }

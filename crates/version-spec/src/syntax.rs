@@ -39,7 +39,7 @@ pub struct Version {
 
     /// The patch version number, or the day for calendar versions,
     /// in which a day of 0 means it was not defined.
-    pub micro: u64,
+    pub patch: u64,
 
     /// Optional pre-release identifier, for example the "alpha.1"
     /// in `1.2.3-alpha.1`. Does not include the leading `-`.
@@ -65,7 +65,7 @@ impl Version {
             kind: VersionKind::Calendar,
             major: calendar_year(year),
             minor: month.clamp(1, 12),
-            micro: day.clamp(1, 31),
+            patch: day.clamp(1, 31),
             ..Default::default()
         }
     }
@@ -77,7 +77,7 @@ impl Version {
             kind: VersionKind::Semantic,
             major,
             minor,
-            micro: patch,
+            patch,
             ..Default::default()
         }
     }
@@ -116,10 +116,10 @@ impl Version {
             scope: self.scope.clone(),
             major: Some(self.major),
             minor: Some(self.minor),
-            micro: if self.kind == VersionKind::Calendar && self.micro == 0 {
+            patch: if self.kind == VersionKind::Calendar && self.patch == 0 {
                 None
             } else {
-                Some(self.micro)
+                Some(self.patch)
             },
             prerelease: self.prerelease.clone(),
         }
@@ -150,9 +150,9 @@ impl Display for Version {
         pad(f, self.minor, 2)?;
 
         // A calendar day of 0 means it was not defined
-        if self.kind != VersionKind::Calendar || self.micro > 0 {
+        if self.kind != VersionKind::Calendar || self.patch > 0 {
             write!(f, "{sep}")?;
-            pad(f, self.micro, 2)?;
+            pad(f, self.patch, 2)?;
         }
 
         if let Some(pre) = &self.prerelease {
@@ -174,7 +174,7 @@ impl Ord for Version {
             .then_with(|| self.scope.cmp(&other.scope))
             .then_with(|| self.major.cmp(&other.major))
             .then_with(|| self.minor.cmp(&other.minor))
-            .then_with(|| self.micro.cmp(&other.micro))
+            .then_with(|| self.patch.cmp(&other.patch))
             .then_with(|| {
                 compare_prerelease(self.prerelease.as_deref(), other.prerelease.as_deref())
             })
@@ -292,7 +292,7 @@ pub struct Requirement {
 
     /// The patch version number, or the day for calendar versions.
     /// A `None` is either an omitted part or a wildcard.
-    pub micro: Option<u64>,
+    pub patch: Option<u64>,
 
     /// Optional pre-release identifier, for example the "alpha.1"
     /// in `>=1.2.3-alpha.1`.
@@ -352,8 +352,8 @@ impl Requirement {
             }
         }
 
-        if let Some(micro) = self.micro {
-            if version.micro != micro {
+        if let Some(micro) = self.patch {
+            if version.patch != micro {
                 return false;
             }
         }
@@ -381,12 +381,12 @@ impl Requirement {
             return version.minor > minor;
         }
 
-        let Some(micro) = self.micro else {
+        let Some(micro) = self.patch else {
             return false;
         };
 
-        if version.micro != micro {
-            return version.micro > micro;
+        if version.patch != micro {
+            return version.patch > micro;
         }
 
         compare_prerelease(version.prerelease.as_deref(), self.prerelease.as_deref())
@@ -412,12 +412,12 @@ impl Requirement {
             return version.minor < minor;
         }
 
-        let Some(micro) = self.micro else {
+        let Some(micro) = self.patch else {
             return false;
         };
 
-        if version.micro != micro {
-            return version.micro < micro;
+        if version.patch != micro {
+            return version.patch < micro;
         }
 
         compare_prerelease(version.prerelease.as_deref(), self.prerelease.as_deref())
@@ -441,9 +441,9 @@ impl Requirement {
             }
         }
 
-        if let Some(micro) = self.micro {
-            if version.micro != micro {
-                return version.micro > micro;
+        if let Some(micro) = self.patch {
+            if version.patch != micro {
+                return version.patch > micro;
             }
         }
 
@@ -467,7 +467,7 @@ impl Requirement {
             return true;
         };
 
-        let Some(micro) = self.micro else {
+        let Some(micro) = self.patch else {
             return if major > 0 {
                 version.minor >= minor
             } else {
@@ -478,16 +478,16 @@ impl Requirement {
         if major > 0 {
             if version.minor != minor {
                 return version.minor > minor;
-            } else if version.micro != micro {
-                return version.micro > micro;
+            } else if version.patch != micro {
+                return version.patch > micro;
             }
         } else if minor > 0 {
             if version.minor != minor {
                 return false;
-            } else if version.micro != micro {
-                return version.micro > micro;
+            } else if version.patch != micro {
+                return version.patch > micro;
             }
-        } else if version.minor != minor || version.micro != micro {
+        } else if version.minor != minor || version.patch != micro {
             return false;
         }
 
@@ -502,7 +502,7 @@ impl Requirement {
         self.prerelease.is_some()
             && self.major == Some(version.major)
             && self.minor == Some(version.minor)
-            && self.micro == Some(version.micro)
+            && self.patch == Some(version.patch)
     }
 }
 
@@ -534,7 +534,7 @@ impl Display for Requirement {
                 write!(f, "{sep}")?;
                 pad(f, minor, 2)?;
 
-                if let Some(micro) = &self.micro {
+                if let Some(micro) = &self.patch {
                     write!(f, "{sep}")?;
                     pad(f, micro, 2)?;
                 } else if self.op == Op::Wildcard {
@@ -562,7 +562,7 @@ impl Ord for Requirement {
             .then_with(|| self.scope.cmp(&other.scope))
             .then_with(|| self.major.cmp(&other.major))
             .then_with(|| self.minor.cmp(&other.minor))
-            .then_with(|| self.micro.cmp(&other.micro))
+            .then_with(|| self.patch.cmp(&other.patch))
             .then_with(|| {
                 compare_prerelease(self.prerelease.as_deref(), other.prerelease.as_deref())
             })

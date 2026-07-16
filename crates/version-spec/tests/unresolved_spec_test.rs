@@ -192,7 +192,7 @@ mod unresolved_spec {
                 op: Op::LessEq,
                 major: Some(2000),
                 minor: Some(12),
-                micro: Some(12),
+                patch: Some(12),
                 ..Default::default()
             })
         );
@@ -373,7 +373,7 @@ mod unresolved_spec {
                 kind: VersionKind::Calendar,
                 major: 2010,
                 minor: 11,
-                micro: 12,
+                patch: 12,
                 ..Default::default()
             })
         );

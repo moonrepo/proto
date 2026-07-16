@@ -110,14 +110,14 @@ impl UnresolvedVersionSpec {
             UnresolvedVersionSpec::Requirement(req) => from_parts(
                 req.major.unwrap_or_default(),
                 req.minor,
-                req.micro,
+                req.patch,
                 req.prerelease.as_deref().unwrap_or_default(),
             ),
             UnresolvedVersionSpec::Version(ver) => {
                 let version = from_parts(
                     ver.major,
                     Some(ver.minor),
-                    Some(ver.micro),
+                    Some(ver.patch),
                     ver.prerelease.as_deref().unwrap_or_default(),
                 );
 

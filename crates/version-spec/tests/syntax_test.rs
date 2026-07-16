@@ -16,7 +16,7 @@ mod syntax {
                 Version {
                     major: 0,
                     minor: 0,
-                    micro: 0,
+                    patch: 0,
                     ..Default::default()
                 }
             );
@@ -26,7 +26,7 @@ mod syntax {
                 Version {
                     major: 1,
                     minor: 2,
-                    micro: 3,
+                    patch: 3,
                     ..Default::default()
                 }
             );
@@ -36,7 +36,7 @@ mod syntax {
                 Version {
                     major: 10,
                     minor: 20,
-                    micro: 30,
+                    patch: 30,
                     ..Default::default()
                 }
             );
@@ -46,7 +46,7 @@ mod syntax {
                 Version {
                     major: 123,
                     minor: 456,
-                    micro: 789,
+                    patch: 789,
                     ..Default::default()
                 }
             );
@@ -59,7 +59,7 @@ mod syntax {
                 Version {
                     major: 1,
                     minor: 2,
-                    micro: 3,
+                    patch: 3,
                     ..Default::default()
                 }
             );
@@ -88,7 +88,7 @@ mod syntax {
                     Version {
                         major: 1,
                         minor: 2,
-                        micro: 3,
+                        patch: 3,
                         prerelease: Some(pre.into()),
                         ..Default::default()
                     },
@@ -109,7 +109,7 @@ mod syntax {
                     Version {
                         major: 1,
                         minor: 2,
-                        micro: 3,
+                        patch: 3,
                         build: Some(build.into()),
                         ..Default::default()
                     },
@@ -125,7 +125,7 @@ mod syntax {
                 Version {
                     major: 1,
                     minor: 2,
-                    micro: 3,
+                    patch: 3,
                     prerelease: Some("beta.1".into()),
                     build: Some("exp.sha.5114f85".into()),
                     ..Default::default()
@@ -149,7 +149,7 @@ mod syntax {
                         scope: Some(scope.into()),
                         major: 1,
                         minor: 2,
-                        micro: 3,
+                        patch: 3,
                         ..Default::default()
                     },
                     "input: {input}"
@@ -163,7 +163,7 @@ mod syntax {
                     scope: Some("graalvm-ce".into()),
                     major: 21,
                     minor: 0,
-                    micro: 2,
+                    patch: 2,
                     ..Default::default()
                 }
             );
@@ -177,7 +177,7 @@ mod syntax {
                     scope: Some("foo-".into()),
                     major: 1,
                     minor: 2,
-                    micro: 3,
+                    patch: 3,
                     ..Default::default()
                 }
             );
@@ -191,7 +191,7 @@ mod syntax {
                     scope: Some("node".into()),
                     major: 1,
                     minor: 2,
-                    micro: 3,
+                    patch: 3,
                     prerelease: Some("alpha.1".into()),
                     build: Some("build.5".into()),
                     ..Default::default()
@@ -207,7 +207,7 @@ mod syntax {
                 Version {
                     major: 1,
                     minor: 2,
-                    micro: 3,
+                    patch: 3,
                     prerelease: Some("alpha".into()),
                     ..Default::default()
                 }
@@ -219,7 +219,7 @@ mod syntax {
                 Version {
                     major: 1,
                     minor: 2,
-                    micro: 3,
+                    patch: 3,
                     prerelease: Some("4.5.6".into()),
                     ..Default::default()
                 }
@@ -274,7 +274,7 @@ mod syntax {
                     Version {
                         major: 1,
                         minor: 2,
-                        micro: 3,
+                        patch: 3,
                         ..Default::default()
                     },
                     "input: {input}"
@@ -360,7 +360,7 @@ mod syntax {
                 Requirement {
                     major: Some(1),
                     minor: Some(2),
-                    micro: Some(3),
+                    patch: Some(3),
                     ..Default::default()
                 }
             );
@@ -370,7 +370,7 @@ mod syntax {
                 Requirement {
                     major: Some(10),
                     minor: Some(20),
-                    micro: Some(30),
+                    patch: Some(30),
                     ..Default::default()
                 }
             );
@@ -419,7 +419,7 @@ mod syntax {
                         op,
                         major: Some(1),
                         minor: Some(2),
-                        micro: Some(3),
+                        patch: Some(3),
                         ..Default::default()
                     },
                     "input: {input}"
@@ -486,7 +486,7 @@ mod syntax {
                         op,
                         major: Some(1),
                         minor: Some(2),
-                        micro: Some(3),
+                        patch: Some(3),
                         ..Default::default()
                     },
                     "input: {input}"
@@ -501,7 +501,7 @@ mod syntax {
                 Requirement {
                     major: Some(1),
                     minor: Some(2),
-                    micro: Some(3),
+                    patch: Some(3),
                     prerelease: Some("alpha".into()),
                     ..Default::default()
                 }
@@ -513,7 +513,7 @@ mod syntax {
                     op: Op::Less,
                     major: Some(2),
                     minor: Some(4),
-                    micro: Some(0),
+                    patch: Some(0),
                     prerelease: Some("0".into()),
                     ..Default::default()
                 }
@@ -525,7 +525,7 @@ mod syntax {
                     op: Op::Caret,
                     major: Some(1),
                     minor: Some(2),
-                    micro: Some(3),
+                    patch: Some(3),
                     prerelease: Some("beta.1".into()),
                     ..Default::default()
                 }
@@ -580,7 +580,7 @@ mod syntax {
 
         #[test]
         fn parses_scope() {
-            for (input, scope, major, minor, micro) in [
+            for (input, scope, major, minor, patch) in [
                 ("node-1.2.3", "node", Some(1), Some(2), Some(3)),
                 ("node-1", "node", Some(1), None, None),
                 ("gcc-12", "gcc", Some(12), None, None),
@@ -595,7 +595,7 @@ mod syntax {
                         scope: Some(scope.into()),
                         major,
                         minor,
-                        micro,
+                        patch,
                         ..Default::default()
                     },
                     "input: {input}"
@@ -661,7 +661,7 @@ mod syntax {
                     scope: Some("node".into()),
                     major: Some(1),
                     minor: Some(2),
-                    micro: Some(3),
+                    patch: Some(3),
                     prerelease: Some("alpha".into()),
                     ..Default::default()
                 }
@@ -1077,7 +1077,7 @@ mod syntax {
                         kind: VersionKind::Calendar,
                         major: 2024,
                         minor: 2,
-                        micro: day,
+                        patch: day,
                         ..Default::default()
                     },
                     "input: {input}"
@@ -1104,7 +1104,7 @@ mod syntax {
                     kind: VersionKind::Calendar,
                     major: 2024,
                     minor: 2,
-                    micro: 26,
+                    patch: 26,
                     ..Default::default()
                 }
             );
@@ -1160,7 +1160,7 @@ mod syntax {
                         kind: VersionKind::Calendar,
                         major: 2024,
                         minor: 2,
-                        micro: day,
+                        patch: day,
                         prerelease: Some(pre.into()),
                         ..Default::default()
                     },
@@ -1189,7 +1189,7 @@ mod syntax {
                     scope: Some("foo-bar".into()),
                     major: 2024,
                     minor: 5,
-                    micro: 12,
+                    patch: 12,
                     ..Default::default()
                 }
             );
@@ -1243,7 +1243,7 @@ mod syntax {
                     kind: VersionKind::Calendar,
                     major: 2024,
                     minor: 5,
-                    micro: 1,
+                    patch: 1,
                     prerelease: Some("alpha.1".into()),
                     ..Default::default()
                 }
@@ -1257,7 +1257,7 @@ mod syntax {
                     scope: Some("foo".into()),
                     major: 2024,
                     minor: 5,
-                    micro: 1,
+                    patch: 1,
                     prerelease: Some("alpha.1".into()),
                     ..Default::default()
                 }
@@ -1412,7 +1412,7 @@ mod syntax {
                         kind: VersionKind::Calendar,
                         major: Some(2024),
                         minor: Some(1),
-                        micro: Some(day),
+                        patch: Some(day),
                         ..Default::default()
                     },
                     "input: {input}"
@@ -1462,7 +1462,7 @@ mod syntax {
                         op: Op::Wildcard,
                         major: Some(2000),
                         minor: month,
-                        micro: day,
+                        patch: day,
                         ..Default::default()
                     },
                     "input: {input}"
@@ -1586,7 +1586,7 @@ mod syntax {
                     kind: VersionKind::Calendar,
                     major: Some(2024),
                     minor: Some(2),
-                    micro: Some(3),
+                    patch: Some(3),
                     prerelease: Some("beta.1".into()),
                     ..Default::default()
                 }
@@ -1718,7 +1718,7 @@ mod syntax {
                         scope: Some(scope.into()),
                         major: Some(year),
                         minor: month,
-                        micro: day,
+                        patch: day,
                         ..Default::default()
                     },
                     "input: {input}"
