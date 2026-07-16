@@ -2100,4 +2100,131 @@ mod syntax {
             assert_eq!(serde_json::to_string(&range).unwrap(), "\"*\"");
         }
     }
+
+    mod ordering {
+        use super::*;
+
+        fn sorted<const N: usize>(inputs: [&str; N]) -> Vec<String> {
+            let mut versions = inputs.map(|input| Version::parse(input).unwrap());
+            versions.sort();
+            versions.iter().map(ToString::to_string).collect()
+        }
+
+        fn req(input: &str) -> Requirement {
+            Requirement::parse(input).unwrap()
+        }
+
+        fn range(input: &str) -> Range {
+            Range::parse(input).unwrap()
+        }
+
+        #[test]
+        fn orders_versions() {
+            assert_eq!(
+                sorted(["10.0.0", "1.2.4", "2.0.0", "1.2.3", "1.10.0", "1.3.0"]),
+                ["1.2.3", "1.2.4", "1.3.0", "1.10.0", "2.0.0", "10.0.0"]
+            );
+        }
+
+        #[test]
+        fn orders_prereleases() {
+            // The example ordering from the semver spec
+            assert_eq!(
+                sorted([
+                    "1.0.0-beta.11",
+                    "1.0.0",
+                    "1.0.0-alpha.beta",
+                    "1.0.0-rc.1",
+                    "1.0.0-alpha.1",
+                    "1.0.0-beta",
+                    "1.0.0-alpha",
+                    "1.0.0-beta.2",
+                ]),
+                [
+                    "1.0.0-alpha",
+                    "1.0.0-alpha.1",
+                    "1.0.0-alpha.beta",
+                    "1.0.0-beta",
+                    "1.0.0-beta.2",
+                    "1.0.0-beta.11",
+                    "1.0.0-rc.1",
+                    "1.0.0",
+                ]
+            );
+        }
+
+        #[test]
+        fn orders_build_metadata() {
+            // None sorts first, then numeric identifiers including
+            // leading zeros, then alphanumeric identifiers
+            assert_eq!(
+                sorted([
+                    "1.0.0+01",
+                    "1.0.0+00",
+                    "1.0.0+alpha",
+                    "1.0.0",
+                    "1.0.0+1",
+                    "1.0.0+0",
+                    "1.0.0+2",
+                ]),
+                [
+                    "1.0.0",
+                    "1.0.0+0",
+                    "1.0.0+00",
+                    "1.0.0+1",
+                    "1.0.0+01",
+                    "1.0.0+2",
+                    "1.0.0+alpha",
+                ]
+            );
+        }
+
+        #[test]
+        fn orders_calendar_versions() {
+            assert_eq!(
+                sorted(["2024-2", "2024-1-15", "2023-12-31", "2024-1"]),
+                ["2023-12-31", "2024-1", "2024-1-15", "2024-2"]
+            );
+        }
+
+        #[test]
+        fn orders_kinds_and_scopes() {
+            let ver = |input: &str| Version::parse(input).unwrap();
+
+            // Calendar versions group before semantic versions
+            assert!(ver("2024-2") < ver("1.0.0"));
+
+            // Unscoped versions group before scoped versions,
+            // and scopes group before version numbers
+            assert!(ver("1.0.0") < ver("aaa-1.0.0"));
+            assert!(ver("aaa-2.0.0") < ver("bbb-1.0.0"));
+        }
+
+        #[test]
+        fn orders_requirements() {
+            // Wildcard parts order first
+            assert!(req("*") < req("=1"));
+            assert!(req("=1.x") < req("=1.2"));
+
+            // Then by version, with the operator as the tiebreaker
+            assert!(req("=1.2") < req("=1.3"));
+            assert!(req("=1.2.3-alpha") < req("=1.2.3"));
+            assert!(req(">1.2") < req(">=1.2"));
+
+            // Calendar requirements
+            assert!(req("=2000-2") < req("=2000-3"));
+        }
+
+        #[test]
+        fn orders_ranges() {
+            // Clauses are compared in order, with an empty range first
+            assert!(range("") < range("=1"));
+            assert!(range("=1") < range("=1 || =2"));
+            assert!(range("=1 || =2") < range("=2"));
+
+            // "and" clauses order before "between", then "only" clauses
+            assert!(range("=1 && =2") < range("1.2.3 - 2.3.4"));
+            assert!(range("1.2.3 - 2.3.4") < range("=1"));
+        }
+    }
 }

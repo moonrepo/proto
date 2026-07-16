@@ -1,9 +1,10 @@
 use crate::spec_error::SpecError;
 use crate::syntax_parser::*;
 use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
 use std::fmt::{self, Display};
 
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
 #[non_exhaustive]
 pub enum VersionKind {
     Calendar,
@@ -89,6 +90,29 @@ impl Display for Version {
     }
 }
 
+// Group by kind and scope first, then compare version numbers,
+// pre-releases, and build metadata per the semver spec
+impl Ord for Version {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.kind
+            .cmp(&other.kind)
+            .then_with(|| self.scope.cmp(&other.scope))
+            .then_with(|| self.major.cmp(&other.major))
+            .then_with(|| self.minor.cmp(&other.minor))
+            .then_with(|| self.micro.cmp(&other.micro))
+            .then_with(|| {
+                compare_prerelease(self.prerelease.as_deref(), other.prerelease.as_deref())
+            })
+            .then_with(|| compare_build(self.build.as_deref(), other.build.as_deref()))
+    }
+}
+
+impl PartialOrd for Version {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 impl From<Version> for String {
     fn from(value: Version) -> Self {
         value.to_string()
@@ -103,7 +127,7 @@ impl TryFrom<String> for Version {
     }
 }
 
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash)]
+#[derive(Copy, Clone, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[non_exhaustive]
 pub enum Op {
     #[default]
@@ -203,6 +227,30 @@ impl Display for Requirement {
     }
 }
 
+// Same ordering as versions, with wildcard (none) parts ordered
+// first, and the operator as the final tiebreaker
+impl Ord for Requirement {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.kind
+            .cmp(&other.kind)
+            .then_with(|| self.scope.cmp(&other.scope))
+            .then_with(|| self.major.cmp(&other.major))
+            .then_with(|| self.minor.cmp(&other.minor))
+            .then_with(|| self.micro.cmp(&other.micro))
+            .then_with(|| {
+                compare_prerelease(self.prerelease.as_deref(), other.prerelease.as_deref())
+            })
+            .then_with(|| compare_build(self.build.as_deref(), other.build.as_deref()))
+            .then_with(|| self.op.cmp(&other.op))
+    }
+}
+
+impl PartialOrd for Requirement {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 impl From<Requirement> for String {
     fn from(value: Requirement) -> Self {
         value.to_string()
@@ -217,7 +265,7 @@ impl TryFrom<String> for Requirement {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum Clause {
     And(Requirement, Requirement),
     Between(Version, Version),
@@ -234,7 +282,7 @@ impl Display for Clause {
     }
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(try_from = "String", into = "String")]
 pub struct Range {
     pub clauses: Vec<Clause>,
@@ -283,5 +331,97 @@ impl TryFrom<String> for Range {
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         Self::parse(&value)
+    }
+}
+
+// A version without a pre-release compares greater than one with a
+// pre-release. Identifiers are compared per the semver spec: numerically
+// for digit-only identifiers, lexically otherwise, with numeric identifiers
+// having lower precedence, and a larger set having a higher precedence
+fn compare_prerelease(lhs: Option<&str>, rhs: Option<&str>) -> Ordering {
+    let (lhs, rhs) = match (lhs, rhs) {
+        (None, None) => return Ordering::Equal,
+        (None, Some(_)) => return Ordering::Greater,
+        (Some(_), None) => return Ordering::Less,
+        (Some(lhs), Some(rhs)) => (lhs, rhs),
+    };
+
+    let mut rhs_parts = rhs.split('.');
+
+    for lhs_part in lhs.split('.') {
+        let Some(rhs_part) = rhs_parts.next() else {
+            return Ordering::Greater;
+        };
+
+        let is_digits = |value: &str| value.bytes().all(|byte| byte.is_ascii_digit());
+
+        let ordering = match (is_digits(lhs_part), is_digits(rhs_part)) {
+            // Respect numeric ordering, for example 99 < 100
+            (true, true) => lhs_part
+                .len()
+                .cmp(&rhs_part.len())
+                .then_with(|| lhs_part.cmp(rhs_part)),
+            (true, false) => return Ordering::Less,
+            (false, true) => return Ordering::Greater,
+            (false, false) => lhs_part.cmp(rhs_part),
+        };
+
+        if ordering != Ordering::Equal {
+            return ordering;
+        }
+    }
+
+    if rhs_parts.next().is_none() {
+        Ordering::Equal
+    } else {
+        Ordering::Less
+    }
+}
+
+// No build metadata compares less than any build metadata. Identifiers
+// are compared like pre-releases, except leading zeros on digit-only
+// identifiers are also ordered, for example "0" < "00" < "1" < "01" < "2"
+fn compare_build(lhs: Option<&str>, rhs: Option<&str>) -> Ordering {
+    let (lhs, rhs) = match (lhs, rhs) {
+        (None, None) => return Ordering::Equal,
+        (None, Some(_)) => return Ordering::Less,
+        (Some(_), None) => return Ordering::Greater,
+        (Some(lhs), Some(rhs)) => (lhs, rhs),
+    };
+
+    let mut rhs_parts = rhs.split('.');
+
+    for lhs_part in lhs.split('.') {
+        let Some(rhs_part) = rhs_parts.next() else {
+            return Ordering::Greater;
+        };
+
+        let is_digits = |value: &str| value.bytes().all(|byte| byte.is_ascii_digit());
+
+        let ordering = match (is_digits(lhs_part), is_digits(rhs_part)) {
+            (true, true) => {
+                let lhs_trimmed = lhs_part.trim_start_matches('0');
+                let rhs_trimmed = rhs_part.trim_start_matches('0');
+
+                lhs_trimmed
+                    .len()
+                    .cmp(&rhs_trimmed.len())
+                    .then_with(|| lhs_trimmed.cmp(rhs_trimmed))
+                    .then_with(|| lhs_part.len().cmp(&rhs_part.len()))
+            }
+            (true, false) => return Ordering::Less,
+            (false, true) => return Ordering::Greater,
+            (false, false) => lhs_part.cmp(rhs_part),
+        };
+
+        if ordering != Ordering::Equal {
+            return ordering;
+        }
+    }
+
+    if rhs_parts.next().is_none() {
+        Ordering::Equal
+    } else {
+        Ordering::Less
     }
 }
