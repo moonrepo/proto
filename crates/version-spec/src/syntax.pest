@@ -2,6 +2,10 @@
 
 id = _{ ASCII_ALPHANUMERIC | "-" | "_" | "." }
 
+// A leading "v" or "V" is accepted and ignored, for example "v1.2.3".
+// It is attempted last, so that a scope like "v8-1.2.3" takes priority
+v_prefix = _{ "v" | "V" }
+
 pre        =  { ASCII_ALPHANUMERIC ~ id* }
 pre_anchor = _{ "-" ~ pre }
 
@@ -52,7 +56,7 @@ minor =  { num }
 patch =  { num }
 
 semver_version = _{ major ~ "." ~ minor ~ "." ~ patch }
-semver         =  { (semver_version | scope_anchor ~ semver_version) ~ pre_anchor? ~ build_anchor? }
+semver         =  { (semver_version | scope_anchor ~ semver_version | v_prefix ~ semver_version) ~ pre_anchor? ~ build_anchor? }
 
 parse_semver = { SOI ~ semver ~ EOI }
 
@@ -69,7 +73,7 @@ semver_req_full    = _{ major_req ~ "." ~ minor_req ~ "." ~ patch_req }
 // A pre-release on a partial version must start with a letter, so that a
 // dashed calver, like "2000-2", is not consumed as a digit pre-release
 semver_req_body = _{ semver_req_full ~ pre_anchor? | semver_req_version ~ pre_anchor_fixed? }
-semver_req      =  { op? ~ " "* ~ (semver_req_body | req_scope_anchor ~ semver_req_body) ~ build_anchor? }
+semver_req      =  { op? ~ " "* ~ (semver_req_body | req_scope_anchor ~ semver_req_body | v_prefix ~ semver_req_body) ~ build_anchor? }
 
 parse_semver_req = { SOI ~ semver_req ~ EOI }
 
@@ -92,7 +96,7 @@ day   = { "0" ~ ASCII_NONZERO_DIGIT | "1" ~ ASCII_DIGIT | "2" ~ ASCII_DIGIT | "3
 calver_version_dot  = _{ year ~ "." ~ month ~ ("." ~ day)? }
 calver_version_dash = _{ year ~ "-" ~ month ~ ("-" ~ day)? }
 calver_version      = _{ calver_version_dot | calver_version_dash }
-calver              =  { (calver_version | scope_anchor ~ calver_version) ~ pre_anchor_fixed? ~ build_anchor? }
+calver              =  { (calver_version | scope_anchor ~ calver_version | v_prefix ~ calver_version) ~ pre_anchor_fixed? ~ build_anchor? }
 
 parse_calver = { SOI ~ calver ~ EOI }
 
@@ -105,7 +109,7 @@ day_req   = { day | req_wild }
 calver_req_dot     = _{ "." ~ month_req ~ ("." ~ day_req)? }
 calver_req_dash    = _{ "-" ~ month_req ~ ("-" ~ day_req)? }
 calver_req_version = _{ year_req ~ (calver_req_dot | calver_req_dash)? }
-calver_req         =  { op? ~ " "* ~ (calver_req_version | req_scope_anchor ~ calver_req_version) ~ pre_anchor_fixed? ~ build_anchor? }
+calver_req         =  { op? ~ " "* ~ (calver_req_version | req_scope_anchor ~ calver_req_version | v_prefix ~ calver_req_version) ~ pre_anchor_fixed? ~ build_anchor? }
 
 parse_calver_req = { SOI ~ calver_req ~ EOI }
 

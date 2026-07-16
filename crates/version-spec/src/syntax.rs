@@ -1,5 +1,7 @@
+use crate::is_calver_like;
 use crate::spec_error::SpecError;
 use crate::syntax_parser::*;
+use compact_str::CompactString;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::fmt::{self, Display};
@@ -26,7 +28,7 @@ pub struct Version {
 
     /// An optional scope prefix, for example the "vendor" in `vendor-1.2.3`.
     /// Does not include the trailing `-`.
-    pub scope: Option<String>,
+    pub scope: Option<CompactString>,
 
     /// The major version number, or the year for calendar versions.
     pub major: u64,
@@ -40,11 +42,11 @@ pub struct Version {
 
     /// Optional pre-release identifier, for example the "alpha.1"
     /// in `1.2.3-alpha.1`. Does not include the leading `-`.
-    pub prerelease: Option<String>,
+    pub prerelease: Option<CompactString>,
 
     /// Optional build metadata, for example the "build.5" in `1.2.3+build.5`.
     /// Does not include the leading `+`.
-    pub build: Option<String>,
+    pub build: Option<CompactString>,
 }
 
 impl Version {
@@ -73,20 +75,16 @@ impl Version {
         }
     }
 
-    /// Parses the provided value into a version, attempting the semantic
-    /// format first, and the calendar format second.
+    /// Parses the provided value into a version.
     pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, SpecError> {
-        let value = value.as_ref().trim();
+        let value = value.as_ref();
 
-        // Attempt semantic first, as calendar would consume dotted triples
-        // with small numbers, like "1.2.3", as the year 2001. Dashed and
-        // partial dotted calendars never match a full semantic version
-        if let Ok(semantic) = parse_semver(value) {
-            return Ok(semantic);
+        if is_calver_like().is_match(value) {
+            parse_calver(value)
+        } else {
+            parse_semver(value)
         }
-
-        // Then attempt calendar
-        parse_calver(value).map_err(|error| SpecError::FailedVersionParse { error })
+        .map_err(|error| SpecError::FailedVersionParse { error })
     }
 
     /// Return true if the version is a calendar version.
@@ -241,7 +239,7 @@ pub struct Requirement {
     pub op: Op,
 
     /// An optional scope prefix, for example the "vendor" in `vendor-1.2`.
-    pub scope: Option<String>,
+    pub scope: Option<CompactString>,
 
     /// The major version number, or the year for calendar versions.
     /// A `None` is either an omitted part or a wildcard.
@@ -257,22 +255,20 @@ pub struct Requirement {
 
     /// Optional pre-release identifier, for example the "alpha.1"
     /// in `>=1.2.3-alpha.1`.
-    pub prerelease: Option<String>,
+    pub prerelease: Option<CompactString>,
 }
 
 impl Requirement {
-    /// Parses the provided value into a requirement, attempting the semantic
-    /// format first, and the calendar format second.
+    /// Parses the provided value into a requirement.
     pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, SpecError> {
-        let value = value.as_ref().trim();
+        let value = value.as_ref();
 
-        // Attempt semantic first, as calendar would consume partial dotted
-        // versions with small numbers, like "1.2", as the year 2001
-        if let Ok(semantic) = parse_semver_req(value) {
-            return Ok(semantic);
+        if is_calver_like().is_match(value) {
+            parse_calver_req(value)
+        } else {
+            parse_semver_req(value)
         }
-
-        parse_calver_req(value).map_err(|error| SpecError::FailedVersionRequirementParse { error })
+        .map_err(|error| SpecError::FailedVersionRequirementParse { error })
     }
 
     /// Returns true if the provided version satisfies this requirement,
@@ -550,15 +546,15 @@ impl TryFrom<String> for Requirement {
 /// A single clause within a version range.
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum Clause {
-    /// A single requirement.
-    Only(Requirement),
-
     /// A list of requirements that must all match, for example `>=1.2 && <2`.
     All(Vec<Requirement>),
 
     /// A bounded range between two fully qualified versions, inclusive
     /// on both ends, for example `1.2.3 - 2.3.4`.
     Between(Version, Version),
+
+    /// A single requirement.
+    Only(Requirement),
 }
 
 impl Clause {
@@ -621,17 +617,17 @@ pub struct Range {
 
 impl Range {
     /// Parses the provided value into a range, attempting the semantic
-    /// format first, and the calendar format second.
+    /// format first, and the calendar format second. A leading `v` or `V`
+    /// is ignored.
     pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, SpecError> {
-        let value = value.as_ref().trim();
+        let value = value.as_ref();
 
-        // Attempt semantic first, as calendar would consume partial dotted
-        // versions with small numbers, like "1.2", as the year 2001
-        if let Ok(semantic) = parse_semver_range(value) {
-            return Ok(semantic);
+        if is_calver_like().is_match(value) {
+            parse_calver_range(value)
+        } else {
+            parse_semver_range(value)
         }
-
-        parse_calver_range(value).map_err(|error| SpecError::FailedVersionRangeParse { error })
+        .map_err(|error| SpecError::FailedVersionRangeParse { error })
     }
 
     /// Returns true if the provided version satisfies any clause within

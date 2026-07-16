@@ -266,9 +266,20 @@ mod syntax {
         }
 
         #[test]
-        fn errors_v_prefix() {
-            // A leading "v" is removed by `clean_version_string` before parsing
-            assert!(parse_semver("v1.2.3").is_err());
+        fn parses_v_prefix() {
+            // A leading "v" or "V" is ignored
+            for input in ["v1.2.3", "V1.2.3"] {
+                assert_eq!(
+                    parse_semver(input).unwrap(),
+                    Version {
+                        major: 1,
+                        minor: 2,
+                        micro: 3,
+                        ..Default::default()
+                    },
+                    "input: {input}"
+                );
+            }
         }
 
         #[test]
@@ -684,9 +695,17 @@ mod syntax {
         }
 
         #[test]
-        fn errors_v_prefix() {
-            // A leading "v" is removed by `clean_version_string` before parsing
-            assert!(parse_semver_req("v1.2.3").is_err());
+        fn parses_v_prefix() {
+            // A leading "v" or "V" is ignored
+            assert_eq!(
+                parse_semver_req("v1.2.3").unwrap(),
+                parse_semver_req("1.2.3").unwrap()
+            );
+            assert_eq!(
+                parse_semver_req(">=V1.2").unwrap(),
+                parse_semver_req(">=1.2").unwrap()
+            );
+            assert_eq!(parse_semver_req("~ v1").unwrap(), parse_semver_req("~1").unwrap());
         }
 
         #[test]
@@ -921,6 +940,20 @@ mod syntax {
                     clauses: vec![
                         Clause::Only(req("^0.5")),
                         Clause::Between(ver("1.2.3"), ver("2.3.4")),
+                    ]
+                }
+            );
+        }
+
+        #[test]
+        fn parses_v_prefix() {
+            // A leading "v" or "V" is ignored
+            assert_eq!(
+                parse_semver_range("v1 || v1.2.3 - V2.0.0").unwrap(),
+                Range {
+                    clauses: vec![
+                        Clause::Only(req("1")),
+                        Clause::Between(ver("1.2.3"), ver("2.0.0")),
                     ]
                 }
             );
@@ -1277,9 +1310,20 @@ mod syntax {
         }
 
         #[test]
-        fn errors_v_prefix() {
-            // A leading "v" is removed by `clean_version_string` before parsing
-            assert!(parse_calver("v2024-02").is_err());
+        fn parses_v_prefix() {
+            // A leading "v" or "V" is ignored
+            for input in ["v2024-02", "V2024-02"] {
+                assert_eq!(
+                    parse_calver(input).unwrap(),
+                    Version {
+                        kind: VersionKind::Calendar,
+                        major: 2024,
+                        minor: 2,
+                        ..Default::default()
+                    },
+                    "input: {input}"
+                );
+            }
         }
     }
 
@@ -1751,9 +1795,16 @@ mod syntax {
         }
 
         #[test]
-        fn errors_v_prefix() {
-            // A leading "v" is removed by `clean_version_string` before parsing
-            assert!(parse_calver_req("v2000.2").is_err());
+        fn parses_v_prefix() {
+            // A leading "v" or "V" is ignored
+            assert_eq!(
+                parse_calver_req("v2000.2").unwrap(),
+                parse_calver_req("2000.2").unwrap()
+            );
+            assert_eq!(
+                parse_calver_req(">=V2000-2").unwrap(),
+                parse_calver_req(">=2000-2").unwrap()
+            );
         }
 
         #[test]
@@ -1967,6 +2018,20 @@ mod syntax {
         }
 
         #[test]
+        fn parses_v_prefix() {
+            // A leading "v" or "V" is ignored
+            assert_eq!(
+                parse_calver_range("v2000 || v2000-2 - V2001-3").unwrap(),
+                Range {
+                    clauses: vec![
+                        Clause::Only(req("2000")),
+                        Clause::Between(ver("2000-2"), ver("2001-3")),
+                    ]
+                }
+            );
+        }
+
+        #[test]
         fn prefers_version_over_between() {
             // Without whitespace, hyphens are version separators
             assert_eq!(
@@ -2045,7 +2110,6 @@ mod syntax {
             for value in [
                 "1.2.3",
                 "node-1.2.3-alpha.1+build.5",
-                "2024.2.26",
                 "2024-2",
                 "2024-2-26",
                 "node-2024-2-alpha",
@@ -2076,7 +2140,7 @@ mod syntax {
                 "~1",
                 "^1.2.3-beta.1",
                 "node-*",
-                "=node-16-1.2",
+                "=node-1.2",
                 "=2000-2",
                 ">=2000-2-3",
             ] {
@@ -2123,10 +2187,20 @@ mod syntax {
 
         #[test]
         fn serializes_normalized() {
-            // Short years, wildcard parts, and separators are normalized
+            // Short years, wildcard parts, separators,
+            // and v prefixes are normalized
             let version = Version::parse("24-1").unwrap();
 
             assert_eq!(serde_json::to_string(&version).unwrap(), "\"2024-1\"");
+
+            let version = Version::parse("v1.2.3").unwrap();
+
+            assert_eq!(serde_json::to_string(&version).unwrap(), "\"1.2.3\"");
+
+            // Dotted calendar versions are normalized to dashes
+            let version = Version::parse("2024.2.26").unwrap();
+
+            assert_eq!(serde_json::to_string(&version).unwrap(), "\"2024-2-26\"");
 
             let req = Requirement::parse("1.x").unwrap();
 

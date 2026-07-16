@@ -1,4 +1,5 @@
 use crate::syntax::*;
+use compact_str::CompactString;
 use pest::error::*;
 use pest::{Parser, Span, iterators::Pair};
 use pest_derive::Parser;
@@ -161,11 +162,11 @@ fn handle_version(pair: Pair<Rule>, version: &mut Version) -> Result<(), pest::e
     for inner in pair.into_inner() {
         match inner.as_rule() {
             // Extract information
-            Rule::scope => version.scope = Some(inner.as_str().to_string()),
+            Rule::scope => version.scope = Some(CompactString::new(inner.as_str())),
 
-            Rule::pre => version.prerelease = Some(inner.as_str().to_string()),
+            Rule::pre => version.prerelease = Some(CompactString::new(inner.as_str())),
 
-            Rule::build => version.build = Some(inner.as_str().to_string()),
+            Rule::build => version.build = Some(CompactString::new(inner.as_str())),
 
             Rule::major => {
                 version.kind = VersionKind::Semantic;
@@ -220,9 +221,9 @@ fn handle_requirement(
     for inner in pair.into_inner() {
         match inner.as_rule() {
             // Extract information
-            Rule::req_scope => req.scope = Some(inner.as_str().to_string()),
+            Rule::req_scope => req.scope = Some(CompactString::new(inner.as_str())),
 
-            Rule::pre => req.prerelease = Some(inner.as_str().to_string()),
+            Rule::pre => req.prerelease = Some(CompactString::new(inner.as_str())),
 
             // Build metadata is accepted for compatibility, but ignored
             Rule::build => {}
