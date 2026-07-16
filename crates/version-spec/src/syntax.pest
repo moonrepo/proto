@@ -76,7 +76,7 @@ parse_semver_req = { SOI ~ semver_req ~ EOI }
 // ----- SEMANTIC RANGES -----
 
 semver_between = { semver ~ " "+ ~ "-" ~ " "+ ~ semver }
-semver_clause  = { semver_between | semver_req ~ (and ~ semver_req)? }
+semver_clause  = { semver_between | semver_req ~ (and ~ semver_req)* }
 semver_range   = { semver_clause ~ (or ~ semver_clause)* }
 
 parse_semver_range = { SOI ~ semver_range ~ EOI }
@@ -112,7 +112,7 @@ parse_calver_req = { SOI ~ calver_req ~ EOI }
 // ----- CALENDAR RANGES -----
 
 calver_between = { calver ~ " "+ ~ "-" ~ " "+ ~ calver }
-calver_clause  = { calver_between | calver_req ~ (and ~ calver_req)? }
+calver_clause  = { calver_between | calver_req ~ (and ~ calver_req)* }
 calver_range   = { calver_clause ~ (or ~ calver_clause)* }
 
 parse_calver_range = { SOI ~ calver_range ~ EOI }

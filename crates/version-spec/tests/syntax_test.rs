@@ -783,7 +783,7 @@ mod syntax {
                 assert_eq!(
                     parse_semver_range(input).unwrap(),
                     Range {
-                        clauses: vec![Clause::And(req("^1"), req("<1.5"))]
+                        clauses: vec![Clause::All(vec![req("^1"), req("<1.5")])]
                     },
                     "input: {input}"
                 );
@@ -792,7 +792,7 @@ mod syntax {
             assert_eq!(
                 parse_semver_range(">=1.2.7 <1.3.0").unwrap(),
                 Range {
-                    clauses: vec![Clause::And(req(">=1.2.7"), req("<1.3.0"))]
+                    clauses: vec![Clause::All(vec![req(">=1.2.7"), req("<1.3.0")])]
                 }
             );
         }
@@ -824,8 +824,8 @@ mod syntax {
                 parse_semver_range("^1 && <1.5 || >=2, <2.5 || 3.x").unwrap(),
                 Range {
                     clauses: vec![
-                        Clause::And(req("^1"), req("<1.5")),
-                        Clause::And(req(">=2"), req("<2.5")),
+                        Clause::All(vec![req("^1"), req("<1.5")]),
+                        Clause::All(vec![req(">=2"), req("<2.5")]),
                         Clause::Only(req("3.x")),
                     ]
                 }
@@ -839,7 +839,7 @@ mod syntax {
                 parse_semver_range(">=1.2.3-alpha && <2.0.0 || node-16-1.2").unwrap(),
                 Range {
                     clauses: vec![
-                        Clause::And(req(">=1.2.3-alpha"), req("<2.0.0")),
+                        Clause::All(vec![req(">=1.2.3-alpha"), req("<2.0.0")]),
                         Clause::Only(req("node-16-1.2")),
                     ]
                 }
@@ -939,11 +939,16 @@ mod syntax {
         }
 
         #[test]
-        fn errors_too_many_ands() {
-            // Only a left and right value are supported per clause
-            assert!(parse_semver_range("^1 && <1.5 && <1.8").is_err());
-            assert!(parse_semver_range("^1, <1.5, <1.8").is_err());
-            assert!(parse_semver_range("^1 <1.5 <1.8").is_err());
+        fn parses_many_ands() {
+            for input in ["^1 && <1.5 && <1.8", "^1, <1.5, <1.8", "^1 <1.5 <1.8"] {
+                assert_eq!(
+                    parse_semver_range(input).unwrap(),
+                    Range {
+                        clauses: vec![Clause::All(vec![req("^1"), req("<1.5"), req("<1.8")])]
+                    },
+                    "input: {input}"
+                );
+            }
         }
 
         #[test]
@@ -1804,7 +1809,7 @@ mod syntax {
                 assert_eq!(
                     parse_calver_range(input).unwrap(),
                     Range {
-                        clauses: vec![Clause::And(req("2000-2"), req("2001-3"))]
+                        clauses: vec![Clause::All(vec![req("2000-2"), req("2001-3")])]
                     },
                     "input: {input}"
                 );
@@ -1813,7 +1818,7 @@ mod syntax {
             assert_eq!(
                 parse_calver_range(">=2000-1 <2001-1").unwrap(),
                 Range {
-                    clauses: vec![Clause::And(req(">=2000-1"), req("<2001-1"))]
+                    clauses: vec![Clause::All(vec![req(">=2000-1"), req("<2001-1")])]
                 }
             );
         }
@@ -1845,8 +1850,8 @@ mod syntax {
                 parse_calver_range(">=2000-1 && <2000-6 || >=2001, <2002 || 2003.x").unwrap(),
                 Range {
                     clauses: vec![
-                        Clause::And(req(">=2000-1"), req("<2000-6")),
-                        Clause::And(req(">=2001"), req("<2002")),
+                        Clause::All(vec![req(">=2000-1"), req("<2000-6")]),
+                        Clause::All(vec![req(">=2001"), req("<2002")]),
                         Clause::Only(req("2003.x")),
                     ]
                 }
@@ -1860,7 +1865,7 @@ mod syntax {
                 parse_calver_range(">=2000-1-alpha && <2001-1 || node-16-2024-2").unwrap(),
                 Range {
                     clauses: vec![
-                        Clause::And(req(">=2000-1-alpha"), req("<2001-1")),
+                        Clause::All(vec![req(">=2000-1-alpha"), req("<2001-1")]),
                         Clause::Only(req("node-16-2024-2")),
                     ]
                 }
@@ -1969,11 +1974,16 @@ mod syntax {
         }
 
         #[test]
-        fn errors_too_many_ands() {
-            // Only a left and right value are supported per clause
-            assert!(parse_calver_range("2000 && 2001 && 2002").is_err());
-            assert!(parse_calver_range("2000, 2001, 2002").is_err());
-            assert!(parse_calver_range("2000 2001 2002").is_err());
+        fn parses_many_ands() {
+            for input in ["2000 && 2001 && 2002", "2000, 2001, 2002", "2000 2001 2002"] {
+                assert_eq!(
+                    parse_calver_range(input).unwrap(),
+                    Range {
+                        clauses: vec![Clause::All(vec![req("2000"), req("2001"), req("2002")])]
+                    },
+                    "input: {input}"
+                );
+            }
         }
 
         #[test]
@@ -2239,7 +2249,7 @@ mod syntax {
             assert!(range("=1") < range("=1 || =2"));
             assert!(range("=1 || =2") < range("=2"));
 
-            // "and" clauses order before "between", then "only" clauses
+            // "all" clauses order before "between", then "only" clauses
             assert!(range("=1 && =2") < range("1.2.3 - 2.3.4"));
             assert!(range("1.2.3 - 2.3.4") < range("=1"));
         }

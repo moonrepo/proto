@@ -359,8 +359,7 @@ fn handle_between(pair: Pair<Rule>) -> Result<Clause, pest::error::Error<Rule>> 
 }
 
 fn handle_clause(pair: Pair<Rule>) -> Result<Clause, pest::error::Error<Rule>> {
-    let mut left = None;
-    let mut right = None;
+    let mut reqs = vec![];
 
     for inner in pair.into_inner() {
         match inner.as_rule() {
@@ -374,11 +373,7 @@ fn handle_clause(pair: Pair<Rule>) -> Result<Clause, pest::error::Error<Rule>> {
 
                 handle_requirement(inner, &mut req)?;
 
-                if left.is_none() {
-                    left = Some(req);
-                } else {
-                    right = Some(req);
-                }
+                reqs.push(req);
             }
 
             Rule::and => {}
@@ -390,11 +385,11 @@ fn handle_clause(pair: Pair<Rule>) -> Result<Clause, pest::error::Error<Rule>> {
         }
     }
 
-    // The grammar requires a left value, with an optional right value
-    Ok(match (left, right) {
-        (Some(left), Some(right)) => Clause::And(left, right),
-        (Some(left), None) => Clause::Only(left),
-        _ => unreachable!(),
+    // The grammar requires at least one requirement
+    Ok(if reqs.len() == 1 {
+        Clause::Only(reqs.remove(0))
+    } else {
+        Clause::All(reqs)
     })
 }
 

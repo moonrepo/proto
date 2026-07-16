@@ -389,9 +389,11 @@ mod version_req {
         assert_to_string(r, "<=0.2.0 && >=0.5.0");
         assert_match_none(r, &["0.0.8", "0.3.0", "0.5.1"]);
 
-        // upstream: up to 32 comparators are supported, while our
-        // clauses only support a left and right requirement
-        req_err("^0.1.0, ^0.1.4, ^0.1.6");
+        let r = &req("0.1.0, 0.1.4, 0.1.6");
+        // upstream: rendered with comma separators
+        assert_to_string(r, "^0.1.0 && ^0.1.4 && ^0.1.6");
+        assert_match_all(r, &["0.1.6", "0.1.9"]);
+        assert_match_none(r, &["0.1.0", "0.1.4", "0.2.0"]);
 
         req_err("> 0.1.0,");
         req_err("> 0.3.0, ,");
@@ -421,8 +423,8 @@ mod version_req {
         assert_match_none(r, &["1.2.2", "2.3.5"]);
 
         // upstream: errors with an excessive number of comparators,
-        // ours from the clause limit
-        req_err(
+        // while ours is unbounded
+        req(
             ">1, >2, >3, >4, >5, >6, >7, >8, >9, >10, >11, >12, >13, >14, >15, >16, >17, >18, >19, >20, >21, >22, >23, >24, >25, >26, >27, >28, >29, >30, >31, >32, >33",
         );
     }
@@ -680,7 +682,6 @@ mod version_req {
         req("*, 0.20.0-any");
         req("0.20.0-any, *");
 
-        // Three requirements exceed our clause limit
-        req_err("0.20.0-any, *, 1.0");
+        req("0.20.0-any, *, 1.0");
     }
 }

@@ -549,8 +549,8 @@ impl TryFrom<String> for Requirement {
 /// A single clause within a version range.
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum Clause {
-    /// Two requirements that must both match, for example `>=1.2 && <2`.
-    And(Requirement, Requirement),
+    /// A list of requirements that must all match, for example `>=1.2 && <2`.
+    All(Vec<Requirement>),
 
     /// A bounded range between two fully qualified versions, inclusive
     /// on both ends, for example `1.2.3 - 2.3.4`.
@@ -566,12 +566,10 @@ impl Clause {
     /// of the requirements.
     pub fn matches(&self, version: &Version) -> bool {
         match self {
-            Clause::And(left, right) => {
-                left.matches_op(version)
-                    && right.matches_op(version)
+            Clause::All(reqs) => {
+                reqs.iter().all(|req| req.matches_op(version))
                     && (version.prerelease.is_none()
-                        || left.matches_pre(version)
-                        || right.matches_pre(version))
+                        || reqs.iter().any(|req| req.matches_pre(version)))
             }
 
             // Bounded ranges are inclusive on both ends
@@ -594,7 +592,17 @@ impl Clause {
 impl Display for Clause {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Clause::And(req1, req2) => write!(f, "{req1} && {req2}"),
+            Clause::All(reqs) => {
+                for (i, req) in reqs.iter().enumerate() {
+                    if i > 0 {
+                        f.write_str(" && ")?;
+                    }
+
+                    write!(f, "{req}")?;
+                }
+
+                Ok(())
+            }
             Clause::Between(ver1, ver2) => write!(f, "{ver1} - {ver2}"),
             Clause::Only(req) => write!(f, "{req}"),
         }
