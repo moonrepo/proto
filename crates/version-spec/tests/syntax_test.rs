@@ -2116,9 +2116,9 @@ mod syntax {
             for value in [
                 "1.2.3",
                 "node-1.2.3-alpha.1+build.5",
-                "2024-2",
-                "2024-2-26",
-                "node-2024-2-alpha",
+                "2024-02",
+                "2024-02-26",
+                "node-2024-02-alpha",
             ] {
                 let version = Version::parse(value).unwrap();
 
@@ -2147,8 +2147,8 @@ mod syntax {
                 "^1.2.3-beta.1",
                 "node-*",
                 "=node-1.2",
-                "=2000-2",
-                ">=2000-2-3",
+                "=2000-02",
+                ">=2000-02-03",
             ] {
                 let req = Requirement::parse(value).unwrap();
 
@@ -2173,8 +2173,8 @@ mod syntax {
                 "^1 && <1.5",
                 "^1 || ^2 || ~3",
                 "1.2.3 - 2.3.4",
-                "=2000-2 || =2001-3",
-                "2000-2 - 2001-3",
+                "=2000-02 || =2001-03",
+                "2000-02 - 2001-03",
             ] {
                 let range = Range::parse(value).unwrap();
 
@@ -2193,11 +2193,11 @@ mod syntax {
 
         #[test]
         fn serializes_normalized() {
-            // Short years, wildcard parts, separators,
+            // Short years, zero-padding, wildcard parts, separators,
             // and v prefixes are normalized
             let version = Version::parse("24-1").unwrap();
 
-            assert_eq!(serde_json::to_string(&version).unwrap(), "\"2024-1\"");
+            assert_eq!(serde_json::to_string(&version).unwrap(), "\"2024-01\"");
 
             let version = Version::parse("v1.2.3").unwrap();
 
@@ -2206,7 +2206,7 @@ mod syntax {
             // Dotted calendar versions are normalized to dashes
             let version = Version::parse("2024.2.26").unwrap();
 
-            assert_eq!(serde_json::to_string(&version).unwrap(), "\"2024-2-26\"");
+            assert_eq!(serde_json::to_string(&version).unwrap(), "\"2024-02-26\"");
 
             let req = Requirement::parse("1.x").unwrap();
 
@@ -2308,7 +2308,7 @@ mod syntax {
         fn orders_calendar_versions() {
             assert_eq!(
                 sorted(["2024-2", "2024-1-15", "2023-12-31", "2024-1"]),
-                ["2023-12-31", "2024-1", "2024-1-15", "2024-2"]
+                ["2023-12-31", "2024-01", "2024-01-15", "2024-02"]
             );
         }
 

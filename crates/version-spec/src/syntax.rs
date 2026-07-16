@@ -124,16 +124,27 @@ impl Display for Version {
             write!(f, "{scope}-")?;
         }
 
+        let pad = |f2: &mut fmt::Formatter, value: u64, width: usize| {
+            if self.kind == VersionKind::Calendar {
+                write!(f2, "{value:0>width$}")
+            } else {
+                write!(f2, "{value}")
+            }
+        };
+
         let sep = match self.kind {
             VersionKind::Calendar => "-",
             VersionKind::Semantic => ".",
         };
 
-        write!(f, "{}{sep}{}", self.major, self.minor)?;
+        pad(f, self.major, 4)?;
+        write!(f, "{sep}")?;
+        pad(f, self.minor, 2)?;
 
         // A calendar day of 0 means it was not defined
         if self.kind != VersionKind::Calendar || self.micro > 0 {
-            write!(f, "{sep}{}", self.micro)?;
+            write!(f, "{sep}")?;
+            pad(f, self.micro, 2)?;
         }
 
         if let Some(pre) = &self.prerelease {
@@ -493,19 +504,29 @@ impl Display for Requirement {
             write!(f, "{scope}-")?;
         }
 
+        let pad = |f2: &mut fmt::Formatter, value: &u64, width: usize| {
+            if self.kind == VersionKind::Calendar {
+                write!(f2, "{value:0>width$}")
+            } else {
+                write!(f2, "{value}")
+            }
+        };
+
         let sep = match self.kind {
             VersionKind::Calendar => "-",
             VersionKind::Semantic => ".",
         };
 
         if let Some(major) = &self.major {
-            write!(f, "{major}")?;
+            pad(f, major, 4)?;
 
             if let Some(minor) = &self.minor {
-                write!(f, "{sep}{minor}")?;
+                write!(f, "{sep}")?;
+                pad(f, minor, 2)?;
 
                 if let Some(micro) = &self.micro {
-                    write!(f, "{sep}{micro}")?;
+                    write!(f, "{sep}")?;
+                    pad(f, micro, 2)?;
                 } else if self.op == Op::Wildcard {
                     write!(f, "{sep}*")?;
                 }
