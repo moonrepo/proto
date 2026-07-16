@@ -1,6 +1,6 @@
 use crate::syntax::*;
 use pest::error::*;
-use pest::{Parser, iterators::Pair};
+use pest::{Parser, Span, iterators::Pair};
 use pest_derive::Parser;
 
 #[derive(Parser)]
@@ -132,6 +132,25 @@ fn parse_int_opt(pair: Pair<Rule>, message: &str) -> Result<Option<u64>, Error<R
     }
 }
 
+// Mirror the semver crate, where a numeric part cannot follow
+// a wildcard part, for example "*.1" or "1.*.1"
+fn verify_wildcard_order(
+    previous: Option<u64>,
+    current: Option<u64>,
+    span: Span,
+) -> Result<(), Error<Rule>> {
+    if previous.is_none() && current.is_some() {
+        return Err(Error::new_from_span(
+            ErrorVariant::CustomError {
+                message: "a version part cannot follow a wildcard part".to_owned(),
+            },
+            span,
+        ));
+    }
+
+    Ok(())
+}
+
 fn handle_version(pair: Pair<Rule>, version: &mut Version) -> Result<(), pest::error::Error<Rule>> {
     for inner in pair.into_inner() {
         match inner.as_rule() {
@@ -222,11 +241,19 @@ fn handle_requirement(
             }
 
             Rule::minor_req => {
+                let span = inner.as_span();
+
                 req.minor = parse_int_opt(inner, "failed to parse minor version")?;
+
+                verify_wildcard_order(req.major, req.minor, span)?;
             }
 
             Rule::patch_req => {
+                let span = inner.as_span();
+
                 req.micro = parse_int_opt(inner, "failed to parse patch version")?;
+
+                verify_wildcard_order(req.minor, req.micro, span)?;
             }
 
             Rule::year_req => {
@@ -241,11 +268,19 @@ fn handle_requirement(
             }
 
             Rule::month_req => {
+                let span = inner.as_span();
+
                 req.minor = parse_int_opt(inner, "failed to parse month")?;
+
+                verify_wildcard_order(req.major, req.minor, span)?;
             }
 
             Rule::day_req => {
+                let span = inner.as_span();
+
                 req.micro = parse_int_opt(inner, "failed to parse day")?;
+
+                verify_wildcard_order(req.minor, req.micro, span)?;
             }
 
             // Continue parsing

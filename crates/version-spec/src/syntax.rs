@@ -5,7 +5,7 @@ use std::cmp::Ordering;
 use std::fmt::{self, Display};
 
 /// The kind of version, either calendar or semantic.
-#[derive(Copy, Clone, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Copy, Clone, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[non_exhaustive]
 pub enum VersionKind {
     /// A calendar version, typically in the form of `YYYY-MM-DD` or `YYYY-MM`.
@@ -18,7 +18,7 @@ pub enum VersionKind {
 
 /// A version in either calendar or semantic format, with support for
 /// scopes, pre-releases, and build metadata.
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(try_from = "String", into = "String")]
 pub struct Version {
     /// The kind of version.
@@ -115,12 +115,10 @@ impl Version {
             prerelease: self.prerelease.clone(),
         }
     }
-}
 
-impl Display for Version {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn write_parts(&self, out: &mut impl fmt::Write) -> fmt::Result {
         if let Some(scope) = &self.scope {
-            write!(f, "{scope}-")?;
+            write!(out, "{scope}-")?;
         }
 
         let sep = match self.kind {
@@ -128,22 +126,35 @@ impl Display for Version {
             VersionKind::Semantic => ".",
         };
 
-        write!(f, "{}{sep}{}", self.major, self.minor)?;
+        write!(out, "{}{sep}{}", self.major, self.minor)?;
 
         // A calendar day of 0 means it was not defined
         if self.kind != VersionKind::Calendar || self.micro > 0 {
-            write!(f, "{sep}{}", self.micro)?;
+            write!(out, "{sep}{}", self.micro)?;
         }
 
         if let Some(pre) = &self.prerelease {
-            write!(f, "-{pre}")?;
+            write!(out, "-{pre}")?;
         }
 
         if let Some(build) = &self.build {
-            write!(f, "+{build}")?;
+            write!(out, "+{build}")?;
         }
 
         Ok(())
+    }
+}
+
+impl Display for Version {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // Support fill, alignment, and width, for example "{:*^20}"
+        if f.width().is_none() {
+            self.write_parts(f)
+        } else {
+            let mut out = String::new();
+            self.write_parts(&mut out)?;
+            f.pad(&out)
+        }
     }
 }
 
@@ -229,7 +240,7 @@ impl Display for Op {
 
 /// A version requirement composed of a comparison operator and a full
 /// or partial version to match against.
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(try_from = "String", into = "String")]
 pub struct Requirement {
     /// The kind of version.
@@ -546,7 +557,7 @@ impl TryFrom<String> for Requirement {
 }
 
 /// A single clause within a version range.
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum Clause {
     /// Two requirements that must both match, for example `>=1.2 && <2`.
     And(Requirement, Requirement),
@@ -602,7 +613,7 @@ impl Display for Clause {
 
 /// A version range composed of clauses, in which any clause may match,
 /// for example `^1 || 2.3.4 - 3.0.0 || >=4, <5`.
-#[derive(Clone, Debug, Default, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(try_from = "String", into = "String")]
 pub struct Range {
     /// The list of clauses. An empty list is a wildcard match.
