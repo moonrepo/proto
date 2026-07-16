@@ -315,7 +315,7 @@ mod syntax {
 
         #[test]
         fn parses_partial() {
-            // No operator defaults to an exact match
+            // No operator defaults to a caret match
             assert_eq!(
                 parse_semver_req("1").unwrap(),
                 Requirement {
@@ -367,7 +367,8 @@ mod syntax {
 
         #[test]
         fn parses_part_wildcards() {
-            // A wildcard part is equivalent to an omitted part
+            // A wildcard part matches any value, and marks the
+            // whole requirement as a wildcard match
             for (input, major, minor) in [
                 ("1.*", Some(1), None),
                 ("1.x", Some(1), None),
@@ -379,6 +380,7 @@ mod syntax {
                 assert_eq!(
                     parse_semver_req(input).unwrap(),
                     Requirement {
+                        op: Op::Wildcard,
                         major,
                         minor,
                         ..Default::default()
@@ -570,7 +572,6 @@ mod syntax {
             for (input, scope, major, minor, micro) in [
                 ("node-1.2.3", "node", Some(1), Some(2), Some(3)),
                 ("node-1", "node", Some(1), None, None),
-                ("node-1.x", "node", Some(1), None, None),
                 ("gcc-12", "gcc", Some(12), None, None),
                 ("foo-bar-1.2", "foo-bar", Some(1), Some(2), None),
                 ("foo_bar-1.2", "foo_bar", Some(1), Some(2), None),
@@ -589,6 +590,19 @@ mod syntax {
                     "input: {input}"
                 );
             }
+        }
+
+        #[test]
+        fn parses_scope_with_part_wildcard() {
+            assert_eq!(
+                parse_semver_req("node-1.x").unwrap(),
+                Requirement {
+                    op: Op::Wildcard,
+                    scope: Some("node".into()),
+                    major: Some(1),
+                    ..Default::default()
+                }
+            );
         }
 
         #[test]
@@ -1275,7 +1289,7 @@ mod syntax {
 
         #[test]
         fn parses_partial() {
-            // No operator defaults to an exact match, and short years
+            // No operator defaults to a caret match, and short years
             // are expanded to 4 digits, from the year 2000
             for (input, year) in [("2000", 2000), ("224", 2224), ("24", 2024), ("00", 2000)] {
                 assert_eq!(
@@ -1367,7 +1381,8 @@ mod syntax {
 
         #[test]
         fn parses_part_wildcards() {
-            // A wildcard part is equivalent to an omitted part
+            // A wildcard part matches any value, and marks the
+            // whole requirement as a wildcard match
             for (input, month, day) in [
                 ("2000.*", None, None),
                 ("2000.x", None, None),
@@ -1383,6 +1398,7 @@ mod syntax {
                     parse_calver_req(input).unwrap(),
                     Requirement {
                         kind: VersionKind::Calendar,
+                        op: Op::Wildcard,
                         major: Some(2000),
                         minor: month,
                         micro: day,
@@ -2031,6 +2047,7 @@ mod syntax {
                 "*",
                 "=1",
                 "=1.2.3",
+                "1.*",
                 ">=1.2",
                 "~1",
                 "^1.2.3-beta.1",
@@ -2089,7 +2106,7 @@ mod syntax {
 
             let req = Requirement::parse("1.x").unwrap();
 
-            assert_eq!(serde_json::to_string(&req).unwrap(), "\"=1\"");
+            assert_eq!(serde_json::to_string(&req).unwrap(), "\"1.*\"");
 
             let range = Range::parse("^1, <1.5").unwrap();
 

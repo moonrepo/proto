@@ -209,6 +209,8 @@ fn handle_requirement(
     pair: Pair<Rule>,
     req: &mut Requirement,
 ) -> Result<(), pest::error::Error<Rule>> {
+    let mut has_op = false;
+
     for inner in pair.into_inner() {
         match inner.as_rule() {
             // Extract information
@@ -217,6 +219,7 @@ fn handle_requirement(
             Rule::pre => req.prerelease = Some(inner.as_str().to_string()),
 
             Rule::op => {
+                has_op = true;
                 req.op = match inner.as_str() {
                     "=" | "==" => Op::Exact,
                     ">" => Op::Greater,
@@ -234,8 +237,9 @@ fn handle_requirement(
                 req.kind = VersionKind::Semantic;
                 req.major = parse_int_opt(inner, "failed to parse major version")?;
 
-                // A wildcard-only version, like "node-*", is a wildcard match
-                if req.major.is_none() {
+                // A wildcard part, like "*" or "1.*", is a wildcard match,
+                // unless an operator was explicitly defined
+                if !has_op && req.major.is_none() {
                     req.op = Op::Wildcard;
                 }
             }
@@ -246,6 +250,10 @@ fn handle_requirement(
                 req.minor = parse_int_opt(inner, "failed to parse minor version")?;
 
                 verify_wildcard_order(req.major, req.minor, span)?;
+
+                if !has_op && req.minor.is_none() {
+                    req.op = Op::Wildcard;
+                }
             }
 
             Rule::patch_req => {
@@ -254,6 +262,10 @@ fn handle_requirement(
                 req.micro = parse_int_opt(inner, "failed to parse patch version")?;
 
                 verify_wildcard_order(req.minor, req.micro, span)?;
+
+                if !has_op && req.micro.is_none() {
+                    req.op = Op::Wildcard;
+                }
             }
 
             Rule::year_req => {
@@ -261,8 +273,9 @@ fn handle_requirement(
                 req.major = parse_int_opt(inner, "failed to parse year")
                     .map(|year| year.map(calendar_year))?;
 
-                // A wildcard-only version, like "node-*", is a wildcard match
-                if req.major.is_none() {
+                // A wildcard part, like "*" or "2000-*", is a wildcard match,
+                // unless an operator was explicitly defined
+                if !has_op && req.major.is_none() {
                     req.op = Op::Wildcard;
                 }
             }
@@ -273,6 +286,10 @@ fn handle_requirement(
                 req.minor = parse_int_opt(inner, "failed to parse month")?;
 
                 verify_wildcard_order(req.major, req.minor, span)?;
+
+                if !has_op && req.minor.is_none() {
+                    req.op = Op::Wildcard;
+                }
             }
 
             Rule::day_req => {
@@ -281,6 +298,10 @@ fn handle_requirement(
                 req.micro = parse_int_opt(inner, "failed to parse day")?;
 
                 verify_wildcard_order(req.minor, req.micro, span)?;
+
+                if !has_op && req.micro.is_none() {
+                    req.op = Op::Wildcard;
+                }
             }
 
             // Continue parsing

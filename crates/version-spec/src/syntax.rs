@@ -198,7 +198,6 @@ impl TryFrom<String> for Version {
 #[non_exhaustive]
 pub enum Op {
     /// An exact match (`=` or `==`).
-    #[default]
     Exact,
 
     /// A greater than match (`>`).
@@ -217,6 +216,8 @@ pub enum Op {
     Tilde,
 
     /// A compatible, up to the next major version, match (`^`).
+    /// This is the default operator when one is not defined.
+    #[default]
     Caret,
 
     /// Matches any version (`*`, `x`, or `X`).

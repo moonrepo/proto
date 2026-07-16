@@ -8,7 +8,9 @@
 // comment describing the original behavior. Upstream error assertions
 // include exact messages, while ours only assert that an error occurred.
 
-use version_spec::{Range, Requirement, Version, parse_semver, parse_semver_range, parse_semver_req};
+use version_spec::{
+    Range, Requirement, Version, parse_semver, parse_semver_range, parse_semver_req,
+};
 
 #[track_caller]
 fn version(text: &str) -> Version {
@@ -296,9 +298,7 @@ mod version_req {
 
     #[test]
     fn test_basic() {
-        // upstream: a bare version defaults to a caret match,
-        // while ours defaults to an exact match
-        let r = &req("^1.0.0");
+        let r = &req("1.0.0");
         assert_to_string(r, "^1.0.0");
         assert_match_all(r, &["1.0.0", "1.1.0", "1.0.1"]);
         assert_match_none(r, &["0.9.9", "0.10.0", "0.1.0", "1.0.0-pre", "1.0.1-pre"]);
@@ -389,8 +389,7 @@ mod version_req {
         assert_match_all(r, &["0.0.10", "1.0.0", "2.5.3"]);
         assert_match_none(r, &["0.0.8", "2.5.4"]);
 
-        // upstream: a bare version defaults to a caret match
-        let r = &req("^0.3.0, ^0.4.0");
+        let r = &req("0.3.0, 0.4.0");
         assert_to_string(r, "^0.3.0 && ^0.4.0");
         assert_match_none(r, &["0.0.8", "0.3.0", "0.4.0"]);
 
@@ -431,7 +430,9 @@ mod version_req {
 
         // upstream: errors with an excessive number of comparators,
         // ours from the clause limit
-        req_err(">1, >2, >3, >4, >5, >6, >7, >8, >9, >10, >11, >12, >13, >14, >15, >16, >17, >18, >19, >20, >21, >22, >23, >24, >25, >26, >27, >28, >29, >30, >31, >32, >33");
+        req_err(
+            ">1, >2, >3, >4, >5, >6, >7, >8, >9, >10, >11, >12, >13, >14, >15, >16, >17, >18, >19, >20, >21, >22, >23, >24, >25, >26, >27, >28, >29, >30, >31, >32, >33",
+        );
     }
 
     #[test]
@@ -605,20 +606,17 @@ mod version_req {
 
     #[test]
     fn test_comparator_parse() {
-        // upstream: a bare version defaults to a caret match, and wildcard
-        // parts are rendered, for example "^1.2.3-alpha" and "2.*", while
-        // ours defaults to exact and collapses wildcard parts
         let parsed = comparator("1.2.3-alpha");
-        assert_to_string(parsed, "=1.2.3-alpha");
+        assert_to_string(parsed, "^1.2.3-alpha");
 
         let parsed = comparator("2.X");
-        assert_to_string(parsed, "=2");
+        assert_to_string(parsed, "2.*");
 
         let parsed = comparator("2");
-        assert_to_string(parsed, "=2");
+        assert_to_string(parsed, "^2");
 
         let parsed = comparator("2.x.x");
-        assert_to_string(parsed, "=2");
+        assert_to_string(parsed, "2.*");
 
         // upstream: rejects leading zeros in numeric pre-release
         // identifiers, while our grammar allows them
@@ -637,13 +635,11 @@ mod version_req {
     #[test]
     fn test_cargo3202() {
         let r = &req("0.*.*");
-        // upstream: "0.*"
-        assert_to_string(r, "=0");
+        assert_to_string(r, "0.*");
         assert_match_all(r, &["0.5.0"]);
 
         let r = &req("0.0.*");
-        // upstream: "0.0.*"
-        assert_to_string(r, "=0.0");
+        assert_to_string(r, "0.0.*");
     }
 
     #[test]
