@@ -51,6 +51,12 @@ pub struct Version {
 }
 
 impl Version {
+    /// Creates a semantic version from the provided major, minor,
+    /// and patch numbers.
+    pub fn new(major: u64, minor: u64, patch: u64) -> Self {
+        Self::semantic(major, minor, patch)
+    }
+
     /// Creates a calendar version from the provided year, month, and day.
     /// Short years are expanded from the year 2000, while months and days
     /// are clamped to valid ranges.
@@ -87,7 +93,9 @@ impl Version {
         } else {
             parse_semver(value)
         }
-        .map_err(|error| SpecError::FailedVersionParse { error })
+        .map_err(|error| SpecError::FailedVersionParse {
+            error: Box::new(error),
+        })
     }
 
     /// Return true if the version is a calendar version.
@@ -303,7 +311,9 @@ impl Requirement {
         } else {
             parse_semver_req(value)
         }
-        .map_err(|error| SpecError::FailedVersionRequirementParse { error })
+        .map_err(|error| SpecError::FailedVersionRequirementParse {
+            error: Box::new(error),
+        })
     }
 
     /// Returns true if the provided version satisfies the requirement's
@@ -656,7 +666,9 @@ impl Range {
         } else {
             parse_semver_range(value)
         }
-        .map_err(|error| SpecError::FailedVersionRangeParse { error })
+        .map_err(|error| SpecError::FailedVersionRangeParse {
+            error: Box::new(error),
+        })
     }
 }
 

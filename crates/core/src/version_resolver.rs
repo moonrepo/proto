@@ -188,15 +188,15 @@ pub fn resolve_version(
             );
 
             // Check locally installed versions first
-            if !installed_versions.is_empty() {
-                if let Some(version) = match_highest_version(range, &installed_versions) {
-                    trace!(
-                        version = version.to_string(),
-                        "Resolved to locally installed version"
-                    );
+            if !installed_versions.is_empty()
+                && let Some(version) = match_highest_version(range, &installed_versions)
+            {
+                trace!(
+                    version = version.to_string(),
+                    "Resolved to locally installed version"
+                );
 
-                    return Some(version);
-                }
+                return Some(version);
             }
 
             // Otherwise we'll need to download from remote

@@ -5,18 +5,18 @@ pub enum SpecError {
     #[error("Failed to parse a version.")]
     FailedVersionParse {
         #[source]
-        error: ParseError,
+        error: Box<ParseError>,
     },
 
     #[error("Failed to parse a version requirement.")]
     FailedVersionRequirementParse {
         #[source]
-        error: ParseError,
+        error: Box<ParseError>,
     },
 
     #[error("Failed to parse a version range.")]
     FailedVersionRangeParse {
         #[source]
-        error: ParseError,
+        error: Box<ParseError>,
     },
 }

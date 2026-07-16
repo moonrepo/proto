@@ -175,16 +175,7 @@ impl FromStr for UnresolvedVersionSpec {
         // Version
         match Version::parse(value) {
             Ok(version) => Ok(Self::Version(version)),
-            Err(_) => {
-                // Range using spaces
-                if value.contains(' ') {
-                    Ok(Self::Range(Range::parse(value)?))
-                }
-                // Partial version
-                else {
-                    Ok(Self::Requirement(Requirement::parse(value)?))
-                }
-            }
+            Err(_) => Ok(Self::Requirement(Requirement::parse(value)?)),
         }
     }
 }
