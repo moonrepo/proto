@@ -58,6 +58,25 @@ impl Version {
         // Then attempt calendar
         parse_calver(value).map_err(|error| SpecError::FailedVersionParse { error })
     }
+
+    // Convert into a requirement bound for range matching. A calendar
+    // version without a day (0) becomes a month-granular bound
+    fn to_requirement(&self, op: Op) -> Requirement {
+        Requirement {
+            kind: self.kind,
+            op,
+            scope: self.scope.clone(),
+            major: Some(self.major),
+            minor: Some(self.minor),
+            micro: if self.kind == VersionKind::Calendar && self.micro == 0 {
+                None
+            } else {
+                Some(self.micro)
+            },
+            prerelease: self.prerelease.clone(),
+            build: None,
+        }
+    }
 }
 
 impl Display for Version {
@@ -182,6 +201,185 @@ impl Requirement {
         parse_calver_req(value)
             .map_err(|error| SpecError::FailedVersionRequirementParse { error })
     }
+
+    // Return true if the provided version satisfies this requirement,
+    // following the same rules as the semver crate. A version with a
+    // pre-release only matches when the requirement also has a
+    // pre-release on the same version numbers
+    pub fn matches(&self, version: &Version) -> bool {
+        self.matches_op(version) && (version.prerelease.is_none() || self.matches_pre(version))
+    }
+
+    fn matches_op(&self, version: &Version) -> bool {
+        // A scoped requirement only matches the same scope,
+        // while an unscoped requirement matches any scope
+        if self.scope.is_some() && self.scope != version.scope {
+            return false;
+        }
+
+        match self.op {
+            Op::Exact | Op::Wildcard => self.matches_exact(version),
+            Op::Greater => self.matches_greater(version),
+            Op::GreaterEq => self.matches_exact(version) || self.matches_greater(version),
+            Op::Less => self.matches_less(version),
+            Op::LessEq => self.matches_exact(version) || self.matches_less(version),
+            Op::Tilde => self.matches_tilde(version),
+            Op::Caret => self.matches_caret(version),
+        }
+    }
+
+    fn matches_exact(&self, version: &Version) -> bool {
+        if let Some(major) = self.major {
+            if version.major != major {
+                return false;
+            }
+        }
+
+        if let Some(minor) = self.minor {
+            if version.minor != minor {
+                return false;
+            }
+        }
+
+        if let Some(micro) = self.micro {
+            if version.micro != micro {
+                return false;
+            }
+        }
+
+        self.prerelease == version.prerelease
+    }
+
+    fn matches_greater(&self, version: &Version) -> bool {
+        let Some(major) = self.major else {
+            return false;
+        };
+
+        if version.major != major {
+            return version.major > major;
+        }
+
+        let Some(minor) = self.minor else {
+            return false;
+        };
+
+        if version.minor != minor {
+            return version.minor > minor;
+        }
+
+        let Some(micro) = self.micro else {
+            return false;
+        };
+
+        if version.micro != micro {
+            return version.micro > micro;
+        }
+
+        compare_prerelease(version.prerelease.as_deref(), self.prerelease.as_deref())
+            == Ordering::Greater
+    }
+
+    fn matches_less(&self, version: &Version) -> bool {
+        let Some(major) = self.major else {
+            return false;
+        };
+
+        if version.major != major {
+            return version.major < major;
+        }
+
+        let Some(minor) = self.minor else {
+            return false;
+        };
+
+        if version.minor != minor {
+            return version.minor < minor;
+        }
+
+        let Some(micro) = self.micro else {
+            return false;
+        };
+
+        if version.micro != micro {
+            return version.micro < micro;
+        }
+
+        compare_prerelease(version.prerelease.as_deref(), self.prerelease.as_deref())
+            == Ordering::Less
+    }
+
+    fn matches_tilde(&self, version: &Version) -> bool {
+        let Some(major) = self.major else {
+            return true;
+        };
+
+        if version.major != major {
+            return false;
+        }
+
+        if let Some(minor) = self.minor {
+            if version.minor != minor {
+                return false;
+            }
+        }
+
+        if let Some(micro) = self.micro {
+            if version.micro != micro {
+                return version.micro > micro;
+            }
+        }
+
+        compare_prerelease(version.prerelease.as_deref(), self.prerelease.as_deref())
+            != Ordering::Less
+    }
+
+    fn matches_caret(&self, version: &Version) -> bool {
+        let Some(major) = self.major else {
+            return true;
+        };
+
+        if version.major != major {
+            return false;
+        }
+
+        let Some(minor) = self.minor else {
+            return true;
+        };
+
+        let Some(micro) = self.micro else {
+            return if major > 0 {
+                version.minor >= minor
+            } else {
+                version.minor == minor
+            };
+        };
+
+        if major > 0 {
+            if version.minor != minor {
+                return version.minor > minor;
+            } else if version.micro != micro {
+                return version.micro > micro;
+            }
+        } else if minor > 0 {
+            if version.minor != minor {
+                return false;
+            } else if version.micro != micro {
+                return version.micro > micro;
+            }
+        } else if version.minor != minor || version.micro != micro {
+            return false;
+        }
+
+        compare_prerelease(version.prerelease.as_deref(), self.prerelease.as_deref())
+            != Ordering::Less
+    }
+
+    fn matches_pre(&self, version: &Version) -> bool {
+        self.prerelease.is_some()
+            && self.major == Some(version.major)
+            && self.minor == Some(version.minor)
+            && self.micro == Some(version.micro)
+    }
 }
 
 impl Display for Requirement {
@@ -272,6 +470,36 @@ pub enum Clause {
     Only(Requirement),
 }
 
+impl Clause {
+    // Return true if the provided version satisfies this clause. Pre-release
+    // compatibility only needs to be satisfied by one of the requirements
+    pub fn matches(&self, version: &Version) -> bool {
+        match self {
+            Clause::And(left, right) => {
+                left.matches_op(version)
+                    && right.matches_op(version)
+                    && (version.prerelease.is_none()
+                        || left.matches_pre(version)
+                        || right.matches_pre(version))
+            }
+
+            // Bounded ranges are inclusive on both ends
+            Clause::Between(lower, upper) => {
+                let lower = lower.to_requirement(Op::GreaterEq);
+                let upper = upper.to_requirement(Op::LessEq);
+
+                lower.matches_op(version)
+                    && upper.matches_op(version)
+                    && (version.prerelease.is_none()
+                        || lower.matches_pre(version)
+                        || upper.matches_pre(version))
+            }
+
+            Clause::Only(req) => req.matches(version),
+        }
+    }
+}
+
 impl Display for Clause {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -299,6 +527,17 @@ impl Range {
         }
 
         parse_calver_range(value).map_err(|error| SpecError::FailedVersionRangeParse { error })
+    }
+
+    // Return true if the provided version satisfies any clause within
+    // this range. An empty (wildcard) range matches all versions,
+    // except pre-releases
+    pub fn matches(&self, version: &Version) -> bool {
+        if self.clauses.is_empty() {
+            return version.prerelease.is_none();
+        }
+
+        self.clauses.iter().any(|clause| clause.matches(version))
     }
 }
 

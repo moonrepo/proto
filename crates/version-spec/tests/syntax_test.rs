@@ -2227,4 +2227,176 @@ mod syntax {
             assert!(range("1.2.3 - 2.3.4") < range("=1"));
         }
     }
+
+    mod matches {
+        use super::*;
+
+        fn ver(input: &str) -> Version {
+            Version::parse(input).unwrap()
+        }
+
+        fn req(input: &str) -> Requirement {
+            Requirement::parse(input).unwrap()
+        }
+
+        fn range(input: &str) -> Range {
+            Range::parse(input).unwrap()
+        }
+
+        #[test]
+        fn matches_wildcard() {
+            assert!(req("*").matches(&ver("1.2.3")));
+            assert!(req("*").matches(&ver("2024-2")));
+
+            // Except pre-releases
+            assert!(!req("*").matches(&ver("1.2.3-alpha")));
+
+            // Same for an empty range
+            assert!(range("").matches(&ver("1.2.3")));
+            assert!(!range("").matches(&ver("1.2.3-alpha")));
+        }
+
+        #[test]
+        fn matches_exact() {
+            assert!(req("=1.2.3").matches(&ver("1.2.3")));
+            assert!(!req("=1.2.3").matches(&ver("1.2.4")));
+
+            // A partial matches any omitted part
+            assert!(req("=1.2").matches(&ver("1.2.9")));
+            assert!(!req("=1.2").matches(&ver("1.3.0")));
+
+            // Build metadata is ignored
+            assert!(req("=1.2.3").matches(&ver("1.2.3+build")));
+        }
+
+        #[test]
+        fn matches_greater_and_less() {
+            assert!(req(">1.2.3").matches(&ver("1.2.4")));
+            assert!(!req(">1.2.3").matches(&ver("1.2.3")));
+
+            // A partial only matches beyond the specified parts
+            assert!(req(">1").matches(&ver("2.0.0")));
+            assert!(!req(">1").matches(&ver("1.5.0")));
+
+            assert!(req(">=1.2").matches(&ver("1.2.0")));
+            assert!(req("<2").matches(&ver("1.9.9")));
+            assert!(!req("<2").matches(&ver("2.0.0")));
+            assert!(req("<=1.2").matches(&ver("1.2.9")));
+        }
+
+        #[test]
+        fn matches_tilde() {
+            assert!(req("~1.2.3").matches(&ver("1.2.9")));
+            assert!(!req("~1.2.3").matches(&ver("1.2.2")));
+            assert!(!req("~1.2.3").matches(&ver("1.3.0")));
+
+            assert!(req("~1.2").matches(&ver("1.2.9")));
+            assert!(!req("~1.2").matches(&ver("1.3.0")));
+
+            assert!(req("~1").matches(&ver("1.9.0")));
+            assert!(!req("~1").matches(&ver("2.0.0")));
+        }
+
+        #[test]
+        fn matches_caret() {
+            assert!(req("^1.2.3").matches(&ver("1.9.9")));
+            assert!(!req("^1.2.3").matches(&ver("1.2.2")));
+            assert!(!req("^1.2.3").matches(&ver("2.0.0")));
+
+            // A zero major locks the minor
+            assert!(req("^0.2.3").matches(&ver("0.2.9")));
+            assert!(!req("^0.2.3").matches(&ver("0.3.0")));
+
+            // A zero major and minor locks the micro
+            assert!(req("^0.0.3").matches(&ver("0.0.3")));
+            assert!(!req("^0.0.3").matches(&ver("0.0.4")));
+
+            assert!(req("^0").matches(&ver("0.9.9")));
+            assert!(!req("^0").matches(&ver("1.0.0")));
+        }
+
+        #[test]
+        fn matches_prereleases() {
+            // A pre-release only matches when the requirement has a
+            // pre-release on the same version numbers
+            assert!(req(">=1.2.3-alpha").matches(&ver("1.2.3-beta")));
+            assert!(req(">=1.2.3-alpha").matches(&ver("1.2.3")));
+            assert!(req(">=1.2.3-alpha").matches(&ver("1.2.4")));
+            assert!(!req(">=1.2.3-alpha").matches(&ver("1.2.4-beta")));
+
+            assert!(req("=1.2.3-alpha").matches(&ver("1.2.3-alpha")));
+            assert!(!req("=1.2.3").matches(&ver("1.2.3-alpha")));
+        }
+
+        #[test]
+        fn matches_scopes() {
+            // A scoped requirement only matches the same scope
+            assert!(req("node-*").matches(&ver("node-1.2.3")));
+            assert!(!req("node-*").matches(&ver("1.2.3")));
+            assert!(!req("node-*").matches(&ver("bun-1.2.3")));
+
+            // An unscoped requirement matches any scope
+            assert!(req("^1").matches(&ver("node-1.2.3")));
+        }
+
+        #[test]
+        fn matches_calver() {
+            assert!(req("~2024-2").matches(&ver("2024-2-15")));
+            assert!(!req("~2024-2").matches(&ver("2024-3-1")));
+
+            assert!(req("=2024-2").matches(&ver("2024-2-9")));
+            assert!(req(">=2024-6").matches(&ver("2024-6-1")));
+            assert!(!req(">=2024-6").matches(&ver("2024-5-31")));
+
+            // The kind is ignored when matching
+            assert!(req("~2024.2").matches(&ver("2024-2-15")));
+        }
+
+        #[test]
+        fn matches_and_clauses() {
+            let and = range(">=1.2.3-alpha && <2");
+
+            // Pre-release compatibility is satisfied clause-wide
+            assert!(and.matches(&ver("1.2.3-alpha")));
+            assert!(and.matches(&ver("1.5.0")));
+            assert!(!and.matches(&ver("1.2.2")));
+            assert!(!and.matches(&ver("2.0.0")));
+        }
+
+        #[test]
+        fn matches_between_clauses() {
+            let between = range("1.2.3 - 2.3.4");
+
+            // Inclusive on both ends
+            assert!(between.matches(&ver("1.2.3")));
+            assert!(between.matches(&ver("2.0.0")));
+            assert!(between.matches(&ver("2.3.4")));
+            assert!(!between.matches(&ver("1.2.2")));
+            assert!(!between.matches(&ver("2.3.5")));
+            assert!(!between.matches(&ver("1.5.0-beta")));
+
+            // Unless a bound has a pre-release on the same version
+            assert!(range("1.2.3-alpha - 2.0.0").matches(&ver("1.2.3-beta")));
+        }
+
+        #[test]
+        fn matches_between_calver_clauses() {
+            let between = range("2000-2 - 2001-3");
+
+            // A day-less bound is month-granular
+            assert!(between.matches(&ver("2000-2-1")));
+            assert!(between.matches(&ver("2001-3-15")));
+            assert!(!between.matches(&ver("2000-1-31")));
+            assert!(!between.matches(&ver("2001-4-1")));
+        }
+
+        #[test]
+        fn matches_or_clauses() {
+            let or = range("^1 || ^2");
+
+            assert!(or.matches(&ver("1.5.0")));
+            assert!(or.matches(&ver("2.5.0")));
+            assert!(!or.matches(&ver("3.0.0")));
+        }
+    }
 }
