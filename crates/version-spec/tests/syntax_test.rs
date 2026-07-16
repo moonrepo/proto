@@ -1,6 +1,6 @@
 use version_spec::{
-    Clause, Op, Range, Requirement, Version, VersionKind, parse_calver, parse_calver_range,
-    parse_calver_req, parse_semver, parse_semver_range, parse_semver_req,
+    Clause, MatchesVersion, Op, Range, Requirement, Version, VersionKind, parse_calver,
+    parse_calver_range, parse_calver_req, parse_semver, parse_semver_range, parse_semver_req,
 };
 
 mod syntax {
@@ -705,7 +705,10 @@ mod syntax {
                 parse_semver_req(">=V1.2").unwrap(),
                 parse_semver_req(">=1.2").unwrap()
             );
-            assert_eq!(parse_semver_req("~ v1").unwrap(), parse_semver_req("~1").unwrap());
+            assert_eq!(
+                parse_semver_req("~ v1").unwrap(),
+                parse_semver_req("~1").unwrap()
+            );
         }
 
         #[test]
@@ -1940,7 +1943,10 @@ mod syntax {
             assert_eq!(
                 parse_calver_range("node-2000-2 || node-*").unwrap(),
                 Range {
-                    clauses: vec![Clause::Only(req("node-2000-2")), Clause::Only(req("node-*"))]
+                    clauses: vec![
+                        Clause::Only(req("node-2000-2")),
+                        Clause::Only(req("node-*"))
+                    ]
                 }
             );
         }

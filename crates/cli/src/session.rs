@@ -6,16 +6,14 @@ use crate::utils::progress_instance::{ProgressInstance, monitor_non_tty_progress
 use crate::utils::tool_record::ToolRecord;
 use async_trait::async_trait;
 use proto_core::flow::resolve::Resolver;
-use proto_core::reporter::ReporterFormat;
 use proto_core::{
-    ConfigMode, ProtoConfig, ProtoEnvironment, SCHEMA_PLUGIN_KEY, ToolContext, ToolSpec,
+    ConfigMode, ProtoConfig, ProtoEnvironment, SCHEMA_PLUGIN_KEY, ToolContext, ToolSpec, Version,
     load_schema_plugin_with_proto, load_tool,
     registry::ProtoRegistry,
-    reporter::{ProtoConsole, ProtoReporter},
+    reporter::{ProtoConsole, ProtoReporter, ReporterFormat},
 };
 use proto_core::{ProtoConfigError, ProtoLoaderError};
 use rustc_hash::FxHashSet;
-use semver::Version;
 use starbase::{AppResult, AppSession};
 use starbase_console::Console;
 use starbase_console::ui::{OwnedOrShared, Progress, ProgressDisplay, ProgressReporter};

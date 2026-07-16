@@ -5,9 +5,9 @@ use iocraft::prelude::{Size, element};
 use miette::IntoDiagnostic;
 use proto_core::flow::resolve::{ProtoResolveError, Resolver};
 use proto_core::{
-    PROTO_CONFIG_NAME, ProtoConfig, ToolContext, ToolSpec, UnresolvedVersionSpec, VersionSpec, cfg,
+    PROTO_CONFIG_NAME, ProtoConfig, Requirement, ToolContext, ToolSpec, UnresolvedVersionSpec,
+    VersionSpec, cfg,
 };
-use semver::VersionReq;
 use serde::Serialize;
 use starbase_console::ui::*;
 use starbase_styles::color;
@@ -44,11 +44,8 @@ pub struct OutdatedItem {
 
 fn get_in_major_range(spec: &UnresolvedVersionSpec) -> UnresolvedVersionSpec {
     match spec {
-        UnresolvedVersionSpec::Calendar(version) => UnresolvedVersionSpec::Req(
-            VersionReq::parse(format!("~{}", version.major).as_str()).unwrap(),
-        ),
-        UnresolvedVersionSpec::Semantic(version) => UnresolvedVersionSpec::Req(
-            VersionReq::parse(format!("~{}", version.major).as_str()).unwrap(),
+        UnresolvedVersionSpec::Version(version) => UnresolvedVersionSpec::Requirement(
+            Requirement::parse(format!("~{}", version.major).as_str()).unwrap(),
         ),
         _ => spec.clone(),
     }

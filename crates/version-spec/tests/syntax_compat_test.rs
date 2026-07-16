@@ -9,7 +9,7 @@
 // include exact messages, while ours only assert that an error occurred.
 
 use version_spec::{
-    Range, Requirement, Version, parse_semver, parse_semver_range, parse_semver_req,
+    MatchesVersion, Range, Requirement, Version, parse_semver, parse_semver_range, parse_semver_req,
 };
 
 #[track_caller]

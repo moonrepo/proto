@@ -2,12 +2,15 @@ mod resolved_spec;
 mod spec_error;
 mod syntax;
 mod syntax_parser;
+mod syntax_traits;
 mod unresolved_spec;
 
 pub use resolved_spec::*;
 pub use spec_error::*;
 pub use syntax::*;
+#[doc(hidden)]
 pub use syntax_parser::*;
+pub use syntax_traits::*;
 pub use unresolved_spec::*;
 
 use regex::Regex;

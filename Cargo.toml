@@ -49,7 +49,6 @@ rustc-hash = "2.1.3"
 scc = "3.8.4"
 schemars = "1.2.1"
 schematic = { version = "0.19.7", default-features = false }
-semver = { version = "1.0.28", features = ["serde"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = { version = "1.0.150", features = ["preserve_order"] }
 sha2 = "0.11.0"

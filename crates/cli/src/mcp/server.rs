@@ -5,8 +5,8 @@ use crate::workflows::*;
 use proto_core::flow::install::Installer;
 use proto_core::flow::resolve::Resolver;
 use proto_core::{
-    PinLocation, ProtoConfigEnvOptions, ToolContext, ToolSpec, UnresolvedVersionSpec,
-    get_proto_version,
+    MatchesVersion, PinLocation, ProtoConfigEnvOptions, Requirement, ToolContext, ToolSpec,
+    UnresolvedVersionSpec, get_proto_version,
 };
 use rmcp::{
     ErrorData as McpError, RoleServer, ServerHandler,
@@ -15,7 +15,6 @@ use rmcp::{
     service::RequestContext,
     tool, tool_handler, tool_router,
 };
-use semver::VersionReq;
 use serde_json::json;
 use std::fmt::Display;
 use std::mem;
@@ -245,7 +244,7 @@ impl ProtoMcp {
         let mut versions = mem::take(&mut resolver.data.versions);
 
         if let Some(filter) = req.filter {
-            let filter = VersionReq::parse(&filter).map_err(map_parse_error)?;
+            let filter = Requirement::parse(&filter).map_err(map_parse_error)?;
 
             versions.retain(|item| {
                 item.as_version()

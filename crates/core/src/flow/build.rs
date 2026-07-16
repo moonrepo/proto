@@ -33,7 +33,7 @@ use system_env::{
 use tokio::process::Command;
 use tokio::sync::{Mutex, OwnedMutexGuard};
 use tracing::{debug, error, instrument};
-use version_spec::{Requirement, Version, VersionSpec};
+use version_spec::{MatchesVersion, Requirement, Version, VersionSpec};
 use warpgate::{HttpClient, extract_file_name_from_url};
 
 static BUILD_LOCKS: OnceLock<scc::HashMap<String, Arc<Mutex<()>>>> = OnceLock::new();

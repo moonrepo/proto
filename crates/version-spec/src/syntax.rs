@@ -5,6 +5,7 @@ use compact_str::CompactString;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::fmt::{self, Display};
+use std::str::FromStr;
 
 /// The kind of version, either calendar or semantic.
 #[derive(Copy, Clone, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -182,6 +183,14 @@ impl TryFrom<String> for Version {
     }
 }
 
+impl FromStr for Version {
+    type Err = SpecError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Self::parse(value)
+    }
+}
+
 #[cfg(feature = "schematic")]
 impl schematic::Schematic for Version {
     fn schema_name() -> Option<String> {
@@ -284,14 +293,6 @@ impl Requirement {
             parse_semver_req(value)
         }
         .map_err(|error| SpecError::FailedVersionRequirementParse { error })
-    }
-
-    /// Returns true if the provided version satisfies this requirement,
-    /// following the same rules as the [`semver`] crate. A version with a
-    /// pre-release only matches when the requirement also has a
-    /// pre-release on the same version numbers.
-    pub fn matches(&self, version: &Version) -> bool {
-        self.matches_op(version) && (version.prerelease.is_none() || self.matches_pre(version))
     }
 
     /// Returns true if the provided version satisfies the requirement's
@@ -558,6 +559,14 @@ impl TryFrom<String> for Requirement {
     }
 }
 
+impl FromStr for Requirement {
+    type Err = SpecError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Self::parse(value)
+    }
+}
+
 #[cfg(feature = "schematic")]
 impl schematic::Schematic for Requirement {
     fn schema_name() -> Option<String> {
@@ -581,35 +590,6 @@ pub enum Clause {
 
     /// A single requirement.
     Only(Requirement),
-}
-
-impl Clause {
-    /// Returns true if the provided version satisfies this clause.
-    /// Pre-release compatibility only needs to be satisfied by one
-    /// of the requirements.
-    pub fn matches(&self, version: &Version) -> bool {
-        match self {
-            Clause::All(reqs) => {
-                reqs.iter().all(|req| req.matches_op(version))
-                    && (version.prerelease.is_none()
-                        || reqs.iter().any(|req| req.matches_pre(version)))
-            }
-
-            // Bounded ranges are inclusive on both ends
-            Clause::Between(lower, upper) => {
-                let lower = lower.to_requirement(Op::GreaterEq);
-                let upper = upper.to_requirement(Op::LessEq);
-
-                lower.matches_op(version)
-                    && upper.matches_op(version)
-                    && (version.prerelease.is_none()
-                        || lower.matches_pre(version)
-                        || upper.matches_pre(version))
-            }
-
-            Clause::Only(req) => req.matches(version),
-        }
-    }
 }
 
 impl Display for Clause {
@@ -657,17 +637,6 @@ impl Range {
         }
         .map_err(|error| SpecError::FailedVersionRangeParse { error })
     }
-
-    /// Returns true if the provided version satisfies any clause within
-    /// this range. An empty (wildcard) range matches all versions,
-    /// except pre-releases.
-    pub fn matches(&self, version: &Version) -> bool {
-        if self.clauses.is_empty() {
-            return version.prerelease.is_none();
-        }
-
-        self.clauses.iter().any(|clause| clause.matches(version))
-    }
 }
 
 impl Display for Range {
@@ -699,6 +668,14 @@ impl TryFrom<String> for Range {
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         Self::parse(&value)
+    }
+}
+
+impl FromStr for Range {
+    type Err = SpecError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Self::parse(value)
     }
 }
 

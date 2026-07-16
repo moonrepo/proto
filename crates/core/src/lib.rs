@@ -44,6 +44,7 @@ pub use version_resolver::*;
 pub use version_spec::*;
 
 // Only export things consumers will actually need
+pub use version_spec;
 pub use version_spec::{
     Range, Requirement, UnresolvedVersionSpec, Version, VersionKind, VersionSpec,
 };

@@ -70,7 +70,10 @@ impl<'tool> VersionResolver<'tool> {
     }
 }
 
-pub fn match_highest_version(req: &Requirement, specs: &[&VersionSpec]) -> Option<VersionSpec> {
+pub fn match_highest_version<T: MatchesVersion>(
+    req: &T,
+    specs: &[&VersionSpec],
+) -> Option<VersionSpec> {
     let mut highest_match: Option<VersionSpec> = None;
 
     for spec in specs {
@@ -186,28 +189,24 @@ pub fn resolve_version(
 
             // Check locally installed versions first
             if !installed_versions.is_empty() {
-                for req in reqs {
-                    if let Some(version) = match_highest_version(req, &installed_versions) {
-                        trace!(
-                            version = version.to_string(),
-                            "Resolved to locally installed version"
-                        );
-
-                        return Some(version);
-                    }
-                }
-            }
-
-            // Otherwise we'll need to download from remote
-            for req in reqs {
-                if let Some(version) = match_highest_version(req, &remote_versions) {
+                if let Some(version) = match_highest_version(range, &installed_versions) {
                     trace!(
                         version = version.to_string(),
-                        "Resolved to remote available version"
+                        "Resolved to locally installed version"
                     );
 
                     return Some(version);
                 }
+            }
+
+            // Otherwise we'll need to download from remote
+            if let Some(version) = match_highest_version(range, &remote_versions) {
+                trace!(
+                    version = version.to_string(),
+                    "Resolved to remote available version"
+                );
+
+                return Some(version);
             }
 
             trace!(
