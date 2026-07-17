@@ -126,7 +126,7 @@ impl FormatsVersion for Version {
             out.push('-');
         }
 
-        let pad = |out: &mut String, value: u64, width: Option<u8>| {
+        let pad = |out: &mut String, value: u32, width: Option<u8>| {
             if let Some(width) = width {
                 let width = width as usize;
                 out.push_str(&format!("{value:0>width$}"));
@@ -174,7 +174,7 @@ impl FormatsVersion for Requirement {
             out.push('-');
         }
 
-        let pad = |out: &mut String, value: &u64, width: Option<u8>| {
+        let pad = |out: &mut String, value: &u32, width: Option<u8>| {
             if let Some(width) = width {
                 let width = width as usize;
                 out.push_str(&format!("{value:0>width$}"));

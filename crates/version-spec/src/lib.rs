@@ -24,15 +24,16 @@ use std::sync::OnceLock;
 pub fn is_alias_name<T: AsRef<str>>(value: T) -> bool {
     let value = value.as_ref();
 
-    // A leading "v" or "V" followed by a digit is a version prefix (e.g. "v8"), not an alias
-    if value.len() == 2 {
-        let bytes = value.as_bytes();
+    // A leading "v" or "V" followed by a digit is a version prefix
+    // (e.g. "v8", "v10.1"), not an alias
+    let bytes = value.as_bytes();
 
-        if matches!(bytes.first(), Some(b'v' | b'V'))
-            && bytes.get(1).is_some_and(u8::is_ascii_digit)
-        {
-            return false;
-        }
+    if matches!(bytes.first(), Some(b'v' | b'V'))
+        && bytes
+            .get(1..)
+            .is_some_and(|b| b.iter().all(|c| c.is_ascii_digit() || *c == b'.'))
+    {
+        return false;
     }
 
     value.chars().enumerate().all(|(i, c)| {
@@ -67,6 +68,6 @@ pub fn is_semver_like(value: &str) -> bool {
     static SEMVER_REGEX: OnceLock<Regex> = OnceLock::new();
 
     SEMVER_REGEX
-        .get_or_init(|| Regex::new(r"-?(v|V)?[0-9]+\.[0-9]+\.[0-9]+-?").unwrap())
+        .get_or_init(|| Regex::new(r"-?(v|V)?[0-9]+\.[0-9]+(\.[0-9]+)?-?").unwrap())
         .is_match(value)
 }

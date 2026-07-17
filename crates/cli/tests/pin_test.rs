@@ -71,7 +71,7 @@ moonstone = "2.0.0"
 
         assert_eq!(
             fs::read_to_string(version_file).unwrap(),
-            r#"protostar = "~2"
+            r#"protostar = "^2"
 moonstone = "2.0.0"
 "#
         );
@@ -113,7 +113,7 @@ moonstone = "2.0.0"
         assert!(version_file.exists());
         assert_eq!(
             fs::read_to_string(version_file).unwrap(),
-            "protostar = \"~1.2\"\n"
+            "protostar = \"^1.2\"\n"
         )
     }
 

@@ -80,7 +80,7 @@ mod exec {
             ".prototools",
             r#"
 node = "20"
-bun = "1.2"
+bun = "1.2.23"
 "#,
         );
 
@@ -115,7 +115,7 @@ bun = "1.2"
             ".prototools",
             r#"
 node = "20"
-bun = "1.2"
+bun = "1.2.23"
 "#,
         );
 
@@ -170,8 +170,9 @@ bun = "1.2"
             cmd.args(["exec", "node@20.18", "--", "node", "--version"]);
         });
 
+        // `20.18` acts like `^20.18`, so the highest matching 20.x wins
         assert
             .success()
-            .stdout(predicate::str::contains("v20.18.3"));
+            .stdout(predicate::str::contains("v20.19.5"));
     }
 }

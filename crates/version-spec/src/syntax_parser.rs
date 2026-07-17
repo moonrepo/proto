@@ -12,7 +12,7 @@ fn is_wildcard(input: &str) -> bool {
     matches!(input, "" | "*" | "x" | "X")
 }
 
-pub(crate) fn calendar_year(year: u64) -> u64 {
+pub(crate) fn calendar_year(year: u32) -> u32 {
     if year.to_string().len() < 4 {
         year + 2000
     } else {
@@ -121,8 +121,8 @@ pub fn parse_calver_range<T: AsRef<str>>(input: T) -> Result<Range, pest::error:
     Ok(range)
 }
 
-fn parse_int(pair: Pair<Rule>, message: &str) -> Result<u64, Error<Rule>> {
-    pair.as_str().parse::<u64>().map_err(|error| {
+fn parse_int(pair: Pair<Rule>, message: &str) -> Result<u32, Error<Rule>> {
+    pair.as_str().parse::<u32>().map_err(|error| {
         Error::new_from_span(
             ErrorVariant::CustomError {
                 message: format!("{message}: {error}"),
@@ -132,7 +132,7 @@ fn parse_int(pair: Pair<Rule>, message: &str) -> Result<u64, Error<Rule>> {
     })
 }
 
-fn parse_int_opt(pair: Pair<Rule>, message: &str) -> Result<Option<u64>, Error<Rule>> {
+fn parse_int_opt(pair: Pair<Rule>, message: &str) -> Result<Option<u32>, Error<Rule>> {
     match pair.as_str() {
         "*" | "x" | "X" => Ok(None),
         _ => parse_int(pair, message).map(Some),
@@ -142,8 +142,8 @@ fn parse_int_opt(pair: Pair<Rule>, message: &str) -> Result<Option<u64>, Error<R
 // Mirror the semver crate, where a numeric part cannot follow
 // a wildcard part, for example "*.1" or "1.*.1"
 fn verify_wildcard_order(
-    previous: Option<u64>,
-    current: Option<u64>,
+    previous: Option<u32>,
+    current: Option<u32>,
     span: Span,
 ) -> Result<(), Error<Rule>> {
     if previous.is_none() && current.is_some() {
@@ -363,7 +363,7 @@ fn handle_between(pair: Pair<Rule>) -> Result<Clause, pest::error::Error<Rule>> 
 
     // The grammar requires both versions
     match (left, right) {
-        (Some(left), Some(right)) => Ok(Clause::Between(left, right)),
+        (Some(left), Some(right)) => Ok(Clause::Between(Box::new(left), Box::new(right))),
         _ => unreachable!(),
     }
 }

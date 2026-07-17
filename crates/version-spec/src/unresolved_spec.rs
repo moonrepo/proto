@@ -84,7 +84,7 @@ impl UnresolvedVersionSpec {
     /// Furthermore, `Canary` will return "canary", `ReqAny` will return "latest",
     /// and aliases will return as-is.
     pub fn to_partial_string(&self) -> String {
-        fn from_parts(major: u64, minor: Option<u64>, patch: Option<u64>, pre: &str) -> String {
+        fn from_parts(major: u32, minor: Option<u32>, patch: Option<u32>, pre: &str) -> String {
             let mut version = format!("{major}");
 
             minor.inspect(|m| {

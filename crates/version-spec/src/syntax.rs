@@ -33,14 +33,14 @@ pub struct Version {
     pub scope: Option<CompactString>,
 
     /// The major version number, or the year for calendar versions.
-    pub major: u64,
+    pub major: u32,
 
     /// The minor version number, or the month for calendar versions.
-    pub minor: u64,
+    pub minor: u32,
 
     /// The patch version number, or the day for calendar versions,
     /// in which a day of 0 means it was not defined.
-    pub patch: u64,
+    pub patch: u32,
 
     /// Optional pre-release identifier, for example the "alpha.1"
     /// in `1.2.3-alpha.1`. Does not include the leading `-`.
@@ -54,14 +54,14 @@ pub struct Version {
 impl Version {
     /// Creates a semantic version from the provided major, minor,
     /// and patch numbers.
-    pub fn new(major: u64, minor: u64, patch: u64) -> Self {
+    pub fn new(major: u32, minor: u32, patch: u32) -> Self {
         Self::semantic(major, minor, patch)
     }
 
     /// Creates a calendar version from the provided year, month, and day.
     /// Short years are expanded from the year 2000, while months and days
     /// are clamped to valid ranges.
-    pub fn calendar(year: u64, month: u64, day: u64) -> Self {
+    pub fn calendar(year: u32, month: u32, day: u32) -> Self {
         Self {
             kind: VersionKind::Calendar,
             major: calendar_year(year),
@@ -73,7 +73,7 @@ impl Version {
 
     /// Creates a semantic version from the provided major, minor,
     /// and patch numbers.
-    pub fn semantic(major: u64, minor: u64, patch: u64) -> Self {
+    pub fn semantic(major: u32, minor: u32, patch: u32) -> Self {
         Self {
             kind: VersionKind::Semantic,
             major,
@@ -260,15 +260,15 @@ pub struct Requirement {
 
     /// The major version number, or the year for calendar versions.
     /// A `None` is either an omitted part or a wildcard.
-    pub major: Option<u64>,
+    pub major: Option<u32>,
 
     /// The minor version number, or the month for calendar versions.
     /// A `None` is either an omitted part or a wildcard.
-    pub minor: Option<u64>,
+    pub minor: Option<u32>,
 
     /// The patch version number, or the day for calendar versions.
     /// A `None` is either an omitted part or a wildcard.
-    pub patch: Option<u64>,
+    pub patch: Option<u32>,
 
     /// Optional pre-release identifier, for example the "alpha.1"
     /// in `>=1.2.3-alpha.1`.
@@ -556,8 +556,9 @@ pub enum Clause {
     All(Vec<Requirement>),
 
     /// A bounded range between two fully qualified versions, inclusive
-    /// on both ends, for example `1.2.3 - 2.3.4`.
-    Between(Version, Version),
+    /// on both ends, for example `1.2.3 - 2.3.4`. The versions are boxed
+    /// to keep the size of this enum down.
+    Between(Box<Version>, Box<Version>),
 
     /// A single requirement.
     Only(Requirement),

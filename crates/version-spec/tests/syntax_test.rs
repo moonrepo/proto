@@ -66,11 +66,8 @@ mod syntax {
         }
 
         #[test]
-        fn parses_max_u64() {
-            assert_eq!(
-                parse_semver("18446744073709551615.0.0").unwrap().major,
-                u64::MAX
-            );
+        fn parses_max_u32() {
+            assert_eq!(parse_semver("4294967295.0.0").unwrap().major, u32::MAX);
         }
 
         #[test]
@@ -300,8 +297,8 @@ mod syntax {
 
         #[test]
         fn errors_number_overflow() {
-            // u64::MAX + 1
-            let error = parse_semver("18446744073709551616.0.0").unwrap_err();
+            // u32::MAX + 1
+            let error = parse_semver("4294967296.0.0").unwrap_err();
 
             assert!(error.to_string().contains("failed to parse major version"));
         }
@@ -747,8 +744,8 @@ mod syntax {
 
         #[test]
         fn errors_number_overflow() {
-            // u64::MAX + 1
-            let error = parse_semver_req("18446744073709551616").unwrap_err();
+            // u32::MAX + 1
+            let error = parse_semver_req("4294967296").unwrap_err();
 
             assert!(error.to_string().contains("failed to parse major version"));
         }
@@ -761,8 +758,8 @@ mod syntax {
             parse_semver_req(input).unwrap()
         }
 
-        fn ver(input: &str) -> Version {
-            parse_semver(input).unwrap()
+        fn ver(input: &str) -> Box<Version> {
+            Box::new(parse_semver(input).unwrap())
         }
 
         #[test]
@@ -1825,8 +1822,8 @@ mod syntax {
             parse_calver_req(input).unwrap()
         }
 
-        fn ver(input: &str) -> Version {
-            parse_calver(input).unwrap()
+        fn ver(input: &str) -> Box<Version> {
+            Box::new(parse_calver(input).unwrap())
         }
 
         #[test]

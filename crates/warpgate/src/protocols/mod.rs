@@ -50,7 +50,7 @@ impl LoadFrom<'_> {
 
                 get_supported_archive_extensions()
                     .into_iter()
-                    .find(|ext| file_name.ends_with(ext))
+                    .find(|ext| file_name.ends_with(format!(".{ext}").as_str()))
                     .map(|ext| ext.to_owned())
             }
         }

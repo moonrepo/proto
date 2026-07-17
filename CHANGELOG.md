@@ -19,6 +19,7 @@
 
 #### 💥 Breaking
 
+- When configuring a partial version without an operator, we now default to `^` instead of `~`. This better aligns with the ecosystem.
 - Removed the underscore "micro/build" segment from calendar versions. Use standard build metadata instead.
   - Example: `2024-02-26_123-alpha.0` -> `2024-02-26-alpha.0+123`
 
