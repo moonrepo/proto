@@ -1,10 +1,10 @@
 #![allow(clippy::from_over_into)]
 
 use crate::spec_error::SpecError;
-use crate::{UnresolvedVersionSpec, clean_version_string, is_alias_name, is_calver};
-use crate::{is_semver, version_types::*};
+use crate::syntax::Version;
+use crate::syntax_parser::parse_alias;
+use crate::unresolved_spec::UnresolvedVersionSpec;
 use compact_str::CompactString;
-use semver::Version;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;
@@ -17,10 +17,8 @@ pub enum VersionSpec {
     Canary,
     /// An alias that is used as a map to a version.
     Alias(CompactString),
-    /// A fully-qualified calendar version.
-    Calendar(CalVer),
-    /// A fully-qualified semantic version.
-    Semantic(SemVer),
+    /// A fully-qualified version.
+    Version(Version),
 }
 
 impl VersionSpec {
@@ -37,8 +35,15 @@ impl VersionSpec {
     /// Return the specification as a resolved [`Version`].
     pub fn as_version(&self) -> Option<&Version> {
         match self {
-            Self::Calendar(inner) => Some(&inner.0),
-            Self::Semantic(inner) => Some(&inner.0),
+            Self::Version(inner) => Some(inner),
+            _ => None,
+        }
+    }
+
+    /// Return the version scope if available.
+    pub fn get_scope(&self) -> Option<&str> {
+        match self {
+            Self::Version(version) => version.scope.as_deref(),
             _ => None,
         }
     }
@@ -73,8 +78,7 @@ impl VersionSpec {
         match self {
             Self::Canary => UnresolvedVersionSpec::Canary,
             Self::Alias(alias) => UnresolvedVersionSpec::Alias(alias.to_owned()),
-            Self::Calendar(version) => UnresolvedVersionSpec::Calendar(version.to_owned()),
-            Self::Semantic(version) => UnresolvedVersionSpec::Semantic(version.to_owned()),
+            Self::Version(version) => UnresolvedVersionSpec::Version(version.to_owned()),
         }
     }
 }
@@ -103,24 +107,18 @@ impl FromStr for VersionSpec {
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         if value == "canary" {
-            return Ok(VersionSpec::Canary);
+            return Ok(Self::Canary);
         }
 
-        let value = clean_version_string(value);
-
-        if is_alias_name(&value) {
-            return Ok(VersionSpec::Alias(CompactString::new(value)));
+        // A version takes priority, with an alias being the residual:
+        // whatever the grammar does not accept as a version
+        match Version::parse(value) {
+            Ok(version) => Ok(Self::Version(version)),
+            Err(error) => match parse_alias(value) {
+                Ok(alias) => Ok(Self::Alias(alias)),
+                Err(_) => Err(error),
+            },
         }
-
-        if is_calver(&value) {
-            return Ok(VersionSpec::Calendar(CalVer::parse(&value)?));
-        }
-
-        if is_semver(&value) {
-            return Ok(VersionSpec::Semantic(SemVer::parse(&value)?));
-        }
-
-        Err(SpecError::UnknownResolvedFormat(value.to_owned()))
     }
 }
 
@@ -150,8 +148,7 @@ impl fmt::Display for VersionSpec {
         match self {
             Self::Canary => write!(f, "canary"),
             Self::Alias(alias) => write!(f, "{alias}"),
-            Self::Calendar(version) => write!(f, "{version}"),
-            Self::Semantic(version) => write!(f, "{version}"),
+            Self::Version(version) => write!(f, "{version}"),
         }
     }
 }
@@ -166,11 +163,10 @@ impl PartialEq<&str> for VersionSpec {
     }
 }
 
-impl PartialEq<semver::Version> for VersionSpec {
-    fn eq(&self, other: &semver::Version) -> bool {
+impl PartialEq<Version> for VersionSpec {
+    fn eq(&self, other: &Version) -> bool {
         match self {
-            Self::Calendar(version) => &version.0 == other,
-            Self::Semantic(version) => &version.0 == other,
+            Self::Version(version) => version == other,
             _ => false,
         }
     }

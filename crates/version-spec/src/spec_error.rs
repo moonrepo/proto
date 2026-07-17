@@ -1,23 +1,22 @@
+pub type ParseError = pest::error::Error<crate::syntax_parser::Rule>;
+
 #[derive(thiserror::Error, Debug)]
 pub enum SpecError {
-    #[error("Invalid calver (calendar version) format.")]
-    InvalidCalverFormat,
+    #[error("Failed to parse a version.")]
+    FailedVersionParse {
+        #[source]
+        error: Box<ParseError>,
+    },
 
-    #[error("Requirement operator found in an invalid position.")]
-    InvalidParseRequirement,
+    #[error("Failed to parse a version requirement.")]
+    FailedVersionRequirementParse {
+        #[source]
+        error: Box<ParseError>,
+    },
 
-    #[error("Invalid calver year, must be a number.")]
-    InvalidYear,
-
-    #[error("Missing major number for semantic versions, or year for calendar versions.")]
-    MissingParseMajorPart,
-
-    #[error("Unknown version format `{0}`. Must be a semantic or calendar based format.")]
-    UnknownResolvedFormat(String),
-
-    #[error("Unknown character `{0}` in version string!")]
-    UnknownParseChar(char),
-
-    #[error(transparent)]
-    Semver(#[from] semver::Error),
+    #[error("Failed to parse a version range.")]
+    FailedVersionRangeParse {
+        #[source]
+        error: Box<ParseError>,
+    },
 }

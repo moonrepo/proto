@@ -2,7 +2,8 @@ use crate::error::ProtoCliError;
 use crate::session::{ProtoSession, SessionResult};
 use clap::Args;
 use proto_core::{
-    PinLocation, ProtoConfig, ToolContext, ToolSpec, UnresolvedVersionSpec, cfg, is_alias_name,
+    PinLocation, ProtoConfig, ToolContext, ToolSpec, UnresolvedVersionSpec, cfg,
+    version_spec::parse_alias,
 };
 use starbase_console::ui::*;
 use starbase_styles::encode_style_tags;
@@ -31,7 +32,7 @@ pub async fn alias(session: ProtoSession, args: AliasArgs) -> SessionResult {
         return Err(ProtoCliError::AliasNoMatchingToVersion.into());
     }
 
-    if !is_alias_name(&args.alias) {
+    if parse_alias(&args.alias).is_err() {
         return Err(ProtoCliError::AliasInvalidName {
             alias: args.alias.clone(),
         }

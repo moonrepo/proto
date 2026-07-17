@@ -1,11 +1,9 @@
+use crate::resolved_spec::VersionSpec;
 use crate::spec_error::SpecError;
-use crate::unresolved_parser::*;
-use crate::version_types::*;
-use crate::{VersionSpec, clean_version_req_string, clean_version_string, is_alias_name};
+use crate::syntax::*;
+use crate::syntax_parser::parse_alias;
 use compact_str::CompactString;
 use human_sort::compare;
-use semver::Prerelease;
-use semver::VersionReq;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::fmt::{Debug, Display};
@@ -20,28 +18,16 @@ pub enum UnresolvedVersionSpec {
     Canary,
     /// An alias that is used as a map to a version.
     Alias(CompactString),
-    /// A partial version, requirement, or range (`^`, `~`, etc).
-    Req(VersionReq),
-    /// A list of requirements to match any against (joined by `||`).
-    ReqAny(Vec<VersionReq>),
-    /// A fully-qualified calendar version.
-    Calendar(CalVer),
-    /// A fully-qualified semantic version.
-    Semantic(SemVer),
+    /// A list of requirements.
+    Range(Range),
+    /// A partial version / requirement.
+    Requirement(Requirement),
+    /// A fully-qualified version.
+    Version(Version),
 }
 
 impl UnresolvedVersionSpec {
-    /// Parse the provided string into an unresolved specification based
-    /// on the following rules, in order:
-    ///
-    /// - If the value "canary", map as `Canary` variant.
-    /// - If an alpha-numeric value that starts with a character, map as `Alias`.
-    /// - If contains `||`, split and parse each item with [`VersionReq`],
-    ///   and map as `ReqAny`.
-    /// - If contains `,` or ` ` (space), parse with [`VersionReq`], and map as `Req`.
-    /// - If starts with `=`, `^`, `~`, `>`, `<`, or `*`, parse with [`VersionReq`],
-    ///   and map as `Req`.
-    /// - Else parse as `Semantic` or `Calendar` types.
+    /// Parse the provided string into an unresolved specification.
     pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, SpecError> {
         Self::from_str(value.as_ref())
     }
@@ -66,7 +52,7 @@ impl UnresolvedVersionSpec {
     /// Return true if the current specification can be treated as a
     /// fully qualified version, either calendar or semantic.
     pub fn is_fully_qualified(&self) -> bool {
-        matches!(self, Self::Calendar(_) | Self::Semantic(_))
+        matches!(self, Self::Version(_))
     }
 
     /// Return true if the current specification is the "latest" alias.
@@ -81,14 +67,13 @@ impl UnresolvedVersionSpec {
     /// Note that this *does not* actually resolve or validate against a manifest,
     /// and instead simply constructs the [`VersionSpec`].
     ///
-    /// Furthermore, the `Req` and `ReqAny` variants will return a "latest" alias,
-    ///  as they are not resolved or valid versions.
+    /// Furthermore, the `Range` and `Requirement` variants will return a
+    /// "latest" alias, as they are not resolved or valid versions.
     pub fn to_resolved_spec(&self) -> VersionSpec {
         match self {
             Self::Canary => VersionSpec::Canary,
-            Self::Alias(alias) => VersionSpec::Alias(CompactString::new(alias)),
-            Self::Calendar(version) => VersionSpec::Calendar(version.to_owned()),
-            Self::Semantic(version) => VersionSpec::Semantic(version.to_owned()),
+            Self::Alias(alias) => VersionSpec::Alias(alias.to_owned()),
+            Self::Version(version) => VersionSpec::Version(version.to_owned()),
             _ => VersionSpec::default(),
         }
     }
@@ -100,12 +85,7 @@ impl UnresolvedVersionSpec {
     /// Furthermore, `Canary` will return "canary", `ReqAny` will return "latest",
     /// and aliases will return as-is.
     pub fn to_partial_string(&self) -> String {
-        fn from_parts(
-            major: u64,
-            minor: Option<u64>,
-            patch: Option<u64>,
-            pre: &Prerelease,
-        ) -> String {
+        fn from_parts(major: u32, minor: Option<u32>, patch: Option<u32>, pre: &str) -> String {
             let mut version = format!("{major}");
 
             minor.inspect(|m| {
@@ -118,7 +98,7 @@ impl UnresolvedVersionSpec {
 
             if !pre.is_empty() {
                 version.push('-');
-                version.push_str(pre.as_str());
+                version.push_str(pre);
             }
 
             version
@@ -127,17 +107,25 @@ impl UnresolvedVersionSpec {
         match self {
             UnresolvedVersionSpec::Canary => "canary".into(),
             UnresolvedVersionSpec::Alias(alias) => alias.to_string(),
-            UnresolvedVersionSpec::Req(req) => {
-                let req = req.comparators.first().unwrap();
+            UnresolvedVersionSpec::Range(_) => "latest".into(),
+            UnresolvedVersionSpec::Requirement(req) => from_parts(
+                req.major.unwrap_or_default(),
+                req.minor,
+                req.patch,
+                req.prerelease.as_deref().unwrap_or_default(),
+            ),
+            UnresolvedVersionSpec::Version(ver) => {
+                let version = from_parts(
+                    ver.major,
+                    Some(ver.minor),
+                    Some(ver.patch),
+                    ver.prerelease.as_deref().unwrap_or_default(),
+                );
 
-                from_parts(req.major, req.minor, req.patch, &req.pre)
-            }
-            UnresolvedVersionSpec::ReqAny(_) => "latest".into(),
-            UnresolvedVersionSpec::Calendar(ver) => {
-                from_parts(ver.major, Some(ver.minor), Some(ver.patch), &ver.pre)
-            }
-            UnresolvedVersionSpec::Semantic(ver) => {
-                from_parts(ver.major, Some(ver.minor), Some(ver.patch), &ver.pre)
+                match &ver.scope {
+                    Some(scope) => format!("{scope}-{version}"),
+                    None => version,
+                }
             }
         }
     }
@@ -170,33 +158,29 @@ impl FromStr for UnresolvedVersionSpec {
             return Ok(UnresolvedVersionSpec::Canary);
         }
 
-        let value = clean_version_string(value);
+        // The grammar is the authority on what a version looks like, so try the
+        // most specific shape first, and treat an alias as the residual: it is
+        // whatever is not structurally a version, requirement, or range
 
-        if is_alias_name(&value) {
-            return Ok(UnresolvedVersionSpec::Alias(CompactString::new(value)));
+        if let Ok(version) = Version::parse(value) {
+            return Ok(Self::Version(version));
         }
 
-        let value = clean_version_req_string(&value);
+        // Kept for the error below, as a failed requirement is the most
+        // useful diagnostic for an input that was meant to be a version
+        let error = match Requirement::parse(value) {
+            Ok(req) => return Ok(Self::Requirement(req)),
+            Err(error) => error,
+        };
 
-        // OR requirements
-        if value.contains("||") {
-            let mut reqs = vec![];
-
-            for result in parse_multi(&value)? {
-                reqs.push(VersionReq::parse(&result)?);
-            }
-
-            return Ok(UnresolvedVersionSpec::ReqAny(reqs));
+        if let Ok(range) = Range::parse(value) {
+            return Ok(Self::Range(range));
         }
 
-        // Version or requirement
-        let (result, kind) = parse(value)?;
-
-        Ok(match kind {
-            ParseKind::Req => UnresolvedVersionSpec::Req(VersionReq::parse(&result)?),
-            ParseKind::Cal => UnresolvedVersionSpec::Calendar(CalVer::parse(&result)?),
-            _ => UnresolvedVersionSpec::Semantic(SemVer::parse(&result)?),
-        })
+        match parse_alias(value) {
+            Ok(alias) => Ok(Self::Alias(alias)),
+            Err(_) => Err(error),
+        }
     }
 }
 
@@ -219,17 +203,9 @@ impl Display for UnresolvedVersionSpec {
         match self {
             Self::Canary => write!(f, "canary"),
             Self::Alias(alias) => write!(f, "{alias}"),
-            Self::Req(req) => write!(f, "{req}"),
-            Self::ReqAny(reqs) => write!(
-                f,
-                "{}",
-                reqs.iter()
-                    .map(|req| req.to_string())
-                    .collect::<Vec<_>>()
-                    .join(" || ")
-            ),
-            Self::Calendar(version) => write!(f, "{version}"),
-            Self::Semantic(version) => write!(f, "{version}"),
+            Self::Range(range) => write!(f, "{range}"),
+            Self::Requirement(req) => write!(f, "{req}"),
+            Self::Version(version) => write!(f, "{version}"),
         }
     }
 }
@@ -240,8 +216,7 @@ impl PartialEq<VersionSpec> for UnresolvedVersionSpec {
             (Self::Canary, VersionSpec::Canary) => true,
             (Self::Canary, VersionSpec::Alias(a)) => a == "canary",
             (Self::Alias(a1), VersionSpec::Alias(a2)) => a1 == a2,
-            (Self::Calendar(v1), VersionSpec::Calendar(v2)) => v1 == v2,
-            (Self::Semantic(v1), VersionSpec::Semantic(v2)) => v1 == v2,
+            (Self::Version(v1), VersionSpec::Version(v2)) => v1 == v2,
             _ => false,
         }
     }
@@ -264,8 +239,7 @@ impl Ord for UnresolvedVersionSpec {
         match (self, other) {
             (Self::Canary, Self::Canary) => Ordering::Equal,
             (Self::Alias(l), Self::Alias(r)) => l.cmp(r),
-            (Self::Calendar(l), Self::Calendar(r)) => l.cmp(r),
-            (Self::Semantic(l), Self::Semantic(r)) => l.cmp(r),
+            (Self::Version(l), Self::Version(r)) => l.cmp(r),
 
             // Use human sorting for requirements/ranges
             _ => compare(&self.to_string(), &other.to_string()),

@@ -38,7 +38,7 @@ pub enum ProtoBuildError {
     FailedVersionParse {
         value: String,
         #[source]
-        error: Box<semver::Error>,
+        error: Box<version_spec::SpecError>,
     },
 
     #[diagnostic(code(proto::install::build::missing_builder))]

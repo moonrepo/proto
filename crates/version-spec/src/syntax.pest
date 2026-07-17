@@ -1,0 +1,129 @@
+// ----- SHARED -----
+
+id = _{ ASCII_ALPHANUMERIC | "-" | "_" | "." }
+
+// A leading "v" or "V" is accepted and ignored, for example "v1.2.3".
+// It is attempted last, so that a scope like "v8-1.2.3" takes priority
+v_prefix = _{ "v" | "V" }
+
+pre        =  { ASCII_ALPHANUMERIC ~ id* }
+pre_anchor = _{ "-" ~ pre }
+
+// A calver pre-release must start with a letter, so that invalid
+// month/day numbers are not parsed as pre-releases
+pre_anchor_fixed = _{ "-" ~ &ASCII_ALPHA ~ pre }
+
+build        =  { ASCII_ALPHANUMERIC ~ id* }
+build_anchor = _{ "+" ~ build }
+
+// Separators consume their own surrounding spaces, as a preceding greedy
+// " "* would otherwise swallow the space that a space-only "and" matches
+and      = { " "* ~ ("&&" | ",") ~ " "* | " "+ }
+or       = { " "* ~ "||" ~ " "* }
+op       = { "==" | ">=" | "<=" | ">" | "<" | "~" | "^" | "=" }
+req_wild = { "*" | "x" | "X" }
+
+// Repetition never backtracks, so stop before a "-" that leads into the
+// version itself, otherwise the scope consumes the entire input. The tails
+// must check the entire remaining input (mirroring the suffix of the `semver`
+// and `calver` rules), otherwise a scope segment that looks like the start of
+// a version, like the "16-" in "node-16-1.2.3", ends the scope too early
+semver_tail = _{ semver_version ~ pre_anchor? ~ build_anchor? ~ EOI }
+calver_tail = _{ calver_version ~ pre_anchor_fixed? ~ build_anchor? ~ EOI }
+
+scope        =  { ASCII_ALPHANUMERIC ~ (!("-" ~ (semver_tail | calver_tail)) ~ id)* }
+scope_anchor = _{ scope ~ "-" }
+
+// Requirement scopes stop on requirement tails instead, which support partial
+// versions. The lookahead requires pre-releases to start with a letter, so
+// that a trailing partial version, like the "1.2" in "node-16-1.2", is not
+// consumed as a digit-based pre-release, ending the scope too early. Unlike
+// versions, a requirement may also end at a range separator, and not just
+// the end of the input
+req_end = _{ EOI | " " | and | or }
+
+semver_req_tail = _{ semver_req_body ~ build_anchor? ~ req_end }
+calver_req_tail = _{ calver_req_version ~ pre_anchor_fixed? ~ build_anchor? ~ req_end }
+
+req_scope        =  { ASCII_ALPHANUMERIC ~ (!("-" ~ (semver_req_tail | calver_req_tail)) ~ id)* }
+req_scope_anchor = _{ req_scope ~ "-" }
+
+// ----- SEMANTIC VERSIONS -----
+
+num   = _{ "0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT* }
+major =  { num }
+minor =  { num }
+patch =  { num }
+
+semver_version = _{ major ~ "." ~ minor ~ "." ~ patch }
+semver         =  { (semver_version | scope_anchor ~ semver_version | v_prefix ~ semver_version) ~ pre_anchor? ~ build_anchor? }
+
+parse_semver = { SOI ~ semver ~ EOI }
+
+// ----- SEMANTIC REQUIREMENTS -----
+
+num_req   = _{ num | req_wild }
+major_req =  { num_req }
+minor_req =  { num_req }
+patch_req =  { num_req }
+
+semver_req_version = _{ major_req ~ ("." ~ minor_req)? ~ ("." ~ patch_req)? }
+semver_req_full    = _{ major_req ~ "." ~ minor_req ~ "." ~ patch_req }
+
+// A pre-release on a partial version must start with a letter, so that a
+// dashed calver, like "2000-2", is not consumed as a digit pre-release
+semver_req_body = _{ semver_req_full ~ pre_anchor? | semver_req_version ~ pre_anchor_fixed? }
+semver_req      =  { op? ~ " "* ~ (semver_req_body | req_scope_anchor ~ semver_req_body | v_prefix ~ semver_req_body) ~ build_anchor? }
+
+parse_semver_req = { SOI ~ semver_req ~ EOI }
+
+// ----- SEMANTIC RANGES -----
+
+semver_between = { semver ~ " "+ ~ "-" ~ " "+ ~ semver }
+semver_clause  = { semver_between | semver_req ~ (and ~ semver_req)* }
+semver_range   = { semver_clause ~ (or ~ semver_clause)* }
+
+parse_semver_range = { SOI ~ semver_range ~ EOI }
+
+// ----- CALENDAR VERSIONS -----
+
+// Two-digit alternatives must be tried before single digits,
+// as choices never backtrack
+year  = { ASCII_DIGIT{2, 4} }
+month = { "0" ~ ASCII_NONZERO_DIGIT | "1" ~ ("0" | "1" | "2") | ASCII_NONZERO_DIGIT }
+day   = { "0" ~ ASCII_NONZERO_DIGIT | "1" ~ ASCII_DIGIT | "2" ~ ASCII_DIGIT | "3" ~ ("0" | "1") | ASCII_NONZERO_DIGIT }
+
+// Calendar versions use a "-" separator only. A "." separator is always
+// semver, which avoids ambiguity like "24.12" (semver) being read as a
+// year-month
+calver_version = _{ year ~ "-" ~ month ~ ("-" ~ day)? }
+calver         =  { (calver_version | scope_anchor ~ calver_version | v_prefix ~ calver_version) ~ pre_anchor_fixed? ~ build_anchor? }
+
+parse_calver = { SOI ~ calver ~ EOI }
+
+// ----- CALENDAR REQUIREMENTS -----
+
+year_req  = { year | req_wild }
+month_req = { month | req_wild }
+day_req   = { day | req_wild }
+
+calver_req_version = _{ year_req ~ ("-" ~ month_req ~ ("-" ~ day_req)?)? }
+calver_req         =  { op? ~ " "* ~ (calver_req_version | req_scope_anchor ~ calver_req_version | v_prefix ~ calver_req_version) ~ pre_anchor_fixed? ~ build_anchor? }
+
+parse_calver_req = { SOI ~ calver_req ~ EOI }
+
+// ----- CALENDAR RANGES -----
+
+calver_between = { calver ~ " "+ ~ "-" ~ " "+ ~ calver }
+calver_clause  = { calver_between | calver_req ~ (and ~ calver_req)* }
+calver_range   = { calver_clause ~ (or ~ calver_clause)* }
+
+parse_calver_range = { SOI ~ calver_range ~ EOI }
+
+// ----- ALIASING -----
+
+// An alias is the residual shape: it is only reached when the input is not
+// structurally a version, requirement, or range, so it needs no lookaheads
+alias = { ASCII_ALPHA ~ (id | "\\" | "/")* }
+
+parse_alias = { SOI ~ alias ~ EOI }

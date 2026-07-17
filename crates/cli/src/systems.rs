@@ -1,8 +1,7 @@
 use crate::app::{App as CLI, Commands};
 use crate::helpers::fetch_latest_version;
-use proto_core::{ConfigMode, ProtoEnvironment, is_offline, now, reporter::ProtoConsole};
+use proto_core::{ConfigMode, ProtoEnvironment, Version, is_offline, now, reporter::ProtoConsole};
 use proto_shim::get_exe_file_name;
-use semver::Version;
 use starbase_utils::fs;
 use std::env;
 use std::time::Duration;

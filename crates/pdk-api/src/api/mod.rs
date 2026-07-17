@@ -7,12 +7,11 @@ use derive_setters::Setters;
 use rustc_hash::FxHashMap;
 use schematic::Schema;
 use std::path::PathBuf;
-use version_spec::{CalVer, SemVer, SpecError, UnresolvedVersionSpec, VersionSpec};
+use version_spec::*;
 use warpgate_api::*;
 
 pub use build::*;
 pub use checksum::*;
-pub use semver::{Version, VersionReq};
 pub use source::*;
 
 /// Enumeration of all available plugin functions that can be implemented by plugins.
@@ -927,30 +926,31 @@ impl LoadVersionsOutput {
     /// The latest version will be the highest version number.
     pub fn from_versions(versions: Vec<VersionSpec>) -> Self {
         let mut output = LoadVersionsOutput::default();
-        let mut latest = Version::new(0, 0, 0);
-        let mut calver = false;
+        let mut latest: Option<&VersionSpec> = None;
 
-        for version in versions {
+        for version in &versions {
             if let Some(inner) = version.as_version() {
-                if inner.pre.is_empty() && inner.build.is_empty() && inner > &latest {
-                    inner.clone_into(&mut latest);
-                    calver = matches!(version, VersionSpec::Calendar(_));
+                if inner.prerelease.is_none()
+                    && inner.build.is_none()
+                    && latest
+                        .and_then(|spec| spec.as_version())
+                        .is_none_or(|max| inner > max)
+                {
+                    latest = Some(version);
                 }
             }
-
-            output.versions.push(version);
         }
 
-        output.latest = Some(if calver {
-            UnresolvedVersionSpec::Calendar(CalVer(latest))
-        } else {
-            UnresolvedVersionSpec::Semantic(SemVer(latest))
+        output.latest = Some(match latest {
+            Some(spec) => spec.to_unresolved_spec(),
+            None => UnresolvedVersionSpec::parse("0.0.0").unwrap(),
         });
 
         output
             .aliases
             .insert("latest".into(), output.latest.clone().unwrap());
 
+        output.versions = versions;
         output
     }
 }

@@ -2,9 +2,9 @@ use super::source::*;
 use crate::PluginContext;
 use derive_setters::Setters;
 use rustc_hash::FxHashMap;
-use semver::VersionReq;
 use std::path::PathBuf;
 use system_env::SystemDependency;
+use version_spec::Requirement;
 use warpgate_api::{Id, VirtualPath, api_enum, api_struct};
 
 api_struct!(
@@ -130,10 +130,10 @@ api_enum!(
     #[serde(tag = "type", content = "requirement", rename_all = "kebab-case")]
     pub enum BuildRequirement {
         CommandExistsOnPath(String),
-        CommandVersion(String, VersionReq, Option<String>),
+        CommandVersion(String, Requirement, Option<String>),
         ManualIntercept(String), // url
         GitConfigSetting(String, String),
-        GitVersion(VersionReq),
+        GitVersion(Requirement),
         // macOS
         XcodeCommandLineTools,
         // Windows

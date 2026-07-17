@@ -1,5 +1,5 @@
 use crate::error::ProtoCliError;
-use semver::Version;
+use proto_core::Version;
 use starbase_console::ui::{ConsoleTheme, Style, style_to_color};
 use starbase_styles::color;
 use starbase_utils::json::JsonValue;

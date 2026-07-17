@@ -582,13 +582,13 @@ impl InstallWorkflowManager {
         let reporter = self.progress_reporters.values().next().unwrap().clone();
         let console = self.console.clone();
 
-        self.render_handle = Some(tokio::spawn(async move {
+        self.render_handle = Some(tokio::spawn(Box::pin(async move {
             console
                 .render_loop(element! {
                     InstallProgress(reporter)
                 })
                 .await
-        }));
+        })));
 
         // Wait a bit for the component to be rendered
         sleep(Duration::from_millis(50)).await;
@@ -627,7 +627,7 @@ impl InstallWorkflowManager {
             .keys()
             .fold(0, |acc, id| acc.max(id.as_str().len()));
 
-        self.render_handle = Some(tokio::spawn(async move {
+        self.render_handle = Some(tokio::spawn(Box::pin(async move {
             console
                 .render_loop(element! {
                     InstallAllProgress(
@@ -637,7 +637,7 @@ impl InstallWorkflowManager {
                     )
                 })
                 .await
-        }));
+        })));
 
         // Wait a bit for the component to be rendered
         sleep(Duration::from_millis(50)).await;

@@ -14,7 +14,6 @@ use proto_pdk_api::{
     BuildInstruction, BuildInstructionsOutput, BuildRequirement, GitSource, SourceLocation,
 };
 use rustc_hash::FxHashMap;
-use semver::{Version, VersionReq};
 use starbase_console::ConsoleError;
 use starbase_console::ui::{
     Confirm, Container, Entry, ListCheck, ListItem, Section, Select, SelectOption, Style,
@@ -34,7 +33,7 @@ use system_env::{
 use tokio::process::Command;
 use tokio::sync::{Mutex, OwnedMutexGuard};
 use tracing::{debug, error, instrument};
-use version_spec::{VersionSpec, get_semver_regex};
+use version_spec::{MatchesVersion, Requirement, Version, VersionSpec};
 use warpgate::{HttpClient, extract_file_name_from_url};
 
 static BUILD_LOCKS: OnceLock<scc::HashMap<String, Arc<Mutex<()>>>> = OnceLock::new();
@@ -470,7 +469,7 @@ impl Builder<'_> {
                 ) {
                     (Some(required_version), Some(installed_version)) => {
                         if let (Ok(req), Ok(ver)) = (
-                            VersionReq::parse(required_version),
+                            Requirement::parse(required_version),
                             Version::parse(installed_version),
                         ) {
                             // Doesn't match, so we need to install
@@ -623,16 +622,7 @@ impl Builder<'_> {
 fn get_command_version_regex() -> &'static regex::Regex {
     static VERSION_REGEX: OnceLock<regex::Regex> = OnceLock::new();
 
-    // Remove leading ^ and trailing $
-    VERSION_REGEX.get_or_init(|| {
-        regex::Regex::new(
-            get_semver_regex()
-                .as_str()
-                .trim_start_matches('^')
-                .trim_end_matches('$'),
-        )
-        .unwrap()
-    })
+    VERSION_REGEX.get_or_init(|| regex::Regex::new(r"[0-9]+\.[0-9]+\.[0-9]+").unwrap())
 }
 
 impl Builder<'_> {

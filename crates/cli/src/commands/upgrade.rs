@@ -5,8 +5,7 @@ use crate::session::{ProtoSession, SessionResult};
 use crate::telemetry::{Metric, track_usage};
 use clap::Args;
 use iocraft::prelude::element;
-use proto_core::{Id, PROTO_PLUGIN_KEY, SemVer, ToolContext, UnresolvedVersionSpec, is_offline};
-use semver::Version;
+use proto_core::{Id, PROTO_PLUGIN_KEY, ToolContext, UnresolvedVersionSpec, Version, is_offline};
 use serde::Serialize;
 use starbase_console::ui::*;
 use starbase_styles::color;
@@ -138,7 +137,7 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> SessionResult 
         session.clone(),
         InstallArgs {
             internal: true,
-            spec: Some(UnresolvedVersionSpec::Semantic(SemVer(target_version.clone())).into()),
+            spec: Some(UnresolvedVersionSpec::Version(target_version.clone()).into()),
             ..Default::default()
         },
         ToolContext::new(Id::raw(PROTO_PLUGIN_KEY)),

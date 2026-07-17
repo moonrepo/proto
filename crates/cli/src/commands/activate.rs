@@ -93,7 +93,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> SessionResul
 
     let proto_context = ToolContext::new(Id::raw(PROTO_PLUGIN_KEY));
 
-    if let Some(UnresolvedVersionSpec::Semantic(version)) =
+    if let Some(UnresolvedVersionSpec::Version(version)) =
         config.versions.get(&proto_context).map(|spec| &spec.req)
     {
         workflow

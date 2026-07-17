@@ -11,11 +11,15 @@ rust-version = "1.85.0"
 [dependencies]
 compact_str = { workspace = true }
 human-sort = { workspace = true }
+pest = "2.8.7"
+pest_derive = "2.8.7"
 regex = { workspace = true }
 schematic = { workspace = true, optional = true, features = ["schema"] }
-semver = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
 
 [features]
 default = []

@@ -3,8 +3,7 @@ use crate::session::{LoadToolOptions, ProtoSession, SessionResult};
 use clap::Args;
 use indexmap::IndexMap;
 use iocraft::prelude::{View, element};
-use proto_core::{ToolContext, ToolSpec, VersionSpec};
-use semver::VersionReq;
+use proto_core::{MatchesVersion, Requirement, ToolContext, ToolSpec, VersionSpec};
 use serde::Serialize;
 use starbase_console::ui::*;
 use std::collections::BTreeMap;
@@ -16,7 +15,7 @@ pub struct VersionsArgs {
     context: ToolContext,
 
     #[arg(help = "Filter versions with the provided requirement")]
-    filter: Option<VersionReq>,
+    filter: Option<Requirement>,
 
     #[arg(long, help = "Include aliases in the output")]
     aliases: bool,

@@ -2790,6 +2790,48 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
 
 [[package]]
+name = "pest"
+version = "2.8.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "47627dd7305c6a2d6c8c6bcd24c5a4c17dbbf425f4f9c5313e724b38fc9782e9"
+dependencies = [
+ "memchr",
+ "ucd-trie",
+]
+
+[[package]]
+name = "pest_derive"
+version = "2.8.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4b4254325ecad416ab689e27ba51da03ba01a9632bc6e108f5fe7c3c4ad29d58"
+dependencies = [
+ "pest",
+ "pest_generator",
+]
+
+[[package]]
+name = "pest_generator"
+version = "2.8.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c4c0e91ead7a8f7acecbca6f003fc2e8282b1dbe2dd9c9d2f16aba42995e0a7"
+dependencies = [
+ "pest",
+ "pest_meta",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "pest_meta"
+version = "2.8.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f9744bc48116fee06334924bb5f2bad41eed5e89bd26e29b0b799f9a3f82c210"
+dependencies = [
+ "pest",
+]
+
+[[package]]
 name = "pin-project-lite"
 version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2984,7 +3026,7 @@ dependencies = [
  "proto_pdk",
  "proto_pdk_test_utils",
  "serde",
- "starbase_sandbox 0.11.1",
+ "starbase_sandbox",
  "tokio",
  "tracing",
 ]
@@ -3009,7 +3051,6 @@ dependencies = [
  "rustc-hash",
  "scc",
  "schematic",
- "semver",
  "serde",
  "serde_json",
  "shell-words",
@@ -3017,7 +3058,7 @@ dependencies = [
  "starbase_console",
  "starbase_shell",
  "starbase_styles",
- "starbase_utils 0.14.0",
+ "starbase_utils",
  "system_env",
  "thiserror 2.0.18",
  "tokio",
@@ -3037,7 +3078,7 @@ dependencies = [
  "proto_pdk",
  "serde",
  "sha2 0.10.9",
- "starbase_utils 0.14.0",
+ "starbase_utils",
  "tracing",
 ]
 
@@ -3059,7 +3100,6 @@ dependencies = [
  "derive_setters",
  "rustc-hash",
  "schematic",
- "semver",
  "serde",
  "serde_json",
  "system_env",
@@ -3077,7 +3117,7 @@ dependencies = [
  "proto_pdk_api",
  "serde",
  "serde_json",
- "starbase_sandbox 0.12.0",
+ "starbase_sandbox",
  "warpgate",
 ]
 
@@ -3655,9 +3695,9 @@ dependencies = [
 
 [[package]]
 name = "scc"
-version = "3.8.4"
+version = "3.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7800bc2c7e91b26aeae70c2ab6eaa653efc133104b7756e674c99304adff3fdb"
+checksum = "f733aa28b85255811ad1358d559fe9a182e39327cf5470140ed9d444de86e6d5"
 dependencies = [
  "saa",
  "sdd",
@@ -3686,7 +3726,6 @@ dependencies = [
  "regex",
  "schematic_macros",
  "schematic_types",
- "semver",
  "serde",
  "serde-content",
  "serde_json",
@@ -3718,7 +3757,6 @@ checksum = "aec5d2af995a99a7a347ff2cb4644abb95c9eb0d09f6472d48e5b1cd05326e8f"
 dependencies = [
  "indexmap",
  "regex",
- "semver",
  "serde",
  "serde_json",
  "toml 1.1.2+spec-1.1.0",
@@ -4072,9 +4110,9 @@ checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
 
 [[package]]
 name = "starbase_archive"
-version = "0.14.0"
+version = "0.14.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0738605d827b76dccbf4d92680a072ae661583e9aecad1b140cfc2d50f64099b"
+checksum = "0126928f4bbce9f11209c01f1733241d38bc5597f98c2ef702afea5d43a65b39"
 dependencies = [
  "binstall-tar",
  "bzip2",
@@ -4083,7 +4121,7 @@ dependencies = [
  "miette 7.6.0",
  "rustc-hash",
  "starbase_styles",
- "starbase_utils 0.14.0",
+ "starbase_utils",
  "thiserror 2.0.18",
  "tracing",
  "zip",
@@ -4092,9 +4130,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_console"
-version = "0.6.32"
+version = "0.6.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f56a3d06645690816f9afaa22a5ed90f912d5500d8507645ac62c10637afc760"
+checksum = "6530b0f4bd6cef5c945dcb277cc91f980dac23d322832bc0dfbd2c4457d5f600"
 dependencies = [
  "crossterm",
  "iocraft",
@@ -4124,20 +4162,6 @@ dependencies = [
 
 [[package]]
 name = "starbase_sandbox"
-version = "0.11.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a52a223bc675989a16257e3cc30fd160ba1ac6871596009782758adca038208c"
-dependencies = [
- "assert_cmd",
- "assert_fs",
- "insta",
- "predicates",
- "pretty_assertions",
- "starbase_utils 0.13.8",
-]
-
-[[package]]
-name = "starbase_sandbox"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b0f10dd659949fc8d5e65f2bfbb9a24a0b49ce633d766d93efadc8e4966fcf7"
@@ -4147,7 +4171,7 @@ dependencies = [
  "insta",
  "predicates",
  "pretty_assertions",
- "starbase_utils 0.14.0",
+ "starbase_utils",
 ]
 
 [[package]]
@@ -4178,22 +4202,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_utils"
-version = "0.13.8"
+version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6f8804a32cd7c654c3321022fc1b05314d7d2fbf6781f8d19d6e4c97488cffd8"
-dependencies = [
- "dirs",
- "reflink-copy",
- "starbase_styles",
- "thiserror 2.0.18",
- "tracing",
-]
-
-[[package]]
-name = "starbase_utils"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c2e0ae77957de9c75b638c5e07ed8be1e473948a1c2ce618b0797d70206879d2"
+checksum = "068a9cf0dd7252c656d26ceca3b146c4d3baf13d0a683169952e4badea60925e"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -4489,9 +4500,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.52.3"
+version = "1.52.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8fc7f01b389ac15039e4dc9531aa973a135d7a4135281b12d7c1bc79fd57fffe"
+checksum = "317fafbbe3f02fc663dad00ea6186197de963cd4190e86a26d8d0fae095539af"
 dependencies = [
  "bytes",
  "libc",
@@ -4815,6 +4826,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40ce102ab67701b8526c123c1bab5cbe42d7040ccfd0f64af1a385808d2f43de"
 
 [[package]]
+name = "ucd-trie"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2896d95c02a80c6d6a5d6e953d479f5ddf2dfdb6a244441010e373ac0fb88971"
+
+[[package]]
 name = "unicase"
 version = "2.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4934,9 +4951,9 @@ checksum = "b6c140620e7ffbb22c2dee59cafe6084a59b5ffc27a8859a5f0d494b5d52b6be"
 
 [[package]]
 name = "uuid"
-version = "1.23.4"
+version = "1.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf80a72845275afea99e7f2b434723d3bc7e38470fcd1c7ed39a599c73319a53"
+checksum = "bf3923a6f5c4c6382e0b653c4117f48d631ea17f38ed86e2a828e6f7412f5239"
 dependencies = [
  "getrandom 0.4.2",
  "js-sys",
@@ -4967,9 +4984,10 @@ version = "0.10.3"
 dependencies = [
  "compact_str 0.9.1",
  "human-sort",
+ "pest",
+ "pest_derive",
  "regex",
  "schematic",
- "semver",
  "serde",
  "thiserror 2.0.18",
 ]
@@ -5027,7 +5045,7 @@ dependencies = [
  "starbase_archive",
  "starbase_shell",
  "starbase_styles",
- "starbase_utils 0.14.0",
+ "starbase_utils",
  "system_env",
  "thiserror 2.0.18",
  "tokio",
