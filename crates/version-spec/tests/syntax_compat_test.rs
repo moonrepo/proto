@@ -295,7 +295,17 @@ mod version_req {
         // ours defaults to tilde, so "1.1.0" is excluded rather than matched
         assert_to_string(r, "~1.0.0");
         assert_match_all(r, &["1.0.0", "1.0.1"]);
-        assert_match_none(r, &["0.9.9", "0.10.0", "0.1.0", "1.1.0", "1.0.0-pre", "1.0.1-pre"]);
+        assert_match_none(
+            r,
+            &[
+                "0.9.9",
+                "0.10.0",
+                "0.1.0",
+                "1.1.0",
+                "1.0.0-pre",
+                "1.0.1-pre",
+            ],
+        );
     }
 
     #[test]
