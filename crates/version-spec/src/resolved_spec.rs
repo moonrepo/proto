@@ -1,8 +1,8 @@
 #![allow(clippy::from_over_into)]
 
-use crate::syntax_parser::parse_alias;
 use crate::spec_error::SpecError;
 use crate::syntax::Version;
+use crate::syntax_parser::parse_alias;
 use crate::unresolved_spec::UnresolvedVersionSpec;
 use compact_str::CompactString;
 use serde::{Deserialize, Serialize};
