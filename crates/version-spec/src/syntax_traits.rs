@@ -165,7 +165,7 @@ impl FormatsVersion for Version {
 
 impl FormatsVersion for Requirement {
     fn to_formatted_string(&self, options: &FormatOptions) -> String {
-        let mut out = String::from(self.op.to_string());
+        let mut out = self.op.to_string();
 
         if options.include_scope
             && let Some(scope) = &self.scope

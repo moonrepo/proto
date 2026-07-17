@@ -1,6 +1,6 @@
 #![allow(clippy::from_over_into)]
 
-use crate::is_alias_name;
+use crate::syntax_parser::parse_alias;
 use crate::spec_error::SpecError;
 use crate::syntax::Version;
 use crate::unresolved_spec::UnresolvedVersionSpec;
@@ -110,13 +110,15 @@ impl FromStr for VersionSpec {
             return Ok(Self::Canary);
         }
 
-        // Alias
-        if is_alias_name(value) {
-            return Ok(Self::Alias(value.into()));
+        // A version takes priority, with an alias being the residual:
+        // whatever the grammar does not accept as a version
+        match Version::parse(value) {
+            Ok(version) => Ok(Self::Version(version)),
+            Err(error) => match parse_alias(value) {
+                Ok(alias) => Ok(Self::Alias(alias)),
+                Err(_) => Err(error),
+            },
         }
-
-        // Version
-        Ok(Self::Version(Version::parse(value)?))
     }
 }
 

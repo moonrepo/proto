@@ -1,6 +1,7 @@
 use crate::resolved_spec::VersionSpec;
 use crate::spec_error::SpecError;
-use crate::{is_alias_name, syntax::*};
+use crate::syntax::*;
+use crate::syntax_parser::parse_alias;
 use compact_str::CompactString;
 use human_sort::compare;
 use serde::{Deserialize, Serialize};
@@ -157,25 +158,28 @@ impl FromStr for UnresolvedVersionSpec {
             return Ok(UnresolvedVersionSpec::Canary);
         }
 
-        // Alias
-        if is_alias_name(value) {
-            return Ok(Self::Alias(value.into()));
+        // The grammar is the authority on what a version looks like, so try the
+        // most specific shape first, and treat an alias as the residual: it is
+        // whatever is not structurally a version, requirement, or range
+
+        if let Ok(version) = Version::parse(value) {
+            return Ok(Self::Version(version));
         }
 
-        // Range
-        if value.contains("||") || value.contains([',', '&', ' ']) {
-            return Ok(Self::Range(Range::parse(value)?));
+        // Kept for the error below, as a failed requirement is the most
+        // useful diagnostic for an input that was meant to be a version
+        let error = match Requirement::parse(value) {
+            Ok(req) => return Ok(Self::Requirement(req)),
+            Err(error) => error,
+        };
+
+        if let Ok(range) = Range::parse(value) {
+            return Ok(Self::Range(range));
         }
 
-        // Requirement
-        if value.contains(['>', '<', '=', '~', '^', 'x', 'X', '*']) {
-            return Ok(Self::Requirement(Requirement::parse(value)?));
-        }
-
-        // Version
-        match Version::parse(value) {
-            Ok(version) => Ok(Self::Version(version)),
-            Err(_) => Ok(Self::Requirement(Requirement::parse(value)?)),
+        match parse_alias(value) {
+            Ok(alias) => Ok(Self::Alias(alias)),
+            Err(_) => Err(error),
         }
     }
 }

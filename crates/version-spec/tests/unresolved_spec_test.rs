@@ -26,9 +26,10 @@ mod unresolved_spec {
             UnresolvedVersionSpec::parse("stable").unwrap(),
             UnresolvedVersionSpec::Alias(CompactString::new("stable"))
         );
+        // A dashed alias remains an alias when the tail is not version-like
         assert_eq!(
-            UnresolvedVersionSpec::parse("legacy-2023").unwrap(),
-            UnresolvedVersionSpec::Alias(CompactString::new("legacy-2023"))
+            UnresolvedVersionSpec::parse("lts-hydrogen").unwrap(),
+            UnresolvedVersionSpec::Alias(CompactString::new("lts-hydrogen"))
         );
         assert_eq!(
             UnresolvedVersionSpec::parse("future/202x").unwrap(),
@@ -93,10 +94,14 @@ mod unresolved_spec {
             })
         );
 
-        // scoped partials are not versions, and remain aliases
+        // A scoped partial is a requirement, not a version
         assert_eq!(
             UnresolvedVersionSpec::parse("temurin-21").unwrap(),
-            UnresolvedVersionSpec::Alias(CompactString::new("temurin-21"))
+            UnresolvedVersionSpec::Requirement(Requirement {
+                scope: Some("temurin".into()),
+                major: Some(21),
+                ..Default::default()
+            })
         );
     }
 
@@ -295,8 +300,8 @@ mod unresolved_spec {
             UnresolvedVersionSpec::Alias(CompactString::new("latest"))
         );
         assert_eq!(
-            UnresolvedVersionSpec::parse("lts-2014").unwrap(),
-            UnresolvedVersionSpec::Alias(CompactString::new("lts-2014"))
+            UnresolvedVersionSpec::parse("lts-hydrogen").unwrap(),
+            UnresolvedVersionSpec::Alias(CompactString::new("lts-hydrogen"))
         );
     }
 
@@ -321,11 +326,10 @@ mod unresolved_spec {
 
     #[test]
     fn parses_req_spaces() {
+        // A space after the operator is still a single requirement
         assert_eq!(
             UnresolvedVersionSpec::parse("> 10").unwrap(),
-            UnresolvedVersionSpec::Range(Range {
-                clauses: vec![Clause::Only(req(">10"))]
-            })
+            UnresolvedVersionSpec::Requirement(req(">10"))
         );
         assert_eq!(
             UnresolvedVersionSpec::parse("1.2 , 2").unwrap(),

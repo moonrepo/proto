@@ -123,4 +123,8 @@ parse_calver_range = { SOI ~ calver_range ~ EOI }
 
 // ----- ALIASING -----
 
-alias = { ASCII_ALPHA ~ (id | "*" | "/")* }
+// An alias is the residual shape: it is only reached when the input is not
+// structurally a version, requirement, or range, so it needs no lookaheads
+alias = { ASCII_ALPHA ~ (id | "\\" | "/")* }
+
+parse_alias = { SOI ~ alias ~ EOI }

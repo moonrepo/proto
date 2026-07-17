@@ -121,6 +121,15 @@ pub fn parse_calver_range<T: AsRef<str>>(input: T) -> Result<Range, pest::error:
     Ok(range)
 }
 
+#[doc(hidden)]
+pub fn parse_alias<T: AsRef<str>>(input: T) -> Result<CompactString, pest::error::Error<Rule>> {
+    let input = input.as_ref().trim();
+
+    SyntaxParser::parse(Rule::parse_alias, input)?;
+
+    Ok(CompactString::new(input))
+}
+
 fn parse_int(pair: Pair<Rule>, message: &str) -> Result<u32, Error<Rule>> {
     pair.as_str().parse::<u32>().map_err(|error| {
         Error::new_from_span(
