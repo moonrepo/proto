@@ -323,7 +323,7 @@ mod syntax {
 
         #[test]
         fn parses_partial() {
-            // No operator defaults to a caret match
+            // No operator defaults to a tilde match
             assert_eq!(
                 parse_semver_req("1").unwrap(),
                 Requirement {

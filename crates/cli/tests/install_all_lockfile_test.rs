@@ -51,12 +51,12 @@ mod install_all_lockfile {
 
         let protoform = lockfile.tools.get("protoform").unwrap().first().unwrap();
 
-        // `2.1` acts like `^2.1`, so it floats to the latest 2.x
+        // `2.1` acts like `~2.1`, so it matches the latest 2.1.x
         assert_record!(
             protoform,
             "2.1",
-            "2.10.15",
-            "f897412206e7717e39ef0c64bc24f32e8a15268b16bb5dcd26995bc287367d26"
+            "2.1.15",
+            "882a417d8801e2aead2142f47c9f19bd48bf8ddc03c0ca15c150c58ddc9836c8"
         );
 
         let moonbase = lockfile.tools.get("moonbase").unwrap().first().unwrap();

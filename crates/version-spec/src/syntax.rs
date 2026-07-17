@@ -217,11 +217,11 @@ pub enum Op {
     LessEq,
 
     /// A patch-level match (`~`).
+    /// This is the default operator when one is not defined.
+    #[default]
     Tilde,
 
     /// A compatible, up to the next major version, match (`^`).
-    /// This is the default operator when one is not defined.
-    #[default]
     Caret,
 
     /// Matches any version (`*`, `x`, or `X`).

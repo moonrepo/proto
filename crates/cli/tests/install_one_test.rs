@@ -23,11 +23,11 @@ mod install_one {
             })
             .success();
 
-        // `2.5` acts like `^2.5`, so it floats to the latest 2.x
+        // `2.5` acts like `~2.5`, so it matches the latest 2.5.x
         assert!(
             sandbox
                 .path()
-                .join(".proto/tools/protostar/2.10.15")
+                .join(".proto/tools/protostar/2.5.15")
                 .exists()
         );
     }

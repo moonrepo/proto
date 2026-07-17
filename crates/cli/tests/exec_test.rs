@@ -167,10 +167,10 @@ bun = "1.2.23"
             .stdout(predicate::str::contains("v20.19.5"));
 
         let assert = sandbox.run_bin(|cmd| {
-            cmd.args(["exec", "node@20.18", "--", "node", "--version"]);
+            cmd.args(["exec", "node@20.19", "--", "node", "--version"]);
         });
 
-        // `20.18` acts like `^20.18`, so the highest matching 20.x wins
+        // `20.19` acts like `~20.19`, so the highest matching 20.19.x wins
         assert
             .success()
             .stdout(predicate::str::contains("v20.19.5"));

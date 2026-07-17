@@ -243,8 +243,8 @@ mod version_resolver {
                 None,
             )
             .unwrap(),
-            // `1.2` parses as `^1.2`, so it floats to the latest 1.x
-            Version::new(1, 10, 5)
+            // `1.2` parses as `~1.2`, so it matches the latest 1.2.x
+            Version::new(1, 2, 3)
         );
 
         assert_eq!(
@@ -256,8 +256,8 @@ mod version_resolver {
                 None,
             )
             .unwrap(),
-            // `1.0` parses as `^1.0`, so it floats to the latest 1.x
-            Version::new(1, 10, 5)
+            // `1.0` parses as `~1.0`, so it matches the latest 1.0.x
+            Version::new(1, 0, 0)
         );
 
         assert_eq!(

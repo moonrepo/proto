@@ -38,7 +38,7 @@ mod version_detector {
                 .detect_version_first_available(&manager.get_config_files())
                 .await
                 .unwrap(),
-            Some(UnresolvedVersionSpec::parse("^16").unwrap())
+            Some(UnresolvedVersionSpec::parse("~16").unwrap())
         );
 
         let manager = ProtoFileManager::load(sandbox.path().join("a/b"), None, None).unwrap();
@@ -48,7 +48,7 @@ mod version_detector {
                 .detect_version_first_available(&manager.get_config_files())
                 .await
                 .unwrap(),
-            Some(UnresolvedVersionSpec::parse("^18").unwrap())
+            Some(UnresolvedVersionSpec::parse("~18").unwrap())
         );
 
         let manager = ProtoFileManager::load(sandbox.path().join("a"), None, None).unwrap();
@@ -58,7 +58,7 @@ mod version_detector {
                 .detect_version_first_available(&manager.get_config_files())
                 .await
                 .unwrap(),
-            Some(UnresolvedVersionSpec::parse("^20").unwrap())
+            Some(UnresolvedVersionSpec::parse("~20").unwrap())
         );
     }
 
@@ -76,7 +76,7 @@ mod version_detector {
                 .detect_version_first_available(&manager.get_config_files())
                 .await
                 .unwrap(),
-            Some(UnresolvedVersionSpec::parse("^20").unwrap())
+            Some(UnresolvedVersionSpec::parse("~20").unwrap())
         );
     }
 
@@ -114,7 +114,7 @@ mod version_detector {
                 .detect_version_prefer_prototools(&manager.get_config_files())
                 .await
                 .unwrap(),
-            Some(UnresolvedVersionSpec::parse("^18").unwrap())
+            Some(UnresolvedVersionSpec::parse("~18").unwrap())
         );
     }
 
@@ -133,7 +133,7 @@ mod version_detector {
                 .detect_version_only_prototools(&manager.get_config_files())
                 .await
                 .unwrap(),
-            Some(UnresolvedVersionSpec::parse("^18").unwrap())
+            Some(UnresolvedVersionSpec::parse("~18").unwrap())
         );
 
         let manager = ProtoFileManager::load(sandbox.path().join("a"), None, None).unwrap();
