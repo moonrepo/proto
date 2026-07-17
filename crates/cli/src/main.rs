@@ -36,8 +36,7 @@ fn get_tracing_modules() -> Vec<String> {
     modules
 }
 
-#[tokio::main]
-async fn main() -> MainResult {
+async fn async_main() -> MainResult {
     let mut cli = CLI::parse();
     cli.setup_env_vars();
 
@@ -145,4 +144,17 @@ async fn main() -> MainResult {
     }
 
     Ok(ExitCode::from(outcome.exit_code))
+}
+
+fn main() -> MainResult {
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .name("proto")
+        .thread_name("proto-worker")
+        // We need more stack space to handle WASM plugins.
+        // The default stack size is 2MB, but we increase it to 8MB here.
+        .thread_stack_size(8 * 1024 * 1024)
+        .build()
+        .unwrap()
+        .block_on(async_main())
 }
