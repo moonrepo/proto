@@ -51,7 +51,6 @@ mod install_all_lockfile {
 
         let protoform = lockfile.tools.get("protoform").unwrap().first().unwrap();
 
-        // `2.1` acts like `~2.1`, so it matches the latest 2.1.x
         assert_record!(
             protoform,
             "2.1",

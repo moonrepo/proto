@@ -23,7 +23,6 @@ mod install_one {
             })
             .success();
 
-        // `2.5` acts like `~2.5`, so it matches the latest 2.5.x
         assert!(
             sandbox
                 .path()

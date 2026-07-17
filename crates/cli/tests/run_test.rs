@@ -547,7 +547,7 @@ FOURTH = "ignores-$FIRST-$PARENT"
                 .failure();
 
             assert.stderr(predicate::str::contains(
-                "This project requires asdf:zig ^0.13",
+                "This project requires asdf:zig ~0.13",
             ));
         }
 

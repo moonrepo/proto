@@ -80,7 +80,7 @@ mod exec {
             ".prototools",
             r#"
 node = "20"
-bun = "1.2.23"
+bun = "1.2"
 "#,
         );
 
@@ -115,7 +115,7 @@ bun = "1.2.23"
             ".prototools",
             r#"
 node = "20"
-bun = "1.2.23"
+bun = "1.2"
 "#,
         );
 
@@ -167,12 +167,11 @@ bun = "1.2.23"
             .stdout(predicate::str::contains("v20.19.5"));
 
         let assert = sandbox.run_bin(|cmd| {
-            cmd.args(["exec", "node@20.19", "--", "node", "--version"]);
+            cmd.args(["exec", "node@20.18", "--", "node", "--version"]);
         });
 
-        // `20.19` acts like `~20.19`, so the highest matching 20.19.x wins
         assert
             .success()
-            .stdout(predicate::str::contains("v20.19.5"));
+            .stdout(predicate::str::contains("v20.18.3"));
     }
 }

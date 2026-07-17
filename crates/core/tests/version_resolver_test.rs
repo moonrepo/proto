@@ -8,15 +8,15 @@ mod version_resolver {
 
     fn create_versions() -> Vec<VersionSpec> {
         vec![
-            VersionSpec::Version(Version::semantic(1, 0, 0)),
-            VersionSpec::Version(Version::semantic(1, 2, 3)),
-            VersionSpec::Version(Version::semantic(1, 1, 1)),
-            VersionSpec::Version(Version::semantic(1, 5, 9)),
-            VersionSpec::Version(Version::semantic(1, 10, 5)),
-            VersionSpec::Version(Version::semantic(4, 5, 6)),
-            VersionSpec::Version(Version::semantic(7, 8, 9)),
-            VersionSpec::Version(Version::semantic(8, 0, 0)),
-            VersionSpec::Version(Version::semantic(10, 0, 0)),
+            VersionSpec::Version(Version::new(1, 0, 0)),
+            VersionSpec::Version(Version::new(1, 2, 3)),
+            VersionSpec::Version(Version::new(1, 1, 1)),
+            VersionSpec::Version(Version::new(1, 5, 9)),
+            VersionSpec::Version(Version::new(1, 10, 5)),
+            VersionSpec::Version(Version::new(4, 5, 6)),
+            VersionSpec::Version(Version::new(7, 8, 9)),
+            VersionSpec::Version(Version::new(8, 0, 0)),
+            VersionSpec::Version(Version::new(10, 0, 0)),
         ]
     }
 
@@ -24,7 +24,7 @@ mod version_resolver {
         BTreeMap::from_iter([
             (
                 "latest".into(),
-                UnresolvedVersionSpec::Version(Version::semantic(10, 0, 0)),
+                UnresolvedVersionSpec::Version(Version::new(10, 0, 0)),
             ),
             (
                 "stable".into(),
@@ -32,7 +32,7 @@ mod version_resolver {
             ),
             (
                 "no-version".into(),
-                UnresolvedVersionSpec::Version(Version::semantic(20, 0, 0)),
+                UnresolvedVersionSpec::Version(Version::new(20, 0, 0)),
             ),
             (
                 "no-alias".into(),
@@ -59,7 +59,7 @@ mod version_resolver {
 
         config.aliases.insert(
             "latest-manifest".into(),
-            UnresolvedVersionSpec::Version(Version::semantic(8, 0, 0)).into(),
+            UnresolvedVersionSpec::Version(Version::new(8, 0, 0)).into(),
         );
         config.aliases.insert(
             "stable-manifest".into(),
@@ -243,7 +243,6 @@ mod version_resolver {
                 None,
             )
             .unwrap(),
-            // `1.2` parses as `~1.2`, so it matches the latest 1.2.x
             Version::new(1, 2, 3)
         );
 
@@ -256,7 +255,6 @@ mod version_resolver {
                 None,
             )
             .unwrap(),
-            // `1.0` parses as `~1.0`, so it matches the latest 1.0.x
             Version::new(1, 0, 0)
         );
 
@@ -342,7 +340,7 @@ mod version_resolver {
         let aliases = create_aliases();
 
         resolve_version(
-            &UnresolvedVersionSpec::Version(Version::semantic(20, 0, 0)),
+            &UnresolvedVersionSpec::Version(Version::new(20, 0, 0)),
             &versions,
             &aliases,
             None,

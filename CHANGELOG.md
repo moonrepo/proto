@@ -19,7 +19,6 @@
 
 #### 💥 Breaking
 
-- When configuring a partial version without an operator, we now default to `^` instead of `~`. This better aligns with the ecosystem.
 - Removed the underscore "micro/build" segment from calendar versions. Use standard build metadata instead.
   - Example: `2024-02-26_123-alpha.0` -> `2024-02-26-alpha.0+123`
 
@@ -28,6 +27,7 @@
 - Added a new version specification parser that better supports semantic and calendar versions.
   - Added support for version scopes/prefixes, for example: `openjdk-21.0.2`, `pypy-2.1`.
 - Added the following codec support to self-compressed binaries (not packed with tar or zip): `bzip2`, `xz`, and `z`.
+- Added `.tar.Z` (LZW format) support.
 - Updated archive unpacking to be streamed when applicable.
 - Improved our OpenTelemetry (OTEL) implementation to support the following:
   - Added experimental HTTP support. Can be enabled with `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf`.
