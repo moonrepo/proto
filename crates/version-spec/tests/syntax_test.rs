@@ -1083,38 +1083,11 @@ mod syntax {
         }
 
         #[test]
-        fn parses_dot_format() {
-            // Not supported by the old regex pattern
-            assert_eq!(
-                parse_calver("2024.02").unwrap(),
-                Version {
-                    kind: VersionKind::Calendar,
-                    major: 2024,
-                    minor: 2,
-                    ..Default::default()
-                }
-            );
-
-            assert_eq!(
-                parse_calver("2024.2.26").unwrap(),
-                Version {
-                    kind: VersionKind::Calendar,
-                    major: 2024,
-                    minor: 2,
-                    patch: 26,
-                    ..Default::default()
-                }
-            );
-
-            assert_eq!(
-                parse_calver("24.12").unwrap(),
-                Version {
-                    kind: VersionKind::Calendar,
-                    major: 2024,
-                    minor: 12,
-                    ..Default::default()
-                }
-            );
+        fn rejects_dot_format() {
+            // Calendar versions use "-" only; a "." separator is semver
+            assert!(parse_calver("2024.02").is_err());
+            assert!(parse_calver("2024.2.26").is_err());
+            assert!(parse_calver("24.12").is_err());
         }
 
         #[test]
@@ -1364,17 +1337,11 @@ mod syntax {
 
         #[test]
         fn parses() {
-            // Both dot and dash separators are supported
             for (input, year, month) in [
-                ("2000.2", 2000, 2),
-                ("2000.12", 2000, 12),
-                ("224.3", 2224, 3),
-                ("24.3", 2024, 3),
-                ("04.10", 2004, 10),
-                ("2000.02", 2000, 2),
                 ("2000-2", 2000, 2),
                 ("2000-02", 2000, 2),
                 ("2000-12", 2000, 12),
+                ("224-3", 2224, 3),
                 ("24-3", 2024, 3),
                 ("04-10", 2004, 10),
             ] {
@@ -1394,10 +1361,6 @@ mod syntax {
         #[test]
         fn parses_day() {
             for (input, day) in [
-                ("2024.1.1", 1),
-                ("2024.1.09", 9),
-                ("2024.1.18", 18),
-                ("2024.1.31", 31),
                 ("2024-1-1", 1),
                 ("2024-1-09", 9),
                 ("2024-1-18", 18),
@@ -1419,21 +1382,20 @@ mod syntax {
 
         #[test]
         fn errors_invalid_months() {
-            assert!(parse_calver_req("2000.0").is_err());
-            assert!(parse_calver_req("2000.00").is_err());
-            assert!(parse_calver_req("2000.13").is_err());
-            assert!(parse_calver_req("2000.20").is_err());
-            assert!(parse_calver_req("2000.2024").is_err());
+            assert!(parse_calver_req("2000-0").is_err());
+            assert!(parse_calver_req("2000-00").is_err());
             assert!(parse_calver_req("2000-13").is_err());
+            assert!(parse_calver_req("2000-20").is_err());
+            assert!(parse_calver_req("2000-2024").is_err());
         }
 
         #[test]
         fn errors_invalid_days() {
-            assert!(parse_calver_req("2000.10.0").is_err());
-            assert!(parse_calver_req("2000.10.00").is_err());
-            assert!(parse_calver_req("2000.10.32").is_err());
-            assert!(parse_calver_req("2000.10.40").is_err());
-            assert!(parse_calver_req("2000.2.42").is_err());
+            assert!(parse_calver_req("2000-10-0").is_err());
+            assert!(parse_calver_req("2000-10-00").is_err());
+            assert!(parse_calver_req("2000-10-32").is_err());
+            assert!(parse_calver_req("2000-10-40").is_err());
+            assert!(parse_calver_req("2000-2-42").is_err());
             assert!(parse_calver_req("2000-1-32").is_err());
         }
 
@@ -1442,15 +1404,12 @@ mod syntax {
             // A wildcard part matches any value, and marks the
             // whole requirement as a wildcard match
             for (input, month, day) in [
-                ("2000.*", None, None),
-                ("2000.x", None, None),
-                ("2000.X", None, None),
-                ("2000.*.*", None, None),
-                ("2000.2.*", Some(2), None),
-                ("2000.2.x", Some(2), None),
                 ("2000-*", None, None),
+                ("2000-x", None, None),
+                ("2000-X", None, None),
                 ("2000-*-*", None, None),
                 ("2000-2-*", Some(2), None),
+                ("2000-2-x", Some(2), None),
             ] {
                 assert_eq!(
                     parse_calver_req(input).unwrap(),
@@ -1470,14 +1429,14 @@ mod syntax {
         #[test]
         fn parses_ops() {
             for (input, op) in [
-                ("=2000.10", Op::Exact),
-                ("==2000.10", Op::Exact),
-                (">2000.10", Op::Greater),
-                (">=2000.10", Op::GreaterEq),
-                ("<2000.10", Op::Less),
-                ("<=2000.10", Op::LessEq),
-                ("~2000.10", Op::Tilde),
-                ("^2000.10", Op::Caret),
+                ("=2000-10", Op::Exact),
+                ("==2000-10", Op::Exact),
+                (">2000-10", Op::Greater),
+                (">=2000-10", Op::GreaterEq),
+                ("<2000-10", Op::Less),
+                ("<=2000-10", Op::LessEq),
+                ("~2000-10", Op::Tilde),
+                ("^2000-10", Op::Caret),
             ] {
                 assert_eq!(
                     parse_calver_req(input).unwrap(),
@@ -1496,13 +1455,13 @@ mod syntax {
         #[test]
         fn parses_op_with_whitespace() {
             for (input, op) in [
-                ("= 2000.10", Op::Exact),
-                ("> 2000.10", Op::Greater),
-                (">= 2000.10", Op::GreaterEq),
-                ("<  2000.10", Op::Less),
-                ("<=  2000.10", Op::LessEq),
-                ("~ 2000.10", Op::Tilde),
-                ("^ 2000.10", Op::Caret),
+                ("= 2000-10", Op::Exact),
+                ("> 2000-10", Op::Greater),
+                (">= 2000-10", Op::GreaterEq),
+                ("<  2000-10", Op::Less),
+                ("<=  2000-10", Op::LessEq),
+                ("~ 2000-10", Op::Tilde),
+                ("^ 2000-10", Op::Caret),
             ] {
                 assert_eq!(
                     parse_calver_req(input).unwrap(),
@@ -1542,7 +1501,7 @@ mod syntax {
 
             // with a wildcard part
             assert_eq!(
-                parse_calver_req(">=2000.x").unwrap(),
+                parse_calver_req(">=2000-x").unwrap(),
                 Requirement {
                     kind: VersionKind::Calendar,
                     op: Op::GreaterEq,
@@ -1567,30 +1526,6 @@ mod syntax {
         #[test]
         fn parses_pre() {
             assert_eq!(
-                parse_calver_req("2000.10-rc.1").unwrap(),
-                Requirement {
-                    kind: VersionKind::Calendar,
-                    major: Some(2000),
-                    minor: Some(10),
-                    prerelease: Some("rc.1".into()),
-                    ..Default::default()
-                }
-            );
-
-            assert_eq!(
-                parse_calver_req("2024.2.3-beta.1").unwrap(),
-                Requirement {
-                    kind: VersionKind::Calendar,
-                    major: Some(2024),
-                    minor: Some(2),
-                    patch: Some(3),
-                    prerelease: Some("beta.1".into()),
-                    ..Default::default()
-                }
-            );
-
-            // with a dash separator
-            assert_eq!(
                 parse_calver_req("2000-10-rc.1").unwrap(),
                 Requirement {
                     kind: VersionKind::Calendar,
@@ -1602,7 +1537,19 @@ mod syntax {
             );
 
             assert_eq!(
-                parse_calver_req(">=2024.2-alpha").unwrap(),
+                parse_calver_req("2024-2-3-beta.1").unwrap(),
+                Requirement {
+                    kind: VersionKind::Calendar,
+                    major: Some(2024),
+                    minor: Some(2),
+                    patch: Some(3),
+                    prerelease: Some("beta.1".into()),
+                    ..Default::default()
+                }
+            );
+
+            assert_eq!(
+                parse_calver_req(">=2024-2-alpha").unwrap(),
                 Requirement {
                     kind: VersionKind::Calendar,
                     op: Op::GreaterEq,
@@ -1617,7 +1564,7 @@ mod syntax {
         #[test]
         fn parses_and_trims_whitespace() {
             assert_eq!(
-                parse_calver_req("  >= 2000.10  ").unwrap(),
+                parse_calver_req("  >= 2000-10  ").unwrap(),
                 Requirement {
                     kind: VersionKind::Calendar,
                     op: Op::GreaterEq,
@@ -1633,7 +1580,6 @@ mod syntax {
             assert!(parse_calver_req(">=").is_err());
             assert!(parse_calver_req("~").is_err());
             assert!(parse_calver_req("^").is_err());
-            assert!(parse_calver_req("2000.").is_err());
             assert!(parse_calver_req("2000-").is_err());
             assert!(parse_calver_req("node-").is_err());
         }
@@ -1648,21 +1594,13 @@ mod syntax {
         #[test]
         fn errors_interior_whitespace() {
             // Whitespace is only allowed after the operator
-            assert!(parse_calver_req("2000 .2").is_err());
-            assert!(parse_calver_req("2000. 2").is_err());
+            assert!(parse_calver_req("2000 -2").is_err());
+            assert!(parse_calver_req("2000- 2").is_err());
             assert!(parse_calver_req("> =2000").is_err());
         }
 
         #[test]
-        fn errors_mixed_separators() {
-            // Dot and dash separators cannot be mixed
-            assert!(parse_calver_req("2000.2-3").is_err());
-            assert!(parse_calver_req("2000-2.3").is_err());
-        }
-
-        #[test]
         fn errors_too_many_parts() {
-            assert!(parse_calver_req("2000.1.2.3").is_err());
             assert!(parse_calver_req("2000-1-2-3").is_err());
         }
 
@@ -1683,26 +1621,25 @@ mod syntax {
         #[test]
         fn parses_and_ignores_build_metadata() {
             assert_eq!(
-                parse_calver_req("2000.2+build").unwrap(),
-                parse_calver_req("2000.2").unwrap()
+                parse_calver_req("2000-2+build").unwrap(),
+                parse_calver_req("2000-2").unwrap()
             );
             assert_eq!(
-                parse_calver_req(">=2024.2-alpha+build.5").unwrap(),
-                parse_calver_req(">=2024.2-alpha").unwrap()
+                parse_calver_req(">=2024-2-alpha+build.5").unwrap(),
+                parse_calver_req(">=2024-2-alpha").unwrap()
             );
         }
 
         #[test]
         fn errors_digit_pre() {
             // A calver pre-release must start with a letter
-            assert!(parse_calver_req("2000.10-0").is_err());
+            assert!(parse_calver_req("2000-10-0").is_err());
         }
 
         #[test]
         fn parses_scope() {
             for (input, scope, year, month, day) in [
                 ("node-2024-2", "node", 2024, Some(2), None),
-                ("node-2024.2", "node", 2024, Some(2), None),
                 ("node-2024", "node", 2024, None, None),
                 ("foo-bar-2024-5-12", "foo-bar", 2024, Some(5), Some(12)),
                 ("foo_bar-24-1", "foo_bar", 2024, Some(1), None),
@@ -1798,8 +1735,8 @@ mod syntax {
         fn parses_v_prefix() {
             // A leading "v" or "V" is ignored
             assert_eq!(
-                parse_calver_req("v2000.2").unwrap(),
-                parse_calver_req("2000.2").unwrap()
+                parse_calver_req("v2000-2").unwrap(),
+                parse_calver_req("2000-2").unwrap()
             );
             assert_eq!(
                 parse_calver_req(">=V2000-2").unwrap(),
@@ -1810,8 +1747,8 @@ mod syntax {
         #[test]
         fn errors_multiple_reqs() {
             // Comma/space separated requirement lists are split upstream
-            assert!(parse_calver_req("2000.2, 2001.2").is_err());
-            assert!(parse_calver_req(">=2000.1 <2001.1").is_err());
+            assert!(parse_calver_req("2000-2, 2001-2").is_err());
+            assert!(parse_calver_req(">=2000-1 <2001-1").is_err());
         }
     }
 
@@ -1842,9 +1779,9 @@ mod syntax {
             );
 
             assert_eq!(
-                parse_calver_range("2024.1.15").unwrap(),
+                parse_calver_range("2024-1-15").unwrap(),
                 Range {
-                    clauses: vec![Clause::Only(req("2024.1.15"))]
+                    clauses: vec![Clause::Only(req("2024-1-15"))]
                 }
             );
         }
@@ -1912,12 +1849,12 @@ mod syntax {
         #[test]
         fn parses_and_or() {
             assert_eq!(
-                parse_calver_range(">=2000-1 && <2000-6 || >=2001, <2002 || 2003.x").unwrap(),
+                parse_calver_range(">=2000-1 && <2000-6 || >=2001, <2002 || 2003-x").unwrap(),
                 Range {
                     clauses: vec![
                         Clause::All(vec![req(">=2000-1"), req("<2000-6")]),
                         Clause::All(vec![req(">=2001"), req("<2002")]),
-                        Clause::Only(req("2003.x")),
+                        Clause::Only(req("2003-x")),
                     ]
                 }
             );
@@ -1969,14 +1906,6 @@ mod syntax {
                     "input: {input}"
                 );
             }
-
-            // dot format
-            assert_eq!(
-                parse_calver_range("2000.2 - 2001.3").unwrap(),
-                Range {
-                    clauses: vec![Clause::Between(ver("2000.2"), ver("2001.3"))]
-                }
-            );
 
             // with days
             assert_eq!(
@@ -2200,8 +2129,8 @@ mod syntax {
 
             assert_eq!(serde_json::to_string(&version).unwrap(), "\"1.2.3\"");
 
-            // Dotted calendar versions are normalized to dashes
-            let version = Version::parse("2024.2.26").unwrap();
+            // Calendar month and day are zero-padded
+            let version = Version::parse("2024-2-26").unwrap();
 
             assert_eq!(serde_json::to_string(&version).unwrap(), "\"2024-02-26\"");
 

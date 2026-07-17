@@ -93,10 +93,11 @@ year  = { ASCII_DIGIT{2, 4} }
 month = { "0" ~ ASCII_NONZERO_DIGIT | "1" ~ ("0" | "1" | "2") | ASCII_NONZERO_DIGIT }
 day   = { "0" ~ ASCII_NONZERO_DIGIT | "1" ~ ASCII_DIGIT | "2" ~ ASCII_DIGIT | "3" ~ ("0" | "1") | ASCII_NONZERO_DIGIT }
 
-calver_version_dot  = _{ year ~ "." ~ month ~ ("." ~ day)? }
-calver_version_dash = _{ year ~ "-" ~ month ~ ("-" ~ day)? }
-calver_version      = _{ calver_version_dot | calver_version_dash }
-calver              =  { (calver_version | scope_anchor ~ calver_version | v_prefix ~ calver_version) ~ pre_anchor_fixed? ~ build_anchor? }
+// Calendar versions use a "-" separator only. A "." separator is always
+// semver, which avoids ambiguity like "24.12" (semver) being read as a
+// year-month
+calver_version = _{ year ~ "-" ~ month ~ ("-" ~ day)? }
+calver         =  { (calver_version | scope_anchor ~ calver_version | v_prefix ~ calver_version) ~ pre_anchor_fixed? ~ build_anchor? }
 
 parse_calver = { SOI ~ calver ~ EOI }
 
@@ -106,9 +107,7 @@ year_req  = { year | req_wild }
 month_req = { month | req_wild }
 day_req   = { day | req_wild }
 
-calver_req_dot     = _{ "." ~ month_req ~ ("." ~ day_req)? }
-calver_req_dash    = _{ "-" ~ month_req ~ ("-" ~ day_req)? }
-calver_req_version = _{ year_req ~ (calver_req_dot | calver_req_dash)? }
+calver_req_version = _{ year_req ~ ("-" ~ month_req ~ ("-" ~ day_req)?)? }
 calver_req         =  { op? ~ " "* ~ (calver_req_version | req_scope_anchor ~ calver_req_version | v_prefix ~ calver_req_version) ~ pre_anchor_fixed? ~ build_anchor? }
 
 parse_calver_req = { SOI ~ calver_req ~ EOI }

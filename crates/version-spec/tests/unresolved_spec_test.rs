@@ -224,9 +224,9 @@ mod unresolved_spec {
             );
         }
 
-        // dotted date-like parts parse as calendar
+        // dashed date-like parts parse as calendar
         assert_eq!(
-            UnresolvedVersionSpec::parse("2000.02.*").unwrap(),
+            UnresolvedVersionSpec::parse("2000-02-*").unwrap(),
             UnresolvedVersionSpec::Requirement(Requirement {
                 kind: VersionKind::Calendar,
                 op: Op::Wildcard,
@@ -370,16 +370,10 @@ mod unresolved_spec {
             );
         }
 
-        // a dotted version that looks like a date parses as calendar
+        // a dotted date-like version parses as semver, not calendar
         assert_eq!(
             UnresolvedVersionSpec::parse("10.11.12").unwrap(),
-            UnresolvedVersionSpec::Version(Version {
-                kind: VersionKind::Calendar,
-                major: 2010,
-                minor: 11,
-                patch: 12,
-                ..Default::default()
-            })
+            UnresolvedVersionSpec::Version(Version::semantic(10, 11, 12))
         );
     }
 
