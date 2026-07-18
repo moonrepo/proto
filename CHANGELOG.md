@@ -37,6 +37,7 @@
 #### 🐞 Fixes
 
 - Fixed an issue where `proto clean` would not recursively clean certain directories.
+- Fixed an issue where we didn't check for an internet connection when downloading a plugin from an OCI registry or from GitHub.
 
 #### ⚙️ Internal
 

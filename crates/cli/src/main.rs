@@ -129,7 +129,9 @@ async fn async_main() -> MainResult {
         // If NDJSON format, we must print the error as JSON so
         // that it parses correctly by the consumer!
         if session.cli.reporter == ReporterFormat::Ndjson {
-            session.console.main_error(error.to_string())?;
+            session
+                .console
+                .main_error(error.to_string(), error.code().map(|code| code.to_string()))?;
             session.console.out.flush()?;
 
             if outcome.exit_code == 0 {
