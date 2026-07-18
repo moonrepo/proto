@@ -38,6 +38,7 @@
 
 - Fixed an issue where `proto clean` would not recursively clean certain directories.
 - Fixed an issue where we didn't check for an internet connection when downloading a plugin from an OCI registry or from GitHub.
+- Fixed an issue where `proto run` (and shims) could recursively execute forever when falling back to a global executable on `PATH` that is itself a proto shim from another store (typically caused by `HOME` or `PROTO_HOME` changing, or symlinked paths). We now detect the loop and error, and skip shims from foreign stores during the `PATH` lookup.
 
 #### ⚙️ Internal
 

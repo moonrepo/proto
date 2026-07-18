@@ -28,6 +28,35 @@ mod run {
     }
 
     #[test]
+    fn errors_instead_of_looping_when_fallback_reenters_proto() {
+        let sandbox = create_empty_proto_sandbox();
+
+        let assert = sandbox
+            .run_bin(|cmd| {
+                cmd.arg("run").arg("git");
+                cmd.env("PROTO_INTERNAL_RUN_FALLBACK", "git");
+            })
+            .failure();
+
+        assert.stderr(predicate::str::contains("recursive execution loop"));
+    }
+
+    #[test]
+    fn fallback_guard_ignores_other_tools() {
+        let sandbox = create_empty_proto_sandbox();
+
+        let assert = sandbox
+            .run_bin(|cmd| {
+                cmd.arg("run").arg("git");
+                cmd.env("PROTO_INTERNAL_RUN_FALLBACK", "node");
+            })
+            // `git` with no args is exit 1
+            .failure();
+
+        assert.stdout(predicate::str::contains("usage: git"));
+    }
+
+    #[test]
     fn errors_if_not_installed() {
         let sandbox = create_empty_proto_sandbox();
 
