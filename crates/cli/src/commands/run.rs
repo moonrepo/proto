@@ -467,12 +467,22 @@ pub async fn run(session: ProtoSession, mut args: RunArgs) -> SessionResult {
     // Prepare environment
     let config = session.load_config()?;
     let tool_name = tool.get_name().to_string();
-    let tool_context = tool.context.clone();
-    let mut workflow = ExecWorkflow::new(vec![tool], config);
+
+    let tools = session.load_tool_dependencies(tool).await?;
+    let specs = tools
+        .iter()
+        .filter_map(|tool| {
+            tool.detected_version
+                .clone()
+                .map(|spec| (tool.context.clone(), spec))
+        })
+        .collect::<FxHashMap<_, _>>();
+
+    let mut workflow = ExecWorkflow::new(tools, config);
 
     workflow
         .prepare_environment(
-            FxHashMap::from_iter([(tool_context, spec)]),
+            specs,
             ExecWorkflowParams {
                 activate_environment: true,
                 check_process_env: true,

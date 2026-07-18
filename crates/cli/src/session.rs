@@ -18,6 +18,7 @@ use starbase::{AppResult, AppSession};
 use starbase_console::Console;
 use starbase_console::ui::{OwnedOrShared, Progress, ProgressDisplay, ProgressReporter};
 use starbase_utils::envx;
+use std::collections::VecDeque;
 use std::sync::Arc;
 use tokio::task::JoinSet;
 use tracing::{debug, instrument};
@@ -126,6 +127,67 @@ impl ProtoSession {
         }
 
         Ok(record)
+    }
+
+    pub async fn load_tool_dependencies(
+        &self,
+        parent: ToolRecord,
+    ) -> Result<Vec<ToolRecord>, ProtoLoaderError> {
+        let mut seen = FxHashSet::from_iter([parent.context.clone()]);
+        let mut queue = VecDeque::from(parent.metadata.requires.clone());
+        let mut tools = vec![parent];
+
+        while let Some(id) = queue.pop_front() {
+            let context = ToolContext::parse(&id)?;
+
+            if !seen.insert(context.clone()) {
+                continue;
+            }
+
+            let Ok(mut tool) = self
+                .load_tool_with_options(
+                    &context,
+                    LoadToolOptions {
+                        detect_version: true,
+                        ..Default::default()
+                    },
+                )
+                .await
+            else {
+                continue;
+            };
+
+            let Some(mut spec) = tool.detected_version.clone() else {
+                debug!(
+                    tool = context.as_str(),
+                    "Could not detect a version for the required tool, not adding to the environment",
+                );
+
+                continue;
+            };
+
+            if Resolver::resolve(&tool, &mut spec, true).await.is_err() || !tool.is_installed(&spec)
+            {
+                debug!(
+                    tool = context.as_str(),
+                    "The required tool is not installed, not adding to the environment",
+                );
+
+                continue;
+            }
+
+            debug!(
+                tool = context.as_str(),
+                version = spec.get_resolved_version().to_string(),
+                "Adding the required tool to the environment",
+            );
+
+            tool.detected_version = Some(spec);
+            queue.extend(tool.metadata.requires.iter().cloned());
+            tools.push(tool);
+        }
+
+        Ok(tools)
     }
 
     /// Load tools that have a configured version.

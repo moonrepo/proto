@@ -9,13 +9,17 @@ use starbase_utils::toml::TomlError;
 use starbase_utils::yaml::YamlError;
 use thiserror::Error;
 use tokio::task::JoinError;
-use warpgate::{WarpgateLoaderError, WarpgatePluginError};
+use warpgate::{IdError, WarpgateLoaderError, WarpgatePluginError};
 
 #[derive(Error, Debug, miette::Diagnostic)]
 pub enum ProtoLoaderError {
     #[diagnostic(transparent)]
     #[error(transparent)]
     Config(#[from] Box<ProtoConfigError>),
+
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Id(#[from] Box<IdError>),
 
     #[diagnostic(transparent)]
     #[error(transparent)]
@@ -67,6 +71,12 @@ pub enum ProtoLoaderError {
 impl From<ProtoConfigError> for ProtoLoaderError {
     fn from(e: ProtoConfigError) -> ProtoLoaderError {
         ProtoLoaderError::Config(Box::new(e))
+    }
+}
+
+impl From<IdError> for ProtoLoaderError {
+    fn from(e: IdError) -> ProtoLoaderError {
+        ProtoLoaderError::Id(Box::new(e))
     }
 }
 
