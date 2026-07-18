@@ -272,7 +272,7 @@ fn run_global_tool(
 
 #[instrument(skip(session))]
 pub async fn run(session: ProtoSession, mut args: RunArgs) -> SessionResult {
-    let tool = match session.load_tool(&args.context).await {
+    let mut tool = match session.load_tool(&args.context).await {
         Ok(tool) => tool,
         Err(ProtoLoaderError::UnknownTool { id }) => {
             // Check if this is a bin provided by another tool (e.g., `npx` from `npm`).
@@ -464,10 +464,10 @@ pub async fn run(session: ProtoSession, mut args: RunArgs) -> SessionResult {
         get_tool_executable(&tool, &spec, args.exe.as_deref()).await?
     };
 
-    // Prepare environment
-    let config = session.load_config()?;
-    let tool_name = tool.get_name().to_string();
+    // Gather tools and specs
+    tool.detected_version = Some(spec);
 
+    let tool_name = tool.get_name().to_string();
     let tools = session.load_tool_dependencies(tool).await?;
     let specs = tools
         .iter()
@@ -478,6 +478,8 @@ pub async fn run(session: ProtoSession, mut args: RunArgs) -> SessionResult {
         })
         .collect::<FxHashMap<_, _>>();
 
+    // Prepare environment
+    let config = session.load_config()?;
     let mut workflow = ExecWorkflow::new(tools, config);
 
     workflow
