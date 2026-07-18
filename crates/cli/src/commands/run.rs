@@ -591,12 +591,17 @@ mod tests {
             let sandbox = create_empty_sandbox();
             let env = create_env(sandbox.path());
 
-            sandbox.create_file("globals/tool", "");
+            // Must use the platform specific file name (tool.exe on Windows),
+            // as that's what the `PATH` lookup searches for
+            sandbox.create_file(format!("globals/{}", path::exe_name("tool")), "");
 
             let result =
                 find_global_executable(&env, "tool", &join_dirs(&[sandbox.path().join("globals")]));
 
-            assert_eq!(result.unwrap(), sandbox.path().join("globals/tool"));
+            assert_eq!(
+                result.unwrap(),
+                sandbox.path().join("globals").join(path::exe_name("tool"))
+            );
         }
 
         #[test]
@@ -604,8 +609,8 @@ mod tests {
             let sandbox = create_empty_sandbox();
             let env = create_env(sandbox.path());
 
-            sandbox.create_file("store/shims/tool", "");
-            sandbox.create_file("store/bin/tool", "");
+            sandbox.create_file(format!("store/shims/{}", path::exe_name("tool")), "");
+            sandbox.create_file(format!("store/bin/{}", path::exe_name("tool")), "");
 
             let result = find_global_executable(
                 &env,
@@ -621,8 +626,14 @@ mod tests {
             let sandbox = create_empty_sandbox();
             let env = create_env(sandbox.path());
 
-            sandbox.create_file("other-home/.proto/shims/tool", "");
-            sandbox.create_file("other-home/.proto/bin/tool", "");
+            sandbox.create_file(
+                format!("other-home/.proto/shims/{}", path::exe_name("tool")),
+                "",
+            );
+            sandbox.create_file(
+                format!("other-home/.proto/bin/{}", path::exe_name("tool")),
+                "",
+            );
 
             let result = find_global_executable(
                 &env,
