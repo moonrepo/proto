@@ -101,8 +101,11 @@ pub enum WarpgateLoaderError {
     NotFound { url: String },
 
     #[cfg_attr(feature = "miette", diagnostic(code(plugin::offline)))]
-    #[error("{message} An internet connection is required to request {}.", .url.style(Style::Url))]
-    RequiredInternetConnection { message: String, url: String },
+    #[error(
+        "{message} An internet connection is required for {}.",
+        .locator.style(Style::Url),
+    )]
+    RequiredInternetConnection { message: String, locator: String },
 
     #[cfg_attr(
         feature = "miette",

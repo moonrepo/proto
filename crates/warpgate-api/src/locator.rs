@@ -1,6 +1,6 @@
 use crate::locator_error::PluginLocatorError;
 use serde::{Deserialize, Serialize};
-use std::fmt::{Debug, Display};
+use std::fmt::{self, Debug, Display};
 use std::path::PathBuf;
 use std::str::FromStr;
 
@@ -15,8 +15,18 @@ pub struct DataLocator {
     pub bytes: Option<Vec<u8>>,
 }
 
+impl Display for DataLocator {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.data.starts_with("data://") {
+            write!(f, "{}", self.data)
+        } else {
+            write!(f, "data://{}", self.data)
+        }
+    }
+}
+
 impl Debug for DataLocator {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // 32 hash characters + 7 prefix characters (data://)
         let mut data = self.data.chars().take(39).collect::<String>();
 
@@ -61,6 +71,16 @@ impl FileLocator {
     }
 }
 
+impl Display for FileLocator {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.file.starts_with("file://") {
+            write!(f, "{}", self.file)
+        } else {
+            write!(f, "file://{}", self.file)
+        }
+    }
+}
+
 /// A GitHub release locator.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct GitHubLocator {
@@ -74,11 +94,35 @@ pub struct GitHubLocator {
     pub project_name: Option<String>,
 }
 
+impl Display for GitHubLocator {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "github://{}{}{}",
+            self.repo_slug,
+            self.project_name
+                .as_deref()
+                .map(|n| format!("/{n}"))
+                .unwrap_or_default(),
+            self.tag
+                .as_deref()
+                .map(|t| format!("@{t}"))
+                .unwrap_or_default()
+        )
+    }
+}
+
 /// A HTTPS URL locator.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct UrlLocator {
     /// URL explicitly configured by a user (with https://).
     pub url: String,
+}
+
+impl Display for UrlLocator {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.url)
+    }
 }
 
 /// An OCI registry locator.
@@ -95,6 +139,25 @@ pub struct RegistryLocator {
 
     /// Explicit release tag to use. Defaults to `latest`.
     pub tag: Option<String>,
+}
+
+impl Display for RegistryLocator {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "registry://{}:{}",
+            vec![
+                self.registry.clone(),
+                self.namespace.clone(),
+                Some(self.image.clone())
+            ]
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>()
+            .join("/"),
+            self.tag.as_deref().unwrap_or("latest")
+        )
+    }
 }
 
 /// Strategies and protocols for locating plugins.
@@ -136,50 +199,11 @@ impl schematic::Schematic for PluginLocator {
 impl Display for PluginLocator {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            PluginLocator::Data(data) => {
-                if data.data.starts_with("data://") {
-                    write!(f, "{}", data.data)
-                } else {
-                    write!(f, "data://{}", data.data)
-                }
-            }
-            PluginLocator::File(file) => {
-                if file.file.starts_with("file://") {
-                    write!(f, "{}", file.file)
-                } else {
-                    write!(f, "file://{}", file.file)
-                }
-            }
-            PluginLocator::Url(url) => write!(f, "{}", url.url),
-            PluginLocator::GitHub(github) => write!(
-                f,
-                "github://{}{}{}",
-                github.repo_slug,
-                github
-                    .project_name
-                    .as_deref()
-                    .map(|n| format!("/{n}"))
-                    .unwrap_or_default(),
-                github
-                    .tag
-                    .as_deref()
-                    .map(|t| format!("@{t}"))
-                    .unwrap_or_default()
-            ),
-            PluginLocator::Registry(registry) => write!(
-                f,
-                "registry://{}:{}",
-                vec![
-                    registry.registry.clone(),
-                    registry.namespace.clone(),
-                    Some(registry.image.clone())
-                ]
-                .into_iter()
-                .flatten()
-                .collect::<Vec<_>>()
-                .join("/"),
-                registry.tag.as_deref().unwrap_or("latest")
-            ),
+            PluginLocator::Data(data) => write!(f, "{data}"),
+            PluginLocator::File(file) => write!(f, "{file}"),
+            PluginLocator::Url(url) => write!(f, "{url}"),
+            PluginLocator::GitHub(github) => write!(f, "{github}"),
+            PluginLocator::Registry(registry) => write!(f, "{registry}"),
         }
     }
 }

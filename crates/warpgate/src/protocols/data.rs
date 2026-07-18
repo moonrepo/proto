@@ -13,6 +13,10 @@ impl LoaderProtocol<DataLocator> for DataLoader {
         false
     }
 
+    fn requires_online(&self) -> bool {
+        false
+    }
+
     async fn load<'a>(
         &self,
         id: &'a Id,

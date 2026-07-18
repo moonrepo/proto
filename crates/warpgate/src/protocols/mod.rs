@@ -20,6 +20,10 @@ use warpgate_api::Id;
 pub trait LoaderProtocol<T> {
     fn is_latest(&self, locator: &T) -> bool;
 
+    fn requires_online(&self) -> bool {
+        true
+    }
+
     async fn load<'a>(
         &self,
         id: &'a Id,
