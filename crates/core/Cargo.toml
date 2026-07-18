@@ -21,6 +21,7 @@ warpgate = { version = "0.33.0", path = "../warpgate", features = [
     "miette",
     "schematic",
 ] }
+ai_env = { workspace = true }
 clap = { workspace = true, optional = true }
 convert_case = "0.11.0"
 docker_credential = { workspace = true }

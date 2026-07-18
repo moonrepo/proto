@@ -1,3 +1,4 @@
+use ai_env::AiNetworkPolicy;
 use regex::Regex;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -70,6 +71,14 @@ pub fn is_offline() -> bool {
             match value.as_ref() {
                 "1" | "true" => return true,
                 "0" | "false" => return false,
+                _ => {}
+            };
+        }
+
+        if let Some(agent_env) = ai_env::get_environment() {
+            match agent_env.network {
+                AiNetworkPolicy::Disabled => return true,
+                AiNetworkPolicy::Open | AiNetworkPolicy::Filtered => return false,
                 _ => {}
             };
         }
