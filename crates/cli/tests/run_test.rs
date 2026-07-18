@@ -28,6 +28,35 @@ mod run {
     }
 
     #[test]
+    fn errors_instead_of_looping_when_fallback_reenters_proto() {
+        let sandbox = create_empty_proto_sandbox();
+
+        let assert = sandbox
+            .run_bin(|cmd| {
+                cmd.arg("run").arg("git");
+                cmd.env("PROTO_INTERNAL_RUN_FALLBACK", "git");
+            })
+            .failure();
+
+        assert.stderr(predicate::str::contains("recursive execution loop"));
+    }
+
+    #[test]
+    fn fallback_guard_ignores_other_tools() {
+        let sandbox = create_empty_proto_sandbox();
+
+        let assert = sandbox
+            .run_bin(|cmd| {
+                cmd.arg("run").arg("git");
+                cmd.env("PROTO_INTERNAL_RUN_FALLBACK", "node");
+            })
+            // `git` with no args is exit 1
+            .failure();
+
+        assert.stdout(predicate::str::contains("usage: git"));
+    }
+
+    #[test]
     fn errors_if_not_installed() {
         let sandbox = create_empty_proto_sandbox();
 
@@ -58,17 +87,39 @@ mod run {
         ));
     }
 
+    // Windows requires a real `node.exe`, so we can't fake one there. The
+    // fallback execution path is still covered on Windows by the `git`
+    // based tests above.
+    #[cfg(unix)]
     #[test]
     fn runs_tool_from_path_if_proto_fails() {
+        use std::os::unix::fs::PermissionsExt;
+
         let sandbox = create_empty_proto_sandbox();
 
-        // Note that node must be installed in the system without proto for this test to pass.
-        // In github CI task runners this is usually the case.
-        sandbox
+        // Create a fake node in a directory we control instead of relying on
+        // one existing in the system, as the machine may have no node at all,
+        // or worse, a node wrapper from another version manager that resolves
+        // `node` through our shims again, causing an infinite execution loop
+        // that hangs until the timeout!
+        sandbox.create_file("globals/node", "#!/bin/sh\necho \"v0.0.0-fake\"\n");
+
+        let globals_dir = sandbox.path().join("globals");
+
+        fs::set_permissions(globals_dir.join("node"), fs::Permissions::from_mode(0o755)).unwrap();
+
+        // Use a minimal `PATH` so that nothing from the machine leaks in. If
+        // the fallback breaks, this fails fast instead of hanging.
+        let path_env = env::join_paths([globals_dir, "/usr/bin".into(), "/bin".into()]).unwrap();
+
+        let assert = sandbox
             .run_bin(|cmd| {
                 cmd.arg("run").arg("node").arg("--").arg("--version");
+                cmd.env("PATH", &path_env);
             })
             .success();
+
+        assert.stdout(predicate::str::contains("v0.0.0-fake"));
     }
 
     #[test]

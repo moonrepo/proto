@@ -146,7 +146,11 @@ impl ProtoReporter {
         }
     }
 
-    pub fn main_error(&self, message: impl Into<String>) -> Result<(), ConsoleError> {
+    pub fn main_error(
+        &self,
+        message: impl Into<String>,
+        code: Option<String>,
+    ) -> Result<(), ConsoleError> {
         let message = message.into();
 
         match self.format {
@@ -155,7 +159,7 @@ impl ProtoReporter {
             }
             // Do not use append here! This happens at the end of main!
             ReporterFormat::Json | ReporterFormat::Ndjson => {
-                self.write_json(Event::Error(MessageOutput { message }))?;
+                self.write_json(Event::Error(MessageOutput { code, message }))?;
             }
         };
 
@@ -173,7 +177,10 @@ impl ProtoReporter {
                 self.append_json(message)?;
             }
             ReporterFormat::Ndjson => {
-                self.write_json(Event::Message(MessageOutput { message }))?;
+                self.write_json(Event::Message(MessageOutput {
+                    code: None,
+                    message,
+                }))?;
             }
         };
 
@@ -322,6 +329,8 @@ fn apply_styles(message: String) -> String {
 
 #[derive(Default, Serialize)]
 pub struct MessageOutput {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
     pub message: String,
 }
 

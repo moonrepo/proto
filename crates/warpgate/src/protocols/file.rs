@@ -11,6 +11,10 @@ impl LoaderProtocol<FileLocator> for FileLoader {
         true
     }
 
+    fn requires_online(&self) -> bool {
+        false
+    }
+
     async fn load<'a>(
         &self,
         id: &'a Id,

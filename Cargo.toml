@@ -4,14 +4,14 @@ members = ["crates/*"]
 default-members = ["crates/cli"]
 
 [workspace.dependencies]
-ai_env = "0.1.2"
+ai_env = "0.1.3"
 anyhow = "1.0.103"
 async-trait = "0.1.89"
-cd_env = "0.4.1"
-ci_env = "0.5.1"
-clap = "4.6.1"
+cd_env = "0.4.2"
+ci_env = "0.5.2"
+clap = "4.6.2"
 clap_complete = "4.6.7"
-compact_str = { version = "0.9.1", default-features = false, features = [
+compact_str = { version = "0.10.0", default-features = false, features = [
     "serde",
 ] }
 derive_setters = "0.1.9"
@@ -19,18 +19,18 @@ dirs = "6.0.0"
 docker_credential = { version = "1.4.0" }
 extism = ">=1.6.0" # Lower for consumers
 extism-pdk = "1.4.1"
-futures = "0.3.32"
+futures = "0.3.33"
 hex = { version = "0.4.3", features = ["alloc"] }
 http-cache-reqwest = "1.0.0-alpha.6"
 human-sort = "0.2.2"
 indexmap = "2.14.0"
-iocraft = "0.8.3"
+iocraft = "0.8.4"
 # iocraft = { git = "https://github.com/ccbrown/iocraft.git", branch = "main" }
 miette = "7.6.0"
 oci-client = "0.17.0"
 once_cell = "1.21.4"
 opentelemetry = "0.32.0"
-regex = { version = "1.12.4", default-features = false, features = ["std"] }
+regex = { version = "1.13.1", default-features = false, features = ["std"] }
 reqwest = { version = "0.13.4", default-features = false, features = [
     "charset",
     "http2",
@@ -41,7 +41,7 @@ reqwest-middleware = { version = "0.5.2", default-features = false, features = [
     "charset",
     "http2",
 ] }
-rmcp = { version = "2.1.0", default-features = false, features = [
+rmcp = { version = "2.2.0", default-features = false, features = [
     "base64",
     "macros",
 ] }
@@ -68,7 +68,7 @@ starbase_archive = { version = "0.14.4", features = [
 ] }
 starbase_args = { version = "0.1.12" }
 starbase_console = { version = "0.6.33", features = ["miette", "ui"] }
-starbase_id = { version = "0.3.4", features = ["miette", "schematic"] }
+starbase_id = { version = "0.3.5", features = ["miette", "schematic"] }
 starbase_sandbox = { version = "0.12.0" }
 starbase_shell = { version = "0.12.7", features = ["miette"] }
 starbase_styles = { version = "0.6.9" }
@@ -80,7 +80,7 @@ starbase_utils = { version = "0.14.1", default-features = false, features = [
     "toml",
 ] }
 thiserror = "2.0.18"
-tokio = { version = "1.52.4", features = ["full", "tracing"] }
+tokio = { version = "1.53.0", features = ["full", "tracing"] }
 toml_edit = "0.25"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", default-features = false }

@@ -108,6 +108,16 @@ pub enum ProtoCliError {
     MigrateUnknownOperation { op: String },
 
     // RUN
+    #[diagnostic(code(proto::commands::run::fallback_loop))]
+    #[error(
+        "Unable to run {tool}, as the global executable found at {} is a proto shim, which would trigger a recursive execution loop.\nThis can happen when a proto store exists on {} that does not match the current store, typically caused by {} or {} changing.",
+        .path.style(Style::Path),
+        "PATH".style(Style::Property),
+        "HOME".style(Style::Property),
+        "PROTO_HOME".style(Style::Property),
+    )]
+    RunFallbackLoop { tool: String, path: PathBuf },
+
     #[diagnostic(code(proto::commands::run::missing_alternate_binary))]
     #[error(
         "Unable to run, alternate binary {} does not exist. Attempted to find at {}.",

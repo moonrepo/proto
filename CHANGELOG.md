@@ -28,6 +28,7 @@
   - Added support for version scopes/prefixes, for example: `openjdk-21.0.2`, `pypy-2.1`.
 - Added the following codec support to self-compressed binaries (not packed with tar or zip): `bzip2`, `xz`, and `z`.
 - Added `.tar.Z` (LZW format) support.
+- Updated offline/internet detection to take into account AI agent firewall policies. If networking is disabled, we mark as offline, otherwise if its open or filtered, we mark it as online.
 - Updated archive unpacking to be streamed when applicable.
 - Improved our OpenTelemetry (OTEL) implementation to support the following:
   - Added experimental HTTP support. Can be enabled with `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf`.
@@ -37,6 +38,9 @@
 #### 🐞 Fixes
 
 - Fixed an issue where `proto clean` would not recursively clean certain directories.
+- Fixed an issue where we didn't check for an internet connection when downloading a plugin from an OCI registry or from GitHub.
+- Fixed an issue where `proto run` (and shims) could recursively execute forever when falling back to a global executable on `PATH` that is itself a proto shim from another store (typically caused by `HOME` or `PROTO_HOME` changing, or symlinked paths). We now detect the loop and error, and skip shims from foreign stores during the `PATH` lookup.
+- Fixed an issue where `proto run` (and shims) would place the paths of a required tool (e.g. `node` for `npm`) before the paths of the tool being ran within `PATH`, causing the wrong executable to be used. For example, `npm run` scripts that execute `npm` would use node's bundled npm, instead of the npm version managed by proto.
 
 #### ⚙️ Internal
 

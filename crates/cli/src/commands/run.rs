@@ -17,7 +17,9 @@ use rustc_hash::FxHashMap;
 use starbase_styles::color;
 use starbase_utils::{envx, path};
 use std::env;
-use std::path::PathBuf;
+use std::ffi::OsStr;
+use std::fs;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use tracing::{debug, instrument};
 
@@ -153,15 +155,56 @@ async fn get_tool_executable(
     Ok(config)
 }
 
-fn get_global_executable(env: &ProtoEnvironment, name: &str) -> Option<PathBuf> {
-    let Ok(system_path) = env::var("PATH") else {
-        return None;
-    };
+// Set when falling back to a global executable, so that we can detect
+// when the "global" executable re-enters proto (an execution loop)
+const FALLBACK_GUARD_VAR: &str = "PROTO_INTERNAL_RUN_FALLBACK";
 
+fn has_fallen_back(guard: &str, id: &str) -> bool {
+    guard.split(',').any(|prev| prev == id)
+}
+
+fn append_fallback(guard: &str, id: &str) -> String {
+    if guard.is_empty() {
+        id.to_owned()
+    } else {
+        format!("{guard},{id}")
+    }
+}
+
+fn get_global_executable(env: &ProtoEnvironment, name: &str) -> Option<PathBuf> {
+    let system_path = env::var_os("PATH")?;
+
+    find_global_executable(env, name, &system_path)
+}
+
+fn find_global_executable(
+    env: &ProtoEnvironment,
+    name: &str,
+    system_path: &OsStr,
+) -> Option<PathBuf> {
     let exe_name = path::exe_name(name);
 
-    for path_dir in env::split_paths(&system_path) {
-        if path_dir.starts_with(&env.store.bin_dir) || path_dir.starts_with(&env.store.shims_dir) {
+    // Canonicalize both sides of every comparison, otherwise symlinked
+    // paths (`/var` -> `/private/var`, linked home directories, etc)
+    // will never match against each other
+    let canonicalize = |path: &Path| fs::canonicalize(path).unwrap_or_else(|_| path.to_owned());
+
+    let skip_dirs = [
+        canonicalize(&env.store.bin_dir),
+        canonicalize(&env.store.shims_dir),
+    ];
+
+    for path_dir in env::split_paths(system_path) {
+        let canonical_dir = canonicalize(&path_dir);
+
+        if skip_dirs.iter().any(|dir| canonical_dir.starts_with(dir)) {
+            continue;
+        }
+
+        // Another proto store may exist on PATH that doesn't match the
+        // current store (changed `HOME` or `PROTO_HOME`), and executing
+        // one of its shims would trigger a recursive execution loop!
+        if canonical_dir.ends_with(".proto/shims") || canonical_dir.ends_with(".proto/bin") {
             continue;
         }
 
@@ -174,6 +217,13 @@ fn get_global_executable(env: &ProtoEnvironment, name: &str) -> Option<PathBuf> 
         let path = path_dir.join(&exe_name);
 
         if path.exists() && path.is_file() {
+            // The file itself may be a symlink into one of our stores
+            if fs::canonicalize(&path)
+                .is_ok_and(|target| skip_dirs.iter().any(|dir| target.starts_with(dir)))
+            {
+                continue;
+            }
+
             return Some(path);
         }
     }
@@ -190,6 +240,20 @@ fn run_global_tool(
     error: miette::Report,
 ) -> miette::Result<()> {
     if let Some(global_exe) = get_global_executable(&session.env, args.context.id.as_str()) {
+        let id = args.context.id.to_string();
+        let guard = env::var(FALLBACK_GUARD_VAR).unwrap_or_default();
+
+        // If we've already fallen back for this tool once in this execution
+        // chain, then the "global" executable is actually a proto shim,
+        // and executing it would recurse forever!
+        if has_fallen_back(&guard, &id) {
+            return Err(ProtoCliError::RunFallbackLoop {
+                tool: id,
+                path: global_exe,
+            }
+            .into());
+        }
+
         debug!(
             global_exe = ?global_exe,
             "Tool {} is currently not managed by proto but exists on PATH, falling back to the global executable",
@@ -198,6 +262,7 @@ fn run_global_tool(
 
         let mut command = Command::new(global_exe);
         command.args(args.passthrough);
+        command.env(FALLBACK_GUARD_VAR, append_fallback(&guard, &id));
 
         return exec_command_and_replace(command).into_diagnostic();
     }
@@ -207,7 +272,7 @@ fn run_global_tool(
 
 #[instrument(skip(session))]
 pub async fn run(session: ProtoSession, mut args: RunArgs) -> SessionResult {
-    let tool = match session.load_tool(&args.context).await {
+    let mut tool = match session.load_tool(&args.context).await {
         Ok(tool) => tool,
         Err(ProtoLoaderError::UnknownTool { id }) => {
             // Check if this is a bin provided by another tool (e.g., `npx` from `npm`).
@@ -399,15 +464,27 @@ pub async fn run(session: ProtoSession, mut args: RunArgs) -> SessionResult {
         get_tool_executable(&tool, &spec, args.exe.as_deref()).await?
     };
 
+    // Gather tools and specs
+    tool.detected_version = Some(spec);
+
+    let tool_name = tool.get_name().to_string();
+    let tools = session.load_tool_dependencies(tool).await?;
+    let specs = tools
+        .iter()
+        .filter_map(|tool| {
+            tool.detected_version
+                .clone()
+                .map(|spec| (tool.context.clone(), spec))
+        })
+        .collect::<FxHashMap<_, _>>();
+
     // Prepare environment
     let config = session.load_config()?;
-    let tool_name = tool.get_name().to_string();
-    let tool_context = tool.context.clone();
-    let mut workflow = ExecWorkflow::new(vec![tool], config);
+    let mut workflow = ExecWorkflow::new(tools, config);
 
     workflow
         .prepare_environment(
-            FxHashMap::from_iter([(tool_context, spec)]),
+            specs,
             ExecWorkflowParams {
                 activate_environment: true,
                 check_process_env: true,
@@ -470,4 +547,141 @@ fn create_command(
     )?;
 
     Ok(command)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use starbase_sandbox::create_empty_sandbox;
+
+    mod fallback_guard {
+        use super::*;
+
+        #[test]
+        fn matches_exact_ids_only() {
+            assert!(has_fallen_back("node", "node"));
+            assert!(has_fallen_back("node,npm", "npm"));
+            assert!(!has_fallen_back("", "node"));
+            assert!(!has_fallen_back("node", "npm"));
+            assert!(!has_fallen_back("nodejs", "node"));
+        }
+
+        #[test]
+        fn appends_ids() {
+            assert_eq!(append_fallback("", "node"), "node");
+            assert_eq!(append_fallback("node", "npm"), "node,npm");
+        }
+    }
+
+    mod find_global {
+        use super::*;
+
+        // Avoid ".proto" in the store name, as debug builds skip
+        // any path containing it
+        fn create_env(sandbox: &Path) -> ProtoEnvironment {
+            ProtoEnvironment::from(sandbox.join("store"), sandbox.join("home")).unwrap()
+        }
+
+        fn join_dirs(dirs: &[PathBuf]) -> std::ffi::OsString {
+            env::join_paths(dirs).unwrap()
+        }
+
+        #[test]
+        fn finds_exe_in_normal_dir() {
+            let sandbox = create_empty_sandbox();
+            let env = create_env(sandbox.path());
+
+            // Must use the platform specific file name (tool.exe on Windows),
+            // as that's what the `PATH` lookup searches for
+            sandbox.create_file(format!("globals/{}", path::exe_name("tool")), "");
+
+            let result =
+                find_global_executable(&env, "tool", &join_dirs(&[sandbox.path().join("globals")]));
+
+            assert_eq!(
+                result.unwrap(),
+                sandbox.path().join("globals").join(path::exe_name("tool"))
+            );
+        }
+
+        #[test]
+        fn skips_own_store_dirs() {
+            let sandbox = create_empty_sandbox();
+            let env = create_env(sandbox.path());
+
+            sandbox.create_file(format!("store/shims/{}", path::exe_name("tool")), "");
+            sandbox.create_file(format!("store/bin/{}", path::exe_name("tool")), "");
+
+            let result = find_global_executable(
+                &env,
+                "tool",
+                &join_dirs(&[env.store.shims_dir.clone(), env.store.bin_dir.clone()]),
+            );
+
+            assert_eq!(result, None);
+        }
+
+        #[test]
+        fn skips_foreign_proto_store_dirs() {
+            let sandbox = create_empty_sandbox();
+            let env = create_env(sandbox.path());
+
+            sandbox.create_file(
+                format!("other-home/.proto/shims/{}", path::exe_name("tool")),
+                "",
+            );
+            sandbox.create_file(
+                format!("other-home/.proto/bin/{}", path::exe_name("tool")),
+                "",
+            );
+
+            let result = find_global_executable(
+                &env,
+                "tool",
+                &join_dirs(&[
+                    sandbox.path().join("other-home/.proto/shims"),
+                    sandbox.path().join("other-home/.proto/bin"),
+                ]),
+            );
+
+            assert_eq!(result, None);
+        }
+
+        #[cfg(unix)]
+        #[test]
+        fn skips_symlinked_alias_of_store_dir() {
+            let sandbox = create_empty_sandbox();
+            let env = create_env(sandbox.path());
+
+            sandbox.create_file("store/shims/tool", "");
+
+            let alias_dir = sandbox.path().join("alias");
+            std::os::unix::fs::symlink(&env.store.shims_dir, &alias_dir).unwrap();
+
+            let result = find_global_executable(&env, "tool", &join_dirs(&[alias_dir]));
+
+            assert_eq!(result, None);
+        }
+
+        #[cfg(unix)]
+        #[test]
+        fn skips_exe_symlinked_into_store() {
+            let sandbox = create_empty_sandbox();
+            let env = create_env(sandbox.path());
+
+            sandbox.create_file("store/shims/tool", "");
+            sandbox.create_file("globals/other", "");
+
+            std::os::unix::fs::symlink(
+                env.store.shims_dir.join("tool"),
+                sandbox.path().join("globals/tool"),
+            )
+            .unwrap();
+
+            let result =
+                find_global_executable(&env, "tool", &join_dirs(&[sandbox.path().join("globals")]));
+
+            assert_eq!(result, None);
+        }
+    }
 }

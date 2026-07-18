@@ -10,7 +10,7 @@ use starbase_styles::color;
 use starbase_utils::fs::{self, FileLock};
 use starbase_utils::net::DownloadOptions;
 use starbase_utils::{hash, path};
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
@@ -318,7 +318,7 @@ impl PluginLoader {
         self.offline_checker = Some(Arc::new(op));
     }
 
-    async fn check_cache_or_save<'a, T, L, F>(
+    async fn check_cache_or_save<'a, T: Display, L, F>(
         &self,
         id: &'a Id,
         locator: &'a T,
@@ -366,6 +366,13 @@ impl PluginLoader {
         }
 
         trace!(id = id.as_str(), "Plugin not cached, acquiring");
+
+        if loader.requires_online() && self.is_offline() {
+            return Err(WarpgateLoaderError::RequiredInternetConnection {
+                message: "Unable to download plugin.".into(),
+                locator: locator.to_string(),
+            });
+        }
 
         let cache_path = self
             .save_to_cache(id, hash, is_latest, loader.load(id, locator).await?)
@@ -429,13 +436,6 @@ impl PluginLoader {
                 fs::write_file(&temp_file, data)?;
             }
             LoadFrom::Url(url) => {
-                if self.is_offline() {
-                    return Err(WarpgateLoaderError::RequiredInternetConnection {
-                        message: "Unable to download plugin.".into(),
-                        url: url.to_string(),
-                    });
-                }
-
                 // Attempt to extract the final file extension from the URL,
                 // so that we can update the destination similar to the blob case
                 let file_name = extract_file_name_from_url(&url);
