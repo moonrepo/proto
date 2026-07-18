@@ -389,6 +389,19 @@
       ]
     },
     {
+      "id": "dekit",
+      "locator": "https://raw.githubusercontent.com/IgnisDa/proto-plugins/main/dekit/plugin.toml",
+      "format": "toml",
+      "name": "dekit",
+      "description": "A scriptable process manager you drive from a CLI, TUI, API, or script.",
+      "author": "IgnisDa",
+      "homepageUrl": "https://github.com/pvolok/dekit",
+      "repositoryUrl": "https://github.com/IgnisDa/proto-plugins/tree/main/dekit",
+      "bins": [
+        "dekit"
+      ]
+    },
+    {
       "id": "direnv",
       "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/direnv/plugin.toml",
       "format": "toml",
@@ -605,6 +618,20 @@
       "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
       "bins": [
         "gitleaks"
+      ]
+    },
+    {
+      "id": "gitui",
+      "locator": "https://raw.githubusercontent.com/IgnisDa/proto-plugins/main/gitui/plugin.toml",
+      "format": "toml",
+      "name": "gitui",
+      "description": "Blazing fast terminal-ui for git written in rust.",
+      "author": "IgnisDa",
+      "homepageUrl": "https://github.com/gitui-org/gitui",
+      "repositoryUrl": "https://github.com/IgnisDa/proto-plugins/tree/main/gitui",
+      "devicon": "git",
+      "bins": [
+        "gitui"
       ]
     },
     {
