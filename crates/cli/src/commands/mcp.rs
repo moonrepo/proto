@@ -15,7 +15,7 @@ pub struct McpArgs {
         long,
         help = "Display server information and list available tools and resources"
     )]
-    info: bool,
+    pub info: bool,
 }
 
 #[derive(Serialize)]

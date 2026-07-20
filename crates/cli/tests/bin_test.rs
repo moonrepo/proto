@@ -43,6 +43,32 @@ mod bin {
     }
 
     #[test]
+    fn returns_raw_path_in_agent_environments() {
+        let sandbox = create_empty_proto_sandbox();
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install").arg("protostar").arg("1.0.0");
+            })
+            .success();
+
+        // Use the real reporter and force AI agent detection.
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.arg("bin")
+                .arg("protostar")
+                .arg("1.0.0")
+                .env("CODEX_CI", "1")
+                .env_remove("PROTO_TEST");
+        });
+        let stdout = assert.stdout();
+
+        assert_eq!(stdout.lines().count(), 1);
+        assert!(std::path::Path::new(stdout.trim()).is_absolute());
+
+        assert.success();
+    }
+
+    #[test]
     fn returns_bin_path() {
         let sandbox = create_empty_proto_sandbox();
 

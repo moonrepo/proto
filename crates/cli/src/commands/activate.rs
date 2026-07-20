@@ -1,3 +1,4 @@
+use crate::app::StdoutOwner;
 use crate::session::{LoadToolOptions, ProtoSession, SessionResult};
 use crate::workflows::{ExecWorkflow, ExecWorkflowParams};
 use clap::Args;
@@ -25,7 +26,7 @@ pub struct ActivateArgs {
         long,
         help = "Print the activate instructions in shell specific-syntax"
     )]
-    export: bool,
+    pub export: bool,
 
     #[arg(long, help = "Don't include ~/.proto/bin in path lookup")]
     no_bin: bool,
@@ -37,6 +38,13 @@ pub struct ActivateArgs {
     no_shim: bool,
 }
 
+#[derive(PartialEq)]
+enum ActivateOutputMode {
+    Hook,
+    Export,
+    Structured,
+}
+
 #[instrument(skip(session))]
 pub async fn activate(session: ProtoSession, args: ActivateArgs) -> SessionResult {
     // Detect the shell that we need to activate for
@@ -45,8 +53,15 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> SessionResul
         None => ShellType::try_detect()?,
     };
 
-    // If not exporting data, just print the activation syntax immediately
-    if !args.export && !session.is_json_format() {
+    // Shell code is this command's default protocol; see `App::stdout_owner`
+    let output_mode = match session.cli.stdout_owner() {
+        StdoutOwner::Reporter(_) => ActivateOutputMode::Structured,
+        _ if args.export => ActivateOutputMode::Export,
+        _ => ActivateOutputMode::Hook,
+    };
+
+    // Hook mode does not need to load tools or build an environment.
+    if output_mode == ActivateOutputMode::Hook {
         print_activation_hook(&session, &shell_type, &args)?;
 
         return Ok(None);
@@ -126,21 +141,19 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> SessionResul
     }
 
     // Output/export the information for the chosen shell
-    if args.export {
+    if output_mode == ActivateOutputMode::Export {
         print_activation_exports(&session, &shell_type, workflow)?;
 
         return Ok(None);
     }
 
-    if session.is_json_format() {
-        session.console.write_json_for_format(ActivateOutput {
-            path: workflow
-                .reset_and_join_paths_for_shell(&session.env.store.dir, &shell_type)?
-                .into_string()
-                .ok(),
-            env: workflow.env,
-        })?;
-    }
+    session.console.write_json_for_format(ActivateOutput {
+        path: workflow
+            .reset_and_join_paths_for_shell(&session.env.store.dir, &shell_type)?
+            .into_string()
+            .ok(),
+        env: workflow.env,
+    })?;
 
     Ok(None)
 }
@@ -168,7 +181,7 @@ fn print_activation_hook(
     match shell_type {
         // These operate on JSON
         ShellType::Nu => {
-            command.push_str(" --json");
+            command.push_str(" --reporter json");
         }
         // While these evaluate shell syntax
         _ => {

@@ -348,9 +348,9 @@ impl InstallWorkflow {
                     force: params.force,
                     log_writer: params.log_writer.clone(),
                     skip_prompts: params.skip_prompts,
-                    // When installing multiple tools, we can't render the nice
-                    // UI for the build flow, so rely on the progress bars
-                    skip_ui: params.multiple,
+                    // Multiple installs have a shared progress UI, while quiet
+                    // callers such as the MCP server must not render one.
+                    skip_ui: params.multiple || params.quiet,
                     strategy: params.strategy.unwrap_or(default_strategy),
                 },
             )

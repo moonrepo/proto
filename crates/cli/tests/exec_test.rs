@@ -44,6 +44,39 @@ mod exec {
     }
 
     #[test]
+    fn child_owns_stdout_in_agent_environments() {
+        let sandbox = create_empty_proto_sandbox();
+
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.args(["exec", "--", "echo", "sentinel-output"])
+                .env("CODEX_CI", "1")
+                .env_remove("PROTO_TEST");
+        });
+        assert.success().stdout(
+            predicate::str::contains("sentinel-output")
+                .and(predicate::str::contains("{\"type\":").not()),
+        );
+    }
+
+    #[test]
+    fn errors_to_stderr_in_agent_environments() {
+        let sandbox = create_empty_proto_sandbox();
+
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.arg("exec")
+                .env("CODEX_CI", "1")
+                .env_remove("PROTO_TEST");
+        });
+
+        assert
+            .failure()
+            .stdout(predicate::str::is_empty())
+            .stderr(predicate::str::contains(
+                "A command is required for execution.",
+            ));
+    }
+
+    #[test]
     fn can_execute_without_tools() {
         let sandbox = create_empty_proto_sandbox();
 

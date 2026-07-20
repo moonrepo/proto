@@ -1,4 +1,4 @@
-use crate::app::{App as CLI, Commands};
+use crate::app::{App as CLI, Commands, StdoutOwner};
 use crate::commands::clean::{CleanArgs, CleanTarget, internal_clean};
 use crate::helpers::create_console_theme;
 use crate::systems::*;
@@ -52,7 +52,7 @@ impl ProtoSession {
         console.set_reporter(if env.test_only {
             ProtoReporter::new_testing()
         } else {
-            ProtoReporter::new(cli.reporter)
+            ProtoReporter::new(cli.resolved_reporter())
         });
 
         Self {
@@ -64,14 +64,15 @@ impl ProtoSession {
     }
 
     pub fn should_check_for_new_version(&self) -> bool {
+        if !matches!(self.cli.stdout_owner(), StdoutOwner::Reporter(_)) {
+            return false;
+        }
+
         !matches!(
             self.cli.command,
             Commands::Activate(_)
                 | Commands::Bin(_)
                 | Commands::Clean(_)
-                | Commands::Completions(_)
-                | Commands::Exec(_)
-                | Commands::Run(_)
                 | Commands::Setup(_)
                 | Commands::Upgrade(_)
         )
@@ -346,7 +347,11 @@ impl AppSession for ProtoSession {
     type Error = miette::Report;
 
     async fn startup(&mut self) -> AppResult<Self::Error> {
-        if self.cli.reporter == ReporterFormat::Ndjson && ai_env::is_ai_agent() {
+        // Only mention an automatically selected NDJSON reporter; an
+        // explicit request doesn't need the notice
+        if !self.cli.is_reporter_explicit()
+            && self.cli.resolved_reporter() == ReporterFormat::Ndjson
+        {
             self.console.message("Detected an AI agent environment, printing as NDJSON. Trace logs are written to stderr, while user-facing logs are written to stdout.")?;
         }
 
@@ -402,5 +407,26 @@ impl AppSession for ProtoSession {
         self.console.err.flush()?;
 
         Ok(None)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use clap::Parser;
+
+    #[test]
+    fn version_checks_require_reporter_owned_stdout() {
+        let shell = CLI::try_parse_from(["proto", "shell", "--shell", "bash"]).unwrap();
+        assert!(!ProtoSession::new(shell).should_check_for_new_version());
+
+        let status = CLI::try_parse_from(["proto", "status"]).unwrap();
+        assert!(ProtoSession::new(status).should_check_for_new_version());
+
+        let mcp = CLI::try_parse_from(["proto", "mcp"]).unwrap();
+        assert!(!ProtoSession::new(mcp).should_check_for_new_version());
+
+        let mcp_info = CLI::try_parse_from(["proto", "mcp", "--info"]).unwrap();
+        assert!(ProtoSession::new(mcp_info).should_check_for_new_version());
     }
 }

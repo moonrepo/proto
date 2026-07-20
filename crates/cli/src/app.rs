@@ -6,7 +6,7 @@ use crate::commands::{
     plugin::{PluginAddArgs, PluginInfoArgs, PluginListArgs, PluginRemoveArgs, PluginSearchArgs},
 };
 use clap::builder::styling::{Color, Style, Styles};
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{ArgMatches, CommandFactory, FromArgMatches, Parser, Subcommand, ValueEnum};
 use proto_core::{ConfigMode, reporter::ReporterFormat};
 use starbase_styles::color::Color as ColorType;
 use std::{
@@ -14,14 +14,6 @@ use std::{
     fmt::{Display, Error, Formatter},
     path::PathBuf,
 };
-
-fn default_reporter() -> ReporterFormat {
-    if ai_env::is_ai_agent() {
-        ReporterFormat::Ndjson
-    } else {
-        ReporterFormat::Text
-    }
-}
 
 #[derive(ValueEnum, Clone, Debug, Default)]
 pub enum AppTheme {
@@ -166,14 +158,13 @@ pub struct App {
 
     #[arg(
         value_enum,
-        default_value_t = default_reporter(),
         long,
         short = 'r',
         global = true,
         env = "PROTO_REPORTER",
-        help = "Print output in a specific format"
+        help = "Print output in a specific format [default: text]"
     )]
-    pub reporter: ReporterFormat,
+    pub reporter: Option<ReporterFormat>,
 
     #[arg(
         value_enum,
@@ -199,8 +190,140 @@ pub struct App {
     pub command: Commands,
 }
 
+/// Who owns the stdout stream for the current command invocation.
+///
+/// Automatic NDJSON output is limited to reporter-owned stdout. Top-level
+/// errors for every other owner render on stderr.
+pub enum StdoutOwner {
+    Reporter(ReporterFormat),
+    RawPayload,
+    ShellCode,
+    CompletionCode,
+    McpStdio,
+    ChildProcess,
+}
+
 impl App {
-    pub fn setup_env_vars(&mut self) {
+    pub fn parse_with_reporter_precedence() -> Self {
+        let matches = Self::command().get_matches();
+        let mut app = Self::from_arg_matches(&matches).unwrap_or_else(|error| error.exit());
+
+        app.resolve_reporter_precedence(&matches);
+        app
+    }
+
+    /// Whether an output format was explicitly requested instead of being
+    /// automatically selected from the environment.
+    pub fn is_reporter_explicit(&self) -> bool {
+        self.explicit_reporter().is_some()
+    }
+
+    /// Resolve the stdout owner for the current command. Exhaustive on
+    /// purpose: a new command must decide who owns its stdout, instead of
+    /// silently inheriting the reporter and its AI agent NDJSON fallback.
+    pub fn stdout_owner(&self) -> StdoutOwner {
+        match &self.command {
+            Commands::Activate(args) => {
+                if let Some(format) = self.explicit_reporter()
+                    && format.is_json()
+                    && !args.export
+                {
+                    StdoutOwner::Reporter(format)
+                } else {
+                    StdoutOwner::ShellCode
+                }
+            }
+            Commands::Completions(_) => StdoutOwner::CompletionCode,
+            Commands::Mcp(args) => {
+                if args.info {
+                    StdoutOwner::Reporter(self.select_reporter())
+                } else {
+                    StdoutOwner::McpStdio
+                }
+            }
+            Commands::Bin(_) => {
+                if let Some(format) = self.explicit_reporter() {
+                    StdoutOwner::Reporter(format)
+                } else {
+                    StdoutOwner::RawPayload
+                }
+            }
+            Commands::Exec(_) | Commands::Run(_) | Commands::Shell(_) => StdoutOwner::ChildProcess,
+            Commands::Alias(_)
+            | Commands::Clean(_)
+            | Commands::Debug { .. }
+            | Commands::Diagnose(_)
+            | Commands::Install(_)
+            | Commands::Migrate(_)
+            | Commands::Outdated(_)
+            | Commands::Pin(_)
+            | Commands::Plugin { .. }
+            | Commands::Regen(_)
+            | Commands::Setup(_)
+            | Commands::Status(_)
+            | Commands::Unalias(_)
+            | Commands::Uninstall(_)
+            | Commands::Unpin(_)
+            | Commands::Upgrade(_)
+            | Commands::Versions(_) => StdoutOwner::Reporter(self.select_reporter()),
+        }
+    }
+
+    fn explicit_reporter(&self) -> Option<ReporterFormat> {
+        self.reporter.or(self.json.then_some(ReporterFormat::Json))
+    }
+
+    fn resolve_reporter_precedence(&mut self, matches: &ArgMatches) {
+        use clap::parser::ValueSource;
+
+        let json_source = if self.json {
+            matches.value_source("json")
+        } else {
+            None
+        };
+        let reporter_source = if self.reporter.is_some() {
+            matches.value_source("reporter")
+        } else {
+            None
+        };
+
+        // CLI options override environment variables. When both options come
+        // from the same source, the canonical reporter option wins over the
+        // legacy JSON alias.
+        let json_wins = matches!(
+            (json_source, reporter_source),
+            (
+                Some(ValueSource::CommandLine),
+                Some(ValueSource::EnvVariable) | None
+            ) | (Some(ValueSource::EnvVariable), None)
+        );
+
+        if json_wins {
+            self.reporter = None;
+        } else if reporter_source.is_some() {
+            self.json = false;
+        }
+    }
+
+    /// The reporter format when stdout is reporter-owned, otherwise text.
+    pub fn resolved_reporter(&self) -> ReporterFormat {
+        match self.stdout_owner() {
+            StdoutOwner::Reporter(format) => format,
+            _ => ReporterFormat::Text,
+        }
+    }
+
+    fn select_reporter(&self) -> ReporterFormat {
+        if let Some(format) = self.explicit_reporter() {
+            format
+        } else if ai_env::is_ai_agent() {
+            ReporterFormat::Ndjson
+        } else {
+            ReporterFormat::Text
+        }
+    }
+
+    pub fn setup_env_vars(&self) {
         unsafe {
             env::set_var("PROTO_APP_LOG", self.log.to_string());
             env::set_var("PROTO_VERSION", env!("CARGO_PKG_VERSION"));
@@ -221,17 +344,8 @@ impl App {
                 },
             );
 
-            // Convenience mapping
-            if self.json && !self.reporter.is_json() {
-                self.reporter = if ai_env::is_ai_agent() {
-                    ReporterFormat::Ndjson
-                } else {
-                    ReporterFormat::Json
-                };
-            }
-
             // Disable ANSI colors in JSON output
-            if self.json || self.reporter.is_json() {
+            if self.json || self.resolved_reporter().is_json() {
                 env::set_var("NO_COLOR", "1");
                 env::remove_var("FORCE_COLOR");
             }

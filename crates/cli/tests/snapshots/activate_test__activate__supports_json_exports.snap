@@ -3,7 +3,7 @@ source: crates/cli/tests/activate_test.rs
 expression: "get_activate_output(&assert, &sandbox)"
 ---
 export def _proto_activate_hook [] {
-    let data = proto activate nu --config-mode upwards-global --json | from json
+    let data = proto activate nu --config-mode upwards-global --reporter json | from json
 
     $data | get -i env | items { |k, v|
         if $v == null {

@@ -2,6 +2,7 @@
 #[cfg(unix)]
 mod activate {
     use proto_core::test_utils::*;
+    use starbase_sandbox::predicates::prelude::*;
     use starbase_sandbox::{Sandbox, SandboxAssert, assert_snapshot};
     use starbase_shell::ShellType;
 
@@ -121,6 +122,157 @@ moonstone = "2.0.0"
             });
 
             assert_snapshot!(get_activate_output(&assert, &sandbox));
+        }
+    }
+
+    mod ai_agent {
+        use super::*;
+
+        // Use the real reporter with AI agent detection forced on.
+
+        #[test]
+        fn prints_hook_by_default() {
+            let sandbox = create_empty_proto_sandbox();
+
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("activate")
+                    .arg("zsh")
+                    .env("CODEX_CI", "1")
+                    .env_remove("PROTO_TEST");
+            });
+            assert.success().stdout(
+                predicate::str::contains("_proto_activate_hook")
+                    .and(predicate::str::contains("{\"type\":").not())
+                    .and(predicate::str::contains("Detected an AI agent").not()),
+            );
+        }
+
+        #[test]
+        fn prints_shell_syntax_for_export() {
+            let sandbox = create_empty_proto_sandbox();
+
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("activate")
+                    .arg("zsh")
+                    .arg("--export")
+                    .env("CODEX_CI", "1")
+                    .env_remove("PROTO_TEST");
+            });
+            assert.success().stdout(
+                predicate::str::contains("_PROTO_ACTIVATED_PATH")
+                    .and(predicate::str::contains("{\"type\":").not()),
+            );
+        }
+
+        #[test]
+        fn prints_plain_json_for_explicit_json() {
+            let sandbox = create_empty_proto_sandbox();
+
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("activate")
+                    .arg("zsh")
+                    .arg("--json")
+                    .env("CODEX_CI", "1")
+                    .env_remove("PROTO_TEST");
+            });
+            let stdout = assert.stdout();
+            assert.success();
+            let output: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+
+            assert!(output.get("env").is_some());
+            assert!(output.get("path").is_some());
+        }
+
+        #[test]
+        fn prints_structured_data_for_explicit_reporter() {
+            let sandbox = create_empty_proto_sandbox();
+
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("activate")
+                    .arg("zsh")
+                    .arg("--reporter")
+                    .arg("ndjson")
+                    .env("CODEX_CI", "1")
+                    .env_remove("PROTO_TEST");
+            });
+            assert.success().stdout(
+                predicate::str::contains("{\"type\":\"data\"")
+                    .and(predicate::str::contains("Detected an AI agent").not()),
+            );
+        }
+
+        #[test]
+        fn nu_hook_requests_explicit_json() {
+            let sandbox = create_empty_proto_sandbox();
+
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("activate")
+                    .arg("nu")
+                    .env("CODEX_CI", "1")
+                    .env_remove("PROTO_TEST");
+            });
+            assert.success().stdout(
+                predicate::str::contains("proto activate nu --reporter json")
+                    .and(predicate::str::contains("\"type\":").not()),
+            );
+
+            // The nested call the hook makes must parse as plain JSON
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("activate")
+                    .arg("nu")
+                    .arg("--reporter")
+                    .arg("json")
+                    .env("CODEX_CI", "1")
+                    .env_remove("PROTO_TEST");
+            });
+            let stdout = assert.stdout();
+            assert.success();
+            let output: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+
+            assert!(output.get("env").is_some());
+        }
+
+        #[test]
+        fn keeps_stdout_empty_when_export_fails() {
+            let sandbox = create_empty_proto_sandbox();
+
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("activate")
+                    .arg("zsh")
+                    .arg("--export")
+                    .arg("--reporter")
+                    .arg("ndjson")
+                    .env("CODEX_CI", "1")
+                    // An unusable store location makes the command fail
+                    .env("PROTO_HOME", "/dev/null/proto")
+                    .env_remove("PROTO_SANDBOX")
+                    .env_remove("PROTO_TEST");
+            });
+
+            // The failure must render on stderr because stdout is evaluated.
+            assert
+                .failure()
+                .stdout(predicate::str::is_empty())
+                .stderr(predicate::str::is_empty().not());
+        }
+
+        #[test]
+        fn export_wins_over_structured_reporter() {
+            let sandbox = create_empty_proto_sandbox();
+
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("activate")
+                    .arg("zsh")
+                    .arg("--export")
+                    .arg("--reporter")
+                    .arg("ndjson")
+                    .env("CODEX_CI", "1")
+                    .env_remove("PROTO_TEST");
+            });
+            assert.success().stdout(
+                predicate::str::contains("_PROTO_ACTIVATED_PATH")
+                    .and(predicate::str::contains("{\"type\":").not()),
+            );
         }
     }
 

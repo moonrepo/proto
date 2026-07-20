@@ -11,8 +11,7 @@ mod telemetry;
 mod utils;
 mod workflows;
 
-use app::{App as CLI, Commands, DebugCommands, PluginCommands};
-use clap::Parser;
+use app::{App as CLI, Commands, DebugCommands, PluginCommands, StdoutOwner};
 use proto_core::reporter::ReporterFormat;
 use session::ProtoSession;
 use starbase::{
@@ -37,21 +36,19 @@ fn get_tracing_modules() -> Vec<String> {
 }
 
 async fn async_main() -> MainResult {
-    let mut cli = CLI::parse();
+    let cli = CLI::parse_with_reporter_precedence();
     cli.setup_env_vars();
 
     let app = App::default();
     app.setup_diagnostics();
 
-    let is_exec_command = matches!(
-        cli.command,
-        Commands::Exec { .. } | Commands::Run { .. } | Commands::Shell { .. }
-    );
+    let stdout_owner = cli.stdout_owner();
+    let is_exec_command = matches!(stdout_owner, StdoutOwner::ChildProcess);
 
     let _guard = app.setup_tracing(TracingOptions {
         default_level: if is_exec_command || matches!(cli.command, Commands::Bin { .. }) {
             LogLevel::Warn
-        } else if matches!(cli.command, Commands::Completions { .. }) {
+        } else if matches!(stdout_owner, StdoutOwner::CompletionCode) {
             LogLevel::Off
         } else {
             LogLevel::Info
@@ -60,7 +57,7 @@ async fn async_main() -> MainResult {
         filter_modules: get_tracing_modules(),
         log_env: "PROTO_APP_LOG".into(),
         log_file: cli.log_file.clone(),
-        ndjson: cli.reporter == ReporterFormat::Ndjson,
+        ndjson: cli.resolved_reporter() == ReporterFormat::Ndjson,
         otel: OtelOptions {
             enabled: cli.otel,
             logs_enabled: cli.otel_logs,
@@ -126,9 +123,8 @@ async fn async_main() -> MainResult {
         .await;
 
     if let Some(error) = outcome.error {
-        // If NDJSON format, we must print the error as JSON so
-        // that it parses correctly by the consumer!
-        if session.cli.reporter == ReporterFormat::Ndjson {
+        // Keep reporter-owned NDJSON errors machine-readable.
+        if session.cli.resolved_reporter() == ReporterFormat::Ndjson {
             session
                 .console
                 .main_error(error.to_string(), error.code().map(|code| code.to_string()))?;
