@@ -31,6 +31,7 @@ pub struct ProtoReporter {
     format: ReporterFormat,
     err: ConsoleStream,
     out: ConsoleStream,
+    stderr_only: bool,
     theme: ConsoleTheme,
     test_mode: bool,
     json_buffer: Arc<RwLock<Vec<String>>>,
@@ -40,6 +41,14 @@ impl ProtoReporter {
     pub fn new(format: ReporterFormat) -> Self {
         Self {
             format,
+            ..Default::default()
+        }
+    }
+
+    pub fn new_stderr(format: ReporterFormat) -> Self {
+        Self {
+            format,
+            stderr_only: true,
             ..Default::default()
         }
     }
@@ -60,6 +69,7 @@ impl Default for ProtoReporter {
             format: ReporterFormat::Text,
             err: ConsoleStream::empty(ConsoleStreamType::Stderr),
             out: ConsoleStream::empty(ConsoleStreamType::Stdout),
+            stderr_only: false,
             theme: ConsoleTheme::default(),
             test_mode: false,
             json_buffer: Arc::new(RwLock::new(Vec::new())),
@@ -74,8 +84,8 @@ impl Reporter for ProtoReporter {
 
     fn inherit_streams(&mut self, err: ConsoleStream, out: ConsoleStream) {
         if !self.test_mode {
-            self.err = err;
-            self.out = out;
+            self.err = err.clone();
+            self.out = if self.stderr_only { err } else { out };
         }
     }
 }
@@ -162,6 +172,8 @@ impl ProtoReporter {
                 self.write_json(Event::Error(MessageOutput { code, message }))?;
             }
         };
+
+        self.out.flush()?;
 
         Ok(())
     }

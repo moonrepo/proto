@@ -44,22 +44,7 @@ mod exec {
     }
 
     #[test]
-    fn child_owns_stdout_in_agent_environments() {
-        let sandbox = create_empty_proto_sandbox();
-
-        let assert = sandbox.run_bin(|cmd| {
-            cmd.args(["exec", "--", "echo", "sentinel-output"])
-                .env("CODEX_CI", "1")
-                .env_remove("PROTO_TEST");
-        });
-        assert.success().stdout(
-            predicate::str::contains("sentinel-output")
-                .and(predicate::str::contains("{\"type\":").not()),
-        );
-    }
-
-    #[test]
-    fn errors_to_stderr_in_agent_environments() {
+    fn errors_use_reporter_output_in_agent_environments() {
         let sandbox = create_empty_proto_sandbox();
 
         let assert = sandbox.run_bin(|cmd| {
@@ -68,12 +53,20 @@ mod exec {
                 .env_remove("PROTO_TEST");
         });
 
-        assert
-            .failure()
-            .stdout(predicate::str::is_empty())
-            .stderr(predicate::str::contains(
-                "A command is required for execution.",
-            ));
+        let stdout = assert.stdout();
+        let records = stdout
+            .lines()
+            .map(|line| serde_json::from_str::<serde_json::Value>(line).unwrap())
+            .collect::<Vec<_>>();
+
+        assert.failure();
+        assert!(records.iter().any(|record| {
+            record.get("type").and_then(|value| value.as_str()) == Some("error")
+                && record
+                    .get("message")
+                    .and_then(|value| value.as_str())
+                    .is_some_and(|message| message.contains("A command is required for execution."))
+        }));
     }
 
     #[test]

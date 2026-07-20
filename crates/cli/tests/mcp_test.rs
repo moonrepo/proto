@@ -5,7 +5,6 @@ mod mcp {
     fn stdout_only_carries_jsonrpc_in_agent_environments() {
         let sandbox = create_empty_proto_sandbox();
 
-        // Use the real reporter with AI agent detection forced on.
         let assert = sandbox.run_bin(|cmd| {
             cmd.arg("mcp")
                 .env("CODEX_CI", "1")

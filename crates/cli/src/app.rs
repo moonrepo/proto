@@ -162,7 +162,7 @@ pub struct App {
         short = 'r',
         global = true,
         env = "PROTO_REPORTER",
-        help = "Print output in a specific format [default: text]"
+        help = "Print output in a specific format"
     )]
     pub reporter: Option<ReporterFormat>,
 
@@ -192,15 +192,15 @@ pub struct App {
 
 /// Who owns the stdout stream for the current command invocation.
 ///
-/// Automatic NDJSON output is limited to reporter-owned stdout. Top-level
-/// errors for every other owner render on stderr.
+/// Reporter-owned commands write formatted output to stdout. Every other
+/// owner reserves stdout for its protocol payload and routes reporter output
+/// to stderr.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum StdoutOwner {
-    Reporter(ReporterFormat),
-    RawPayload,
+    Reporter,
     ShellCode,
     CompletionCode,
     McpStdio,
-    ChildProcess,
 }
 
 impl App {
@@ -212,8 +212,8 @@ impl App {
         app
     }
 
-    /// Whether an output format was explicitly requested instead of being
-    /// automatically selected from the environment.
+    /// Whether an output format was explicitly requested instead of inferred
+    /// from AI-agent detection.
     pub fn is_reporter_explicit(&self) -> bool {
         self.explicit_reporter().is_some()
     }
@@ -228,7 +228,7 @@ impl App {
                     && format.is_json()
                     && !args.export
                 {
-                    StdoutOwner::Reporter(format)
+                    StdoutOwner::Reporter
                 } else {
                     StdoutOwner::ShellCode
                 }
@@ -236,36 +236,32 @@ impl App {
             Commands::Completions(_) => StdoutOwner::CompletionCode,
             Commands::Mcp(args) => {
                 if args.info {
-                    StdoutOwner::Reporter(self.select_reporter())
+                    StdoutOwner::Reporter
                 } else {
                     StdoutOwner::McpStdio
                 }
             }
-            Commands::Bin(_) => {
-                if let Some(format) = self.explicit_reporter() {
-                    StdoutOwner::Reporter(format)
-                } else {
-                    StdoutOwner::RawPayload
-                }
-            }
-            Commands::Exec(_) | Commands::Run(_) | Commands::Shell(_) => StdoutOwner::ChildProcess,
             Commands::Alias(_)
+            | Commands::Bin(_)
             | Commands::Clean(_)
             | Commands::Debug { .. }
             | Commands::Diagnose(_)
+            | Commands::Exec(_)
             | Commands::Install(_)
             | Commands::Migrate(_)
             | Commands::Outdated(_)
             | Commands::Pin(_)
             | Commands::Plugin { .. }
             | Commands::Regen(_)
+            | Commands::Run(_)
             | Commands::Setup(_)
+            | Commands::Shell(_)
             | Commands::Status(_)
             | Commands::Unalias(_)
             | Commands::Uninstall(_)
             | Commands::Unpin(_)
             | Commands::Upgrade(_)
-            | Commands::Versions(_) => StdoutOwner::Reporter(self.select_reporter()),
+            | Commands::Versions(_) => StdoutOwner::Reporter,
         }
     }
 
@@ -305,15 +301,8 @@ impl App {
         }
     }
 
-    /// The reporter format when stdout is reporter-owned, otherwise text.
-    pub fn resolved_reporter(&self) -> ReporterFormat {
-        match self.stdout_owner() {
-            StdoutOwner::Reporter(format) => format,
-            _ => ReporterFormat::Text,
-        }
-    }
-
-    fn select_reporter(&self) -> ReporterFormat {
+    /// Select the reporter format independently from stdout ownership.
+    pub fn reporter_format(&self) -> ReporterFormat {
         if let Some(format) = self.explicit_reporter() {
             format
         } else if ai_env::is_ai_agent() {
@@ -345,7 +334,7 @@ impl App {
             );
 
             // Disable ANSI colors in JSON output
-            if self.json || self.resolved_reporter().is_json() {
+            if self.reporter_format().is_json() {
                 env::set_var("NO_COLOR", "1");
                 env::remove_var("FORCE_COLOR");
             }

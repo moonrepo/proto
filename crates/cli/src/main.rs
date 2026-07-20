@@ -43,7 +43,10 @@ async fn async_main() -> MainResult {
     app.setup_diagnostics();
 
     let stdout_owner = cli.stdout_owner();
-    let is_exec_command = matches!(stdout_owner, StdoutOwner::ChildProcess);
+    let is_exec_command = matches!(
+        &cli.command,
+        Commands::Exec(_) | Commands::Run(_) | Commands::Shell(_)
+    );
 
     let _guard = app.setup_tracing(TracingOptions {
         default_level: if is_exec_command || matches!(cli.command, Commands::Bin { .. }) {
@@ -57,7 +60,7 @@ async fn async_main() -> MainResult {
         filter_modules: get_tracing_modules(),
         log_env: "PROTO_APP_LOG".into(),
         log_file: cli.log_file.clone(),
-        ndjson: cli.resolved_reporter() == ReporterFormat::Ndjson,
+        ndjson: cli.reporter_format() == ReporterFormat::Ndjson,
         otel: OtelOptions {
             enabled: cli.otel,
             logs_enabled: cli.otel_logs,
@@ -123,12 +126,12 @@ async fn async_main() -> MainResult {
         .await;
 
     if let Some(error) = outcome.error {
-        // Keep reporter-owned NDJSON errors machine-readable.
-        if session.cli.resolved_reporter() == ReporterFormat::Ndjson {
+        // Keep NDJSON errors machine-readable without violating stdout
+        // ownership. The reporter stream is configured by ProtoSession.
+        if session.cli.reporter_format() == ReporterFormat::Ndjson {
             session
                 .console
                 .main_error(error.to_string(), error.code().map(|code| code.to_string()))?;
-            session.console.out.flush()?;
 
             if outcome.exit_code == 0 {
                 outcome.exit_code = 1;

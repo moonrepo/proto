@@ -128,8 +128,6 @@ moonstone = "2.0.0"
     mod ai_agent {
         use super::*;
 
-        // Use the real reporter with AI agent detection forced on.
-
         #[test]
         fn prints_hook_by_default() {
             let sandbox = create_empty_proto_sandbox();
@@ -248,12 +246,22 @@ moonstone = "2.0.0"
                     .env_remove("PROTO_SANDBOX")
                     .env_remove("PROTO_TEST");
             });
+            let stderr = assert.stderr();
+            let records = stderr
+                .lines()
+                .filter(|line| !line.trim().is_empty())
+                .map(|line| {
+                    serde_json::from_str::<serde_json::Value>(line).unwrap_or_else(|error| {
+                        panic!("stderr line is not valid NDJSON: {line}: {error}")
+                    })
+                })
+                .collect::<Vec<_>>();
 
             // The failure must render on stderr because stdout is evaluated.
-            assert
-                .failure()
-                .stdout(predicate::str::is_empty())
-                .stderr(predicate::str::is_empty().not());
+            assert.failure().stdout(predicate::str::is_empty());
+            assert!(records.iter().any(|record| {
+                record.get("type").and_then(|value| value.as_str()) == Some("error")
+            }));
         }
 
         #[test]
@@ -273,6 +281,32 @@ moonstone = "2.0.0"
                 predicate::str::contains("_PROTO_ACTIVATED_PATH")
                     .and(predicate::str::contains("{\"type\":").not()),
             );
+        }
+
+        #[test]
+        fn keeps_ndjson_tracing_for_shell_output() {
+            let sandbox = create_empty_proto_sandbox();
+
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("activate")
+                    .arg("zsh")
+                    .arg("--export")
+                    .arg("--reporter")
+                    .arg("ndjson")
+                    .arg("--log")
+                    .arg("debug")
+                    .env_remove("PROTO_TEST");
+            });
+            let stderr = assert.stderr();
+
+            assert.success();
+            assert!(!stderr.trim().is_empty());
+
+            for line in stderr.lines().filter(|line| !line.trim().is_empty()) {
+                serde_json::from_str::<serde_json::Value>(line).unwrap_or_else(|error| {
+                    panic!("stderr line is not valid NDJSON: {line}: {error}")
+                });
+            }
         }
     }
 

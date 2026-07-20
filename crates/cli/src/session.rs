@@ -42,6 +42,23 @@ pub struct ProtoSession {
     pub env: Arc<ProtoEnvironment>,
 }
 
+fn should_check_for_new_version(cli: &CLI) -> bool {
+    if cli.stdout_owner() != StdoutOwner::Reporter {
+        return false;
+    }
+
+    !matches!(
+        &cli.command,
+        Commands::Activate(_)
+            | Commands::Bin(_)
+            | Commands::Clean(_)
+            | Commands::Exec(_)
+            | Commands::Run(_)
+            | Commands::Setup(_)
+            | Commands::Upgrade(_)
+    )
+}
+
 impl ProtoSession {
     pub fn new(cli: CLI) -> Self {
         let mut env = ProtoEnvironment::default();
@@ -51,8 +68,10 @@ impl ProtoSession {
         console.set_theme(create_console_theme());
         console.set_reporter(if env.test_only {
             ProtoReporter::new_testing()
+        } else if cli.stdout_owner() == StdoutOwner::Reporter {
+            ProtoReporter::new(cli.reporter_format())
         } else {
-            ProtoReporter::new(cli.resolved_reporter())
+            ProtoReporter::new_stderr(cli.reporter_format())
         });
 
         Self {
@@ -61,21 +80,6 @@ impl ProtoSession {
             console,
             env: Arc::new(env),
         }
-    }
-
-    pub fn should_check_for_new_version(&self) -> bool {
-        if !matches!(self.cli.stdout_owner(), StdoutOwner::Reporter(_)) {
-            return false;
-        }
-
-        !matches!(
-            self.cli.command,
-            Commands::Activate(_)
-                | Commands::Bin(_)
-                | Commands::Clean(_)
-                | Commands::Setup(_)
-                | Commands::Upgrade(_)
-        )
     }
 
     pub fn create_registry(&self) -> ProtoRegistry {
@@ -349,8 +353,9 @@ impl AppSession for ProtoSession {
     async fn startup(&mut self) -> AppResult<Self::Error> {
         // Only mention an automatically selected NDJSON reporter; an
         // explicit request doesn't need the notice
-        if !self.cli.is_reporter_explicit()
-            && self.cli.resolved_reporter() == ReporterFormat::Ndjson
+        if self.cli.stdout_owner() == StdoutOwner::Reporter
+            && !self.cli.is_reporter_explicit()
+            && self.cli.reporter_format() == ReporterFormat::Ndjson
         {
             self.console.message("Detected an AI agent environment, printing as NDJSON. Trace logs are written to stderr, while user-facing logs are written to stdout.")?;
         }
@@ -370,7 +375,7 @@ impl AppSession for ProtoSession {
         remove_proto_shims(&self.env)?;
         clean_proto_backups(&self.env)?;
 
-        if self.should_check_for_new_version() {
+        if should_check_for_new_version(&self.cli) {
             check_for_new_version(&self.env, &self.console, &self.cli_version).await?;
         }
 
@@ -418,15 +423,15 @@ mod tests {
     #[test]
     fn version_checks_require_reporter_owned_stdout() {
         let shell = CLI::try_parse_from(["proto", "shell", "--shell", "bash"]).unwrap();
-        assert!(!ProtoSession::new(shell).should_check_for_new_version());
+        assert!(should_check_for_new_version(&shell));
 
         let status = CLI::try_parse_from(["proto", "status"]).unwrap();
-        assert!(ProtoSession::new(status).should_check_for_new_version());
+        assert!(should_check_for_new_version(&status));
 
         let mcp = CLI::try_parse_from(["proto", "mcp"]).unwrap();
-        assert!(!ProtoSession::new(mcp).should_check_for_new_version());
+        assert!(!should_check_for_new_version(&mcp));
 
         let mcp_info = CLI::try_parse_from(["proto", "mcp", "--info"]).unwrap();
-        assert!(ProtoSession::new(mcp_info).should_check_for_new_version());
+        assert!(should_check_for_new_version(&mcp_info));
     }
 }

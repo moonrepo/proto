@@ -18,7 +18,7 @@ mod bin {
     }
 
     #[test]
-    fn returns_path_if_installed() {
+    fn returns_path_in_text_and_agent_environments() {
         let sandbox = create_empty_proto_sandbox();
 
         sandbox
@@ -40,19 +40,7 @@ mod bin {
                 .success()
                 .stdout(predicate::str::contains("tools/protostar/1.0.0/protostar"));
         }
-    }
 
-    #[test]
-    fn returns_raw_path_in_agent_environments() {
-        let sandbox = create_empty_proto_sandbox();
-
-        sandbox
-            .run_bin(|cmd| {
-                cmd.arg("install").arg("protostar").arg("1.0.0");
-            })
-            .success();
-
-        // Use the real reporter and force AI agent detection.
         let assert = sandbox.run_bin(|cmd| {
             cmd.arg("bin")
                 .arg("protostar")
@@ -62,8 +50,24 @@ mod bin {
         });
         let stdout = assert.stdout();
 
-        assert_eq!(stdout.lines().count(), 1);
-        assert!(std::path::Path::new(stdout.trim()).is_absolute());
+        let records = stdout
+            .lines()
+            .map(|line| serde_json::from_str::<serde_json::Value>(line).unwrap())
+            .collect::<Vec<_>>();
+
+        assert!(records.iter().any(|record| {
+            record.get("type").and_then(|value| value.as_str()) == Some("message")
+                && record
+                    .get("message")
+                    .and_then(|value| value.as_str())
+                    .is_some_and(|message| message.contains("Detected an AI agent"))
+        }));
+        assert!(records.iter().any(|record| {
+            record
+                .get("message")
+                .and_then(|value| value.as_str())
+                .is_some_and(|message| message.contains("protostar") && message.contains("1.0.0"))
+        }));
 
         assert.success();
     }

@@ -55,9 +55,12 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> SessionResul
 
     // Shell code is this command's default protocol; see `App::stdout_owner`
     let output_mode = match session.cli.stdout_owner() {
-        StdoutOwner::Reporter(_) => ActivateOutputMode::Structured,
-        _ if args.export => ActivateOutputMode::Export,
-        _ => ActivateOutputMode::Hook,
+        StdoutOwner::Reporter => ActivateOutputMode::Structured,
+        StdoutOwner::ShellCode if args.export => ActivateOutputMode::Export,
+        StdoutOwner::ShellCode => ActivateOutputMode::Hook,
+        StdoutOwner::CompletionCode | StdoutOwner::McpStdio => {
+            unreachable!("activate resolved to an unrelated stdout owner")
+        }
     };
 
     // Hook mode does not need to load tools or build an environment.
