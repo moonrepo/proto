@@ -74,11 +74,7 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> SessionResul
 
             debug!("Checking {}", tool.get_name());
 
-            let initial_version = UnresolvedVersionSpec::default(); // latest
             let config_version = tool.detected_version.as_ref().unwrap();
-            let mut version_resolver = Resolver::new(&tool);
-
-            version_resolver.load_versions(&initial_version).await?;
 
             debug!(
                 tool = tool.context.as_str(),
@@ -86,8 +82,8 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> SessionResul
                 "Resolving current version"
             );
 
-            let current_version = version_resolver
-                .resolve_version_candidate(&config_version.req, true)
+            let current_version = Resolver::new(&tool)
+                .resolve_version_candidate(&config_version.req, true, true)
                 .await?;
             let newest_range = get_in_major_range(&config_version.req);
 
@@ -97,18 +93,14 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> SessionResul
                 "Resolving newest version"
             );
 
-            let newest_version = version_resolver
-                .resolve_version_candidate(&newest_range, false)
+            let newest_version = Resolver::new(&tool)
+                .resolve_version_candidate(&newest_range, false, true)
                 .await?;
 
-            debug!(
-                tool = tool.context.as_str(),
-                alias = initial_version.to_string(),
-                "Resolving latest version"
-            );
+            debug!(tool = tool.context.as_str(), "Resolving latest version");
 
-            let latest_version = version_resolver
-                .resolve_version_candidate(&initial_version, true)
+            let latest_version = Resolver::new(&tool)
+                .resolve_version_candidate(&UnresolvedVersionSpec::default(), true, true)
                 .await?;
 
             Result::<_, ProtoResolveError>::Ok((

@@ -461,10 +461,15 @@ mod unresolved_spec {
             ("temurin-21", Some("temurin")),
             ("^temurin-21.0.2", Some("temurin")),
             ("^1.2", None),
+            // ranges
+            ("temurin-17 || temurin-21", Some("temurin")),
+            (">=temurin-17 <temurin-21", Some("temurin")),
+            ("temurin-17 || ^21", Some("temurin")),
+            ("temurin-17 || zulu-21", None),
+            ("^1 || ^2", None),
             // other variants have no scope
             ("canary", None),
             ("latest", None),
-            ("^1 || ^2", None),
         ] {
             assert_eq!(
                 UnresolvedVersionSpec::parse(input).unwrap().get_scope(),
@@ -498,8 +503,15 @@ mod unresolved_spec {
         assert_eq!(spec.get_scope(), Some("bun"));
         assert_eq!(spec.to_string(), "bun-1.2.3");
 
+        // ranges
+        let mut spec = UnresolvedVersionSpec::parse("^1 || ^2").unwrap();
+        spec.set_scope("temurin");
+
+        assert_eq!(spec.get_scope(), Some("temurin"));
+        assert_eq!(spec.to_string(), "^temurin-1 || ^temurin-2");
+
         // other variants are unchanged
-        for input in ["canary", "latest", "^1 || ^2"] {
+        for input in ["canary", "latest"] {
             let mut spec = UnresolvedVersionSpec::parse(input).unwrap();
             spec.set_scope("node");
 

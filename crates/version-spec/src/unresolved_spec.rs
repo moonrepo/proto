@@ -36,6 +36,7 @@ impl UnresolvedVersionSpec {
     /// Return the version scope if available.
     pub fn get_scope(&self) -> Option<&str> {
         match self {
+            Self::Range(range) => range.get_scope(),
             Self::Requirement(req) => req.scope.as_deref(),
             Self::Version(version) => version.scope.as_deref(),
             _ => None,
@@ -76,6 +77,9 @@ impl UnresolvedVersionSpec {
     /// Set the scope on either the current version or requirement, if applicable.
     pub fn set_scope(&mut self, scope: impl AsRef<str>) {
         match self {
+            Self::Range(range) => {
+                range.set_scope(scope);
+            }
             Self::Requirement(req) => {
                 req.scope = Some(scope.as_ref().into());
             }
