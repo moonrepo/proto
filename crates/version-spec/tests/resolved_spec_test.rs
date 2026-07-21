@@ -115,6 +115,49 @@ mod resolved_spec {
     }
 
     #[test]
+    fn get_scope() {
+        for (input, expected) in [
+            ("node-1.2.3", Some("node")),
+            ("node-2024-02", Some("node")),
+            ("1.2.3", None),
+            // other variants have no scope
+            ("canary", None),
+            ("latest", None),
+        ] {
+            assert_eq!(
+                VersionSpec::parse(input).unwrap().get_scope(),
+                expected,
+                "input: {input}"
+            );
+        }
+    }
+
+    #[test]
+    fn set_scope() {
+        let mut spec = VersionSpec::parse("21.0.2").unwrap();
+        spec.set_scope("temurin");
+
+        assert_eq!(spec.get_scope(), Some("temurin"));
+        assert_eq!(spec.to_string(), "temurin-21.0.2");
+
+        // overwrites an existing scope
+        let mut spec = VersionSpec::parse("node-1.2.3").unwrap();
+        spec.set_scope("bun");
+
+        assert_eq!(spec.get_scope(), Some("bun"));
+        assert_eq!(spec.to_string(), "bun-1.2.3");
+
+        // other variants are unchanged
+        for input in ["canary", "latest"] {
+            let mut spec = VersionSpec::parse(input).unwrap();
+            spec.set_scope("node");
+
+            assert_eq!(spec, VersionSpec::parse(input).unwrap(), "input: {input}");
+            assert_eq!(spec.get_scope(), None, "input: {input}");
+        }
+    }
+
+    #[test]
     fn serde_roundtrip() {
         for value in [
             "canary",

@@ -73,6 +73,13 @@ impl VersionSpec {
         }
     }
 
+    /// Set the scope on either the current version, if applicable.
+    pub fn set_scope(&mut self, scope: impl AsRef<str>) {
+        if let Self::Version(version) = self {
+            version.scope = Some(scope.as_ref().into());
+        }
+    }
+
     /// Convert the current resolved specification to an unresolved specification.
     pub fn to_unresolved_spec(&self) -> UnresolvedVersionSpec {
         match self {
