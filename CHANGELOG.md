@@ -41,6 +41,7 @@
 - Fixed an issue where we didn't check for an internet connection when downloading a plugin from an OCI registry or from GitHub.
 - Fixed an issue where `proto run` (and shims) could recursively execute forever when falling back to a global executable on `PATH` that is itself a proto shim from another store (typically caused by `HOME` or `PROTO_HOME` changing, or symlinked paths). We now detect the loop and error, and skip shims from foreign stores during the `PATH` lookup.
 - Fixed an issue where `proto run` (and shims) would place the paths of a required tool (e.g. `node` for `npm`) before the paths of the tool being ran within `PATH`, causing the wrong executable to be used. For example, `npm run` scripts that execute `npm` would use node's bundled npm, instead of the npm version managed by proto.
+- Fixed an issue where concurrent `proto install`s (across processes, or multiple tools in one command) could lose entries in the shims registry (`~/.proto/shims/registry.json`), breaking secondary executables like `uvx`, `bunx`, and `npx`. Registry saves now merge into the current file state under an exclusive lock, and writes are atomic, so an interrupted install can no longer leave behind an empty registry for another install to observe.
 
 #### ⚙️ Internal
 

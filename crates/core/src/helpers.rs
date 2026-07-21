@@ -11,6 +11,7 @@ use starbase_utils::{
 };
 use std::env;
 use std::path::Path;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{LazyLock, OnceLock};
 use std::time::SystemTime;
 use version_spec::Version;
@@ -159,6 +160,41 @@ pub fn write_json_file_with_lock<T: Serialize>(
     })?;
 
     fs::write_file_with_lock(path, data)?;
+
+    Ok(())
+}
+
+/// Serialize and write JSON to the provided path by writing to a temporary file
+/// in the same directory, then atomically renaming it over the destination.
+/// Unlike a truncate-then-write, another process can never observe an empty or
+/// partially written file, even if this process is killed mid-write.
+/// https://github.com/moonrepo/proto/issues/1057
+pub fn write_json_file_atomic<T: Serialize>(
+    path: impl AsRef<Path>,
+    data: &T,
+) -> Result<(), JsonError> {
+    static TEMP_COUNT: AtomicU64 = AtomicU64::new(0);
+
+    let path = path.as_ref();
+
+    let data = json::serde_json::to_string_pretty(data).map_err(|error| JsonError::WriteFile {
+        path: path.to_path_buf(),
+        error: Box::new(error),
+    })?;
+
+    let temp_path = path.with_extension(format!(
+        "{}-{}.tmp",
+        std::process::id(),
+        TEMP_COUNT.fetch_add(1, Ordering::Relaxed)
+    ));
+
+    fs::write_file(&temp_path, data)?;
+
+    if let Err(error) = fs::rename(&temp_path, path) {
+        let _ = fs::remove_file(&temp_path);
+
+        return Err(error.into());
+    }
 
     Ok(())
 }
