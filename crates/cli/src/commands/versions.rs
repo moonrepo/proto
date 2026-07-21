@@ -3,7 +3,9 @@ use crate::session::{LoadToolOptions, ProtoSession, SessionResult};
 use clap::Args;
 use indexmap::IndexMap;
 use iocraft::prelude::{View, element};
-use proto_core::{MatchesVersion, Requirement, ToolContext, ToolSpec, VersionSpec};
+use proto_core::{
+    MatchesVersion, Requirement, ToolContext, ToolSpec, UnresolvedVersionSpec, VersionSpec,
+};
 use serde::Serialize;
 use starbase_console::ui::*;
 use std::collections::BTreeMap;
@@ -45,7 +47,10 @@ pub async fn versions(session: ProtoSession, args: VersionsArgs) -> SessionResul
             &args.context,
             LoadToolOptions {
                 inherit_local: true,
-                inherit_remote: true,
+                inherit_remote: Some(match args.filter.clone() {
+                    Some(req) => UnresolvedVersionSpec::Requirement(req),
+                    None => UnresolvedVersionSpec::default(),
+                }),
                 ..Default::default()
             },
         )

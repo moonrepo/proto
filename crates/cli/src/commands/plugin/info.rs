@@ -5,7 +5,7 @@ use iocraft::prelude::element;
 use proto_core::flow::locate::Locator as LocatorFlow;
 use proto_core::{
     ConfigMode, Id, PluginLocator, ProtoToolConfig, ToolContext, ToolManifest, ToolMetadata,
-    flow::locate::ExecutableLocation,
+    UnresolvedVersionSpec, flow::locate::ExecutableLocation,
 };
 use serde::Serialize;
 use starbase_console::ui::*;
@@ -47,7 +47,7 @@ pub async fn info(session: ProtoSession, args: PluginInfoArgs) -> SessionResult 
             LoadToolOptions {
                 detect_version: true,
                 inherit_local: true,
-                inherit_remote: true,
+                inherit_remote: Some(UnresolvedVersionSpec::default()),
                 ..Default::default()
             },
         )

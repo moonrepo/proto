@@ -235,17 +235,23 @@ impl ProtoMcp {
         let tool = handle_tool_error!(self.session.load_tool(&context).await);
         let mut resolver = Resolver::new(&tool);
 
+        let req_filter = match req.filter {
+            Some(filter) => Some(Requirement::parse(&filter).map_err(map_parse_error)?),
+            None => None,
+        };
+
         handle_tool_error!(
             resolver
-                .load_versions(&UnresolvedVersionSpec::default())
+                .load_versions(&match req_filter.clone() {
+                    Some(filter) => UnresolvedVersionSpec::Requirement(filter),
+                    None => UnresolvedVersionSpec::default(),
+                })
                 .await
         );
 
         let mut versions = mem::take(&mut resolver.data.versions);
 
-        if let Some(filter) = req.filter {
-            let filter = Requirement::parse(&filter).map_err(map_parse_error)?;
-
+        if let Some(filter) = req_filter {
             versions.retain(|item| {
                 item.as_version()
                     .is_some_and(|version| filter.matches(version))

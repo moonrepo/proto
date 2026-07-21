@@ -2,7 +2,10 @@ use crate::components::{Locator, SpecAliasesMap, VersionsMap};
 use crate::session::{LoadToolOptions, ProtoSession, SessionResult};
 use clap::Args;
 use iocraft::prelude::element;
-use proto_core::{ConfigMode, Id, PluginLocator, ProtoToolConfig, ToolContext, ToolManifest};
+use proto_core::{
+    ConfigMode, Id, PluginLocator, ProtoToolConfig, ToolContext, ToolManifest,
+    UnresolvedVersionSpec,
+};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Serialize;
 use starbase_console::ui::*;
@@ -52,7 +55,7 @@ pub async fn list(session: ProtoSession, args: PluginListArgs) -> SessionResult 
                     .collect::<Vec<_>>()
             }),
             inherit_local: true,
-            inherit_remote: true,
+            inherit_remote: Some(UnresolvedVersionSpec::default()),
             ..Default::default()
         })
         .await?;
