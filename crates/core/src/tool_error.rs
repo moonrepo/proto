@@ -7,7 +7,7 @@ use starbase_styles::{Style, Stylize};
 use starbase_utils::fs::FsError;
 use std::path::PathBuf;
 use thiserror::Error;
-use warpgate::{WarpgateHttpClientError, WarpgatePluginError};
+use warpgate::{IdError, WarpgateHttpClientError, WarpgatePluginError};
 
 #[derive(Error, Debug, miette::Diagnostic)]
 pub enum ProtoToolError {
@@ -26,6 +26,10 @@ pub enum ProtoToolError {
     #[diagnostic(transparent)]
     #[error(transparent)]
     HttpClient(#[from] Box<WarpgateHttpClientError>),
+
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Id(#[from] Box<IdError>),
 
     #[diagnostic(transparent)]
     #[error(transparent)]
@@ -82,6 +86,12 @@ impl From<ProtoConfigError> for ProtoToolError {
 impl From<FsError> for ProtoToolError {
     fn from(e: FsError) -> ProtoToolError {
         ProtoToolError::Fs(Box::new(e))
+    }
+}
+
+impl From<IdError> for ProtoToolError {
+    fn from(e: IdError) -> ProtoToolError {
+        ProtoToolError::Id(Box::new(e))
     }
 }
 
