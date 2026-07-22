@@ -76,7 +76,7 @@ test_bin() {
 
   # Ignore versions that contain a scope,
   # as the scope is typically not included in the outputs
-  if [[ "$version" =~ ^[0-9] ]]; then
+  if [[ $version =~ ^[0-9] ]]; then
     assert_contains "$ver" "$version"
   fi
 }
