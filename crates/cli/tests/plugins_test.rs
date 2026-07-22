@@ -243,6 +243,26 @@ mod plugins {
         }
 
         #[test]
+        fn supports_java() {
+            let sandbox = create_empty_proto_sandbox();
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("java");
+                })
+                .success();
+
+            create_shim_command(sandbox.path(), "java")
+                .arg("--version")
+                .assert()
+                .success();
+
+            assert_snapshot!(
+                fs::read_to_string(sandbox.path().join(".proto/shims/registry.json")).unwrap()
+            );
+        }
+
+        #[test]
         fn supports_moon() {
             let sandbox = create_empty_proto_sandbox();
 
