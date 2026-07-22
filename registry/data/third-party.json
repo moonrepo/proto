@@ -775,6 +775,19 @@
       ]
     },
     {
+      "id": "hunk",
+      "locator": "https://raw.githubusercontent.com/IgnisDa/proto-plugins/main/hunk/plugin.toml",
+      "format": "toml",
+      "name": "Hunk",
+      "description": "Review-first terminal diff viewer for agent-authored changesets.",
+      "author": "IgnisDa",
+      "homepageUrl": "https://hunk.dev/",
+      "repositoryUrl": "https://github.com/IgnisDa/proto-plugins/tree/main/hunk",
+      "bins": [
+        "hunk"
+      ]
+    },
+    {
       "id": "hurl",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/hurl/plugin.toml",
       "format": "toml",
