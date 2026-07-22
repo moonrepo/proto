@@ -322,7 +322,13 @@ impl Tool {
 
         let inventory_id =
             if metadata.inventory_options.scoped_backend_dir && self.context.backend.is_some() {
-                Id::new(self.context.as_str().replace(':', "__"))?
+                Id::new(
+                    self.context
+                        .as_str()
+                        .replace(':', "__")
+                        .replace('/', "_")
+                        .replace('@', ""),
+                )?
             } else if let Some(custom_id) = &metadata.inventory_options.override_dir_name {
                 Id::new(custom_id)?
             } else {

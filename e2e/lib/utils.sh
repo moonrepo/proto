@@ -74,9 +74,12 @@ test_bin() {
     fail "bin '$bin' exited $bin_rc"
   fi
 
-  assert_contains "$ver" "$version"
+  # Ignore versions that contain a scope,
+  # as the scope is typically not included in the outputs
+  if [[ "$version" =~ ^[0-9] ]]; then
+    assert_contains "$ver" "$version"
+  fi
 }
-
 
 test_shim() {
   export PROTO_DEBUG_SHIM=1;
