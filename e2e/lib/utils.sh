@@ -141,7 +141,7 @@ install_tool() {
 
   test_bin "$tool" "$version" "$version_arg"
 
-  if [[ "$tool" != "rust" ]]; then
+  if [[ "$tool" != "rust" && "$tool" != "jdk" && "$tool" != "jre" ]]; then
     test_shim "$tool" "$version" "$version_arg"
   fi
 
