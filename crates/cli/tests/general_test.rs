@@ -46,7 +46,10 @@ mod general {
             cmd.arg("--json")
                 .arg("mcp")
                 .arg("--info")
-                .env("PROTO_REPORTER", "ndjson");
+                .env("PROTO_REPORTER", "ndjson")
+                .env_remove("CODEX_CI")
+                .env_remove("CODEX_SANDBOX")
+                .env_remove("CODEX_THREAD_ID");
         });
         let stdout = assert.stdout();
         assert.success();
@@ -66,7 +69,10 @@ mod general {
             cmd.arg("--json")
                 .arg("mcp")
                 .arg("--info")
-                .env("PROTO_REPORTER", "text");
+                .env("PROTO_REPORTER", "text")
+                .env_remove("CODEX_CI")
+                .env_remove("CODEX_SANDBOX")
+                .env_remove("CODEX_THREAD_ID");
         });
         let stdout = assert.stdout();
         assert.success();

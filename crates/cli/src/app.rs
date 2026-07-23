@@ -216,9 +216,6 @@ impl App {
         self.json || self.reporter.is_some()
     }
 
-    /// Resolve the stdout owner for the current command. Exhaustive on
-    /// purpose: a new command must decide who owns its stdout, instead of
-    /// silently inheriting the reporter and its AI agent NDJSON fallback.
     pub fn stdout_owner(&self) -> StdoutOwner {
         match &self.command {
             Commands::Activate(args) => {
@@ -236,27 +233,7 @@ impl App {
                     StdoutOwner::McpStdio
                 }
             }
-            Commands::Alias(_)
-            | Commands::Bin(_)
-            | Commands::Clean(_)
-            | Commands::Debug { .. }
-            | Commands::Diagnose(_)
-            | Commands::Exec(_)
-            | Commands::Install(_)
-            | Commands::Migrate(_)
-            | Commands::Outdated(_)
-            | Commands::Pin(_)
-            | Commands::Plugin { .. }
-            | Commands::Regen(_)
-            | Commands::Run(_)
-            | Commands::Setup(_)
-            | Commands::Shell(_)
-            | Commands::Status(_)
-            | Commands::Unalias(_)
-            | Commands::Uninstall(_)
-            | Commands::Unpin(_)
-            | Commands::Upgrade(_)
-            | Commands::Versions(_) => StdoutOwner::Reporter,
+            _ => StdoutOwner::Reporter,
         }
     }
 

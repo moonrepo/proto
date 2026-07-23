@@ -63,10 +63,13 @@ mod bin {
                     .is_some_and(|message| message.contains("Detected an AI agent"))
         }));
         assert!(records.iter().any(|record| {
-            record
-                .get("message")
-                .and_then(|value| value.as_str())
-                .is_some_and(|message| message.contains("protostar") && message.contains("1.0.0"))
+            record.get("type").and_then(|value| value.as_str()) == Some("message")
+                && record
+                    .get("message")
+                    .and_then(|value| value.as_str())
+                    .is_some_and(|message| {
+                        message.contains("protostar") && message.contains("1.0.0")
+                    })
         }));
 
         assert.success();

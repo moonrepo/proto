@@ -351,8 +351,8 @@ impl AppSession for ProtoSession {
     type Error = miette::Report;
 
     async fn startup(&mut self) -> AppResult<Self::Error> {
-        if self.cli.stdout_owner() == StdoutOwner::Reporter
-            && !self.cli.is_reporter_explicit()
+        if ai_env::is_ai_agent()
+            && self.cli.stdout_owner() == StdoutOwner::Reporter
             && self.cli.reporter_format() == ReporterFormat::Ndjson
         {
             self.console.message("Detected an AI agent environment, printing as NDJSON. Trace logs are written to stderr, while user-facing logs are written to stdout.")?;

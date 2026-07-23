@@ -182,7 +182,7 @@ moonstone = "2.0.0"
         }
 
         #[test]
-        fn prints_structured_data_for_explicit_reporter() {
+        fn prints_agent_notice_and_data_for_explicit_reporter() {
             let sandbox = create_empty_proto_sandbox();
 
             let assert = sandbox.run_bin(|cmd| {
@@ -192,10 +192,23 @@ moonstone = "2.0.0"
                     .arg("ndjson")
                     .env("CODEX_CI", "1");
             });
-            assert.success().stdout(
-                predicate::str::contains("{\"type\":\"data\"")
-                    .and(predicate::str::contains("Detected an AI agent").not()),
-            );
+            let stdout = assert.stdout();
+            let records = stdout
+                .lines()
+                .map(|line| serde_json::from_str::<serde_json::Value>(line).unwrap())
+                .collect::<Vec<_>>();
+
+            assert.success();
+            assert!(records.iter().any(|record| {
+                record.get("type").and_then(|value| value.as_str()) == Some("message")
+                    && record
+                        .get("message")
+                        .and_then(|value| value.as_str())
+                        .is_some_and(|message| message.contains("Detected an AI agent"))
+            }));
+            assert!(records.iter().any(|record| {
+                record.get("type").and_then(|value| value.as_str()) == Some("data")
+            }));
         }
 
         #[test]
