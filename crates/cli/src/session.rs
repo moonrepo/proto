@@ -334,7 +334,7 @@ impl ProtoSession {
     }
 
     pub fn is_json_format(&self) -> bool {
-        self.cli.json || self.console.is_json_format()
+        self.console.is_json_format()
     }
 
     pub fn is_tty(&self) -> bool {
@@ -351,8 +351,6 @@ impl AppSession for ProtoSession {
     type Error = miette::Report;
 
     async fn startup(&mut self) -> AppResult<Self::Error> {
-        // Only mention an automatically selected NDJSON reporter; an
-        // explicit request doesn't need the notice
         if self.cli.stdout_owner() == StdoutOwner::Reporter
             && !self.cli.is_reporter_explicit()
             && self.cli.reporter_format() == ReporterFormat::Ndjson

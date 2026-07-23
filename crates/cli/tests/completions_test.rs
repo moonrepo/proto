@@ -11,7 +11,7 @@ mod completions {
                 .arg("--shell")
                 .arg("zsh")
                 .env("CODEX_CI", "1")
-                .env_remove("PROTO_TEST");
+                .env_remove("PROTO_REPORTER");
         });
         assert.success().stdout(
             predicate::str::contains("#compdef proto")
@@ -30,8 +30,7 @@ mod completions {
                 .arg("--shell")
                 .arg("ion")
                 .arg("--reporter")
-                .arg("ndjson")
-                .env_remove("PROTO_TEST");
+                .arg("ndjson");
         });
         let stderr = assert.stderr();
         let records = stderr

@@ -12,6 +12,7 @@ mod utils;
 mod workflows;
 
 use app::{App as CLI, Commands, DebugCommands, PluginCommands, StdoutOwner};
+use clap::Parser;
 use proto_core::reporter::ReporterFormat;
 use session::ProtoSession;
 use starbase::{
@@ -36,7 +37,7 @@ fn get_tracing_modules() -> Vec<String> {
 }
 
 async fn async_main() -> MainResult {
-    let cli = CLI::parse_with_reporter_precedence();
+    let cli = CLI::parse();
     cli.setup_env_vars();
 
     let app = App::default();

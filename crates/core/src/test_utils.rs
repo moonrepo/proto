@@ -42,6 +42,9 @@ fn apply_settings(sandbox: &mut Sandbox) {
     env.insert("PROTO_SANDBOX", root.to_str().unwrap());
     env.insert("PROTO_HOME", proto_dir.to_str().unwrap());
     env.insert("PROTO_LOG", "trace");
+    // Keep CLI output deterministic across developer shell environments.
+    env.insert("PROTO_JSON", "false");
+    env.insert("PROTO_REPORTER", "text");
     env.insert("PROTO_TEST", "true");
 
     sandbox.settings.bin = "proto".into();

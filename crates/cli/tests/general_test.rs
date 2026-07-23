@@ -39,15 +39,34 @@ mod general {
     }
 
     #[test]
-    fn json_flag_overrides_reporter_env() {
+    fn ndjson_reporter_overrides_json_flag() {
         let sandbox = create_empty_proto_sandbox();
 
         let assert = sandbox.run_bin(|cmd| {
             cmd.arg("--json")
                 .arg("mcp")
                 .arg("--info")
-                .env("PROTO_REPORTER", "ndjson")
-                .env_remove("PROTO_TEST");
+                .env("PROTO_REPORTER", "ndjson");
+        });
+        let stdout = assert.stdout();
+        assert.success();
+        let output: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+
+        assert_eq!(
+            output.get("type").and_then(|value| value.as_str()),
+            Some("data")
+        );
+    }
+
+    #[test]
+    fn json_flag_overrides_text_reporter_env() {
+        let sandbox = create_empty_proto_sandbox();
+
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.arg("--json")
+                .arg("mcp")
+                .arg("--info")
+                .env("PROTO_REPORTER", "text");
         });
         let stdout = assert.stdout();
         assert.success();
@@ -57,59 +76,15 @@ mod general {
     }
 
     #[test]
-    fn reporter_flag_overrides_json_env() {
-        let sandbox = create_empty_proto_sandbox();
-
-        let assert = sandbox.run_bin(|cmd| {
-            cmd.arg("--reporter")
-                .arg("ndjson")
-                .arg("mcp")
-                .arg("--info")
-                .env("PROTO_JSON", "true")
-                .env_remove("PROTO_TEST");
-        });
-        let stdout = assert.stdout();
-        assert.success();
-        let output: serde_json::Value = serde_json::from_str(&stdout).unwrap();
-
-        assert_eq!(
-            output.get("type").and_then(|value| value.as_str()),
-            Some("data")
-        );
-    }
-
-    #[test]
-    fn reporter_wins_legacy_json_alias() {
-        let sandbox = create_empty_proto_sandbox();
-
-        let assert = sandbox.run_bin(|cmd| {
-            cmd.arg("--json")
-                .arg("--reporter")
-                .arg("ndjson")
-                .arg("mcp")
-                .arg("--info")
-                .env_remove("PROTO_TEST");
-        });
-        let stdout = assert.stdout();
-        assert.success();
-        let output: serde_json::Value = serde_json::from_str(&stdout).unwrap();
-
-        assert_eq!(
-            output.get("type").and_then(|value| value.as_str()),
-            Some("data")
-        );
-    }
-
-    #[test]
     fn json_env_selects_json_reporter() {
         let sandbox = create_empty_proto_sandbox();
 
         let assert = sandbox.run_bin(|cmd| {
             cmd.arg("mcp")
                 .arg("--info")
+                .env("CODEX_CI", "1")
                 .env("PROTO_JSON", "true")
-                .env_remove("PROTO_REPORTER")
-                .env_remove("PROTO_TEST");
+                .env_remove("PROTO_REPORTER");
         });
         let stdout = assert.stdout();
         assert.success();

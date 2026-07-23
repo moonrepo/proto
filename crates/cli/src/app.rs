@@ -6,7 +6,7 @@ use crate::commands::{
     plugin::{PluginAddArgs, PluginInfoArgs, PluginListArgs, PluginRemoveArgs, PluginSearchArgs},
 };
 use clap::builder::styling::{Color, Style, Styles};
-use clap::{ArgMatches, CommandFactory, FromArgMatches, Parser, Subcommand, ValueEnum};
+use clap::{Parser, Subcommand, ValueEnum};
 use proto_core::{ConfigMode, reporter::ReporterFormat};
 use starbase_styles::color::Color as ColorType;
 use std::{
@@ -14,6 +14,14 @@ use std::{
     fmt::{Display, Error, Formatter},
     path::PathBuf,
 };
+
+fn default_reporter() -> ReporterFormat {
+    if ai_env::is_ai_agent() {
+        ReporterFormat::Ndjson
+    } else {
+        ReporterFormat::Text
+    }
+}
 
 #[derive(ValueEnum, Clone, Debug, Default)]
 pub enum AppTheme {
@@ -204,18 +212,8 @@ pub enum StdoutOwner {
 }
 
 impl App {
-    pub fn parse_with_reporter_precedence() -> Self {
-        let matches = Self::command().get_matches();
-        let mut app = Self::from_arg_matches(&matches).unwrap_or_else(|error| error.exit());
-
-        app.resolve_reporter_precedence(&matches);
-        app
-    }
-
-    /// Whether an output format was explicitly requested instead of inferred
-    /// from AI-agent detection.
     pub fn is_reporter_explicit(&self) -> bool {
-        self.explicit_reporter().is_some()
+        self.json || self.reporter.is_some()
     }
 
     /// Resolve the stdout owner for the current command. Exhaustive on
@@ -224,10 +222,7 @@ impl App {
     pub fn stdout_owner(&self) -> StdoutOwner {
         match &self.command {
             Commands::Activate(args) => {
-                if let Some(format) = self.explicit_reporter()
-                    && format.is_json()
-                    && !args.export
-                {
+                if self.is_reporter_explicit() && self.reporter_format().is_json() && !args.export {
                     StdoutOwner::Reporter
                 } else {
                     StdoutOwner::ShellCode
@@ -265,50 +260,12 @@ impl App {
         }
     }
 
-    fn explicit_reporter(&self) -> Option<ReporterFormat> {
-        self.reporter.or(self.json.then_some(ReporterFormat::Json))
-    }
-
-    fn resolve_reporter_precedence(&mut self, matches: &ArgMatches) {
-        use clap::parser::ValueSource;
-
-        let json_source = if self.json {
-            matches.value_source("json")
-        } else {
-            None
-        };
-        let reporter_source = if self.reporter.is_some() {
-            matches.value_source("reporter")
-        } else {
-            None
-        };
-
-        // CLI options override environment variables. When both options come
-        // from the same source, the canonical reporter option wins over the
-        // legacy JSON alias.
-        let json_wins = matches!(
-            (json_source, reporter_source),
-            (
-                Some(ValueSource::CommandLine),
-                Some(ValueSource::EnvVariable) | None
-            ) | (Some(ValueSource::EnvVariable), None)
-        );
-
-        if json_wins {
-            self.reporter = None;
-        } else if reporter_source.is_some() {
-            self.json = false;
-        }
-    }
-
-    /// Select the reporter format independently from stdout ownership.
     pub fn reporter_format(&self) -> ReporterFormat {
-        if let Some(format) = self.explicit_reporter() {
-            format
-        } else if ai_env::is_ai_agent() {
-            ReporterFormat::Ndjson
-        } else {
-            ReporterFormat::Text
+        match self.reporter {
+            Some(format) if format.is_json() => format,
+            _ if self.json => ReporterFormat::Json,
+            Some(format) => format,
+            None => default_reporter(),
         }
     }
 

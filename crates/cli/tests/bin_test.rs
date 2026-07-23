@@ -46,7 +46,7 @@ mod bin {
                 .arg("protostar")
                 .arg("1.0.0")
                 .env("CODEX_CI", "1")
-                .env_remove("PROTO_TEST");
+                .env_remove("PROTO_REPORTER");
         });
         let stdout = assert.stdout();
 

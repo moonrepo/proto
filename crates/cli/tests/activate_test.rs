@@ -136,7 +136,7 @@ moonstone = "2.0.0"
                 cmd.arg("activate")
                     .arg("zsh")
                     .env("CODEX_CI", "1")
-                    .env_remove("PROTO_TEST");
+                    .env_remove("PROTO_REPORTER");
             });
             assert.success().stdout(
                 predicate::str::contains("_proto_activate_hook")
@@ -154,7 +154,7 @@ moonstone = "2.0.0"
                     .arg("zsh")
                     .arg("--export")
                     .env("CODEX_CI", "1")
-                    .env_remove("PROTO_TEST");
+                    .env_remove("PROTO_REPORTER");
             });
             assert.success().stdout(
                 predicate::str::contains("_PROTO_ACTIVATED_PATH")
@@ -171,7 +171,7 @@ moonstone = "2.0.0"
                     .arg("zsh")
                     .arg("--json")
                     .env("CODEX_CI", "1")
-                    .env_remove("PROTO_TEST");
+                    .env_remove("PROTO_REPORTER");
             });
             let stdout = assert.stdout();
             assert.success();
@@ -190,8 +190,7 @@ moonstone = "2.0.0"
                     .arg("zsh")
                     .arg("--reporter")
                     .arg("ndjson")
-                    .env("CODEX_CI", "1")
-                    .env_remove("PROTO_TEST");
+                    .env("CODEX_CI", "1");
             });
             assert.success().stdout(
                 predicate::str::contains("{\"type\":\"data\"")
@@ -207,7 +206,7 @@ moonstone = "2.0.0"
                 cmd.arg("activate")
                     .arg("nu")
                     .env("CODEX_CI", "1")
-                    .env_remove("PROTO_TEST");
+                    .env_remove("PROTO_REPORTER");
             });
             assert.success().stdout(
                 predicate::str::contains("proto activate nu --reporter json")
@@ -220,8 +219,7 @@ moonstone = "2.0.0"
                     .arg("nu")
                     .arg("--reporter")
                     .arg("json")
-                    .env("CODEX_CI", "1")
-                    .env_remove("PROTO_TEST");
+                    .env("CODEX_CI", "1");
             });
             let stdout = assert.stdout();
             assert.success();
@@ -274,8 +272,7 @@ moonstone = "2.0.0"
                     .arg("--export")
                     .arg("--reporter")
                     .arg("ndjson")
-                    .env("CODEX_CI", "1")
-                    .env_remove("PROTO_TEST");
+                    .env("CODEX_CI", "1");
             });
             assert.success().stdout(
                 predicate::str::contains("_PROTO_ACTIVATED_PATH")
@@ -294,8 +291,7 @@ moonstone = "2.0.0"
                     .arg("--reporter")
                     .arg("ndjson")
                     .arg("--log")
-                    .arg("debug")
-                    .env_remove("PROTO_TEST");
+                    .arg("debug");
             });
             let stderr = assert.stderr();
 

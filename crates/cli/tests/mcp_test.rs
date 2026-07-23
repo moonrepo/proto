@@ -8,7 +8,7 @@ mod mcp {
         let assert = sandbox.run_bin(|cmd| {
             cmd.arg("mcp")
                 .env("CODEX_CI", "1")
-                .env_remove("PROTO_TEST")
+                .env_remove("PROTO_REPORTER")
                 .write_stdin(
                     r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"0.0.0"}}}"#
                         .to_owned()

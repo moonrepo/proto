@@ -50,7 +50,7 @@ mod exec {
         let assert = sandbox.run_bin(|cmd| {
             cmd.arg("exec")
                 .env("CODEX_CI", "1")
-                .env_remove("PROTO_TEST");
+                .env_remove("PROTO_REPORTER");
         });
 
         let stdout = assert.stdout();
