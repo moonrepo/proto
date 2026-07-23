@@ -202,7 +202,7 @@ impl<'tool> Linker<'tool> {
             // Skip bins for executables owned by a different tool. The registry
             // is keyed by the bare executable name, so this naturally targets
             // the primary `*`-bucket bins; versioned bins are uniquely named.
-            if let Some(entry) = self.shim_registry.shims.get(&bin.name) {
+            if let Some(entry) = self.shim_registry.get(&bin.name) {
                 let owned_by_this = match &entry.context {
                     Some(owner) => owner == &self.tool.context,
                     None => self.tool.context.id.as_str() == bin.name,

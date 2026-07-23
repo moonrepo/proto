@@ -33,9 +33,11 @@ pub struct Shim {
 pub type ShimsMap = BTreeMap<String, Shim>;
 
 pub struct ShimRegistry {
+    // Access via tests only!
     pub shims: ShimsMap,
-    pub path: PathBuf,
+
     changed: ShimsMap,
+    path: PathBuf,
 }
 
 impl ShimRegistry {
@@ -54,6 +56,10 @@ impl ShimRegistry {
             path: path.to_path_buf(),
             changed: ShimsMap::default(),
         })
+    }
+
+    pub fn get(&self, key: &str) -> Option<&Shim> {
+        self.changed.get(key).or_else(|| self.shims.get(key))
     }
 
     #[instrument(name = "update_shim_registry", skip(self))]
