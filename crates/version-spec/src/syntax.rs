@@ -564,6 +564,59 @@ pub enum Clause {
     Only(Requirement),
 }
 
+impl Clause {
+    /// Returns the version scope if available. A clause with multiple requirements
+    /// only has a scope if all scoped requirements share the same scope, while
+    /// requirements without a scope are ignored.
+    pub fn get_scope(&self) -> Option<&str> {
+        match self {
+            Clause::All(reqs) => {
+                let mut scope = None;
+
+                for req in reqs {
+                    if let Some(req_scope) = req.scope.as_deref() {
+                        if scope.is_none() {
+                            scope = Some(req_scope);
+                        } else if scope != Some(req_scope) {
+                            return None;
+                        }
+                    }
+                }
+
+                scope
+            }
+            Clause::Between(ver1, ver2) => {
+                if ver1.scope == ver2.scope {
+                    ver1.scope.as_deref()
+                } else {
+                    None
+                }
+            }
+            Clause::Only(req) => req.scope.as_deref(),
+        }
+    }
+
+    /// Set the scope on either the current requirement(s) or version(s).
+    pub fn set_scope(&mut self, scope: impl AsRef<str>) {
+        let scope = Some(scope.as_ref().into());
+
+        match self {
+            Clause::All(reqs) => {
+                for req in reqs {
+                    req.scope = scope.clone();
+                }
+            }
+            Clause::Between(ver1, ver2) => {
+                ver1.scope = scope.clone();
+                ver2.scope = scope;
+            }
+            Clause::Only(req) => {
+                req.scope = scope;
+            }
+        }
+    }
+}
+
 impl Display for Clause {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -610,6 +663,32 @@ impl Range {
         .map_err(|error| SpecError::FailedVersionRangeParse {
             error: Box::new(error),
         })
+    }
+
+    /// Returns the version scope if available. A range with multiple clauses
+    /// only has a scope if all scoped clauses share the same scope, while
+    /// clauses without a scope are ignored.
+    pub fn get_scope(&self) -> Option<&str> {
+        let mut scope = None;
+
+        for clause in &self.clauses {
+            if let Some(clause_scope) = clause.get_scope() {
+                if scope.is_none() {
+                    scope = Some(clause_scope);
+                } else if scope != Some(clause_scope) {
+                    return None;
+                }
+            }
+        }
+
+        scope
+    }
+
+    /// Set the scope on all clauses within the range.
+    pub fn set_scope(&mut self, scope: impl AsRef<str>) {
+        for clause in &mut self.clauses {
+            clause.set_scope(scope.as_ref());
+        }
     }
 }
 

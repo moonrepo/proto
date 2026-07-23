@@ -672,7 +672,7 @@ builtin-plugins = true
                 BuiltinPlugins::Enabled(true)
             );
 
-            assert_eq!(config.builtin_plugins().tools.len(), 19);
+            assert_eq!(config.builtin_plugins().tools.len(), 22);
         }
 
         #[test]

@@ -2,6 +2,7 @@ use crate::resolved_spec::VersionSpec;
 use crate::spec_error::SpecError;
 use crate::syntax::*;
 use crate::syntax_parser::parse_alias;
+use crate::syntax_traits::{FormatOptions, FormatsVersion};
 use compact_str::CompactString;
 use human_sort::compare;
 use serde::{Deserialize, Serialize};
@@ -30,6 +31,16 @@ impl UnresolvedVersionSpec {
     /// Parse the provided string into an unresolved specification.
     pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, SpecError> {
         Self::from_str(value.as_ref())
+    }
+
+    /// Return the version scope if available.
+    pub fn get_scope(&self) -> Option<&str> {
+        match self {
+            Self::Range(range) => range.get_scope(),
+            Self::Requirement(req) => req.scope.as_deref(),
+            Self::Version(version) => version.scope.as_deref(),
+            _ => None,
+        }
     }
 
     /// Return true if the provided alias matches the current specification.
@@ -63,6 +74,22 @@ impl UnresolvedVersionSpec {
         }
     }
 
+    /// Set the scope on either the current version or requirement, if applicable.
+    pub fn set_scope(&mut self, scope: impl AsRef<str>) {
+        match self {
+            Self::Range(range) => {
+                range.set_scope(scope);
+            }
+            Self::Requirement(req) => {
+                req.scope = Some(scope.as_ref().into());
+            }
+            Self::Version(version) => {
+                version.scope = Some(scope.as_ref().into());
+            }
+            _ => {}
+        }
+    }
+
     /// Convert the current unresolved specification to a resolved specification.
     /// Note that this *does not* actually resolve or validate against a manifest,
     /// and instead simply constructs the [`VersionSpec`].
@@ -80,52 +107,29 @@ impl UnresolvedVersionSpec {
 
     /// Convert the current unresolved specification to a partial string, where
     /// minor and patch versions are omitted if not defined, and the comparator
-    /// operator is also omitted. For example, "~1.2" would simply print "1.2".
+    /// operator and build metadata are also omitted. For example, "~1.2" would
+    /// simply print "1.2".
     ///
-    /// Furthermore, `Canary` will return "canary", `ReqAny` will return "latest",
-    /// and aliases will return as-is.
+    /// Furthermore, `Canary` will return "canary", ranges and wildcard
+    /// requirements will return "latest", and aliases will return as-is.
     pub fn to_partial_string(&self) -> String {
-        fn from_parts(major: u32, minor: Option<u32>, patch: Option<u32>, pre: &str) -> String {
-            let mut version = format!("{major}");
-
-            minor.inspect(|m| {
-                version.push_str(&format!(".{m}"));
-            });
-
-            patch.inspect(|p| {
-                version.push_str(&format!(".{p}"));
-            });
-
-            if !pre.is_empty() {
-                version.push('-');
-                version.push_str(pre);
-            }
-
-            version
-        }
-
         match self {
             UnresolvedVersionSpec::Canary => "canary".into(),
             UnresolvedVersionSpec::Alias(alias) => alias.to_string(),
             UnresolvedVersionSpec::Range(_) => "latest".into(),
-            UnresolvedVersionSpec::Requirement(req) => from_parts(
-                req.major.unwrap_or_default(),
-                req.minor,
-                req.patch,
-                req.prerelease.as_deref().unwrap_or_default(),
-            ),
-            UnresolvedVersionSpec::Version(ver) => {
-                let version = from_parts(
-                    ver.major,
-                    Some(ver.minor),
-                    Some(ver.patch),
-                    ver.prerelease.as_deref().unwrap_or_default(),
-                );
+            UnresolvedVersionSpec::Requirement(req) if req.major.is_none() => "latest".into(),
+            UnresolvedVersionSpec::Requirement(req) => {
+                let mut options = FormatOptions::new(req.kind);
+                options.include_op = false;
+                options.include_build = false;
 
-                match &ver.scope {
-                    Some(scope) => format!("{scope}-{version}"),
-                    None => version,
-                }
+                req.to_formatted_string(&options)
+            }
+            UnresolvedVersionSpec::Version(ver) => {
+                let mut options = FormatOptions::new(ver.kind);
+                options.include_build = false;
+
+                ver.to_formatted_string(&options)
             }
         }
     }

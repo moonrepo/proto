@@ -410,47 +410,117 @@ mod unresolved_spec {
 
     #[test]
     fn to_partial_string() {
-        assert_eq!(
-            UnresolvedVersionSpec::parse("1")
-                .unwrap()
-                .to_partial_string(),
-            "1"
-        );
-        assert_eq!(
-            UnresolvedVersionSpec::parse("~1.2")
-                .unwrap()
-                .to_partial_string(),
-            "1.2"
-        );
-        assert_eq!(
-            UnresolvedVersionSpec::parse("^1.2.3")
-                .unwrap()
-                .to_partial_string(),
-            "1.2.3"
-        );
-        assert_eq!(
-            UnresolvedVersionSpec::parse("1.2.3-rc.0")
-                .unwrap()
-                .to_partial_string(),
-            "1.2.3-rc.0"
-        );
-        assert_eq!(
-            UnresolvedVersionSpec::parse("1.2.3+build")
-                .unwrap()
-                .to_partial_string(),
-            "1.2.3"
-        );
-        assert_eq!(
-            UnresolvedVersionSpec::parse("node-1.2.3")
-                .unwrap()
-                .to_partial_string(),
-            "node-1.2.3"
-        );
-        assert_eq!(
-            UnresolvedVersionSpec::parse("node-2024-02")
-                .unwrap()
-                .to_partial_string(),
-            "node-2024.2.0"
-        );
+        for (input, expected) in [
+            // special variants
+            ("canary", "canary"),
+            ("latest", "latest"),
+            ("stable", "stable"),
+            ("lts-hydrogen", "lts-hydrogen"),
+            // requirements, in which the operator is omitted
+            ("1", "1"),
+            ("~1.2", "1.2"),
+            ("^1.2.3", "1.2.3"),
+            (">=1.2.3-alpha", "1.2.3-alpha"),
+            // requirements, in which wildcard parts are omitted
+            ("1.*", "1"),
+            ("1.2.*", "1.2"),
+            // requirements that match any version
+            ("*", "latest"),
+            // ranges
+            ("^1.2 || ~1", "latest"),
+            (">1, <2", "latest"),
+            // versions
+            ("1.2.3-rc.0", "1.2.3-rc.0"),
+            ("1.2.3+build", "1.2.3"),
+            // scopes are kept for both versions and requirements
+            ("node-1.2.3", "node-1.2.3"),
+            ("temurin-21", "temurin-21"),
+            ("=temurin-21.0.2", "temurin-21.0.2"),
+            // calver
+            ("~2024-02", "2024-02"),
+            ("node-2024-02", "node-2024-02"),
+        ] {
+            assert_eq!(
+                UnresolvedVersionSpec::parse(input)
+                    .unwrap()
+                    .to_partial_string(),
+                expected,
+                "input: {input}"
+            );
+        }
+    }
+
+    #[test]
+    fn get_scope() {
+        for (input, expected) in [
+            // versions
+            ("node-1.2.3", Some("node")),
+            ("node-2024-02", Some("node")),
+            ("1.2.3", None),
+            // requirements
+            ("temurin-21", Some("temurin")),
+            ("^temurin-21.0.2", Some("temurin")),
+            ("^1.2", None),
+            // ranges
+            ("temurin-17 || temurin-21", Some("temurin")),
+            (">=temurin-17 <temurin-21", Some("temurin")),
+            ("temurin-17 || ^21", Some("temurin")),
+            ("temurin-17 || zulu-21", None),
+            ("^1 || ^2", None),
+            // other variants have no scope
+            ("canary", None),
+            ("latest", None),
+        ] {
+            assert_eq!(
+                UnresolvedVersionSpec::parse(input).unwrap().get_scope(),
+                expected,
+                "input: {input}"
+            );
+        }
+    }
+
+    #[test]
+    fn set_scope() {
+        // versions
+        let mut spec = UnresolvedVersionSpec::parse("1.2.3").unwrap();
+        spec.set_scope("node");
+
+        assert_eq!(spec.get_scope(), Some("node"));
+        assert_eq!(spec.to_string(), "node-1.2.3");
+
+        // requirements
+        let mut spec = UnresolvedVersionSpec::parse("^21").unwrap();
+        spec.set_scope("temurin");
+
+        assert_eq!(spec.get_scope(), Some("temurin"));
+        assert_eq!(spec.to_string(), "^temurin-21");
+        assert_eq!(spec.to_partial_string(), "temurin-21");
+
+        // overwrites an existing scope
+        let mut spec = UnresolvedVersionSpec::parse("node-1.2.3").unwrap();
+        spec.set_scope("bun");
+
+        assert_eq!(spec.get_scope(), Some("bun"));
+        assert_eq!(spec.to_string(), "bun-1.2.3");
+
+        // ranges
+        let mut spec = UnresolvedVersionSpec::parse("^1 || ^2").unwrap();
+        spec.set_scope("temurin");
+
+        assert_eq!(spec.get_scope(), Some("temurin"));
+        assert_eq!(spec.to_string(), "^temurin-1 || ^temurin-2");
+
+        // other variants are unchanged
+        for input in ["canary", "latest"] {
+            let mut spec = UnresolvedVersionSpec::parse(input).unwrap();
+            spec.set_scope("node");
+
+            assert_eq!(
+                spec,
+                UnresolvedVersionSpec::parse(input).unwrap(),
+                "input: {input}"
+            );
+            assert_eq!(spec.get_scope(), None, "input: {input}");
+        }
     }
 }

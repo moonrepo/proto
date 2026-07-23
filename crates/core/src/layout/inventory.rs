@@ -4,6 +4,7 @@ use crate::helpers::{is_cache_enabled, is_offline};
 use crate::lockfile::LockRecord;
 use crate::tool_manifest::ToolManifest;
 use proto_pdk_api::{LoadVersionsOutput, ToolInventoryOptions};
+use starbase_utils::path::encode_component;
 use starbase_utils::{fs, json, path};
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
@@ -48,12 +49,9 @@ impl Inventory {
     pub fn load_remote_versions(
         &self,
         disable_cache: bool,
+        scope: Option<&str>,
     ) -> Result<Option<LoadVersionsOutput>, ProtoLayoutError> {
-        let cache_path = self
-            .dir_original
-            .as_ref()
-            .unwrap_or(&self.dir)
-            .join("remote-versions.json");
+        let cache_path = self.get_remote_versions_cache_path(scope);
 
         // Attempt to read from the cache first
         if cache_path.exists() {
@@ -86,16 +84,23 @@ impl Inventory {
     }
 
     #[instrument(skip_all)]
-    pub fn save_remote_versions(&self, data: &LoadVersionsOutput) -> Result<(), ProtoLayoutError> {
-        json::write_file(
-            self.dir_original
-                .as_ref()
-                .unwrap_or(&self.dir)
-                .join("remote-versions.json"),
-            data,
-            false,
-        )?;
+    pub fn save_remote_versions(
+        &self,
+        data: &LoadVersionsOutput,
+        scope: Option<&str>,
+    ) -> Result<(), ProtoLayoutError> {
+        json::write_file(self.get_remote_versions_cache_path(scope), data, false)?;
 
         Ok(())
+    }
+
+    fn get_remote_versions_cache_path(&self, scope: Option<&str>) -> PathBuf {
+        self.dir_original
+            .as_ref()
+            .unwrap_or(&self.dir)
+            .join(match scope {
+                Some(scope) => format!("remote-versions-{}.json", encode_component(scope)),
+                None => "remote-versions.json".to_string(),
+            })
     }
 }

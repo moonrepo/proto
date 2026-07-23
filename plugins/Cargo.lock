@@ -27,6 +27,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ai_env"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d8cb737aa9ab384c769a094a9c8c28f87a86cc1c4d0d599f207d65514c101a58"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "allocator-api2"
 version = "0.2.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -451,17 +460,16 @@ dependencies = [
 
 [[package]]
 name = "compact_str"
-version = "0.9.1"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9dfdd1c2274d9aa354115b09dc9a901d6c5576818cdf70d14cae2bdb47df00ab"
+checksum = "79fcda08c33bb58b97008b2cdada6622500e949e060f5913361763121abd2416"
 dependencies = [
  "castaway",
  "cfg-if",
  "itoa",
- "rustversion",
- "ryu",
  "serde",
  "static_assertions",
+ "zmij",
 ]
 
 [[package]]
@@ -2080,9 +2088,9 @@ checksum = "06432fb54d3be7964ecd3649233cddf80db2832f47fec34c01f65b3d9d774983"
 
 [[package]]
 name = "iocraft"
-version = "0.8.3"
+version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec09d74eb53878be6a7bd49f0ecb0e68d7322963d0a4fbbade67465083f38dbd"
+checksum = "aba598b3bb6724ec114b885638d12105223c44d7cf19e5eb38b12baa9a28a29d"
 dependencies = [
  "bitflags",
  "crossterm",
@@ -3033,8 +3041,9 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.58.2"
+version = "0.59.0"
 dependencies = [
+ "ai_env",
  "convert_case 0.11.0",
  "docker_credential",
  "dotenvy",
@@ -3084,7 +3093,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.32.9"
+version = "0.33.0"
 dependencies = [
  "extism-pdk",
  "proto_pdk_api",
@@ -3095,7 +3104,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.31.13"
+version = "0.32.0"
 dependencies = [
  "derive_setters",
  "rustc-hash",
@@ -3110,7 +3119,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.46.0"
+version = "0.47.0"
 dependencies = [
  "extism",
  "proto_core",
@@ -3367,9 +3376,9 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "1.12.4"
+version = "1.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1292b7759ae1cb9ec195452d1390a074f0cd8541ab7a5a8c31cd6db45d4a6ba"
+checksum = "f020237b6c8eed93db2e2cb53c00c60a8e1bc73da7d073199a1180401450218d"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -3379,9 +3388,9 @@ dependencies = [
 
 [[package]]
 name = "regex-automata"
-version = "0.4.13"
+version = "0.4.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5276caf25ac86c8d810222b3dbb938e512c55c6831a10f3e6ed1c93b84041f1c"
+checksum = "8fcfdb36bda0c880c5931cdc7a2bcdc8ba4556847b9d912bca70bc94708711ad"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -4148,11 +4157,11 @@ dependencies = [
 
 [[package]]
 name = "starbase_id"
-version = "0.3.4"
+version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a5041237261fae2e771528436493aea05783c91320b0e57694d3ee8fdacc732"
+checksum = "1456f5cb4c60dee1114697fd9257b007b38af0a780ab60f48a9f6cc0a400b97d"
 dependencies = [
- "compact_str 0.9.1",
+ "compact_str 0.10.0",
  "miette 7.6.0",
  "regex",
  "schematic",
@@ -4500,9 +4509,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.52.4"
+version = "1.53.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "317fafbbe3f02fc663dad00ea6186197de963cd4190e86a26d8d0fae095539af"
+checksum = "202caea871b69668250d242070849eb495be178ed697a3e98aebce5bc81a0bed"
 dependencies = [
  "bytes",
  "libc",
@@ -4980,9 +4989,9 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "version_spec"
-version = "0.10.3"
+version = "0.11.1"
 dependencies = [
- "compact_str 0.9.1",
+ "compact_str 0.10.0",
  "human-sort",
  "pest",
  "pest_derive",
@@ -5022,10 +5031,10 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.33.0"
+version = "0.34.0"
 dependencies = [
  "async-trait",
- "compact_str 0.9.1",
+ "compact_str 0.10.0",
  "docker_credential",
  "extism",
  "http-cache-reqwest",
@@ -5057,7 +5066,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_api"
-version = "0.17.5"
+version = "0.17.6"
 dependencies = [
  "anyhow",
  "derive_setters",
@@ -5072,7 +5081,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_pdk"
-version = "0.16.4"
+version = "0.16.5"
 dependencies = [
  "extism-pdk",
  "serde",

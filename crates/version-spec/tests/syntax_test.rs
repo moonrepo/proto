@@ -1028,6 +1028,150 @@ mod syntax {
             assert!(parse_semver_range("1.2.3 -2.3.4").is_err());
             assert!(parse_semver_range("1.2.3- 2.3.4").is_err());
         }
+
+        #[test]
+        fn gets_clause_scope() {
+            // Only has the requirement's scope
+            assert_eq!(Clause::Only(req("temurin-21")).get_scope(), Some("temurin"));
+            assert_eq!(Clause::Only(req("^21")).get_scope(), None);
+
+            // All requires every scoped requirement to agree,
+            // while unscoped requirements are ignored
+            assert_eq!(
+                Clause::All(vec![req(">=temurin-17"), req("<temurin-21")]).get_scope(),
+                Some("temurin")
+            );
+            assert_eq!(
+                Clause::All(vec![req(">=temurin-17"), req("<zulu-21")]).get_scope(),
+                None
+            );
+            assert_eq!(
+                Clause::All(vec![req(">=17"), req("<temurin-21")]).get_scope(),
+                Some("temurin")
+            );
+            assert_eq!(
+                Clause::All(vec![req(">=temurin-17"), req("<21")]).get_scope(),
+                Some("temurin")
+            );
+            assert_eq!(Clause::All(vec![req(">=17"), req("<21")]).get_scope(), None);
+            assert_eq!(Clause::All(vec![]).get_scope(), None);
+
+            // Between requires both versions to agree exactly
+            assert_eq!(
+                Clause::Between(ver("temurin-1.2.3"), ver("temurin-2.0.0")).get_scope(),
+                Some("temurin")
+            );
+            assert_eq!(
+                Clause::Between(ver("temurin-1.2.3"), ver("zulu-2.0.0")).get_scope(),
+                None
+            );
+            assert_eq!(
+                Clause::Between(ver("temurin-1.2.3"), ver("2.0.0")).get_scope(),
+                None
+            );
+            assert_eq!(
+                Clause::Between(ver("1.2.3"), ver("2.0.0")).get_scope(),
+                None
+            );
+        }
+
+        #[test]
+        fn gets_range_scope() {
+            for (input, expected) in [
+                ("temurin-17 || temurin-21", Some("temurin")),
+                (">=temurin-17 <temurin-21", Some("temurin")),
+                // Unscoped clauses are ignored
+                ("temurin-17 || ^21", Some("temurin")),
+                // A partially scoped between has no scope
+                ("1.2.3 - temurin-2.0.0", None),
+                // Conflicting scopes have no scope
+                ("temurin-17 || zulu-21", None),
+                ("^1 || ^2", None),
+                ("*", None),
+            ] {
+                assert_eq!(
+                    parse_semver_range(input).unwrap().get_scope(),
+                    expected,
+                    "input: {input}"
+                );
+            }
+
+            // A fully scoped between is not parseable, but can be constructed
+            assert_eq!(
+                Range {
+                    clauses: vec![Clause::Between(ver("temurin-1.2.3"), ver("temurin-2.0.0"))]
+                }
+                .get_scope(),
+                Some("temurin")
+            );
+        }
+
+        #[test]
+        fn errors_scoped_between() {
+            // The scope lookahead requires the version tail to reach the end
+            // of the input, so a scoped lower bound can never be parsed
+            assert!(parse_semver_range("temurin-1.2.3 - temurin-2.0.0").is_err());
+            assert!(parse_semver_range("temurin-1.2.3 - 2.0.0").is_err());
+        }
+
+        #[test]
+        fn sets_clause_scope() {
+            let mut clause = Clause::Only(req("^21"));
+            clause.set_scope("temurin");
+
+            assert_eq!(clause, Clause::Only(req("^temurin-21")));
+
+            let mut clause = Clause::All(vec![req(">=17"), req("<21")]);
+            clause.set_scope("temurin");
+
+            assert_eq!(
+                clause,
+                Clause::All(vec![req(">=temurin-17"), req("<temurin-21")])
+            );
+
+            let mut clause = Clause::Between(ver("1.2.3"), ver("2.0.0"));
+            clause.set_scope("temurin");
+
+            assert_eq!(
+                clause,
+                Clause::Between(ver("temurin-1.2.3"), ver("temurin-2.0.0"))
+            );
+        }
+
+        #[test]
+        fn sets_range_scope() {
+            // Applies to all clause types
+            let mut range = parse_semver_range("^1 <1.5 || 2.0.0 - 3.0.0 || ~4").unwrap();
+            range.set_scope("temurin");
+
+            assert_eq!(
+                range,
+                Range {
+                    clauses: vec![
+                        Clause::All(vec![req("^temurin-1"), req("<temurin-1.5")]),
+                        Clause::Between(ver("temurin-2.0.0"), ver("temurin-3.0.0")),
+                        Clause::Only(req("~temurin-4")),
+                    ]
+                }
+            );
+            assert_eq!(range.get_scope(), Some("temurin"));
+
+            // Overwrites existing scopes
+            let mut range = parse_semver_range("zulu-17 || zulu-21").unwrap();
+            range.set_scope("temurin");
+
+            assert_eq!(
+                range,
+                parse_semver_range("temurin-17 || temurin-21").unwrap()
+            );
+
+            // A wildcard range has no clauses to scope
+            let mut range = parse_semver_range("*").unwrap();
+            range.set_scope("temurin");
+
+            assert_eq!(range, Range::default());
+            assert_eq!(range.get_scope(), None);
+        }
     }
 
     mod calver {

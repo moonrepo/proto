@@ -302,10 +302,14 @@ impl Tool {
             .await?;
 
         #[cfg(not(debug_assertions))]
-        if let Some(expected_version) = &metadata.minimum_proto_version {
+        if let Some(mut expected_version) = metadata.minimum_proto_version.clone() {
+            if expected_version.prerelease.is_none() {
+                expected_version.prerelease = Some("alpha.0".into());
+            }
+
             let actual_version = get_proto_version();
 
-            if actual_version < expected_version {
+            if actual_version < &expected_version {
                 return Err(ProtoToolError::InvalidMinimumVersion {
                     tool: metadata.name,
                     id: self.get_id().clone(),
@@ -318,7 +322,15 @@ impl Tool {
 
         let inventory_id =
             if metadata.inventory_options.scoped_backend_dir && self.context.backend.is_some() {
-                Id::raw(self.context.as_str().replace(':', "__"))
+                Id::new(
+                    self.context
+                        .as_str()
+                        .replace(':', "__")
+                        .replace('/', "_")
+                        .replace('@', ""),
+                )?
+            } else if let Some(custom_id) = &metadata.inventory_options.override_dir_name {
+                Id::new(custom_id)?
             } else {
                 self.context.id.clone()
             };

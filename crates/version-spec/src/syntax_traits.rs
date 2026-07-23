@@ -1,4 +1,4 @@
-use crate::syntax::{Clause, Op, Range, Requirement, Version};
+use crate::syntax::{Clause, Op, Range, Requirement, Version, VersionKind};
 
 /// Trait for matching a version against the implementing type.
 pub trait MatchesVersion {
@@ -58,6 +58,11 @@ impl MatchesVersion for Range {
 /// Options for formatting a version into a string.
 #[derive(Debug, Clone)]
 pub struct FormatOptions {
+    /// Whether to include the comparison operator, and wildcard placeholders,
+    /// for requirements.
+    pub include_op: bool,
+    /// Whether to include the minor version.
+    pub include_minor: bool,
     /// Whether to include the scope.
     pub include_scope: bool,
     /// Whether to include the patch version.
@@ -77,6 +82,14 @@ pub struct FormatOptions {
 }
 
 impl FormatOptions {
+    /// Create a new `FormatOptions` instance with the specified version kind.
+    pub fn new(kind: VersionKind) -> Self {
+        match kind {
+            VersionKind::Calendar => Self::calendar(),
+            VersionKind::Semantic => Self::semantic(),
+        }
+    }
+
     /// Returns a new `FormatOptions` instance with default settings for calendar versioning.
     pub fn calendar() -> Self {
         Self {
@@ -97,6 +110,8 @@ impl FormatOptions {
 impl Default for FormatOptions {
     fn default() -> Self {
         Self {
+            include_op: true,
+            include_minor: true,
             include_scope: true,
             include_patch: true,
             include_prerelease: true,
@@ -136,13 +151,15 @@ impl FormatsVersion for Version {
         };
 
         pad(&mut out, self.major, options.pad_major);
-        out.push(options.separator);
-        pad(&mut out, self.minor, options.pad_minor);
 
-        // A calendar day of 0 means it was not defined
-        if options.include_patch {
+        if options.include_minor && !(self.kind == VersionKind::Calendar && self.minor == 0) {
             out.push(options.separator);
-            pad(&mut out, self.patch, options.pad_patch);
+            pad(&mut out, self.minor, options.pad_minor);
+
+            if options.include_patch && !(self.kind == VersionKind::Calendar && self.patch == 0) {
+                out.push(options.separator);
+                pad(&mut out, self.patch, options.pad_patch);
+            }
         }
 
         if options.include_prerelease
@@ -165,7 +182,11 @@ impl FormatsVersion for Version {
 
 impl FormatsVersion for Requirement {
     fn to_formatted_string(&self, options: &FormatOptions) -> String {
-        let mut out = self.op.to_string();
+        let mut out = if options.include_op {
+            self.op.to_string()
+        } else {
+            String::new()
+        };
 
         if options.include_scope
             && let Some(scope) = &self.scope
@@ -186,22 +207,26 @@ impl FormatsVersion for Requirement {
         if let Some(major) = &self.major {
             pad(&mut out, major, options.pad_major);
 
-            if let Some(minor) = &self.minor {
+            if !options.include_minor {
+                // Nothing
+            } else if let Some(minor) = &self.minor {
                 out.push(options.separator);
                 pad(&mut out, minor, options.pad_minor);
 
-                if let Some(patch) = &self.patch {
+                if !options.include_patch {
+                    // Nothing
+                } else if let Some(patch) = &self.patch {
                     out.push(options.separator);
                     pad(&mut out, patch, options.pad_patch);
-                } else if self.op == Op::Wildcard {
+                } else if options.include_op && self.op == Op::Wildcard {
                     out.push(options.separator);
                     out.push('*');
                 }
-            } else if self.op == Op::Wildcard {
+            } else if options.include_op && self.op == Op::Wildcard {
                 out.push(options.separator);
                 out.push('*');
             }
-        } else if self.op == Op::Wildcard {
+        } else if options.include_op && self.op == Op::Wildcard {
             out.push('*');
         }
 

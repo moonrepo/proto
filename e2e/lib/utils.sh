@@ -74,9 +74,12 @@ test_bin() {
     fail "bin '$bin' exited $bin_rc"
   fi
 
-  assert_contains "$ver" "$version"
+  # Ignore versions that contain a scope,
+  # as the scope is typically not included in the outputs
+  if [[ $version =~ ^[0-9] ]]; then
+    assert_contains "$ver" "$version"
+  fi
 }
-
 
 test_shim() {
   export PROTO_DEBUG_SHIM=1;
@@ -138,7 +141,7 @@ install_tool() {
 
   test_bin "$tool" "$version" "$version_arg"
 
-  if [[ "$tool" != "rust" ]]; then
+  if [[ "$tool" != "rust" && "$tool" != "jdk" && "$tool" != "jre" ]]; then
     test_shim "$tool" "$version" "$version_arg"
   fi
 

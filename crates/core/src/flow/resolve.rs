@@ -48,7 +48,11 @@ impl<'tool> Resolver<'tool> {
         let mut versions = LoadVersionsOutput::default();
         let mut cached = false;
 
-        if let Some(cached_versions) = self.tool.inventory.load_remote_versions(!self.tool.cache)? {
+        if let Some(cached_versions) = self
+            .tool
+            .inventory
+            .load_remote_versions(!self.tool.cache, initial_version.get_scope())?
+        {
             versions = cached_versions;
             cached = true;
         }
@@ -80,7 +84,9 @@ impl<'tool> Resolver<'tool> {
                     .await?;
 
                 if !versions.versions.is_empty() {
-                    self.tool.inventory.save_remote_versions(&versions)?;
+                    self.tool
+                        .inventory
+                        .save_remote_versions(&versions, initial_version.get_scope())?;
                 }
             }
         }
@@ -141,6 +147,31 @@ impl<'tool> Resolver<'tool> {
             candidate = version.to_unresolved_spec();
         }
 
+        let version = self
+            .resolve_version_candidate(&candidate, short_circuit, spec.resolve_from_manifest)
+            .await?;
+
+        debug!(
+            tool = self.tool.context.as_str(),
+            spec = candidate.to_string(),
+            "Resolved to {}",
+            version
+        );
+
+        spec.resolve(version.clone());
+
+        Ok(version)
+    }
+
+    #[instrument(skip(self))]
+    pub async fn resolve_version_candidate(
+        &mut self,
+        candidate: &UnresolvedVersionSpec,
+        short_circuit: bool,
+        resolve_from_manifest: bool,
+    ) -> Result<VersionSpec, ProtoResolveError> {
+        let mut candidate = candidate.to_owned();
+
         // If we have a fully qualified semantic version,
         // exit early and assume the version is legitimate!
         // Also canary is a special type that we can simply just use.
@@ -156,51 +187,12 @@ impl<'tool> Resolver<'tool> {
                 version
             );
 
-            spec.resolve(version.clone());
-
             return Ok(version);
         }
 
-        self.load_versions(&candidate).await?;
-
-        let version = self
-            .resolve_version_candidate(&candidate, spec.resolve_from_manifest)
-            .await?;
-
-        debug!(
-            tool = self.tool.context.as_str(),
-            spec = candidate.to_string(),
-            "Resolved to {}",
-            version
-        );
-
-        spec.resolve(version.clone());
-
-        Ok(version)
-    }
-
-    /// Given a list of version candidates, resolve one to a valid version by
-    /// calling the plugin to validate and choose.
-    #[instrument(skip(self))]
-    pub async fn resolve_version_candidate(
-        &self,
-        initial_candidate: &UnresolvedVersionSpec,
-        with_manifest: bool,
-    ) -> Result<VersionSpec, ProtoResolveError> {
-        let resolver = &self.data;
-
-        let resolve = |candidate: &UnresolvedVersionSpec| {
-            let result = if with_manifest {
-                resolver.resolve(candidate)
-            } else {
-                resolver.resolve_without_manifest(candidate)
-            };
-
-            result.ok_or_else(|| ProtoResolveError::FailedVersionResolve {
-                tool: self.tool.get_name().to_owned(),
-                version: candidate.to_string(),
-            })
-        };
+        // Resolve the version from the plugin if it has a custom resolver,
+        // as we need to inherit any custom scopes for caching
+        let mut version = None;
 
         if self
             .tool
@@ -215,32 +207,58 @@ impl<'tool> Resolver<'tool> {
                     PluginFunction::ResolveVersion,
                     ResolveVersionInput {
                         context: self.tool.create_plugin_unresolved_context(),
-                        initial: initial_candidate.to_owned(),
+                        initial: candidate.to_owned(),
                     },
                 )
                 .await?;
 
-            if let Some(candidate) = output.candidate {
+            if let Some(new_candidate) = output.candidate {
                 debug!(
                     tool = self.tool.context.as_str(),
-                    candidate = candidate.to_string(),
+                    candidate = new_candidate.to_string(),
                     "Received a possible version or alias to use",
                 );
 
-                return resolve(&candidate);
+                candidate = new_candidate;
             }
 
-            if let Some(candidate) = output.version {
+            if let Some(new_version) = output.version {
                 debug!(
                     tool = self.tool.context.as_str(),
-                    version = candidate.to_string(),
+                    version = new_version.to_string(),
                     "Received an explicit version or alias to use",
                 );
 
-                return Ok(candidate);
+                version = Some(new_version);
             }
         }
 
-        resolve(initial_candidate)
+        if version.is_none() {
+            self.load_versions(&candidate).await?;
+
+            version = self
+                .resolve_version_from_list(&candidate, resolve_from_manifest)
+                .await;
+        }
+
+        version.ok_or_else(|| ProtoResolveError::FailedVersionResolve {
+            tool: self.tool.get_name().to_owned(),
+            version: candidate.to_string(),
+        })
+    }
+
+    /// Given a list of version candidates, resolve one to a valid version by
+    /// calling the plugin to validate and choose.
+    #[instrument(skip(self))]
+    pub async fn resolve_version_from_list(
+        &self,
+        candidate: &UnresolvedVersionSpec,
+        with_manifest: bool,
+    ) -> Option<VersionSpec> {
+        if with_manifest {
+            self.data.resolve(candidate)
+        } else {
+            self.data.resolve_without_manifest(candidate)
+        }
     }
 }

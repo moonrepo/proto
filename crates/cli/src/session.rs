@@ -12,7 +12,7 @@ use proto_core::{
     registry::ProtoRegistry,
     reporter::{ProtoConsole, ProtoReporter, ReporterFormat},
 };
-use proto_core::{ProtoConfigError, ProtoLoaderError};
+use proto_core::{ProtoConfigError, ProtoLoaderError, UnresolvedVersionSpec};
 use rustc_hash::FxHashSet;
 use starbase::{AppResult, AppSession};
 use starbase_console::Console;
@@ -31,7 +31,7 @@ pub struct LoadToolOptions {
     pub contexts: FxHashSet<ToolContext>,
     pub detect_version: bool,
     pub inherit_local: bool,
-    pub inherit_remote: bool,
+    pub inherit_remote: Option<UnresolvedVersionSpec>,
 }
 
 #[derive(Clone)]
@@ -105,8 +105,8 @@ impl ProtoSession {
     ) -> Result<ToolRecord, ProtoLoaderError> {
         let mut record = ToolRecord::new(load_tool(context, &self.env).await?);
 
-        if options.inherit_remote {
-            record.inherit_from_remote().await?;
+        if let Some(spec) = &options.inherit_remote {
+            record.inherit_from_remote(spec).await?;
         }
 
         if options.inherit_local {
@@ -238,8 +238,6 @@ impl ProtoSession {
 
         let mut set = JoinSet::<Result<ToolRecord, ProtoLoaderError>>::new();
         let mut records = vec![];
-        let opt_inherit_remote = options.inherit_remote;
-        let opt_detect_version = options.detect_version;
 
         for context in contexts {
             if !options.contexts.contains(&context) {
@@ -252,12 +250,14 @@ impl ProtoSession {
             }
 
             let proto = Arc::clone(&self.env);
+            let opt_inherit_remote = options.inherit_remote.clone();
+            let opt_detect_version = options.detect_version;
 
             set.spawn(Box::pin(async move {
                 let mut record = ToolRecord::new(load_tool(&context, &proto).await?);
 
-                if opt_inherit_remote {
-                    record.inherit_from_remote().await?;
+                if let Some(spec) = &opt_inherit_remote {
+                    record.inherit_from_remote(spec).await?;
                 }
 
                 if opt_detect_version {

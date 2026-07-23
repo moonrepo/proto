@@ -59,12 +59,12 @@ impl ToolRecord {
         }
     }
 
-    pub async fn inherit_from_remote(&mut self) -> Result<(), ProtoResolveError> {
+    pub async fn inherit_from_remote(
+        &mut self,
+        spec: &UnresolvedVersionSpec,
+    ) -> Result<(), ProtoResolveError> {
         let mut resolver = Resolver::new(&self.tool);
-
-        resolver
-            .load_versions(&UnresolvedVersionSpec::default())
-            .await?;
+        resolver.load_versions(spec).await?;
 
         self.remote_aliases.extend(
             resolver
