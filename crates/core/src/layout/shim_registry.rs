@@ -1,15 +1,17 @@
 use super::layout_error::ProtoLayoutError;
-use crate::helpers::{read_json_file_with_lock, write_json_file_with_lock};
+use crate::helpers::write_json_file_atomic;
 use crate::tool_context::ToolContext;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use starbase_styles::color;
+use starbase_utils::fs;
+use starbase_utils::json::{self, JsonError};
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use tracing::{debug, instrument, warn};
 
-#[derive(Debug, Default, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 #[serde(default)]
 pub struct Shim {
     #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -31,9 +33,11 @@ pub struct Shim {
 pub type ShimsMap = BTreeMap<String, Shim>;
 
 pub struct ShimRegistry {
+    // Access via tests only!
     pub shims: ShimsMap,
-    pub path: PathBuf,
-    dirty: bool,
+
+    changed: ShimsMap,
+    path: PathBuf,
 }
 
 impl ShimRegistry {
@@ -47,73 +51,136 @@ impl ShimRegistry {
 
         debug!(file = ?path, "Loading shims registry");
 
-        let shims: ShimsMap = if path.exists() {
-            read_json_file_with_lock(path)?
-        } else {
-            ShimsMap::default()
-        };
-
         Ok(Self {
-            shims,
+            shims: read_shims_map(path)?,
             path: path.to_path_buf(),
-            dirty: false,
+            changed: ShimsMap::default(),
         })
+    }
+
+    pub fn get(&self, key: &str) -> Option<&Shim> {
+        self.changed.get(key).or_else(|| self.shims.get(key))
     }
 
     #[instrument(name = "update_shim_registry", skip(self))]
     pub fn update(&mut self, key: String, value: Shim) -> Result<(), ProtoLayoutError> {
-        if let Some(current) = self.shims.get(&key) {
-            // Don't write the file if nothing has changed
-            if current == &value {
-                return Ok(());
-            }
-
-            // A different tool already owns this executable name. Apply
-            // "the primary tool owns its name" precedence so the outcome
-            // doesn't depend on install order.
-            match detect_shim_conflict(&key, &value, current) {
-                Some(ShimConflict::Ignored { owner, provider }) => {
-                    warn!(
-                        shim = key.as_str(),
-                        owner = owner.as_str(),
-                        provider = provider.as_str(),
-                        "Shim {} is already provided by {}, ignoring the duplicate from {}",
-                        color::file(&key),
-                        color::id(&owner),
-                        color::id(&provider),
-                    );
-
-                    return Ok(());
-                }
-                Some(ShimConflict::Reclaimed { provider }) => {
-                    debug!(
-                        shim = key.as_str(),
-                        provider = provider.as_str(),
-                        "Shim {} reclaimed by its owning tool from {}",
-                        color::file(&key),
-                        color::id(&provider)
-                    );
-                }
-                None => {}
-            }
+        if apply_shim_update(&mut self.shims, &key, &value) {
+            self.changed.insert(key, value);
         }
-
-        self.shims.insert(key, value);
-        self.dirty = true;
 
         Ok(())
     }
 
     #[instrument(name = "save_shim_registry", skip(self))]
-    pub fn save(&self) -> Result<(), ProtoLayoutError> {
-        if self.dirty {
-            debug!(file = ?self.path, "Saving shim registry");
-
-            write_json_file_with_lock(&self.path, &self.shims)?;
+    pub fn save(&mut self) -> Result<(), ProtoLayoutError> {
+        if self.changed.is_empty() {
+            return Ok(());
         }
+
+        debug!(file = ?self.path, "Saving shim registry");
+
+        // The registry is a single file shared by every tool, while installs
+        // may run concurrently, both in-process and across processes. Hold an
+        // exclusive lock and merge our updates into a fresh read of the file,
+        // so that a stale in-memory snapshot can't erase entries written by
+        // another install since we loaded.
+        // https://github.com/moonrepo/proto/issues/1057
+        let _lock = fs::lock_file(self.path.with_extension("lock"))?;
+
+        let mut shims = read_shims_map(&self.path)?;
+        let mut dirty = false;
+
+        for (key, value) in &self.changed {
+            if apply_shim_update(&mut shims, key, value) {
+                dirty = true;
+            }
+        }
+
+        if dirty {
+            write_json_file_atomic(&self.path, &shims)?;
+        }
+
+        self.shims = shims;
+        self.changed.clear();
 
         Ok(())
     }
+}
+
+/// Read the shims map from the registry file. The lock taken here doesn't
+/// guard the outer read-modify-write cycle (see [`ShimRegistry::save`] for
+/// that), it only serializes against older proto binaries that still truncate
+/// the file in place while holding an exclusive lock on it.
+fn read_shims_map(path: &Path) -> Result<ShimsMap, ProtoLayoutError> {
+    if !path.exists() {
+        return Ok(ShimsMap::default());
+    }
+
+    let content = fs::read_file_with_lock(path)?;
+
+    // An empty file can be left behind when a process is killed mid-write by
+    // an older proto binary (truncate-then-write), or by external tampering.
+    // Treat it as an empty registry rather than erroring: writes go through
+    // `ShimRegistry::save`, which merges into a fresh read of the file, so
+    // this can no longer silently wipe entries owned by other tools.
+    if content.trim().is_empty() {
+        warn!(
+            file = ?path,
+            "Shims registry file is unexpectedly empty, possibly from an interrupted write; treating it as an empty registry"
+        );
+
+        return Ok(ShimsMap::default());
+    }
+
+    let shims: ShimsMap =
+        json::serde_json::from_str(&content).map_err(|error| JsonError::ReadFile {
+            path: path.to_path_buf(),
+            error: Box::new(error),
+        })?;
+
+    Ok(shims)
+}
+
+/// Apply a single shim entry to the map, enforcing "the primary tool owns its
+/// name" precedence so the outcome doesn't depend on install order. Returns
+/// true if the map was modified.
+fn apply_shim_update(shims: &mut ShimsMap, key: &str, value: &Shim) -> bool {
+    if let Some(current) = shims.get(key) {
+        // Don't write the file if nothing has changed
+        if current == value {
+            return false;
+        }
+
+        // A different tool already owns this executable name.
+        match detect_shim_conflict(key, value, current) {
+            Some(ShimConflict::Ignored { owner, provider }) => {
+                warn!(
+                    shim = key,
+                    owner = owner.as_str(),
+                    provider = provider.as_str(),
+                    "Shim {} is already provided by {}, ignoring the duplicate from {}",
+                    color::file(key),
+                    color::id(&owner),
+                    color::id(&provider),
+                );
+
+                return false;
+            }
+            Some(ShimConflict::Reclaimed { provider }) => {
+                debug!(
+                    shim = key,
+                    provider = provider.as_str(),
+                    "Shim {} reclaimed by its owning tool from {}",
+                    color::file(key),
+                    color::id(&provider)
+                );
+            }
+            None => {}
+        }
+    }
+
+    shims.insert(key.to_owned(), value.clone());
+    true
 }
 
 /// A cross-tool conflict detected while updating the shims registry. An entry's

@@ -289,7 +289,7 @@ pub async fn run(session: ProtoSession, mut args: RunArgs) -> SessionResult {
             let mut after_args: Vec<String> = vec![];
 
             // Try reading the shims registry
-            if let Some(shim_entry) = registry.shims.get(id.as_str())
+            if let Some(shim_entry) = registry.get(id.as_str())
                 && let Some(context) = &shim_entry.context
             {
                 debug!(
