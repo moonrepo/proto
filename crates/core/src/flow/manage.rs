@@ -40,22 +40,24 @@ impl<'tool> Manager<'tool> {
             let cache_hit = self.tool.is_installed(spec) && !options.force;
             cache = cache_status(cache_hit);
 
-            let record = match Installer::new(self.tool, spec).install(options).await? {
-                // Update lock record with resolved spec information
-                Some(mut record) => {
-                    record.version = Some(version.clone());
-                    record.spec = Some(spec.req.clone());
-                    record
-                }
-                // Return an existing lock record if already installed
-                None => {
-                    self.post_install(spec, false).await?;
+            let (record, mut install_lock) =
+                match Installer::new(self.tool, spec).install(options).await? {
+                    // Update lock record with resolved spec information
+                    Some((mut record, install_lock)) => {
+                        record.version = Some(version.clone());
+                        record.spec = Some(spec.req.clone());
 
-                    return Ok(Locker::new(self.tool)
-                        .get_resolved_locked_record(spec)
-                        .cloned());
-                }
-            };
+                        (record, install_lock)
+                    }
+                    // Return an existing lock record if already installed
+                    None => {
+                        self.post_install(spec, false).await?;
+
+                        return Ok(Locker::new(self.tool)
+                            .get_resolved_locked_record(spec)
+                            .cloned());
+                    }
+                };
 
             // Add record to lockfile
             if spec.update_lockfile {
@@ -71,6 +73,9 @@ impl<'tool> Manager<'tool> {
                     ..Default::default()
                 },
             );
+            self.tool.inventory.manifest.save()?;
+
+            install_lock.unlock().map_err(ProtoInstallError::from)?;
 
             self.post_install(spec, true).await?;
 

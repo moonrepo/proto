@@ -7,6 +7,7 @@ use crate::helpers::{is_archive_file, is_offline};
 use crate::lockfile::*;
 use crate::reporter::ProtoConsole;
 use crate::tool::Tool;
+use crate::tool_manifest::ToolManifest;
 use crate::tool_spec::ToolSpec;
 use crate::utils::log::LogWriter;
 use crate::utils::{archive, process};
@@ -79,7 +80,7 @@ impl<'tool> Installer<'tool> {
     pub async fn install(
         &self,
         options: InstallOptions,
-    ) -> Result<Option<LockRecord>, ProtoInstallError> {
+    ) -> Result<Option<(LockRecord, fs::DirLock)>, ProtoInstallError> {
         if self.tool.is_installed(self.spec) && !options.force {
             debug!(
                 tool = self.tool.context.as_str(),
@@ -97,6 +98,12 @@ impl<'tool> Installer<'tool> {
         // because the latter needs to be clean for "build from source",
         // and the `.lock` file breaks that contract
         let mut install_lock = fs::lock_directory(&self.temp_dir)?;
+
+        if !options.force && self.was_installed_while_locked() {
+            install_lock.unlock()?;
+
+            return Ok(None);
+        }
 
         // If this function is defined, it acts like an escape hatch and
         // takes precedence over all other install strategies
@@ -141,7 +148,7 @@ impl<'tool> Installer<'tool> {
                 // Verify against lockfile
                 Locker::new(self.tool).verify_locked_record(self.spec, &record)?;
 
-                return Ok(Some(record));
+                return Ok(Some((record, install_lock)));
             }
 
             if !output.skip_install {
@@ -182,11 +189,7 @@ impl<'tool> Installer<'tool> {
                     "Successfully installed tool",
                 );
 
-                install_lock.unlock()?;
-
-                let _ = fs::remove_dir_all(&self.temp_dir);
-
-                Ok(Some(record))
+                Ok(Some((record, install_lock)))
             }
 
             // Clean up if the install failed
@@ -205,6 +208,19 @@ impl<'tool> Installer<'tool> {
                 Err(error)
             }
         }
+    }
+
+    fn was_installed_while_locked(&self) -> bool {
+        let Some(version) = self.spec.version.as_ref() else {
+            return false;
+        };
+
+        if version.is_latest() || !self.product_dir.exists() {
+            return false;
+        }
+
+        ToolManifest::load_from(self.tool.get_inventory_dir())
+            .is_ok_and(|manifest| manifest.installed_versions.contains(version))
     }
 
     /// Build the tool from source using a set of requirements and instructions
