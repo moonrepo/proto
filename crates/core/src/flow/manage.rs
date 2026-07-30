@@ -6,7 +6,7 @@ use crate::flow::resolve::Resolver;
 use crate::lockfile::LockRecord;
 use crate::telemetry::cache_status;
 use crate::tool::Tool;
-use crate::tool_manifest::ToolManifestVersion;
+use crate::tool_manifest::{ToolManifest, ToolManifestVersion};
 use crate::tool_spec::ToolSpec;
 use proto_pdk_api::{InstallStrategy, PluginFunction, SyncManifestInput, SyncManifestOutput};
 use starbase_utils::fs;
@@ -51,6 +51,9 @@ impl<'tool> Manager<'tool> {
                     }
                     // Return an existing lock record if already installed
                     None => {
+                        self.tool.inventory.manifest =
+                            ToolManifest::load_from(self.tool.get_inventory_dir())?;
+
                         self.post_install(spec, false).await?;
 
                         return Ok(Locker::new(self.tool)
