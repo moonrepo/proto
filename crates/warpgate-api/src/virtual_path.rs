@@ -1,6 +1,8 @@
+use crate::path_utils::{prepare_from_path, prepare_to_path};
 use serde::{Deserialize, Serialize};
 use std::ffi::OsStr;
-use std::fmt;
+use std::fmt::{self, Debug};
+use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
 
 macro_rules! inherit_methods {
@@ -67,6 +69,33 @@ impl VirtualPath {
     inherit_methods!(getter, [extension, file_name, file_stem]);
     inherit_methods!(setter, [set_extension, set_file_name]);
     inherit_methods!(comparator, [ends_with, starts_with]);
+
+    /// Convert the provided absolute host path to a virtual guest path suitable
+    /// for WASI sandboxed runtimes.
+    pub fn to_virtual_path(
+        path: impl AsRef<Path> + Debug,
+        paths_list: &[(PathBuf, PathBuf)],
+    ) -> VirtualPath {
+        let path = path.as_ref();
+
+        for (host_path, guest_path) in paths_list {
+            let virtual_path = if path.starts_with(guest_path) {
+                path.to_owned()
+            } else if let Ok(rel_path) = path.strip_prefix(host_path) {
+                guest_path.join(rel_path)
+            } else {
+                continue;
+            };
+
+            return Self::Virtual {
+                path: prepare_to_path(&virtual_path),
+                virtual_prefix: prepare_to_path(guest_path),
+                real_prefix: prepare_to_path(host_path),
+            };
+        }
+
+        Self::Real(prepare_to_path(path))
+    }
 
     /// Append the path part and return a new [`VirtualPath`] instance.
     pub fn join<P: AsRef<Path>>(&self, path: P) -> VirtualPath {
@@ -152,6 +181,7 @@ impl VirtualPath {
     }
 
     /// Return the virtual path. If a real path only, returns `None`.
+    #[deprecated]
     pub fn virtual_path(&self) -> Option<PathBuf> {
         match self {
             Self::Real(_) => None,
@@ -160,6 +190,7 @@ impl VirtualPath {
     }
 
     /// Return the virtual path as a string.
+    #[deprecated]
     pub fn virtual_path_string(&self) -> Option<String> {
         self.virtual_path()
             .and_then(|path| path.to_str().map(|path| path.to_owned()))
@@ -227,5 +258,89 @@ impl AsRef<Path> for VirtualPath {
 impl AsRef<OsStr> for VirtualPath {
     fn as_ref(&self) -> &OsStr {
         self.any_path().as_os_str()
+    }
+}
+
+#[derive(Deserialize, Serialize)]
+#[serde(untagged)]
+enum VirtualPathShape {
+    Virtual {
+        path: PathBuf,
+
+        #[serde(alias = "v")]
+        virtual_prefix: PathBuf,
+
+        #[serde(alias = "r")]
+        real_prefix: PathBuf,
+    },
+
+    Real(PathBuf),
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[serde(try_from = "VirtualPathShape")]
+pub struct VirtualPath2(PathBuf);
+
+impl AsRef<VirtualPath2> for VirtualPath2 {
+    fn as_ref(&self) -> &VirtualPath2 {
+        self
+    }
+}
+
+impl AsRef<PathBuf> for VirtualPath2 {
+    fn as_ref(&self) -> &PathBuf {
+        &self.0
+    }
+}
+
+impl AsRef<Path> for VirtualPath2 {
+    fn as_ref(&self) -> &Path {
+        &self.0
+    }
+}
+
+impl AsRef<OsStr> for VirtualPath2 {
+    fn as_ref(&self) -> &OsStr {
+        self.0.as_os_str()
+    }
+}
+
+impl Deref for VirtualPath2 {
+    type Target = PathBuf;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for VirtualPath2 {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl TryFrom<VirtualPathShape> for VirtualPath2 {
+    type Error = String;
+
+    fn try_from(value: VirtualPathShape) -> Result<Self, Self::Error> {
+        match value {
+            VirtualPathShape::Real(path) => Ok(Self(path)),
+            VirtualPathShape::Virtual { path, .. } => Ok(Self(path)),
+        }
+    }
+}
+
+#[cfg(feature = "schematic")]
+impl schematic::Schematic for VirtualPath2 {
+    fn schema_name() -> Option<String> {
+        Some("VirtualPath".into())
+    }
+
+    fn build_schema(mut schema: schematic::SchemaBuilder) -> schematic::Schema {
+        schema.set_description("A container for WASI virtual paths that can also keep a reference to the original real path.");
+        schema.string(schematic::schema::StringType {
+            format: Some("path".into()),
+            ..Default::default()
+        })
     }
 }

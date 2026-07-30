@@ -73,6 +73,29 @@ pub fn inject_default_manifest_config(
         manifest.config.insert("host_environment".into(), env);
     }
 
+    if !manifest.config.contains_key("virtual_paths") {
+        let mut paths = vec![];
+
+        if let Some(allowed_paths) = &manifest.allowed_paths {
+            for (host, guest) in allowed_paths {
+                paths.push((PathBuf::from(host), guest.to_owned()));
+            }
+        }
+
+        sort_virtual_paths(&mut paths);
+
+        let paths =
+            serde_json::to_string(&paths).map_err(|error| WarpgatePluginError::InvalidInput {
+                id: id.to_owned(),
+                func: "virtual_paths".into(),
+                error: Box::new(error),
+            })?;
+
+        trace!(id = id.as_str(), paths = %paths, "Storing virtual paths");
+
+        manifest.config.insert("virtual_paths".into(), paths);
+    }
+
     Ok(())
 }
 
