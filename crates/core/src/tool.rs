@@ -15,7 +15,7 @@ use proto_pdk_api::{
 use rustc_hash::FxHashMap;
 use starbase_styles::color;
 use starbase_utils::net::DownloadOptions;
-use starbase_utils::{fs, path};
+use starbase_utils::{fs, hash, path};
 use std::fmt::{self, Debug};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -218,7 +218,10 @@ impl Tool {
         let installed = spec.version.as_ref().is_some_and(|v| {
             !v.is_latest() && self.inventory.manifest.installed_versions.contains(v)
         }) && dir.exists()
-            && !fs::is_dir_locked(&dir);
+            && !fs::is_dir_locked(
+                self.get_temp_dir()
+                    .join(hash::base64::from_bytes(spec.req.to_string())),
+            );
 
         if installed {
             debug!(
