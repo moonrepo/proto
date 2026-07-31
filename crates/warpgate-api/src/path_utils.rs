@@ -103,7 +103,8 @@ pub(crate) enum VirtualPathShape {
 
 #[macro_export]
 macro_rules! create_path_type {
-    ($name:ident, $label:expr) => {
+    ($name:ident, $label:expr, $doc:expr) => {
+        #[doc = $doc]
         #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
         #[serde(try_from = "VirtualPathShape")]
         pub struct $name(PathBuf);
@@ -183,6 +184,7 @@ macro_rules! create_path_type {
             }
 
             fn build_schema(mut schema: schematic::SchemaBuilder) -> schematic::Schema {
+                schema.set_description($doc);
                 schema.string(schematic::schema::StringType {
                     format: Some("path".into()),
                     ..Default::default()

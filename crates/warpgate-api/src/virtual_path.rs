@@ -4,8 +4,11 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 
-#[doc("Represents a virtual absolute path on the guest system.")]
-create_path_type!(VirtualPath, "VirtualPath");
+create_path_type!(
+    VirtualPath,
+    "VirtualPath",
+    "Represents a virtual absolute path on the guest system."
+);
 
 impl TryFrom<VirtualPathShape> for VirtualPath {
     type Error = PathParseError;

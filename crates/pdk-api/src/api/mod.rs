@@ -245,17 +245,6 @@ api_struct!(
         /// Virtual path to the tool's temporary directory.
         pub temp_dir: VirtualPath,
 
-        // TODO: Temporary compat with `PluginContext`
-        #[doc(hidden)]
-        #[deprecated]
-        pub tool_dir: VirtualPath,
-
-        // TODO: Temporary compat with `PluginContext`
-        #[doc(hidden)]
-        #[deprecated]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        pub version: Option<VersionSpec>,
-
         /// Virtual path to the current working directory.
         pub working_dir: VirtualPath,
     }
@@ -264,14 +253,14 @@ api_struct!(
 api_unit_enum!(
     /// Supported types of plugins.
     pub enum PluginType {
-        #[serde(alias = "CLI", alias = "CommandLine")] // TEMP
+        #[serde(alias = "CLI", alias = "CommandLine")]
         CommandLine,
         #[default]
         #[serde(alias = "Language")]
         Language,
-        #[serde(alias = "PM", alias = "DependencyManager")] // TEMP
+        #[serde(alias = "PM", alias = "DependencyManager")]
         DependencyManager,
-        #[serde(alias = "VM", alias = "VersionManager")] // TEMP
+        #[serde(alias = "VM", alias = "VersionManager")]
         VersionManager,
     }
 );
@@ -283,9 +272,6 @@ api_struct!(
         pub id: Id,
     }
 );
-
-#[deprecated(note = "Use `RegisterToolInput` instead.")]
-pub type ToolMetadataInput = RegisterToolInput;
 
 api_struct!(
     /// Controls aspects of the tool inventory.
@@ -391,9 +377,6 @@ api_struct!(
         pub unstable: Switch,
     }
 );
-
-#[deprecated(note = "Use `RegisterToolOutput` instead.")]
-pub type ToolMetadataOutput = RegisterToolOutput;
 
 pub type ConfigSchema = Schema;
 
@@ -832,10 +815,6 @@ api_struct!(
         #[serde(skip_serializing_if = "FxHashMap::is_empty")]
         pub exes: FxHashMap<String, ExecutableConfig>,
 
-        #[deprecated(note = "Use `exes_dirs` instead.")]
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub exes_dir: Option<PathBuf>,
-
         /// Relative directory path from the tool install directory in which
         /// pre-installed executables can be located. This directory path
         /// will be used during `proto activate`, but not for bins/shims.
@@ -872,7 +851,7 @@ api_struct!(
         /// Additional environment variables to set. Will overwrite any existing variables.
         pub env: FxHashMap<String, String>,
 
-        /// Additional paths to prepend to `PATH`. Tool specific executables
+        /// List of real or virtual paths to prepend to `PATH`. Tool specific executables
         /// and globals directories do NOT need to be included here, as they
         /// are automatically included.
         pub paths: Vec<PathBuf>,
