@@ -1,3 +1,6 @@
+//! Host functions that are executed on the host machine, and are exposed
+//! to WASM plugins (the guest) through the PDKs.
+
 use crate::clients::{HttpClient, WarpgateHttpClientError};
 use crate::plugin_error::WarpgatePluginError;
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
@@ -21,9 +24,16 @@ use warpgate_api::{
 /// Data passed to each host function.
 #[derive(Clone)]
 pub struct HostData {
+    /// Location where cached files are stored.
     pub cache_dir: PathBuf,
+
+    /// Instance of our HTTP client, used for sending requests.
     pub http_client: Arc<HttpClient>,
+
+    /// Mapping of virtual paths, from host to guest paths.
     pub virtual_paths: Vec<(PathBuf, PathBuf)>,
+
+    /// Current working directory, in which commands are executed.
     pub working_dir: PathBuf,
 }
 

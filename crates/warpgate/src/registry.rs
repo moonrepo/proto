@@ -3,14 +3,28 @@ use oci_client::secrets::RegistryAuth;
 use serde::{Deserialize, Serialize};
 use tracing::{trace, warn};
 
+/// Media type for a WASM file layer in an OCI image.
 pub const WASM_LAYER_MEDIA_TYPE_WASM: &str = "application/wasm";
+
+/// Media type for a TOML file layer in an OCI image.
 pub const WASM_LAYER_MEDIA_TYPE_TOML: &str = "application/toml";
+
+/// Media type for a JSON file layer in an OCI image.
 pub const WASM_LAYER_MEDIA_TYPE_JSON: &str = "application/json";
+
+/// Media type for a YAML file layer in an OCI image.
 pub const WASM_LAYER_MEDIA_TYPE_YAML: &str = "application/yaml";
+
+/// Media type for a Markdown file layer in an OCI image.
 pub const WASM_LAYER_MEDIA_TYPE_MARKDOWN: &str = "text/markdown";
 
+/// Media type for an uncompressed tarball layer in an OCI image.
 pub const WASM_LAYER_MEDIA_TYPE_TAR: &str = "application/vnd.oci.image.layer.v1.tar";
+
+/// Media type for a gzip compressed tarball layer in an OCI image.
 pub const WASM_LAYER_MEDIA_TYPE_TAR_GZIP: &str = "application/vnd.oci.image.layer.v1.tar+gzip";
+
+/// Media type for a zstd compressed tarball layer in an OCI image.
 pub const WASM_LAYER_MEDIA_TYPE_TAR_ZSTD: &str = "application/vnd.oci.image.layer.v1.tar+zstd";
 
 /// Configures an individual plugin registry.
@@ -37,7 +51,7 @@ pub struct RegistryConfig {
 }
 
 impl RegistryConfig {
-    /// Return the Docker credential's for the current registry host.
+    /// Return the Docker credentials for the current registry host.
     pub fn get_credential(&self) -> RegistryAuth {
         if !self.auth {
             return RegistryAuth::Anonymous;

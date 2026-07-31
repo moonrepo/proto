@@ -60,6 +60,7 @@ pub struct HttpClient {
 }
 
 impl HttpClient {
+    /// Create a downloader ([`HttpDownloader`]) that utilizes this client.
     pub fn create_downloader(&self) -> HttpDownloader {
         HttpDownloader {
             client: self.clone(),
@@ -67,6 +68,8 @@ impl HttpClient {
         }
     }
 
+    /// Create a downloader ([`HttpDownloader`]) that utilizes this client,
+    /// and injects the provided headers into each request.
     pub fn create_downloader_with_headers(
         &self,
         headers: FxHashMap<String, String>,
@@ -77,10 +80,13 @@ impl HttpClient {
         }
     }
 
+    /// Return the inner [`reqwest::Client`].
     pub fn to_inner(&self) -> &Client {
         &self.client
     }
 
+    /// Map a [`reqwest_middleware::Error`] for the provided URL
+    /// into a [`WarpgateHttpClientError`].
     pub fn map_error(url: String, error: reqwest_middleware::Error) -> WarpgateHttpClientError {
         match error {
             reqwest_middleware::Error::Middleware(inner) => {
@@ -296,11 +302,14 @@ pub fn create_http_client_with_options(
     Ok(HttpClient { client, middleware })
 }
 
+/// HTTP client middleware that applies credentials from
+/// the user's `.netrc` file to each request.
 pub struct NetrcMiddleware {
     nrc: Netrc,
 }
 
 impl NetrcMiddleware {
+    /// Create a new middleware instance by loading the `.netrc` file.
     pub fn new() -> netrc::Result<Self> {
         Netrc::new().map(|nrc| NetrcMiddleware { nrc })
     }

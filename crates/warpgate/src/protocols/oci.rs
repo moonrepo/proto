@@ -9,9 +9,14 @@ use std::sync::Arc;
 use tracing::{instrument, trace};
 use warpgate_api::{Id, RegistryLocator};
 
+/// A loader for downloading plugins from OCI registries,
+/// using [`RegistryLocator`].
 #[derive(Clone)]
 pub struct OciLoader {
+    /// Instance of our OCI client, used for pulling images.
     pub client: Arc<OciClient>,
+
+    /// Registries to search through when pulling images.
     pub registries: Vec<RegistryConfig>,
 }
 

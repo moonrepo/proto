@@ -13,8 +13,8 @@ use warpgate_api::{
 #[host_fn]
 extern "ExtismHost" {
     fn exec_command(input: Json<ExecCommandInput>) -> Json<ExecCommandOutput>;
-    fn get_env_var(key: String) -> String;
     fn send_request(input: Json<SendRequestInput>) -> Json<SendRequestOutput>;
+    fn get_env_var(key: String) -> String;
     fn set_env_var(name: String, value: String);
 }
 

@@ -18,11 +18,16 @@ use tokio::sync::Mutex;
 use tracing::{instrument, trace};
 use warpgate_api::{Id, PluginLocator};
 
+/// A function that checks whether the host has no internet connection (is offline).
 pub type OfflineChecker = Arc<fn() -> bool>;
 
+/// A plugin that has been loaded with [`PluginLoader`].
 #[derive(Debug)]
 pub struct LoadedPlugin {
+    /// Whether the plugin was loaded from the cache or not.
     pub cached: bool,
+
+    /// Absolute path to the plugin file on the host machine.
     pub path: PathBuf,
 }
 
@@ -66,7 +71,7 @@ pub struct PluginLoader {
     /// Location where temporary files (like archives) are stored.
     temp_dir: PathBuf,
 
-    /// Plugin registry locations
+    /// Plugin registry locations.
     registries: Vec<RegistryConfig>,
 
     /// OCI client instance.
@@ -112,17 +117,17 @@ impl PluginLoader {
         self.registries.extend(registries);
     }
 
-    /// Return a data loader for use with [`DataLocator`]s.
+    /// Return a data loader for use with [`DataLocator`](crate::DataLocator)s.
     pub fn get_data_loader(&self) -> Result<&DataLoader, WarpgateLoaderError> {
         self.data_loader.get_or_try_init(|| Ok(DataLoader {}))
     }
 
-    /// Return a file loader for use with [`FileLocator`]s.
+    /// Return a file loader for use with [`FileLocator`](crate::FileLocator)s.
     pub fn get_file_loader(&self) -> Result<&FileLoader, WarpgateLoaderError> {
         self.file_loader.get_or_try_init(|| Ok(FileLoader {}))
     }
 
-    /// Return a GitHub loader for use with [`GitHubLocator`]s.
+    /// Return a GitHub loader for use with [`GitHubLocator`](crate::GitHubLocator)s.
     pub fn get_github_loader(&self) -> Result<&GitHubLoader, WarpgateLoaderError> {
         self.github_loader.get_or_try_init(|| {
             Ok(GitHubLoader {
@@ -131,12 +136,12 @@ impl PluginLoader {
         })
     }
 
-    /// Return an HTTP loader for use with [`UrlLocator`]s.
+    /// Return an HTTP loader for use with [`UrlLocator`](crate::UrlLocator)s.
     pub fn get_http_loader(&self) -> Result<&HttpLoader, WarpgateLoaderError> {
         self.http_loader.get_or_try_init(|| Ok(HttpLoader {}))
     }
 
-    /// Return an OCI loader for use with [`RegistryLocator`]s.
+    /// Return an OCI loader for use with [`RegistryLocator`](crate::RegistryLocator)s.
     pub fn get_oci_loader(&self) -> Result<&OciLoader, WarpgateLoaderError> {
         self.oci_loader.get_or_try_init(|| {
             Ok(OciLoader {
@@ -295,7 +300,8 @@ impl PluginLoader {
         Ok(cached)
     }
 
-    /// Check for an internet connection.
+    /// Check whether the host has no internet connection (is offline),
+    /// using the configured offline checker.
     pub fn is_offline(&self) -> bool {
         self.offline_checker
             .as_ref()

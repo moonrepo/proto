@@ -1,4 +1,5 @@
-/// Return an error message wrapped in `WithReturnCode` , for use within `#[plugin_fn]`.
+/// Return an error message wrapped in [`WithReturnCode`](extism_pdk::WithReturnCode),
+/// for use within [`#[plugin_fn]`](macro@extism_pdk::plugin_fn).
 #[macro_export]
 macro_rules! plugin_err {
     (code = $code:expr, $($arg:tt)+) => {

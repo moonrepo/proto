@@ -3,9 +3,9 @@ use warpgate_api::{
     AnyResult, RealPath, VirtualPath, convert_to_real_path, convert_to_virtual_path,
 };
 
-/// Extension trait for `RealPath` to provide additional functionality.
+/// Extension trait for [`RealPath`] to provide additional functionality.
 pub trait RealPathExt {
-    /// Convert to a `VirtualPath` if possible, based on the virtual paths configuration.
+    /// Convert to a [`VirtualPath`] if possible, based on the virtual paths configuration.
     fn to_virtual_path(&self) -> AnyResult<Option<VirtualPath>>;
 }
 
@@ -15,9 +15,9 @@ impl RealPathExt for RealPath {
     }
 }
 
-/// Extension trait for `VirtualPath` to provide additional functionality.
+/// Extension trait for [`VirtualPath`] to provide additional functionality.
 pub trait VirtualPathExt {
-    /// Convert to a `RealPath` if possible, based on the virtual paths configuration.
+    /// Convert to a [`RealPath`] if possible, based on the virtual paths configuration.
     fn to_real_path(&self) -> AnyResult<Option<RealPath>>;
 }
 

@@ -14,7 +14,7 @@ use std::sync::{Arc, OnceLock};
 use std::time::Instant;
 use system_env::{SystemArch, SystemLibc, SystemOS};
 use tokio::sync::RwLock;
-use tokio::task::block_in_place;
+use tokio::task::{block_in_place, spawn_blocking};
 use tracing::{instrument, trace};
 use warpgate_api::{
     HostEnvironment, Id, RealPath, VirtualPath, convert_to_real_path, convert_to_virtual_path,
@@ -36,8 +36,9 @@ fn is_incompatible_runtime(error: &Error) -> bool {
     check(error.to_string())
 }
 
-/// Inject our default configuration into the provided plugin manifest.
-/// This will set `plugin_id` and `host_environment` for use within PDKs.
+/// Inject our default configuration into the provided plugin [`Manifest`].
+/// This will set `plugin_id`, `host_environment`, and `virtual_paths`
+/// for use within PDKs.
 #[instrument(skip(manifest))]
 pub fn inject_default_manifest_config(
     id: &Id,
@@ -97,14 +98,21 @@ pub fn inject_default_manifest_config(
     Ok(())
 }
 
+/// A callback that is executed before and after a plugin function call.
+/// Receives the function name, the input (before only), and the output (after only).
 pub type OnCallFn = Arc<dyn Fn(&str, Option<&str>, Option<&str>) + Send + Sync>;
 
 /// A container around Extism's [`Plugin`] and [`Manifest`] types that provides convenience
 /// methods for calling and caching functions from the WASM plugin. It also provides
 /// additional methods for easily working with WASI and virtual paths.
 pub struct PluginContainer {
+    /// Unique identifier of the plugin.
     pub id: Id,
+
+    /// The [`Manifest`] that the plugin was created with.
     pub manifest: Manifest,
+
+    /// Mapping of virtual paths, from host to guest paths.
     pub virtual_paths: Vec<(PathBuf, PathBuf)>,
 
     debug_call: bool,
@@ -315,7 +323,9 @@ impl PluginContainer {
             callback(func, Some(&input_string), None);
         }
 
-        let output = block_in_place(|| instance.call(func, input)).map_err(|error| {
+        let handle = spawn_blocking(|| instance.call(func, input));
+
+        let output = handle?.map_err(|error| {
             if is_incompatible_runtime(&error) {
                 return WarpgatePluginError::IncompatibleRuntime {
                     id: self.id.clone(),

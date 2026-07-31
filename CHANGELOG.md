@@ -20,7 +20,9 @@
 #### 💥 Breaking
 
 - **WASM API**
-  - Reworked the `VirtualPath` type from the ground up. Is no longer an enum, but instead a newtype wrapper around `PathBuf`. This allows for better interoperability with the Rust ecosystem, and makes it easier to work with virtual paths in general.
+  - Reworked the `VirtualPath` type from the ground up. Is no longer an enum, but instead a newtype wrapper around `PathBuf`.
+    - This allows for better interoperability with the Rust ecosystem, and makes it easier to work with virtual paths in general.
+    - Additionally, because of this change, `VirtualPath` now has access to all `PathBuf` methods, which was not possible before.
   - Removed the `from_virtual_path` and `to_virtual_path` extism host functions, `into_real_path` and `into_virtual_path` wrapper functions, and `real_path!` and `virtual_path!` macros. Use the conversion utils instead (below).
   - Removed `PluginUnresolvedContext.tool_dir` and `version` fields.
   - Removed `LocateExecutablesOutput.exes_dir` field, use `exes_dirs` instead.

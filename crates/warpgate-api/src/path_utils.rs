@@ -83,7 +83,7 @@ pub fn convert_to_real_path(
 }
 
 /// Convert the provided virtual guest path to a real host path,
-/// returning a `PathBuf` instead of a `RealPath`. If the guest path
+/// returning a [`PathBuf`] instead of a [`RealPath`]. If the guest path
 /// does not match any of the provided virtual paths,
 /// it will return the original path.
 pub fn convert_to_real_native_path(
@@ -116,6 +116,7 @@ impl Display for PathParseError {
     }
 }
 
+/// Intermediate (de)serialization shape for [`VirtualPath`] and [`RealPath`].
 #[derive(Deserialize, Serialize)]
 #[serde(untagged)]
 pub(crate) enum VirtualPathShape {
@@ -132,6 +133,8 @@ pub(crate) enum VirtualPathShape {
     Real(PathBuf),
 }
 
+/// Create a path type (real or virtual) with common trait implementations.
+#[doc(hidden)]
 #[macro_export]
 macro_rules! create_path_type {
     ($name:ident, $label:expr, $doc:expr) => {
@@ -141,18 +144,23 @@ macro_rules! create_path_type {
         pub struct $name(PathBuf);
 
         impl $name {
+            /// Create a new instance from the provided path.
+            /// This does NOT validate the path.
             pub fn new(path: impl AsRef<Path>) -> Self {
                 Self(path.as_ref().to_path_buf())
             }
 
+            /// Get the inner path as a [`Path`].
             pub fn as_path(&self) -> &Path {
                 &self.0
             }
 
+            /// Return true if the inner path is empty.
             pub fn is_empty(&self) -> bool {
                 self.0.as_os_str().is_empty()
             }
 
+            /// Return the inner path as a [`PathBuf`].
             pub fn into_inner(self) -> PathBuf {
                 self.0
             }

@@ -147,6 +147,7 @@ pub fn move_or_unpack_file(
     Ok(())
 }
 
+/// Find a locator for a locally built debug WASM plugin with the provided name.
 #[doc(hidden)]
 #[cfg(any(debug_assertions, test))]
 pub fn find_debug_locator(name: &str) -> Option<PluginLocator> {
@@ -161,12 +162,15 @@ pub fn find_debug_locator(name: &str) -> Option<PluginLocator> {
     })
 }
 
+/// Find a locator for a locally built debug WASM plugin with the provided name.
 #[doc(hidden)]
 #[cfg(not(any(debug_assertions, test)))]
 pub fn find_debug_locator(_name: &str) -> Option<PluginLocator> {
     None
 }
 
+/// Find a locator for a locally built debug WASM plugin with the provided name,
+/// and fall back to a `moonrepo/plugins` GitHub release URL when not found.
 #[doc(hidden)]
 pub fn find_debug_locator_with_url_fallback(name: &str, version: &str) -> PluginLocator {
     find_debug_locator(name).unwrap_or_else(|| {

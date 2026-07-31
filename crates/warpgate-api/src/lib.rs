@@ -1,3 +1,5 @@
+//! APIs for working with Warpgate plugins.
+
 mod host;
 mod host_funcs;
 mod locator;

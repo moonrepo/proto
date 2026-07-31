@@ -1,3 +1,5 @@
+//! Reusable WASM macros and functions for plugin developer kits (PDKs).
+
 mod api;
 mod funcs;
 mod macros;
