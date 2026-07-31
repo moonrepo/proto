@@ -26,6 +26,12 @@ pub(crate) fn prepare_from_path(path: impl AsRef<Path>) -> PathBuf {
     PathBuf::from(path.as_ref().to_string_lossy().replace('/', "\\"))
 }
 
+/// Sort paths from longest to shortest host path,
+/// so that prefix replacing is deterministic and accurate.
+pub fn sort_paths_list(paths_list: &mut [(PathBuf, PathBuf)]) {
+    paths_list.sort_by(|a, d| d.0.cmp(&a.0).then(d.1.cmp(&a.1)));
+}
+
 /// Convert the provided real host path to a virtual guest path.
 pub fn convert_to_virtual_path(
     path: impl AsRef<Path> + Debug,
@@ -109,6 +115,10 @@ macro_rules! create_path_type {
 
             pub fn as_path(&self) -> &Path {
                 &self.0
+            }
+
+            pub fn is_empty(&self) -> bool {
+                self.0.as_os_str().is_empty()
             }
 
             pub fn into_inner(self) -> PathBuf {

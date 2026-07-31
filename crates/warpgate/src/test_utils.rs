@@ -148,9 +148,11 @@ impl ConfigBuilder {
         if !self.config.contains_key("test_environment") {
             self.test_environment(TestEnvironment {
                 ci: is_ci(),
-                sandbox: VirtualPath::Real(self.sandbox_root.clone()),
+                sandbox: VirtualPath::new(self.sandbox_root.clone()),
             });
         }
+
+        // TODO virtual paths?
 
         self.config
     }
@@ -187,12 +189,8 @@ impl ConfigBuilder {
     }
 
     pub fn host_environment(&mut self, mut env: HostEnvironment) -> &mut Self {
-        if env.home_dir.real_path().is_none() || env.home_dir.virtual_path().is_none() {
-            env.home_dir = VirtualPath::Virtual {
-                path: PathBuf::from("/userhome"),
-                virtual_prefix: PathBuf::from("/userhome"),
-                real_prefix: self.sandbox_home_dir.clone(),
-            };
+        if env.home_dir.is_empty() {
+            env.home_dir = VirtualPath::new("/userhome");
         }
 
         self.insert("host_environment", env)

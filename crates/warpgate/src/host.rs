@@ -1,5 +1,4 @@
 use crate::clients::{HttpClient, WarpgateHttpClientError};
-use crate::helpers;
 use crate::plugin_error::WarpgatePluginError;
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
 use starbase_shell::{ShellType, join_exe_args};
@@ -16,7 +15,7 @@ use tokio::runtime::Handle;
 use tracing::{debug, error, instrument, trace, warn};
 use warpgate_api::{
     ExecCommandInput, ExecCommandOutput, HostLogInput, HostLogTarget, SendRequestInput,
-    SendRequestOutput,
+    SendRequestOutput, convert_to_real_path,
 };
 
 /// Data passed to each host function.
@@ -39,13 +38,6 @@ pub fn create_host_functions(data: HostData) -> Vec<Function> {
             exec_command,
         ),
         Function::new(
-            "from_virtual_path",
-            [ValType::I64],
-            [ValType::I64],
-            UserData::new(data.clone()),
-            from_virtual_path,
-        ),
-        Function::new(
             "get_env_var",
             [ValType::I64],
             [ValType::I64],
@@ -66,13 +58,6 @@ pub fn create_host_functions(data: HostData) -> Vec<Function> {
             [],
             UserData::new(data.clone()),
             set_env_var,
-        ),
-        Function::new(
-            "to_virtual_path",
-            [ValType::I64],
-            [ValType::I64],
-            UserData::new(data.clone()),
-            to_virtual_path,
         ),
     ]
 }
@@ -160,9 +145,9 @@ fn exec_command(
 
     // Relative or absolute file path
     let maybe_exe = if input.command.contains('/') || input.command.contains('\\') {
-        let path = helpers::from_virtual_path(&data.virtual_paths, PathBuf::from(&input.command));
-
-        if path.exists() {
+        if let Some(path) = convert_to_real_path(&input.command, &data.virtual_paths)
+            && path.exists()
+        {
             // This is temporary since WASI does not support updating file permissions yet!
             if input.set_executable && !fs::is_executable(&path) {
                 fs::update_perms(&path, None)?;
@@ -186,11 +171,11 @@ fn exec_command(
     };
 
     // Determine working directory
-    let cwd = if let Some(cwd) = &input.cwd {
-        helpers::from_virtual_path(&data.virtual_paths, cwd)
-    } else {
-        data.working_dir.clone()
-    };
+    let cwd = input
+        .cwd
+        .as_ref()
+        .and_then(|cwd| convert_to_real_path(cwd, &data.virtual_paths))
+        .unwrap_or_else(|| data.working_dir.clone());
 
     // Determine the shell
     let shell_name = input.shell.or_else(|| env::var("PROTO_SHELL").ok());
@@ -230,7 +215,7 @@ fn exec_command(
             input
                 .paths
                 .iter()
-                .map(|virtual_path| helpers::from_virtual_path(&data.virtual_paths, virtual_path)),
+                .filter_map(|path| convert_to_real_path(path, &data.virtual_paths)),
         );
         paths.extend(env_paths);
 
@@ -449,7 +434,10 @@ fn set_env_var(
         let new_path = value
             .replace(';', ":")
             .split(':')
-            .map(|path| helpers::from_virtual_path(&data.virtual_paths, PathBuf::from(path)))
+            .map(|path| {
+                convert_to_real_path(path, &data.virtual_paths)
+                    .unwrap_or_else(|| PathBuf::from(path))
+            })
             .collect::<Vec<_>>();
 
         trace!(
@@ -475,72 +463,6 @@ fn set_env_var(
 
         unsafe { env::set_var(name, value) };
     }
-
-    Ok(())
-}
-
-#[instrument(name = "host_func_from_virtual_path", skip_all)]
-fn from_virtual_path(
-    plugin: &mut CurrentPlugin,
-    inputs: &[Val],
-    outputs: &mut [Val],
-    user_data: UserData<HostData>,
-) -> Result<(), Error> {
-    let original_path = PathBuf::from(plugin.memory_get_val::<String>(&inputs[0])?);
-    let uuid = plugin.id().to_string();
-
-    trace!(
-        plugin = &uuid,
-        original_path = ?original_path,
-        "Calling host function {}",
-        color::label("from_virtual_path"),
-    );
-
-    let data = user_data.get()?;
-    let data = data.lock().unwrap();
-    let real_path = helpers::from_virtual_path(&data.virtual_paths, &original_path);
-
-    trace!(
-        plugin = &uuid,
-        real_path = ?real_path,
-        "Called host function {}",
-        color::label("from_virtual_path"),
-    );
-
-    plugin.memory_set_val(&mut outputs[0], real_path.to_string_lossy().to_string())?;
-
-    Ok(())
-}
-
-#[instrument(name = "host_func_to_virtual_path", skip_all)]
-fn to_virtual_path(
-    plugin: &mut CurrentPlugin,
-    inputs: &[Val],
-    outputs: &mut [Val],
-    user_data: UserData<HostData>,
-) -> Result<(), Error> {
-    let original_path = PathBuf::from(plugin.memory_get_val::<String>(&inputs[0])?);
-    let uuid = plugin.id().to_string();
-
-    trace!(
-        plugin = &uuid,
-        original_path = ?original_path,
-        "Calling host function {}",
-        color::label("to_virtual_path"),
-    );
-
-    let data = user_data.get()?;
-    let data = data.lock().unwrap();
-    let virtual_path = helpers::to_virtual_path(&data.virtual_paths, &original_path);
-
-    trace!(
-        plugin = &uuid,
-        virtual_path = ?virtual_path.virtual_path(),
-        "Called host function {}",
-        color::label("to_virtual_path"),
-    );
-
-    plugin.memory_set_val(&mut outputs[0], serde_json::to_string(&virtual_path)?)?;
 
     Ok(())
 }

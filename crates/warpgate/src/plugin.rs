@@ -1,4 +1,4 @@
-use crate::helpers::{from_virtual_path, sort_virtual_paths, to_virtual_path};
+use crate::helpers::sort_virtual_paths;
 use crate::plugin_error::WarpgatePluginError;
 use extism::{Error, Function, Manifest, Plugin};
 use scc::hash_map::Entry;
@@ -17,7 +17,9 @@ use system_env::{SystemArch, SystemLibc, SystemOS};
 use tokio::sync::RwLock;
 use tokio::task::block_in_place;
 use tracing::{instrument, trace};
-use warpgate_api::{HostEnvironment, Id, VirtualPath};
+use warpgate_api::{
+    HostEnvironment, Id, VirtualPath, convert_to_real_path, convert_to_virtual_path,
+};
 
 fn is_incompatible_runtime(error: &Error) -> bool {
     let check = |message: String| {
@@ -56,11 +58,7 @@ pub fn inject_default_manifest_config(
             ci: is_ci(),
             libc: SystemLibc::detect(os),
             os,
-            home_dir: VirtualPath::Virtual {
-                path: "/userhome".into(),
-                virtual_prefix: "/userhome".into(),
-                real_prefix: home_dir.into(),
-            },
+            home_dir: VirtualPath::new("/userhome"),
         })
         .map_err(|error| WarpgatePluginError::InvalidInput {
             id: id.to_owned(),
@@ -278,13 +276,17 @@ impl PluginContainer {
 
     /// Convert the provided virtual guest path to an absolute host path.
     pub fn from_virtual_path(&self, path: impl AsRef<Path> + Debug) -> PathBuf {
-        from_virtual_path(&self.virtual_paths, path)
+        convert_to_real_path(&path, &self.virtual_paths)
+            .unwrap_or_else(|| path.as_ref().to_path_buf())
     }
 
     /// Convert the provided absolute host path to a virtual guest path suitable
     /// for WASI sandboxed runtimes.
     pub fn to_virtual_path(&self, path: impl AsRef<Path> + Debug) -> VirtualPath {
-        to_virtual_path(&self.virtual_paths, path)
+        VirtualPath::new(
+            convert_to_virtual_path(&path, &self.virtual_paths)
+                .unwrap_or_else(|| path.as_ref().to_path_buf()),
+        )
     }
 
     /// Call a function on the plugin with the given raw input and return the raw output.
