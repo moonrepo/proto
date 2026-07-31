@@ -1,3 +1,5 @@
+use crate::real_path::RealPath;
+use crate::virtual_path::VirtualPath;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display};
 use std::path::{Path, PathBuf};
@@ -33,10 +35,12 @@ pub fn sort_paths_list(paths_list: &mut [(PathBuf, PathBuf)]) {
 }
 
 /// Convert the provided real host path to a virtual guest path.
+/// If the host path does not match any of the provided virtual paths,
+/// it will return `None`.
 pub fn convert_to_virtual_path(
     path: impl AsRef<Path> + Debug,
     paths_list: &[(PathBuf, PathBuf)],
-) -> Option<PathBuf> {
+) -> Option<VirtualPath> {
     let path = path.as_ref();
 
     for (host_path, guest_path) in paths_list {
@@ -48,17 +52,19 @@ pub fn convert_to_virtual_path(
             continue;
         };
 
-        return Some(prepare_to_path(virtual_path));
+        return Some(VirtualPath::new(prepare_to_path(virtual_path)));
     }
 
     None
 }
 
 /// Convert the provided virtual guest path to a real host path.
+/// If the guest path does not match any of the provided virtual paths,
+/// it will return `None`.
 pub fn convert_to_real_path(
     path: impl AsRef<Path> + Debug,
     paths_list: &[(PathBuf, PathBuf)],
-) -> Option<PathBuf> {
+) -> Option<RealPath> {
     let path = path.as_ref();
 
     for (host_path, guest_path) in paths_list {
@@ -70,10 +76,35 @@ pub fn convert_to_real_path(
             continue;
         };
 
-        return Some(prepare_from_path(real_path));
+        return Some(RealPath::new(prepare_from_path(real_path)));
     }
 
     None
+}
+
+/// Convert the provided virtual guest path to a real host path,
+/// returning a `PathBuf` instead of a `RealPath`. If the guest path
+/// does not match any of the provided virtual paths,
+/// it will return the original path.
+pub fn convert_to_real_native_path(
+    path: impl AsRef<Path> + Debug,
+    paths_list: &[(PathBuf, PathBuf)],
+) -> PathBuf {
+    let path = path.as_ref();
+
+    for (host_path, guest_path) in paths_list {
+        let real_path = if path.starts_with(host_path) {
+            path.to_owned()
+        } else if let Ok(rel_path) = path.strip_prefix(guest_path) {
+            host_path.join(rel_path)
+        } else {
+            continue;
+        };
+
+        return prepare_from_path(real_path);
+    }
+
+    path.to_path_buf()
 }
 
 /// Error type for path parsing failures.

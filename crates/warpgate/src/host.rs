@@ -15,7 +15,7 @@ use tokio::runtime::Handle;
 use tracing::{debug, error, instrument, trace, warn};
 use warpgate_api::{
     ExecCommandInput, ExecCommandOutput, HostLogInput, HostLogTarget, SendRequestInput,
-    SendRequestOutput, convert_to_real_path,
+    SendRequestOutput, convert_to_real_native_path,
 };
 
 /// Data passed to each host function.
@@ -145,9 +145,9 @@ fn exec_command(
 
     // Relative or absolute file path
     let maybe_exe = if input.command.contains('/') || input.command.contains('\\') {
-        if let Some(path) = convert_to_real_path(&input.command, &data.virtual_paths)
-            && path.exists()
-        {
+        let path = convert_to_real_native_path(&input.command, &data.virtual_paths);
+
+        if path.exists() {
             // This is temporary since WASI does not support updating file permissions yet!
             if input.set_executable && !fs::is_executable(&path) {
                 fs::update_perms(&path, None)?;
@@ -174,7 +174,7 @@ fn exec_command(
     let cwd = input
         .cwd
         .as_ref()
-        .and_then(|cwd| convert_to_real_path(cwd, &data.virtual_paths))
+        .map(|cwd| convert_to_real_native_path(cwd, &data.virtual_paths))
         .unwrap_or_else(|| data.working_dir.clone());
 
     // Determine the shell
@@ -215,7 +215,7 @@ fn exec_command(
             input
                 .paths
                 .iter()
-                .filter_map(|path| convert_to_real_path(path, &data.virtual_paths)),
+                .map(|path| convert_to_real_native_path(path, &data.virtual_paths)),
         );
         paths.extend(env_paths);
 
@@ -434,10 +434,7 @@ fn set_env_var(
         let new_path = value
             .replace(';', ":")
             .split(':')
-            .map(|path| {
-                convert_to_real_path(path, &data.virtual_paths)
-                    .unwrap_or_else(|| PathBuf::from(path))
-            })
+            .map(|path| convert_to_real_native_path(path, &data.virtual_paths))
             .collect::<Vec<_>>();
 
         trace!(

@@ -17,7 +17,7 @@ use tokio::sync::RwLock;
 use tokio::task::block_in_place;
 use tracing::{instrument, trace};
 use warpgate_api::{
-    HostEnvironment, Id, VirtualPath, convert_to_real_path, convert_to_virtual_path,
+    HostEnvironment, Id, RealPath, VirtualPath, convert_to_real_path, convert_to_virtual_path,
     sort_paths_list,
 };
 
@@ -275,18 +275,14 @@ impl PluginContainer {
     }
 
     /// Convert the provided virtual guest path to an absolute host path.
-    pub fn from_virtual_path(&self, path: impl AsRef<Path> + Debug) -> PathBuf {
-        convert_to_real_path(&path, &self.virtual_paths)
-            .unwrap_or_else(|| path.as_ref().to_path_buf())
+    pub fn to_real_path(&self, path: impl AsRef<Path> + Debug) -> RealPath {
+        convert_to_real_path(&path, &self.virtual_paths).unwrap_or_else(|| RealPath::new(path))
     }
 
-    /// Convert the provided absolute host path to a virtual guest path suitable
-    /// for WASI sandboxed runtimes.
+    /// Convert the provided absolute host path to a virtual guest path.
     pub fn to_virtual_path(&self, path: impl AsRef<Path> + Debug) -> VirtualPath {
-        VirtualPath::new(
-            convert_to_virtual_path(&path, &self.virtual_paths)
-                .unwrap_or_else(|| path.as_ref().to_path_buf()),
-        )
+        convert_to_virtual_path(&path, &self.virtual_paths)
+            .unwrap_or_else(|| VirtualPath::new(path))
     }
 
     /// Call a function on the plugin with the given raw input and return the raw output.

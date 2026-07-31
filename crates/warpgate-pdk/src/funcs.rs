@@ -235,13 +235,13 @@ pub fn get_test_environment() -> AnyResult<Option<&'static TestEnvironment>> {
 
 /// Return a mapping of virtual paths, from host to guest paths.
 pub fn get_host_to_guest_paths() -> AnyResult<&'static Vec<(PathBuf, PathBuf)>> {
-    static VIRTUAL_PATHS: OnceLock<Vec<(PathBuf, PathBuf)>> = OnceLock::new();
+    static PATHS_LIST: OnceLock<Vec<(PathBuf, PathBuf)>> = OnceLock::new();
 
-    if VIRTUAL_PATHS.get().is_none() {
+    if PATHS_LIST.get().is_none() {
         if let Some(config) = config::get("virtual_paths")? {
-            let _ = VIRTUAL_PATHS.set(json::from_str(&config)?);
+            let _ = PATHS_LIST.set(json::from_str(&config)?);
         }
     }
 
-    Ok(VIRTUAL_PATHS.get_or_init(Vec::new))
+    Ok(PATHS_LIST.get_or_init(Vec::new))
 }

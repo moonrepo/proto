@@ -9,7 +9,7 @@ use crate::tool_error::ProtoToolError;
 use crate::tool_spec::ToolSpec;
 use crate::utils::{archive, git};
 use proto_pdk_api::{
-    PluginContext, PluginFunction, PluginUnresolvedContext, RegisterBackendInput,
+    PluginContext, PluginFunction, PluginUnresolvedContext, RealPath, RegisterBackendInput,
     RegisterBackendOutput, RegisterToolInput, RegisterToolOutput, SourceLocation, VersionSpec,
 };
 use rustc_hash::FxHashMap;
@@ -234,8 +234,8 @@ impl Tool {
     }
 
     /// Convert a virtual path to a real path.
-    pub fn from_virtual_path(&self, path: impl AsRef<Path> + Debug) -> PathBuf {
-        self.plugin.from_virtual_path(path)
+    pub fn to_real_path(&self, path: impl AsRef<Path> + Debug) -> RealPath {
+        self.plugin.to_real_path(path)
     }
 
     /// Convert a real path to a virtual path.
@@ -337,7 +337,7 @@ impl Tool {
             .create_inventory(&inventory_id, &metadata.inventory_options)?;
 
         if let Some(override_dir) = &metadata.inventory_options.override_dir {
-            let override_dir_path = self.from_virtual_path(override_dir);
+            let override_dir_path = self.to_real_path(override_dir);
 
             debug!(
                 tool = self.context.as_str(),
@@ -349,12 +349,12 @@ impl Tool {
             if override_dir_path.is_relative() {
                 return Err(ProtoToolError::RequiredAbsoluteInventoryDir {
                     tool: metadata.name.clone(),
-                    dir: override_dir_path,
+                    dir: override_dir_path.to_path_buf(),
                 });
             }
 
             inventory.dir_original = Some(inventory.dir);
-            inventory.dir = self.from_virtual_path(override_dir);
+            inventory.dir = override_dir_path.to_path_buf();
         }
 
         self.inventory = inventory;
