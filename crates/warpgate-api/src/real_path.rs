@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 
+#[doc("Represents a real absolute path on the host system.")]
 create_path_type!(RealPath, "RealPath");
 
 impl TryFrom<VirtualPathShape> for RealPath {

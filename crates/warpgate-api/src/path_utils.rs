@@ -70,6 +70,7 @@ pub fn convert_to_real_path(
     None
 }
 
+/// Error type for path parsing failures.
 pub struct PathParseError(pub String);
 
 impl Display for PathParseError {
@@ -100,6 +101,26 @@ macro_rules! create_path_type {
         #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
         #[serde(try_from = "VirtualPathShape")]
         pub struct $name(PathBuf);
+
+        impl $name {
+            pub fn new(path: impl AsRef<Path>) -> Self {
+                Self(path.as_ref().to_path_buf())
+            }
+
+            pub fn as_path(&self) -> &Path {
+                &self.0
+            }
+
+            pub fn into_inner(self) -> PathBuf {
+                self.0
+            }
+        }
+
+        impl Default for $name {
+            fn default() -> Self {
+                Self(PathBuf::new())
+            }
+        }
 
         impl AsRef<$name> for $name {
             fn as_ref(&self) -> &$name {
@@ -136,6 +157,12 @@ macro_rules! create_path_type {
         impl std::ops::DerefMut for $name {
             fn deref_mut(&mut self) -> &mut Self::Target {
                 &mut self.0
+            }
+        }
+
+        impl std::fmt::Display for $name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "{}", self.0.display())
             }
         }
 

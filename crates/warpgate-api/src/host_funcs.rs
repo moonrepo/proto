@@ -3,6 +3,7 @@ use crate::{AnyResult, api_struct, api_unit_enum};
 use derive_setters::Setters;
 use rustc_hash::FxHashMap;
 use serde::de::DeserializeOwned;
+use std::path::PathBuf;
 
 api_unit_enum!(
     /// Target where host logs should be written to.
@@ -89,7 +90,7 @@ api_struct!(
         /// List of real or virtual paths to prepend to the `PATH`
         /// environment variable when executing the command.
         #[serde(skip_serializing_if = "Vec::is_empty")]
-        pub paths: Vec<VirtualPath>,
+        pub paths: Vec<PathBuf>,
 
         /// Mark the command as executable before executing.
         #[setters(skip)]

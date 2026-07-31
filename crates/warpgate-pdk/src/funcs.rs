@@ -2,23 +2,20 @@ use crate::api::populate_send_request_output;
 use crate::{exec_command, send_request};
 use extism_pdk::*;
 use serde::de::DeserializeOwned;
-use std::ffi::OsStr;
 use std::path::PathBuf;
 use std::sync::OnceLock;
 use std::vec;
 use warpgate_api::{
     AnyResult, ExecCommandInput, ExecCommandOutput, HostEnvironment, HostOS, Id, SendRequestInput,
-    SendRequestOutput, TestEnvironment, VirtualPath, anyhow,
+    SendRequestOutput, TestEnvironment, anyhow,
 };
 
 #[host_fn]
 extern "ExtismHost" {
     fn exec_command(input: Json<ExecCommandInput>) -> Json<ExecCommandOutput>;
-    fn from_virtual_path(input: String) -> String;
     fn get_env_var(key: String) -> String;
     fn send_request(input: Json<SendRequestInput>) -> Json<SendRequestOutput>;
     fn set_env_var(name: String, value: String);
-    fn to_virtual_path(input: String) -> Json<VirtualPath>;
 }
 
 /// Fetch the requested input and return a response.
@@ -204,28 +201,6 @@ where
     set_host_env_var("PATH", paths.join(":"))
 }
 
-/// Convert the provided path into a [`PathBuf`] instance,
-/// with the prefix resolved absolutely to the host.
-pub fn into_real_path<P>(path: P) -> AnyResult<PathBuf>
-where
-    P: AsRef<OsStr>,
-{
-    Ok(PathBuf::from(unsafe {
-        from_virtual_path(path.as_ref().to_string_lossy().into())?
-    }))
-}
-
-/// Convert the provided path into a [`VirtualPath`] instance,
-/// with the prefix resolved to the WASM virtual whitelist.
-pub fn into_virtual_path<P>(path: P) -> AnyResult<VirtualPath>
-where
-    P: AsRef<OsStr>,
-{
-    let data = unsafe { to_virtual_path(path.as_ref().to_string_lossy().into())? };
-
-    Ok(data.0)
-}
-
 /// Return the ID for the current plugin.
 pub fn get_plugin_id() -> AnyResult<Id> {
     Ok(Id::raw(
@@ -259,7 +234,7 @@ pub fn get_test_environment() -> AnyResult<Option<&'static TestEnvironment>> {
 }
 
 /// Return a mapping of virtual paths, from host to guest paths.
-pub fn get_virtual_paths() -> AnyResult<&'static Vec<(PathBuf, PathBuf)>> {
+pub fn get_host_to_guest_paths() -> AnyResult<&'static Vec<(PathBuf, PathBuf)>> {
     static VIRTUAL_PATHS: OnceLock<Vec<(PathBuf, PathBuf)>> = OnceLock::new();
 
     if VIRTUAL_PATHS.get().is_none() {
