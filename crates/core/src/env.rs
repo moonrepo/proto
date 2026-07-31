@@ -7,6 +7,7 @@ use crate::layout::Store;
 use crate::lockfile::ProtoLock;
 use crate::telemetry::MetricTimer;
 use once_cell::sync::OnceCell;
+use proto_pdk_api::sort_paths_list;
 use starbase_utils::dirs::home_dir;
 use starbase_utils::{envx, string_vec};
 use std::env;
@@ -16,7 +17,7 @@ use std::sync::{Arc, RwLockReadGuard, RwLockWriteGuard};
 use std::time::Duration;
 use system_env::{SystemArch, SystemOS};
 use tracing::{debug, instrument};
-use warpgate::{PluginLoader, sort_virtual_paths};
+use warpgate::PluginLoader;
 
 #[derive(Clone, Default)]
 pub struct ProtoEnvironment {
@@ -140,7 +141,7 @@ impl ProtoEnvironment {
             ));
         }
 
-        sort_virtual_paths(&mut paths);
+        sort_paths_list(&mut paths);
 
         paths
     }

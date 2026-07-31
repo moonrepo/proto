@@ -341,19 +341,19 @@ impl Tool {
             .create_inventory(&inventory_id, &metadata.inventory_options)?;
 
         if let Some(override_dir) = &metadata.inventory_options.override_dir {
-            let override_dir_path = override_dir.real_path();
+            let override_dir_path = self.from_virtual_path(override_dir);
 
             debug!(
                 tool = self.context.as_str(),
-                override_virtual = ?override_dir.virtual_path(),
+                override_virtual = ?override_dir,
                 override_real = ?override_dir_path,
                 "Attempting to override inventory directory"
             );
 
-            if override_dir_path.as_ref().is_none_or(|p| p.is_relative()) {
+            if override_dir_path.is_relative() {
                 return Err(ProtoToolError::RequiredAbsoluteInventoryDir {
                     tool: metadata.name.clone(),
-                    dir: override_dir_path.unwrap_or_else(|| PathBuf::from("<unknown>")),
+                    dir: override_dir_path,
                 });
             }
 

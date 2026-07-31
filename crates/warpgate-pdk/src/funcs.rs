@@ -243,5 +243,5 @@ pub fn get_host_to_guest_paths() -> AnyResult<&'static Vec<(PathBuf, PathBuf)>> 
         }
     }
 
-    Ok(VIRTUAL_PATHS.get_or_init(|| vec![]))
+    Ok(VIRTUAL_PATHS.get_or_init(Vec::new))
 }

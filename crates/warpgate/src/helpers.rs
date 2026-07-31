@@ -147,12 +147,6 @@ pub fn move_or_unpack_file(
     Ok(())
 }
 
-/// Sort virtual paths from longest to shortest host path,
-/// so that prefix replacing is deterministic and accurate.
-pub fn sort_virtual_paths(paths_list: &mut [(PathBuf, PathBuf)]) {
-    paths_list.sort_by(|a, d| d.0.cmp(&a.0).then(d.1.cmp(&a.1)));
-}
-
 #[doc(hidden)]
 #[cfg(any(debug_assertions, test))]
 pub fn find_debug_locator(name: &str) -> Option<PluginLocator> {

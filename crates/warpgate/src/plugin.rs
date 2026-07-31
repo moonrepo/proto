@@ -1,4 +1,3 @@
-use crate::helpers::sort_virtual_paths;
 use crate::plugin_error::WarpgatePluginError;
 use extism::{Error, Function, Manifest, Plugin};
 use scc::hash_map::Entry;
@@ -19,6 +18,7 @@ use tokio::task::block_in_place;
 use tracing::{instrument, trace};
 use warpgate_api::{
     HostEnvironment, Id, VirtualPath, convert_to_real_path, convert_to_virtual_path,
+    sort_paths_list,
 };
 
 fn is_incompatible_runtime(error: &Error) -> bool {
@@ -80,7 +80,7 @@ pub fn inject_default_manifest_config(
             }
         }
 
-        sort_virtual_paths(&mut paths);
+        sort_paths_list(&mut paths);
 
         let paths =
             serde_json::to_string(&paths).map_err(|error| WarpgatePluginError::InvalidInput {
@@ -148,7 +148,7 @@ impl PluginContainer {
             None => Vec::new(),
         };
 
-        sort_virtual_paths(&mut virtual_paths);
+        sort_paths_list(&mut virtual_paths);
 
         Ok(PluginContainer {
             virtual_paths,

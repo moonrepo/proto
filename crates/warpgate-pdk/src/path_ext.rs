@@ -11,7 +11,7 @@ pub trait RealPathExt {
 
 impl RealPathExt for RealPath {
     fn to_virtual_path(&self) -> AnyResult<Option<VirtualPath>> {
-        Ok(convert_to_virtual_path(&self, get_host_to_guest_paths()?).map(VirtualPath::new))
+        Ok(convert_to_virtual_path(self, get_host_to_guest_paths()?).map(VirtualPath::new))
     }
 }
 
@@ -23,6 +23,6 @@ pub trait VirtualPathExt {
 
 impl VirtualPathExt for VirtualPath {
     fn to_real_path(&self) -> AnyResult<Option<RealPath>> {
-        Ok(convert_to_real_path(&self, get_host_to_guest_paths()?).map(RealPath::new))
+        Ok(convert_to_real_path(self, get_host_to_guest_paths()?).map(RealPath::new))
     }
 }

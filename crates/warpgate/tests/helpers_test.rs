@@ -3,10 +3,8 @@ use starbase_archive::codecs::Gz;
 use starbase_archive::tar::TarPacker;
 use starbase_sandbox::create_empty_sandbox;
 use starbase_utils::fs;
-use std::path::{Path, PathBuf};
-use warpgate::{
-    WarpgateLoaderError, extract_file_name_from_url, move_or_unpack_file, sort_virtual_paths,
-};
+use std::path::Path;
+use warpgate::{WarpgateLoaderError, extract_file_name_from_url, move_or_unpack_file};
 
 // A WASM binary's first 4 bytes are the magic header `\0asm`. Used so the
 // file is treated as a real WASM (not an empty file) by anything that sniffs.
