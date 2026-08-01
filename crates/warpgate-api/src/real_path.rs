@@ -6,7 +6,6 @@ use std::path::{Path, PathBuf};
 
 create_path_type!(
     RealPath,
-    "RealPath",
     "Represents a real absolute path on the host system."
 );
 

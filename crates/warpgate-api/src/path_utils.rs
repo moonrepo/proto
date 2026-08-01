@@ -133,11 +133,30 @@ pub(crate) enum VirtualPathShape {
     Real(PathBuf),
 }
 
+#[doc(hidden)]
+#[macro_export]
+macro_rules! extend_path_method {
+    ($method:ident) => {
+        $crate::extend_path_method!($method, std::ffi::OsStr);
+    };
+    ($method:ident, $ty:path) => {
+        #[doc = concat!(
+            "Like [`Path::", stringify!($method), "`] but returns `Self` instead of a path reference."
+        )]
+        pub fn $method<S>(&self, value: S) -> Self
+        where
+            S: AsRef<$ty>,
+        {
+            Self(self.0.$method(value))
+        }
+    };
+}
+
 /// Create a path type (real or virtual) with common trait implementations.
 #[doc(hidden)]
 #[macro_export]
 macro_rules! create_path_type {
-    ($name:ident, $label:expr, $doc:expr) => {
+    ($name:ident, $doc:expr) => {
         #[doc = $doc]
         #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
         #[serde(try_from = "VirtualPathShape")]
@@ -150,11 +169,6 @@ macro_rules! create_path_type {
                 Self(path.as_ref().to_path_buf())
             }
 
-            /// Get the inner path as a [`Path`].
-            pub fn as_path(&self) -> &Path {
-                &self.0
-            }
-
             /// Return true if the inner path is empty.
             pub fn is_empty(&self) -> bool {
                 self.0.as_os_str().is_empty()
@@ -164,6 +178,24 @@ macro_rules! create_path_type {
             pub fn into_inner(self) -> PathBuf {
                 self.0
             }
+
+            /// Like [`Path::parent`] but returns `Self` instead of a path reference.
+            pub fn parent(&self) -> Option<Self> {
+                if self
+                    .0
+                    .to_str()
+                    .is_some_and(|comp| comp.is_empty() || comp == "/")
+                {
+                    None
+                } else {
+                    self.0.parent().map(|p| Self(p.to_path_buf()))
+                }
+            }
+
+            $crate::extend_path_method!(join, Path);
+            $crate::extend_path_method!(with_added_extension);
+            $crate::extend_path_method!(with_extension);
+            $crate::extend_path_method!(with_file_name);
         }
 
         impl Default for $name {
@@ -219,7 +251,7 @@ macro_rules! create_path_type {
         #[cfg(feature = "schematic")]
         impl schematic::Schematic for $name {
             fn schema_name() -> Option<String> {
-                Some($label.into())
+                Some(stringify!($name).into())
             }
 
             fn build_schema(mut schema: schematic::SchemaBuilder) -> schematic::Schema {

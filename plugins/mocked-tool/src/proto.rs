@@ -171,7 +171,7 @@ pub fn native_install(
 
     check_supported_os_and_arch(
         &id,
-        &env,
+        env,
         permutations! [
             HostOS::Linux => [HostArch::X64, HostArch::Arm64],
             HostOS::MacOS => [HostArch::X64, HostArch::Arm64],

@@ -14,7 +14,7 @@ use std::sync::{Arc, OnceLock};
 use std::time::Instant;
 use system_env::{SystemArch, SystemLibc, SystemOS};
 use tokio::sync::RwLock;
-use tokio::task::{block_in_place, spawn_blocking};
+use tokio::task::spawn_blocking;
 use tracing::{instrument, trace};
 use warpgate_api::{
     HostEnvironment, Id, RealPath, VirtualPath, convert_to_real_path, convert_to_virtual_path,
@@ -295,14 +295,8 @@ impl PluginContainer {
 
     /// Call a function on the plugin with the given raw input and return the raw output.
     #[instrument(skip(self, input))]
-    pub async fn call(
-        &self,
-        func: &str,
-        input: impl AsRef<[u8]>,
-    ) -> Result<Vec<u8>, WarpgatePluginError> {
-        let mut instance = self.plugin.write().await;
-        let input = input.as_ref();
-        let input_string = String::from_utf8_lossy(input);
+    pub async fn call(&self, func: &str, input: String) -> Result<Vec<u8>, WarpgatePluginError> {
+        let mut instance = Arc::clone(&self.plugin).write_owned().await;
         let uuid = instance.id.to_string(); // Copy
         let instant = Instant::now();
         let truncate_size = 5000;
@@ -310,22 +304,30 @@ impl PluginContainer {
         trace!(
             id = self.id.as_str(),
             plugin = &uuid,
-            input = %(if input_string.len() > truncate_size && !self.debug_call {
+            input = %(if input.len() > truncate_size && !self.debug_call {
                 "(truncated)"
             } else {
-                &input_string
+                &input
             }),
             "Calling guest function {}",
             color::property(func),
         );
 
         if let Some(callback) = self.on_call_func.get() {
-            callback(func, Some(&input_string), None);
+            callback(func, Some(&input), None);
         }
 
-        let handle = spawn_blocking(|| instance.call(func, input));
+        let func_name = func.to_string();
 
-        let output = handle?.map_err(|error| {
+        let result = spawn_blocking(move || instance.call::<String, Vec<u8>>(func_name, input))
+            .await
+            .map_err(|error| WarpgatePluginError::FailedPluginCall {
+                id: self.id.clone(),
+                func: func.to_owned(),
+                error: error.to_string(),
+            })?;
+
+        let output = result.map_err(|error| {
             if is_incompatible_runtime(&error) {
                 return WarpgatePluginError::IncompatibleRuntime {
                     id: self.id.clone(),
@@ -360,15 +362,13 @@ impl PluginContainer {
             }
         })?;
 
-        let output_string = String::from_utf8_lossy(output);
-
         trace!(
             id = self.id.as_str(),
             plugin = &uuid,
-            output = %(if output_string.len() > truncate_size && !self.debug_call {
-                "(truncated)"
+            output = %(if output.len() > truncate_size && !self.debug_call {
+                "(truncated)".to_string()
             } else {
-                &output_string
+                String::from_utf8_lossy(&output).to_string()
             }),
             elapsed = ?instant.elapsed(),
             "Called guest function {}",
@@ -376,10 +376,10 @@ impl PluginContainer {
         );
 
         if let Some(callback) = self.on_call_func.get() {
-            callback(func, None, Some(&output_string));
+            callback(func, None, Some(String::from_utf8_lossy(&output).as_ref()));
         }
 
-        Ok(output.to_vec())
+        Ok(output)
     }
 
     fn format_input<I: Serialize>(

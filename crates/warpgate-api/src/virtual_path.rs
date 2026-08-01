@@ -6,7 +6,6 @@ use std::path::{Path, PathBuf};
 
 create_path_type!(
     VirtualPath,
-    "VirtualPath",
     "Represents a virtual absolute path on the guest system."
 );
 

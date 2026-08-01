@@ -2,17 +2,14 @@ use extism_pdk::*;
 use proto_pdk::*;
 use serde::Deserialize;
 use std::collections::HashMap;
-use std::path::PathBuf;
 
 #[host_fn]
 extern "ExtismHost" {
     fn exec_command(input: Json<ExecCommandInput>) -> Json<ExecCommandOutput>;
-    fn from_virtual_path(path: String) -> String;
     fn get_env_var(name: String) -> String;
     fn host_log(input: Json<HostLogInput>);
     fn send_request(input: Json<SendRequestInput>) -> Json<SendRequestOutput>;
     fn set_env_var(name: String, value: String);
-    fn to_virtual_path(path: String) -> String;
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -75,17 +72,6 @@ pub fn testing_macros(_: ()) -> FnResult<()> {
     host_log!(stdout, "Message {} {} {}", 1, 2, 3);
     host_log!(stderr, "Message");
     host_log!(stderr, "Message {} {} {}", 1, 2, 3);
-
-    // Paths
-    let path = "/proto/path";
-    let pathbuf = PathBuf::from("/proto/buf");
-
-    let _ = real_path!("/proto/dir");
-    let _ = real_path!(path);
-    let _ = real_path!(buf, pathbuf);
-    let _ = virtual_path!("/proto/dir");
-    let _ = virtual_path!(path);
-    let _ = virtual_path!(buf, pathbuf);
 
     Ok(())
 }
