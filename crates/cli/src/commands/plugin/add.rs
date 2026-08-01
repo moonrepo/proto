@@ -43,9 +43,15 @@ pub async fn add(session: ProtoSession, args: PluginAddArgs) -> SessionResult {
         }
 
         // Add plugin to nested tables
-        let plugins = doc["plugins"].or_insert(cfg::implicit_table());
-        let table = plugins[key].or_insert(cfg::table());
-        table[args.id.as_str()] = cfg::value(args.plugin.to_string());
+        if doc.contains_key("plugins") {
+            let plugins = doc["plugins"].or_insert(cfg::implicit_table());
+            let table = plugins[key].or_insert(cfg::table());
+            table[args.id.as_str()] = cfg::value(args.plugin.to_string());
+        } else {
+            let plugins = doc[key].or_insert(cfg::implicit_table());
+            let table = plugins[args.id.as_str()].or_insert(cfg::table());
+            table["plugin"] = cfg::value(args.plugin.to_string());
+        }
     })?;
 
     // Load the tool and verify it works. We can't load the tool with the

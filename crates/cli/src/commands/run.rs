@@ -274,7 +274,9 @@ fn run_global_tool(
 pub async fn run(session: ProtoSession, mut args: RunArgs) -> SessionResult {
     let mut tool = match session.load_tool(&args.context).await {
         Ok(tool) => tool,
-        Err(ProtoLoaderError::UnknownTool { id }) => {
+        Err(ProtoLoaderError::UnknownTool { context }) => {
+            let id = context.id.to_string();
+
             // Check if this is a bin provided by another tool (e.g., `npx` from `npm`).
             // The shims registry contains mappings of secondary bins to their parent tools,
             // which is maintained by proto during tool installation.
@@ -323,8 +325,12 @@ pub async fn run(session: ProtoSession, mut args: RunArgs) -> SessionResult {
                 session.load_tool(&args.context).await?
             } else {
                 // Not found in shims registry, fall back to global tool on PATH
-                return run_global_tool(session, args, ProtoLoaderError::UnknownTool { id }.into())
-                    .map(|_| None);
+                return run_global_tool(
+                    session,
+                    args,
+                    ProtoLoaderError::UnknownTool { context }.into(),
+                )
+                .map(|_| None);
             }
         }
         Err(error) => {

@@ -6,6 +6,7 @@ use schematic::{Config, merge};
 use serde::Serialize;
 use starbase_utils::json::JsonValue;
 use std::collections::BTreeMap;
+use warpgate::PluginLocator;
 
 // `[tools.id]`
 // `[tools."backend:tool"]`
@@ -20,6 +21,9 @@ pub struct ProtoToolConfig {
     #[serde(skip_serializing_if = "IndexMap::is_empty")]
     #[setting(nested, merge = merge_iter)]
     pub env: IndexMap<String, EnvVar>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub plugin: Option<PluginLocator>,
 
     // Custom configuration to pass to plugins
     #[serde(flatten, skip_serializing_if = "FxHashMap::is_empty")]

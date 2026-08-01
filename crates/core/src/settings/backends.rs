@@ -4,6 +4,7 @@ use rustc_hash::FxHashMap;
 use schematic::{Config, merge};
 use serde::Serialize;
 use starbase_utils::json::JsonValue;
+use warpgate::PluginLocator;
 
 // `[backends.id]`
 #[derive(Clone, Config, Debug, Serialize)]
@@ -13,6 +14,9 @@ pub struct ProtoBackendConfig {
     #[serde(skip_serializing_if = "IndexMap::is_empty")]
     #[setting(nested, merge = merge_iter)]
     pub env: IndexMap<String, EnvVar>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub plugin: Option<PluginLocator>,
 
     // Custom configuration to pass to plugins
     #[serde(flatten, skip_serializing_if = "FxHashMap::is_empty")]

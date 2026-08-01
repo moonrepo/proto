@@ -42,7 +42,13 @@ mod plugin_add {
         let config = load_config(sandbox.path());
 
         assert_eq!(
-            config.plugins.tools.get("id").unwrap(),
+            config
+                .tools
+                .get("id")
+                .unwrap()
+                .plugin
+                .as_ref()
+                .unwrap(),
             &PluginLocator::Url(Box::new(UrlLocator {
                 url:
                     "https://github.com/moonrepo/plugins/releases/latest/download/example_plugin.wasm"
@@ -74,7 +80,13 @@ mod plugin_add {
         let config = load_config(sandbox.path().join(".proto"));
 
         assert_eq!(
-            config.plugins.tools.get("id").unwrap(),
+            config
+                .tools
+                .get("id")
+                .unwrap()
+                .plugin
+                .as_ref()
+                .unwrap(),
             &PluginLocator::Url(Box::new(UrlLocator {
                 url:
                     "https://github.com/moonrepo/plugins/releases/latest/download/example_plugin.wasm"
@@ -106,6 +118,47 @@ mod plugin_add {
         let config = load_config(sandbox.path().join(".home"));
 
         assert_eq!(
+            config
+                .tools
+                .get("id")
+                .unwrap()
+                .plugin
+                .as_ref()
+                .unwrap(),
+            &PluginLocator::Url(Box::new(UrlLocator {
+                url:
+                    "https://github.com/moonrepo/plugins/releases/latest/download/example_plugin.wasm"
+                        .into()
+            }))
+        );
+    }
+
+    // When a `[plugins]` table already exists, new entries are appended
+    // to it instead of writing the `[tools.*.plugin]` format
+    #[test]
+    fn appends_to_existing_plugins_table() {
+        let sandbox = create_empty_proto_sandbox();
+
+        sandbox.create_file(
+            ".prototools",
+            r#"
+[plugins.tools]
+existing = "https://example.com/existing.wasm"
+"#,
+        );
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("plugin")
+                    .arg("add")
+                    .arg("id")
+                    .arg("https://github.com/moonrepo/plugins/releases/latest/download/example_plugin.wasm");
+            })
+            .success();
+
+        let config = load_config(sandbox.path());
+
+        assert_eq!(
             config.plugins.tools.get("id").unwrap(),
             &PluginLocator::Url(Box::new(UrlLocator {
                 url:
@@ -113,5 +166,6 @@ mod plugin_add {
                         .into()
             }))
         );
+        assert!(!config.tools.contains_key("id"));
     }
 }
