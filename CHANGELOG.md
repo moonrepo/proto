@@ -31,6 +31,7 @@
 
 #### 🚀 Updates
 
+- Updated plugin function calls to run on a separate blocking thread, instead of blocking the main thread.
 - **WASM API**
   - Added a `RealPath` type, which is a newtype wrapper around `PathBuf` that represents a real path on the host file system. This is a sibling to the `VirtualPath` type, which represents a virtual path in the guest WASM environment.
   - Added `convert_to_virtual_path` and `convert_to_real_path` helper functions for converting between real and virtual paths, using a list of host-to-guest path mappings.
