@@ -19,6 +19,8 @@
 
 #### 💥 Breaking
 
+- **Configuration**
+  - Split the `[settings.builtin-plugins]` table into `[settings.builtin-tools]` and `[settings.builtin-backends]` tables. The `builtin-plugins` table is now deprecated, but will remain an alias for `builtin-tools` for backwards compatibility.
 - **WASM API**
   - Reworked the `VirtualPath` type from the ground up. Is no longer an enum, but instead a newtype wrapper around `PathBuf`.
     - This allows for better interoperability with the Rust ecosystem, and makes it easier to work with virtual paths in general.
@@ -32,6 +34,8 @@
 #### 🚀 Updates
 
 - Updated plugin function calls to run on a separate blocking thread, instead of blocking the main thread.
+- **Configuration**
+  - Added `[tools.*.plugin]` and `[backends.*.plugin]` fields for specifying a plugin locator for the respective tool or backend. This is an alternative to the `[plugins.tools]` and `[plugins.backends]` tables.
 - **WASM API**
   - Added a `RealPath` type, which is a newtype wrapper around `PathBuf` that represents a real path on the host file system. This is a sibling to the `VirtualPath` type, which represents a virtual path in the guest WASM environment.
   - Added `convert_to_virtual_path` and `convert_to_real_path` helper functions for converting between real and virtual paths, using a list of host-to-guest path mappings.

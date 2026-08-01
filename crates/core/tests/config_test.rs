@@ -651,7 +651,19 @@ KEY = "from=${FILE}"
     mod builtins {
         use super::*;
         use proto_core::BuiltinPlugins;
-        use schematic::Config;
+        use schematic::{Config, PartialConfig};
+        use std::path::Path;
+
+        // Unlike `ProtoConfig::from_partial` directly, this applies setting
+        // defaults (via finalize), like `ProtoFileManager` does in production
+        fn load_config(dir: &Path) -> ProtoConfig {
+            ProtoConfig::from_partial(
+                ProtoConfig::load_from(dir, false)
+                    .unwrap()
+                    .finalize(&())
+                    .unwrap(),
+            )
+        }
 
         #[test]
         fn can_enable() {
@@ -664,15 +676,14 @@ builtin-plugins = true
 "#,
             );
 
-            let config =
-                ProtoConfig::from_partial(ProtoConfig::load_from(sandbox.path(), false).unwrap());
+            let config = load_config(sandbox.path());
 
-            assert_eq!(
-                config.settings.builtin_plugins,
-                BuiltinPlugins::Enabled(true)
-            );
+            assert_eq!(config.settings.builtin_tools, BuiltinPlugins::Enabled(true));
 
-            assert_eq!(config.builtin_plugins().tools.len(), 22);
+            let plugins = config.builtin_plugins();
+
+            assert_eq!(plugins.backends.len(), 3);
+            assert_eq!(plugins.tools.len(), 22);
         }
 
         #[test]
@@ -686,17 +697,20 @@ builtin-plugins = ["node", "go"]
 "#,
             );
 
-            let config =
-                ProtoConfig::from_partial(ProtoConfig::load_from(sandbox.path(), false).unwrap());
+            let config = load_config(sandbox.path());
 
             assert_eq!(
-                config.settings.builtin_plugins,
+                config.settings.builtin_tools,
                 BuiltinPlugins::Allowed(vec!["node".into(), "go".into()])
             );
 
-            assert_eq!(config.builtin_plugins().tools.len(), 8);
+            let plugins = config.builtin_plugins();
+
+            // The `builtin-plugins` alias only applies to tools, not backends
+            assert_eq!(plugins.backends.len(), 3);
+            assert_eq!(plugins.tools.len(), 8);
             assert_eq!(
-                config.builtin_plugins().tools.keys().collect::<Vec<_>>(),
+                plugins.tools.keys().collect::<Vec<_>>(),
                 [
                     "go",
                     "internal-schema",
@@ -721,15 +735,18 @@ builtin-plugins = false
 "#,
             );
 
-            let config =
-                ProtoConfig::from_partial(ProtoConfig::load_from(sandbox.path(), false).unwrap());
+            let config = load_config(sandbox.path());
 
             assert_eq!(
-                config.settings.builtin_plugins,
+                config.settings.builtin_tools,
                 BuiltinPlugins::Enabled(false)
             );
 
-            assert_eq!(config.builtin_plugins().tools.len(), 6);
+            let plugins = config.builtin_plugins();
+
+            // The `builtin-plugins` alias only applies to tools, not backends
+            assert_eq!(plugins.backends.len(), 3);
+            assert_eq!(plugins.tools.len(), 6);
         }
 
         #[test]
@@ -743,15 +760,106 @@ builtin-plugins = []
 "#,
             );
 
-            let config =
-                ProtoConfig::from_partial(ProtoConfig::load_from(sandbox.path(), false).unwrap());
+            let config = load_config(sandbox.path());
 
             assert_eq!(
-                config.settings.builtin_plugins,
+                config.settings.builtin_tools,
                 BuiltinPlugins::Allowed(vec![])
             );
 
-            assert_eq!(config.builtin_plugins().tools.len(), 6);
+            let plugins = config.builtin_plugins();
+
+            // The `builtin-plugins` alias only applies to tools, not backends
+            assert_eq!(plugins.backends.len(), 3);
+            assert_eq!(plugins.tools.len(), 6);
+        }
+
+        #[test]
+        fn can_configure_backends_and_tools_separately() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[settings]
+builtin-backends = ["cargo"]
+builtin-tools = ["bun"]
+"#,
+            );
+
+            let config = load_config(sandbox.path());
+
+            assert_eq!(
+                config.settings.builtin_backends,
+                BuiltinPlugins::Allowed(vec!["cargo".into()])
+            );
+            assert_eq!(
+                config.settings.builtin_tools,
+                BuiltinPlugins::Allowed(vec!["bun".into()])
+            );
+
+            let plugins = config.builtin_plugins();
+
+            assert_eq!(plugins.backends.keys().collect::<Vec<_>>(), ["cargo"]);
+            assert_eq!(
+                plugins.tools.keys().collect::<Vec<_>>(),
+                [
+                    "bun",
+                    "internal-schema",
+                    "moonbase",
+                    "moonstone",
+                    "proto",
+                    "protoform",
+                    "protostar",
+                ]
+            );
+        }
+
+        #[test]
+        fn can_disable_backends() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[settings]
+builtin-backends = false
+"#,
+            );
+
+            let config = load_config(sandbox.path());
+
+            assert_eq!(
+                config.settings.builtin_backends,
+                BuiltinPlugins::Enabled(false)
+            );
+
+            let plugins = config.builtin_plugins();
+
+            assert_eq!(plugins.backends.len(), 0);
+            assert_eq!(plugins.tools.len(), 22);
+        }
+
+        #[test]
+        fn can_disable_backends_with_list() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[settings]
+builtin-backends = []
+"#,
+            );
+
+            let config = load_config(sandbox.path());
+
+            assert_eq!(
+                config.settings.builtin_backends,
+                BuiltinPlugins::Allowed(vec![])
+            );
+
+            let plugins = config.builtin_plugins();
+
+            assert_eq!(plugins.backends.len(), 0);
+            assert_eq!(plugins.tools.len(), 22);
         }
     }
 
@@ -785,6 +893,65 @@ bar = false
                     ("foo".to_owned(), JsonValue::String("abc".into())),
                     ("bar".to_owned(), JsonValue::Bool(false)),
                 ])
+            );
+        }
+
+        #[test]
+        fn can_set_plugin() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[backends.example]
+plugin = "github://moonrepo/example"
+"#,
+            );
+
+            let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
+
+            assert_eq!(
+                config
+                    .backends
+                    .unwrap()
+                    .get("example")
+                    .unwrap()
+                    .plugin
+                    .as_ref()
+                    .unwrap(),
+                &PluginLocator::GitHub(Box::new(GitHubLocator {
+                    repo_slug: "moonrepo/example".into(),
+                    tag: None,
+                    project_name: None
+                }))
+            );
+        }
+
+        #[test]
+        fn updates_plugin_file_to_absolute() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[backends.example]
+plugin = "file://../file.wasm"
+"#,
+            );
+
+            let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
+
+            assert_eq!(
+                config
+                    .backends
+                    .unwrap()
+                    .get("example")
+                    .unwrap()
+                    .plugin
+                    .as_ref()
+                    .unwrap(),
+                &PluginLocator::File(Box::new(FileLocator {
+                    file: "file://../file.wasm".into(),
+                    path: Some(sandbox.path().join("../file.wasm"))
+                }))
             );
         }
 
@@ -1009,6 +1176,7 @@ bar = false
 
     mod tool_config {
         use super::*;
+        use schematic::Config;
 
         #[test]
         fn can_set_extra_settings() {
@@ -1040,6 +1208,119 @@ intercept-globals = false
                     ),
                     ("intercept-globals".to_owned(), JsonValue::Bool(false)),
                 ])
+            );
+        }
+
+        #[test]
+        fn can_set_plugin() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[tools.node]
+plugin = "github://moonrepo/node"
+"#,
+            );
+
+            let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
+
+            assert_eq!(
+                config
+                    .tools
+                    .unwrap()
+                    .get("node")
+                    .unwrap()
+                    .plugin
+                    .as_ref()
+                    .unwrap(),
+                &PluginLocator::GitHub(Box::new(GitHubLocator {
+                    repo_slug: "moonrepo/node".into(),
+                    tag: None,
+                    project_name: None
+                }))
+            );
+        }
+
+        #[test]
+        fn updates_plugin_file_to_absolute() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[tools.node]
+plugin = "file://../file.wasm"
+"#,
+            );
+
+            let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
+
+            assert_eq!(
+                config
+                    .tools
+                    .unwrap()
+                    .get("node")
+                    .unwrap()
+                    .plugin
+                    .as_ref()
+                    .unwrap(),
+                &PluginLocator::File(Box::new(FileLocator {
+                    file: "file://../file.wasm".into(),
+                    path: Some(sandbox.path().join("../file.wasm"))
+                }))
+            );
+        }
+
+        #[test]
+        fn resolves_config_by_backend_prefixed_id() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[tools.node]
+value = "bare"
+
+[tools."npm:node"]
+value = "prefixed"
+"#,
+            );
+
+            let config =
+                ProtoConfig::from_partial(ProtoConfig::load_from(sandbox.path(), false).unwrap());
+
+            assert_eq!(
+                config
+                    .get_tool_config(&ToolContext::parse("node").unwrap())
+                    .unwrap()
+                    .config,
+                FxHashMap::from_iter([("value".to_owned(), JsonValue::String("bare".into()))])
+            );
+            assert_eq!(
+                config
+                    .get_tool_config(&ToolContext::parse("npm:node").unwrap())
+                    .unwrap()
+                    .config,
+                FxHashMap::from_iter([("value".to_owned(), JsonValue::String("prefixed".into()))])
+            );
+        }
+
+        #[test]
+        fn doesnt_fall_back_to_unprefixed_id() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[tools.node]
+value = "bare"
+"#,
+            );
+
+            let config =
+                ProtoConfig::from_partial(ProtoConfig::load_from(sandbox.path(), false).unwrap());
+
+            assert!(
+                config
+                    .get_tool_config(&ToolContext::parse("npm:node").unwrap())
+                    .is_none()
             );
         }
 
@@ -1246,6 +1527,113 @@ file = ".env.tool"
                     sandbox.path().join("a/b/.env.b"),
                     sandbox.path().join("a/b/.env.tool-b"),
                 ]
+            );
+        }
+    }
+
+    mod plugin_lookup {
+        use super::*;
+        use proto_core::PluginType;
+        use schematic::Config;
+
+        fn github_locator(repo: &str) -> PluginLocator {
+            PluginLocator::GitHub(Box::new(GitHubLocator {
+                repo_slug: repo.into(),
+                tag: None,
+                project_name: None,
+            }))
+        }
+
+        #[test]
+        fn resolves_tool_plugins() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[tools.node]
+plugin = "github://moonrepo/node-override"
+
+[plugins.tools]
+node = "github://moonrepo/node"
+bun = "github://moonrepo/bun"
+
+[plugins]
+deno = "github://moonrepo/deno"
+"#,
+            );
+
+            let config =
+                ProtoConfig::from_partial(ProtoConfig::load_from(sandbox.path(), false).unwrap());
+
+            // Tool config takes precedence over the plugins table
+            assert_eq!(
+                config.get_plugin(&Id::raw("node"), PluginType::Tool),
+                Some(&github_locator("moonrepo/node-override"))
+            );
+
+            // Otherwise falls back to the scoped and legacy plugins tables
+            assert_eq!(
+                config.get_plugin(&Id::raw("bun"), PluginType::Tool),
+                Some(&github_locator("moonrepo/bun"))
+            );
+            assert_eq!(
+                config.get_plugin(&Id::raw("deno"), PluginType::Tool),
+                Some(&github_locator("moonrepo/deno"))
+            );
+
+            // Tool plugins are not visible to backend lookups
+            assert_eq!(
+                config.get_plugin(&Id::raw("node"), PluginType::Backend),
+                None
+            );
+            assert_eq!(
+                config.get_plugin(&Id::raw("deno"), PluginType::Backend),
+                None
+            );
+
+            assert_eq!(
+                config.get_plugin(&Id::raw("unknown"), PluginType::Tool),
+                None
+            );
+        }
+
+        #[test]
+        fn resolves_backend_plugins() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[backends.asdf]
+plugin = "github://moonrepo/asdf-override"
+
+[plugins.backends]
+asdf = "github://moonrepo/asdf"
+vfox = "github://moonrepo/vfox"
+"#,
+            );
+
+            let config =
+                ProtoConfig::from_partial(ProtoConfig::load_from(sandbox.path(), false).unwrap());
+
+            // Backend config takes precedence over the plugins table
+            assert_eq!(
+                config.get_plugin(&Id::raw("asdf"), PluginType::Backend),
+                Some(&github_locator("moonrepo/asdf-override"))
+            );
+
+            // Otherwise falls back to the scoped plugins table
+            assert_eq!(
+                config.get_plugin(&Id::raw("vfox"), PluginType::Backend),
+                Some(&github_locator("moonrepo/vfox"))
+            );
+
+            // Backend plugins are not visible to tool lookups
+            assert_eq!(config.get_plugin(&Id::raw("asdf"), PluginType::Tool), None);
+            assert_eq!(config.get_plugin(&Id::raw("vfox"), PluginType::Tool), None);
+
+            assert_eq!(
+                config.get_plugin(&Id::raw("unknown"), PluginType::Backend),
+                None
             );
         }
     }
