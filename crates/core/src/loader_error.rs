@@ -1,7 +1,7 @@
 use crate::config::PROTO_CONFIG_NAME;
 use crate::config_error::ProtoConfigError;
 use crate::flow::resolve::ProtoResolveError;
-use crate::id::Id;
+use crate::tool_context::ToolContext;
 use crate::tool_error::ProtoToolError;
 use starbase_styles::{Style, Stylize};
 use starbase_utils::json::JsonError;
@@ -52,13 +52,13 @@ pub enum ProtoLoaderError {
     #[diagnostic(code(proto::tool::unknown_id))]
     #[error(
         "Unable to proceed, {} is not a built-in plugin and has not been configured with {} in a {} file.\n\nLearn more about plugins: {}\nSearch community plugins: {}",
-        .id.to_string().style(Style::Id),
+        .context.to_string().style(Style::Id),
         "[plugins]".style(Style::Property),
         PROTO_CONFIG_NAME.style(Style::File),
         "https://moonrepo.dev/docs/proto/plugins".style(Style::Url),
-        format!("proto plugin search {}", .id).style(Style::Shell),
+        format!("proto plugin search {}", .context).style(Style::Shell),
     )]
-    UnknownTool { id: Id },
+    UnknownTool { context: ToolContext },
 
     #[diagnostic(code(proto::loader::failed_join))]
     #[error("Failed to load a tool in the background.")]

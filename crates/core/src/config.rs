@@ -39,7 +39,7 @@ pub const ENV_FILE_KEY: &str = "file";
 pub struct ProtoConfig {
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     #[setting(nested, merge = merge_partials_iter)]
-    pub backends: BTreeMap<String, ProtoBackendConfig>,
+    pub backends: BTreeMap<Id, ProtoBackendConfig>,
 
     #[serde(skip_serializing_if = "IndexMap::is_empty")]
     #[setting(nested, merge = merge_iter)]
@@ -47,7 +47,7 @@ pub struct ProtoConfig {
 
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     #[setting(nested, merge = merge_partials_iter)]
-    pub tools: BTreeMap<String, ProtoToolConfig>,
+    pub tools: BTreeMap<ToolContext, ProtoToolConfig>,
 
     #[setting(nested)]
     pub plugins: ProtoPluginsConfig,
@@ -80,17 +80,7 @@ impl ProtoConfig {
     }
 
     pub fn get_tool_config(&self, context: &ToolContext) -> Option<&ProtoToolConfig> {
-        // To avoid ID collisions between tools and backend managed tools,
-        // the latter's configuration must include the backend prefix.
-        // For example, "npm:node" instead of just "node" (collision).
-        if context.backend.is_some() {
-            self.tools
-                .get(context.as_str())
-                // TODO remove in v0.54
-                .or_else(|| self.tools.get(context.id.as_str()))
-        } else {
-            self.tools.get(context.as_str())
-        }
+        self.tools.get(context)
     }
 
     pub fn setup_env_vars(&self) {
@@ -125,7 +115,8 @@ impl ProtoConfig {
         let mut config = ProtoConfig::default();
 
         // Inherit this setting in case builtins have been disabled
-        config.settings.builtin_plugins = self.settings.builtin_plugins.clone();
+        config.settings.builtin_backends = self.settings.builtin_backends.clone();
+        config.settings.builtin_tools = self.settings.builtin_tools.clone();
 
         // Then inherit all the available builtins
         config.inherit_builtin_plugins();
@@ -142,10 +133,8 @@ impl ProtoConfig {
     }
 
     pub fn inherit_builtin_plugins(&mut self) {
-        let is_allowed = |id: &str| match &self.settings.builtin_plugins {
-            BuiltinPlugins::Enabled(state) => *state,
-            BuiltinPlugins::Allowed(list) => list.iter().any(|aid| aid == id),
-        };
+        let is_backend_allowed = |id: &str| self.settings.builtin_backends.is_allowed(id);
+        let is_tool_allowed = |id: &str| self.settings.builtin_tools.is_allowed(id);
 
         let proto_locator = self.builtin_proto_plugin();
         let schema_locator = self.builtin_schema_plugin();
@@ -154,21 +143,21 @@ impl ProtoConfig {
 
         // BACKENDS
 
-        if !backends.contains_key("asdf") && is_allowed("asdf") {
+        if !backends.contains_key("asdf") && is_backend_allowed("asdf") {
             backends.insert(
                 Id::raw("asdf"),
                 find_debug_locator_with_fallback("asdf_backend", "0.3.4"),
             );
         }
 
-        if !backends.contains_key("cargo") && is_allowed("cargo") {
+        if !backends.contains_key("cargo") && is_backend_allowed("cargo") {
             backends.insert(
                 Id::raw("cargo"),
                 find_debug_locator_with_fallback("cargo_backend", "0.1.1"),
             );
         }
 
-        if !backends.contains_key("npm") && is_allowed("npm") {
+        if !backends.contains_key("npm") && is_backend_allowed("npm") {
             backends.insert(
                 Id::raw("npm"),
                 find_debug_locator_with_fallback("npm_backend", "0.1.2"),
@@ -177,21 +166,21 @@ impl ProtoConfig {
 
         // TOOLS
 
-        if !tools.contains_key("bun") && is_allowed("bun") {
+        if !tools.contains_key("bun") && is_tool_allowed("bun") {
             tools.insert(
                 Id::raw("bun"),
                 find_debug_locator_with_fallback("bun_tool", "0.16.9"),
             );
         }
 
-        if !tools.contains_key("deno") && is_allowed("deno") {
+        if !tools.contains_key("deno") && is_tool_allowed("deno") {
             tools.insert(
                 Id::raw("deno"),
                 find_debug_locator_with_fallback("deno_tool", "0.15.10"),
             );
         }
 
-        if !tools.contains_key("go") && is_allowed("go") {
+        if !tools.contains_key("go") && is_tool_allowed("go") {
             tools.insert(
                 Id::raw("go"),
                 find_debug_locator_with_fallback("go_tool", "0.16.7"),
@@ -199,7 +188,7 @@ impl ProtoConfig {
         }
 
         for id in ["java", "jdk", "jre"] {
-            if !tools.contains_key(id) && is_allowed(id) {
+            if !tools.contains_key(id) && is_tool_allowed(id) {
                 tools.insert(
                     Id::raw(id),
                     find_debug_locator_with_fallback("java_tool", "0.1.0"),
@@ -207,14 +196,14 @@ impl ProtoConfig {
             }
         }
 
-        if !tools.contains_key("moon") && is_allowed("moon") {
+        if !tools.contains_key("moon") && is_tool_allowed("moon") {
             tools.insert(
                 Id::raw("moon"),
                 find_debug_locator_with_fallback("moon_tool", "0.4.2"),
             );
         }
 
-        if !tools.contains_key("node") && is_allowed("node") {
+        if !tools.contains_key("node") && is_tool_allowed("node") {
             tools.insert(
                 Id::raw("node"),
                 find_debug_locator_with_fallback("node_tool", "0.17.10"),
@@ -222,7 +211,7 @@ impl ProtoConfig {
         }
 
         for depman in ["npm", "pnpm", "yarn"] {
-            if !tools.contains_key(depman) && is_allowed(depman) {
+            if !tools.contains_key(depman) && is_tool_allowed(depman) {
                 tools.insert(
                     Id::raw(depman),
                     find_debug_locator_with_fallback("node_depman_tool", "0.19.0"),
@@ -230,35 +219,35 @@ impl ProtoConfig {
             }
         }
 
-        if !tools.contains_key("poetry") && is_allowed("poetry") {
+        if !tools.contains_key("poetry") && is_tool_allowed("poetry") {
             tools.insert(
                 Id::raw("poetry"),
                 find_debug_locator_with_fallback("python_poetry_tool", "0.1.8"),
             );
         }
 
-        if !tools.contains_key("python") && is_allowed("python") {
+        if !tools.contains_key("python") && is_tool_allowed("python") {
             tools.insert(
                 Id::raw("python"),
                 find_debug_locator_with_fallback("python_tool", "0.14.8"),
             );
         }
 
-        if !tools.contains_key("uv") && is_allowed("uv") {
+        if !tools.contains_key("uv") && is_tool_allowed("uv") {
             tools.insert(
                 Id::raw("uv"),
                 find_debug_locator_with_fallback("python_uv_tool", "0.3.3"),
             );
         }
 
-        if !tools.contains_key("ruby") && is_allowed("ruby") {
+        if !tools.contains_key("ruby") && is_tool_allowed("ruby") {
             tools.insert(
                 Id::raw("ruby"),
                 find_debug_locator_with_fallback("ruby_tool", "0.2.8"),
             );
         }
 
-        if !tools.contains_key("rust") && is_allowed("rust") {
+        if !tools.contains_key("rust") && is_tool_allowed("rust") {
             tools.insert(
                 Id::raw("rust"),
                 find_debug_locator_with_fallback("rust_tool", "0.13.9"),
@@ -450,12 +439,20 @@ impl ProtoConfig {
 
         if let Some(tools) = &mut config.tools {
             for tool in tools.values_mut() {
+                if let Some(PluginLocator::File(inner)) = &mut tool.plugin {
+                    inner.path = Some(make_absolute(inner.get_unresolved_path(), path));
+                }
+
                 push_env_file(tool.env.as_mut(), &mut tool._env_files, 5)?;
             }
         }
 
         if let Some(backends) = &mut config.backends {
             for backend in backends.values_mut() {
+                if let Some(PluginLocator::File(inner)) = &mut backend.plugin {
+                    inner.path = Some(make_absolute(inner.get_unresolved_path(), path));
+                }
+
                 push_env_file(backend.env.as_mut(), &mut backend._env_files, 3)?;
             }
         }
@@ -519,6 +516,22 @@ impl ProtoConfig {
         op(&mut document);
 
         Self::save_to(path, document.to_string())
+    }
+
+    pub fn get_plugin(&self, context: &ToolContext, ty: PluginType) -> Option<&PluginLocator> {
+        if ty == PluginType::Backend
+            && let Some(id) = &context.backend
+        {
+            self.backends
+                .get(id)
+                .and_then(|backend| backend.plugin.as_ref())
+                .or_else(|| self.plugins.get(id, ty))
+        } else {
+            self.tools
+                .get(context)
+                .and_then(|tool| tool.plugin.as_ref())
+                .or_else(|| self.plugins.get(&context.id, ty))
+        }
     }
 
     #[instrument(skip(self))]

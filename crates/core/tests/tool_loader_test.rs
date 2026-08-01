@@ -1,5 +1,5 @@
 use proto_core::{
-    Id, PluginLocator, PluginType, ProtoEnvironment, ProtoLoaderError, load_schema_config,
+    PluginLocator, PluginType, ProtoEnvironment, ProtoLoaderError, ToolContext, load_schema_config,
     locate_plugin,
 };
 use starbase_sandbox::{Sandbox, create_empty_sandbox};
@@ -158,6 +158,10 @@ mod locate_plugin {
         (sandbox, proto)
     }
 
+    fn ctx(value: &str) -> ToolContext {
+        ToolContext::parse(value).unwrap()
+    }
+
     // User-defined plugins in `[plugins.tools]` must beat the new
     // registry-fallback branch even when a default registry is configured.
     #[test]
@@ -174,7 +178,7 @@ default = true
 "#,
         );
 
-        let result = locate_plugin(&Id::raw("foo"), &proto, PluginType::Tool).unwrap();
+        let result = locate_plugin(&ctx("foo"), &proto, PluginType::Tool).unwrap();
 
         let PluginLocator::GitHub(github) = result else {
             panic!("expected GitHub locator, got {result:?}");
@@ -190,7 +194,7 @@ default = true
     fn builtin_plugin_resolves_via_builtins() {
         let (_sandbox, proto) = setup("");
 
-        let result = locate_plugin(&Id::raw("node"), &proto, PluginType::Tool).unwrap();
+        let result = locate_plugin(&ctx("node"), &proto, PluginType::Tool).unwrap();
 
         match result {
             // Local debug builds may resolve to a File locator pointing at a
@@ -218,7 +222,7 @@ default = true
 "#,
         );
 
-        let result = locate_plugin(&Id::raw("foo"), &proto, PluginType::Tool).unwrap();
+        let result = locate_plugin(&ctx("foo"), &proto, PluginType::Tool).unwrap();
 
         let PluginLocator::Registry(registry) = result else {
             panic!("expected Registry locator, got {result:?}");
@@ -237,12 +241,12 @@ default = true
     fn unknown_id_without_default_registry_returns_unknown_tool_error() {
         let (_sandbox, proto) = setup("");
 
-        let err = locate_plugin(&Id::raw("totally_unknown_xyz"), &proto, PluginType::Tool)
+        let err = locate_plugin(&ctx("totally_unknown_xyz"), &proto, PluginType::Tool)
             .expect_err("expected UnknownTool error");
 
         match err {
-            ProtoLoaderError::UnknownTool { id } => {
-                assert_eq!(id.as_str(), "totally_unknown_xyz");
+            ProtoLoaderError::UnknownTool { context } => {
+                assert_eq!(context, "totally_unknown_xyz");
             }
             other => panic!("expected UnknownTool, got {other:?}"),
         }
@@ -271,7 +275,7 @@ default = false
 "#,
         );
 
-        let result = locate_plugin(&Id::raw("foo"), &proto, PluginType::Tool).unwrap();
+        let result = locate_plugin(&ctx("foo"), &proto, PluginType::Tool).unwrap();
 
         let PluginLocator::Registry(registry) = result else {
             panic!("expected Registry locator, got {result:?}");
@@ -282,7 +286,8 @@ default = false
         assert_eq!(registry.image, "foo");
     }
 
-    // PluginType::Backend reads from `[plugins.backends]`, not `[plugins.tools]`.
+    // PluginType::Backend resolves the context's backend id against
+    // `[plugins.backends]`, not `[plugins.tools]`.
     #[test]
     fn backend_type_uses_backends_table() {
         let (_sandbox, proto) = setup(
@@ -295,7 +300,7 @@ asdf = "github://wrong/wrong"
 "#,
         );
 
-        let result = locate_plugin(&Id::raw("asdf"), &proto, PluginType::Backend).unwrap();
+        let result = locate_plugin(&ctx("asdf:node"), &proto, PluginType::Backend).unwrap();
 
         let PluginLocator::GitHub(github) = result else {
             panic!("expected GitHub locator, got {result:?}");
@@ -316,7 +321,7 @@ default = true
 "#,
         );
 
-        let result = locate_plugin(&Id::raw("foo"), &proto, PluginType::Tool).unwrap();
+        let result = locate_plugin(&ctx("foo"), &proto, PluginType::Tool).unwrap();
 
         let PluginLocator::Registry(registry) = result else {
             panic!("expected Registry locator, got {result:?}");

@@ -51,13 +51,23 @@ pub enum BuiltinPlugins {
     Allowed(Vec<String>),
 }
 
+impl BuiltinPlugins {
+    pub fn is_allowed(&self, id: &str) -> bool {
+        match self {
+            BuiltinPlugins::Enabled(state) => *state,
+            BuiltinPlugins::Allowed(list) => list.iter().any(|aid| aid == id),
+        }
+    }
+}
+
 fn default_builtin_plugins(_context: &()) -> DefaultValueResult<BuiltinPlugins> {
     Ok(Some(BuiltinPlugins::Enabled(true)))
 }
 
 fn default_registries(_context: &()) -> DefaultValueResult<IndexSet<RegistryConfig>> {
-    let builtin_registry = get_builtin_registry().to_owned();
-    Ok(Some(IndexSet::from_iter([builtin_registry])))
+    Ok(Some(IndexSet::from_iter([
+        get_builtin_registry().to_owned()
+    ])))
 }
 
 // `[settings]`
@@ -74,7 +84,10 @@ pub struct ProtoSettingsConfig {
     pub build: ProtoBuildConfig,
 
     #[setting(default = default_builtin_plugins)]
-    pub builtin_plugins: BuiltinPlugins,
+    pub builtin_backends: BuiltinPlugins,
+
+    #[setting(default = default_builtin_plugins, alias = "builtin-plugins")]
+    pub builtin_tools: BuiltinPlugins,
 
     #[setting(env = "PROTO_CACHE_DURATION")]
     pub cache_duration: Option<u64>,

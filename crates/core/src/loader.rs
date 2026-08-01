@@ -55,19 +55,19 @@ pub fn inject_proto_manifest_config(
 
 #[instrument]
 pub fn locate_plugin(
-    id: &Id,
+    context: &ToolContext,
     proto: &ProtoEnvironment,
     ty: PluginType,
 ) -> Result<PluginLocator, ProtoLoaderError> {
     let mut locator = None;
     let config = proto.load_config()?;
 
-    debug!(id = id.as_str(), "Finding a configured plugin");
+    debug!(context = context.as_str(), type = ?ty, "Finding a configured plugin");
 
     // Check config files for plugins
-    if let Some(maybe_locator) = config.plugins.get(id, ty) {
+    if let Some(maybe_locator) = config.get_plugin(context, ty) {
         debug!(
-            id = id.as_str(),
+            context = context.as_str(),
             plugin = maybe_locator.to_string(),
             "Found a plugin"
         );
@@ -75,12 +75,14 @@ pub fn locate_plugin(
         locator = Some(maybe_locator.to_owned());
     }
 
+    let id = context.backend.as_ref().unwrap_or(&context.id);
+
     // And finally the built-in plugins (must include global config)
     if locator.is_none()
         && let Some(maybe_locator) = config.builtin_plugins().get(id, ty)
     {
         debug!(
-            id = id.as_str(),
+            context = context.as_str(),
             plugin = maybe_locator.to_string(),
             "Using a built-in plugin"
         );
@@ -99,7 +101,7 @@ pub fn locate_plugin(
             PluginLocator::try_from(format!("registry://{}", registry.get_reference(id)))
     {
         debug!(
-            id = id.as_str(),
+            context = context.as_str(),
             plugin = maybe_locator.to_string(),
             "Using a registry plugin"
         );
@@ -108,7 +110,9 @@ pub fn locate_plugin(
     }
 
     let Some(mut locator) = locator else {
-        return Err(ProtoLoaderError::UnknownTool { id: id.to_owned() });
+        return Err(ProtoLoaderError::UnknownTool {
+            context: context.to_owned(),
+        });
     };
 
     // Rewrite if a URL
@@ -279,12 +283,15 @@ pub async fn load_tool(
     context: &ToolContext,
     proto: &ProtoEnvironment,
 ) -> Result<Tool, ProtoLoaderError> {
-    // If backend is proto, use the tool's plugin,
-    // otherwise use the backend plugin itself
-    let locator = match &context.backend {
-        Some(backend_id) => locate_plugin(backend_id, proto, PluginType::Backend)?,
-        None => locate_plugin(&context.id, proto, PluginType::Tool)?,
-    };
+    let locator = locate_plugin(
+        context,
+        proto,
+        if context.backend.is_some() {
+            PluginType::Backend
+        } else {
+            PluginType::Tool
+        },
+    )?;
 
     let tool = load_tool_from_locator(&context, proto, locator).await?;
 
