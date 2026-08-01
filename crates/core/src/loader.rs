@@ -284,7 +284,7 @@ pub async fn load_tool(
     proto: &ProtoEnvironment,
 ) -> Result<Tool, ProtoLoaderError> {
     let locator = locate_plugin(
-        &context,
+        context,
         proto,
         if context.backend.is_some() {
             PluginType::Backend

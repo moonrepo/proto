@@ -1,10 +1,12 @@
 use crate::id::*;
 use serde::{Deserialize, Serialize};
+use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::fmt;
+use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
-#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(into = "String", try_from = "String")]
 pub struct ToolContext {
     /// ID of the backend that tool is sourced from.
@@ -90,6 +92,30 @@ impl AsRef<str> for ToolContext {
     }
 }
 
+// The `original` string is the identity of a context, so `Eq`, `Ord`,
+// `Hash`, and `Borrow` must all be implemented against it, and only it,
+// so that maps can be indexed with strings ("backend:tool")!
+
+impl PartialEq for ToolContext {
+    fn eq(&self, other: &Self) -> bool {
+        self.original == other.original
+    }
+}
+
+impl Eq for ToolContext {}
+
+impl Hash for ToolContext {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.original.hash(state);
+    }
+}
+
+impl Borrow<str> for ToolContext {
+    fn borrow(&self) -> &str {
+        &self.original
+    }
+}
+
 impl PartialOrd for ToolContext {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
@@ -101,6 +127,20 @@ impl Ord for ToolContext {
         self.original.cmp(&other.original)
     }
 }
+
+macro_rules! gen_partial_eq {
+    ($ty:ty) => {
+        impl PartialEq<$ty> for ToolContext {
+            fn eq(&self, other: &$ty) -> bool {
+                self.original == *other
+            }
+        }
+    };
+}
+
+gen_partial_eq!(str);
+gen_partial_eq!(&str);
+gen_partial_eq!(String);
 
 impl fmt::Display for ToolContext {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

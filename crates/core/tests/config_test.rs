@@ -112,10 +112,9 @@ pin-latest = "global"
         sandbox.create_file(".prototools", r#""asdf:node" = "20.0.0""#);
 
         let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
-        let context = ToolContext::parse("asdf:node").unwrap();
 
         assert_eq!(
-            config.versions.unwrap().get(&context).unwrap(),
+            config.versions.unwrap().get("asdf:node").unwrap(),
             &ToolSpec {
                 req: UnresolvedVersionSpec::parse("20.0.0").unwrap(),
                 ..Default::default()
@@ -1536,6 +1535,10 @@ file = ".env.tool"
         use proto_core::PluginType;
         use schematic::Config;
 
+        fn ctx(value: &str) -> ToolContext {
+            ToolContext::parse(value).unwrap()
+        }
+
         fn github_locator(repo: &str) -> PluginLocator {
             PluginLocator::GitHub(Box::new(GitHubLocator {
                 repo_slug: repo.into(),
@@ -1567,34 +1570,28 @@ deno = "github://moonrepo/deno"
 
             // Tool config takes precedence over the plugins table
             assert_eq!(
-                config.get_plugin(&Id::raw("node"), PluginType::Tool),
+                config.get_plugin(&ctx("node"), PluginType::Tool),
                 Some(&github_locator("moonrepo/node-override"))
             );
 
             // Otherwise falls back to the scoped and legacy plugins tables
             assert_eq!(
-                config.get_plugin(&Id::raw("bun"), PluginType::Tool),
+                config.get_plugin(&ctx("bun"), PluginType::Tool),
                 Some(&github_locator("moonrepo/bun"))
             );
             assert_eq!(
-                config.get_plugin(&Id::raw("deno"), PluginType::Tool),
+                config.get_plugin(&ctx("deno"), PluginType::Tool),
                 Some(&github_locator("moonrepo/deno"))
             );
 
-            // Tool plugins are not visible to backend lookups
+            // Backend lookups resolve the context's backend id,
+            // so tool plugins are not visible to them
             assert_eq!(
-                config.get_plugin(&Id::raw("node"), PluginType::Backend),
-                None
-            );
-            assert_eq!(
-                config.get_plugin(&Id::raw("deno"), PluginType::Backend),
+                config.get_plugin(&ctx("npm:node"), PluginType::Backend),
                 None
             );
 
-            assert_eq!(
-                config.get_plugin(&Id::raw("unknown"), PluginType::Tool),
-                None
-            );
+            assert_eq!(config.get_plugin(&ctx("unknown"), PluginType::Tool), None);
         }
 
         #[test]
@@ -1615,24 +1612,25 @@ vfox = "github://moonrepo/vfox"
             let config =
                 ProtoConfig::from_partial(ProtoConfig::load_from(sandbox.path(), false).unwrap());
 
-            // Backend config takes precedence over the plugins table
+            // Backend config takes precedence over the plugins table,
+            // resolved by the context's backend id
             assert_eq!(
-                config.get_plugin(&Id::raw("asdf"), PluginType::Backend),
+                config.get_plugin(&ctx("asdf:node"), PluginType::Backend),
                 Some(&github_locator("moonrepo/asdf-override"))
             );
 
             // Otherwise falls back to the scoped plugins table
             assert_eq!(
-                config.get_plugin(&Id::raw("vfox"), PluginType::Backend),
+                config.get_plugin(&ctx("vfox:node"), PluginType::Backend),
                 Some(&github_locator("moonrepo/vfox"))
             );
 
             // Backend plugins are not visible to tool lookups
-            assert_eq!(config.get_plugin(&Id::raw("asdf"), PluginType::Tool), None);
-            assert_eq!(config.get_plugin(&Id::raw("vfox"), PluginType::Tool), None);
+            assert_eq!(config.get_plugin(&ctx("asdf"), PluginType::Tool), None);
+            assert_eq!(config.get_plugin(&ctx("vfox"), PluginType::Tool), None);
 
             assert_eq!(
-                config.get_plugin(&Id::raw("unknown"), PluginType::Backend),
+                config.get_plugin(&ctx("unknown:node"), PluginType::Backend),
                 None
             );
         }
