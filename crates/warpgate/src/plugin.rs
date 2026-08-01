@@ -1,4 +1,3 @@
-use crate::helpers::{from_virtual_path, sort_virtual_paths, to_virtual_path};
 use crate::plugin_error::WarpgatePluginError;
 use extism::{Error, Function, Manifest, Plugin};
 use scc::hash_map::Entry;
@@ -15,9 +14,12 @@ use std::sync::{Arc, OnceLock};
 use std::time::Instant;
 use system_env::{SystemArch, SystemLibc, SystemOS};
 use tokio::sync::RwLock;
-use tokio::task::block_in_place;
+use tokio::task::spawn_blocking;
 use tracing::{instrument, trace};
-use warpgate_api::{HostEnvironment, Id, VirtualPath};
+use warpgate_api::{
+    HostEnvironment, Id, RealPath, VirtualPath, convert_to_real_path, convert_to_virtual_path,
+    sort_paths_list,
+};
 
 fn is_incompatible_runtime(error: &Error) -> bool {
     let check = |message: String| {
@@ -34,8 +36,9 @@ fn is_incompatible_runtime(error: &Error) -> bool {
     check(error.to_string())
 }
 
-/// Inject our default configuration into the provided plugin manifest.
-/// This will set `plugin_id` and `host_environment` for use within PDKs.
+/// Inject our default configuration into the provided plugin [`Manifest`].
+/// This will set `plugin_id`, `host_environment`, and `virtual_paths`
+/// for use within PDKs.
 #[instrument(skip(manifest))]
 pub fn inject_default_manifest_config(
     id: &Id,
@@ -56,11 +59,7 @@ pub fn inject_default_manifest_config(
             ci: is_ci(),
             libc: SystemLibc::detect(os),
             os,
-            home_dir: VirtualPath::Virtual {
-                path: "/userhome".into(),
-                virtual_prefix: "/userhome".into(),
-                real_prefix: home_dir.into(),
-            },
+            home_dir: VirtualPath::new("/userhome"),
         })
         .map_err(|error| WarpgatePluginError::InvalidInput {
             id: id.to_owned(),
@@ -73,17 +72,47 @@ pub fn inject_default_manifest_config(
         manifest.config.insert("host_environment".into(), env);
     }
 
+    if !manifest.config.contains_key("virtual_paths") {
+        let mut paths = vec![];
+
+        if let Some(allowed_paths) = &manifest.allowed_paths {
+            for (host, guest) in allowed_paths {
+                paths.push((PathBuf::from(host), guest.to_owned()));
+            }
+        }
+
+        sort_paths_list(&mut paths);
+
+        let paths =
+            serde_json::to_string(&paths).map_err(|error| WarpgatePluginError::InvalidInput {
+                id: id.to_owned(),
+                func: "virtual_paths".into(),
+                error: Box::new(error),
+            })?;
+
+        trace!(id = id.as_str(), paths = %paths, "Storing virtual paths");
+
+        manifest.config.insert("virtual_paths".into(), paths);
+    }
+
     Ok(())
 }
 
+/// A callback that is executed before and after a plugin function call.
+/// Receives the function name, the input (before only), and the output (after only).
 pub type OnCallFn = Arc<dyn Fn(&str, Option<&str>, Option<&str>) + Send + Sync>;
 
 /// A container around Extism's [`Plugin`] and [`Manifest`] types that provides convenience
 /// methods for calling and caching functions from the WASM plugin. It also provides
 /// additional methods for easily working with WASI and virtual paths.
 pub struct PluginContainer {
+    /// Unique identifier of the plugin.
     pub id: Id,
+
+    /// The [`Manifest`] that the plugin was created with.
     pub manifest: Manifest,
+
+    /// Mapping of virtual paths, from host to guest paths.
     pub virtual_paths: Vec<(PathBuf, PathBuf)>,
 
     debug_call: bool,
@@ -127,7 +156,7 @@ impl PluginContainer {
             None => Vec::new(),
         };
 
-        sort_virtual_paths(&mut virtual_paths);
+        sort_paths_list(&mut virtual_paths);
 
         Ok(PluginContainer {
             virtual_paths,
@@ -254,26 +283,20 @@ impl PluginContainer {
     }
 
     /// Convert the provided virtual guest path to an absolute host path.
-    pub fn from_virtual_path(&self, path: impl AsRef<Path> + Debug) -> PathBuf {
-        from_virtual_path(&self.virtual_paths, path)
+    pub fn to_real_path(&self, path: impl AsRef<Path> + Debug) -> RealPath {
+        convert_to_real_path(&path, &self.virtual_paths).unwrap_or_else(|| RealPath::new(path))
     }
 
-    /// Convert the provided absolute host path to a virtual guest path suitable
-    /// for WASI sandboxed runtimes.
+    /// Convert the provided absolute host path to a virtual guest path.
     pub fn to_virtual_path(&self, path: impl AsRef<Path> + Debug) -> VirtualPath {
-        to_virtual_path(&self.virtual_paths, path)
+        convert_to_virtual_path(&path, &self.virtual_paths)
+            .unwrap_or_else(|| VirtualPath::new(path))
     }
 
     /// Call a function on the plugin with the given raw input and return the raw output.
     #[instrument(skip(self, input))]
-    pub async fn call(
-        &self,
-        func: &str,
-        input: impl AsRef<[u8]>,
-    ) -> Result<Vec<u8>, WarpgatePluginError> {
-        let mut instance = self.plugin.write().await;
-        let input = input.as_ref();
-        let input_string = String::from_utf8_lossy(input);
+    pub async fn call(&self, func: &str, input: String) -> Result<Vec<u8>, WarpgatePluginError> {
+        let mut instance = Arc::clone(&self.plugin).write_owned().await;
         let uuid = instance.id.to_string(); // Copy
         let instant = Instant::now();
         let truncate_size = 5000;
@@ -281,20 +304,30 @@ impl PluginContainer {
         trace!(
             id = self.id.as_str(),
             plugin = &uuid,
-            input = %(if input_string.len() > truncate_size && !self.debug_call {
+            input = %(if input.len() > truncate_size && !self.debug_call {
                 "(truncated)"
             } else {
-                &input_string
+                &input
             }),
             "Calling guest function {}",
             color::property(func),
         );
 
         if let Some(callback) = self.on_call_func.get() {
-            callback(func, Some(&input_string), None);
+            callback(func, Some(&input), None);
         }
 
-        let output = block_in_place(|| instance.call(func, input)).map_err(|error| {
+        let func_name = func.to_string();
+
+        let result = spawn_blocking(move || instance.call::<String, Vec<u8>>(func_name, input))
+            .await
+            .map_err(|error| WarpgatePluginError::FailedPluginCall {
+                id: self.id.clone(),
+                func: func.to_owned(),
+                error: error.to_string(),
+            })?;
+
+        let output = result.map_err(|error| {
             if is_incompatible_runtime(&error) {
                 return WarpgatePluginError::IncompatibleRuntime {
                     id: self.id.clone(),
@@ -329,15 +362,13 @@ impl PluginContainer {
             }
         })?;
 
-        let output_string = String::from_utf8_lossy(output);
-
         trace!(
             id = self.id.as_str(),
             plugin = &uuid,
-            output = %(if output_string.len() > truncate_size && !self.debug_call {
-                "(truncated)"
+            output = %(if output.len() > truncate_size && !self.debug_call {
+                "(truncated)".to_string()
             } else {
-                &output_string
+                String::from_utf8_lossy(&output).to_string()
             }),
             elapsed = ?instant.elapsed(),
             "Called guest function {}",
@@ -345,10 +376,10 @@ impl PluginContainer {
         );
 
         if let Some(callback) = self.on_call_func.get() {
-            callback(func, None, Some(&output_string));
+            callback(func, None, Some(String::from_utf8_lossy(&output).as_ref()));
         }
 
-        Ok(output.to_vec())
+        Ok(output)
     }
 
     fn format_input<I: Serialize>(

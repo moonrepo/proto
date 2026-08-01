@@ -3,6 +3,8 @@ use crate::loader_error::WarpgateLoaderError;
 use tracing::trace;
 use warpgate_api::{FileLocator, Id};
 
+/// A loader for referencing plugins on the local file system,
+/// using [`FileLocator`].
 #[derive(Clone)]
 pub struct FileLoader {}
 

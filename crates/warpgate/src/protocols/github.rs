@@ -11,8 +11,11 @@ use std::sync::Arc;
 use tracing::{instrument, trace};
 use warpgate_api::{GitHubLocator, Id};
 
+/// A loader for downloading plugins from GitHub releases,
+/// using [`GitHubLocator`].
 #[derive(Clone)]
 pub struct GitHubLoader {
+    /// Instance of our HTTP client, used for downloading assets.
     pub client: Arc<HttpClient>,
 }
 
@@ -156,20 +159,30 @@ impl LoaderProtocol<GitHubLocator> for GitHubLoader {
     }
 }
 
+/// An asset of a GitHub release, from the GitHub API.
 #[derive(Deserialize)]
 pub struct GitHubApiAsset {
+    /// URL in which to download the asset from.
     pub browser_download_url: String,
+
+    /// Media/content type of the asset.
     pub content_type: String,
+
+    /// File name of the asset.
     pub name: String,
 }
 
+/// A Git tag, from the GitHub API.
 #[derive(Debug, Deserialize)]
 pub struct GitHubApiTag {
+    /// Name of the tag.
     pub name: String,
 }
 
+/// A GitHub release, from the GitHub API.
 #[derive(Default, Deserialize)]
 #[serde(default)]
 pub struct GitHubApiRelease {
+    /// Assets available for download.
     pub assets: Vec<GitHubApiAsset>,
 }

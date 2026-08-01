@@ -342,16 +342,11 @@ impl<'tool> Locator<'tool> {
         {
             let output = self.call_locate_executables().await?;
 
-            #[allow(deprecated)]
-            if let Some(dir) = output.exes_dir {
-                dirs.push(self.product_dir.join(path::normalize_separators(dir)));
-            } else {
-                for dir in output.exes_dirs {
-                    if dir.to_str().is_some_and(|dir| dir == ".") {
-                        dirs.push(self.product_dir.clone());
-                    } else {
-                        dirs.push(self.product_dir.join(path::normalize_separators(dir)));
-                    }
+            for dir in output.exes_dirs {
+                if dir.to_str().is_some_and(|dir| dir == ".") {
+                    dirs.push(self.product_dir.clone());
+                } else {
+                    dirs.push(self.product_dir.join(path::normalize_separators(dir)));
                 }
             }
         }

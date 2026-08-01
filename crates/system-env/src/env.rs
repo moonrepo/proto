@@ -29,13 +29,13 @@ pub enum SystemArch {
 }
 
 impl SystemArch {
-    /// Return an instance derived from [`std::env::costs::ARCH`].
+    /// Return an instance derived from [`std::env::consts::ARCH`].
     pub fn from_env() -> SystemArch {
         serde_json::from_value(Value::String(consts::ARCH.to_owned()))
             .expect("Unknown architecture!")
     }
 
-    /// Convert to a [`std::env::costs::ARCH`] compatible string.
+    /// Convert to a [`std::env::consts::ARCH`] compatible string.
     pub fn to_rust_arch(&self) -> String {
         match self {
             Self::X64 => "x86_64".into(),
@@ -97,7 +97,7 @@ pub enum SystemOS {
 }
 
 impl SystemOS {
-    /// Return an instance derived from [`std::env::costs::OS`].
+    /// Return an instance derived from [`std::env::consts::OS`].
     pub fn from_env() -> SystemOS {
         serde_json::from_value(Value::String(consts::OS.to_owned()))
             .expect("Unknown operating system!")
@@ -163,7 +163,7 @@ impl SystemOS {
         matches!(self, Self::Windows)
     }
 
-    /// Convert to a [`std::env::costs::OS`] compatible string.
+    /// Convert to a [`std::env::consts::OS`] compatible string.
     pub fn to_rust_os(&self) -> String {
         self.to_string()
     }

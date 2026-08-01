@@ -59,7 +59,7 @@ export interface ExecCommandInput {
 	 * List of real or virtual paths to prepend to the `PATH`
 	 * environment variable when executing the command.
 	 */
-	paths?: VirtualPath[];
+	paths?: string[];
 	/** Mark the command as executable before executing. */
 	setExecutable?: boolean;
 	/** Set the shell to execute the command with, for example "bash". */
@@ -125,10 +125,6 @@ export interface PluginUnresolvedContext {
 	protoVersion?: Version | null;
 	/** Virtual path to the tool's temporary directory. */
 	tempDir: VirtualPath;
-	/** @deprecated */
-	toolDir: VirtualPath;
-	/** @deprecated */
-	version?: VersionSpec | null;
 	/** Virtual path to the current working directory. */
 	workingDir: VirtualPath;
 }
@@ -491,7 +487,6 @@ export interface LocateExecutablesOutput {
 	 * The map key will be the name of the executable file.
 	 */
 	exes?: Record<string, ExecutableConfig>;
-	exesDir?: string | null;
 	/**
 	 * Relative directory path from the tool install directory in which
 	 * pre-installed executables can be located. This directory path
@@ -630,7 +625,7 @@ export interface RunHookResult {
 	 * Will overwrite any existing variables.
 	 */
 	env?: Record<string, string> | null;
-	/** Additional paths to prepend to `PATH` for the running command. */
+	/** List of real or virtual paths to prepend to `PATH` for the running command. */
 	paths?: string[] | null;
 }
 
@@ -681,7 +676,7 @@ export type BuildInstruction = {
 		/** If the executable should reference a builder executable. */
 		builder: boolean;
 		/** The working directory. */
-		cwd?: string | null;
+		cwd?: VirtualPath | null;
 		/** Map of environment variables. */
 		env?: Record<string, string>;
 		/** The executable on `PATH`. */

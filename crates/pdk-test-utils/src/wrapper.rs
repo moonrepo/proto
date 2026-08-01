@@ -231,22 +231,22 @@ impl WasmTestWrapper {
     }
 
     fn prepare_context(&self, context: PluginContext) -> PluginContext {
-        let tool_dir = if context.tool_dir.any_path().components().count() == 0 {
+        let tool_dir = if context.tool_dir.is_empty() {
             self.tool.get_product_dir(&ToolSpec::default())
         } else {
-            context.tool_dir.any_path().to_path_buf()
+            context.tool_dir.to_path_buf()
         };
 
-        let temp_dir = if context.temp_dir.any_path().components().count() == 0 {
+        let temp_dir = if context.temp_dir.is_empty() {
             self.tool.get_temp_dir()
         } else {
-            context.temp_dir.any_path()
+            context.temp_dir.as_path()
         };
 
-        let working_dir = if context.working_dir.any_path().components().count() == 0 {
+        let working_dir = if context.working_dir.is_empty() {
             &self.tool.proto.working_dir
         } else {
-            context.working_dir.any_path()
+            context.working_dir.as_path()
         };
 
         PluginContext {
@@ -261,10 +261,10 @@ impl WasmTestWrapper {
         &self,
         context: PluginUnresolvedContext,
     ) -> PluginUnresolvedContext {
-        let temp_dir = if context.temp_dir.any_path().components().count() == 0 {
+        let temp_dir = if context.temp_dir.is_empty() {
             self.tool.get_temp_dir()
         } else {
-            context.temp_dir.any_path()
+            context.temp_dir.as_path()
         };
 
         PluginUnresolvedContext {

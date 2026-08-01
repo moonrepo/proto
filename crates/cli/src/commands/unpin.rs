@@ -44,7 +44,7 @@ pub async fn unpin(session: ProtoSession, args: UnpinArgs) -> SessionResult {
             if let Some(file) = output.file
                 && output.unpinned
             {
-                config_path = tool.from_virtual_path(file);
+                config_path = tool.to_real_path(file).to_path_buf();
                 value = output.version.map(|version| version.to_string());
             } else {
                 let mut messages = vec![format!(

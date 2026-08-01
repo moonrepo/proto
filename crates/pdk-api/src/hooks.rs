@@ -106,7 +106,7 @@ api_struct!(
         #[serde(skip_serializing_if = "Option::is_none")]
         pub env: Option<FxHashMap<String, String>>,
 
-        /// Additional paths to prepend to `PATH` for the running command.
+        /// List of real or virtual paths to prepend to `PATH` for the running command.
         #[serde(skip_serializing_if = "Option::is_none")]
         pub paths: Option<Vec<PathBuf>>,
     }

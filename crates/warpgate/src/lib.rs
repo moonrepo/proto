@@ -1,3 +1,5 @@
+//! Download, resolve, and manage Extism WASM plugins.
+
 mod clients;
 mod helpers;
 pub mod host;

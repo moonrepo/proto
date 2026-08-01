@@ -48,7 +48,7 @@ impl fmt::Display for EventMessage {
     }
 }
 
-/// Options to customize `tracing` handling within Extism.
+/// Options to customize [`tracing`] handling within Extism.
 #[derive(Default)]
 pub struct WarpgateTracingOptions {
     /// The minimum log level. Lower levels will be filtered.
@@ -115,12 +115,12 @@ impl<S: Subscriber> Layer<S> for WarpgateToExtismLayer {
     }
 }
 
-/// Initialize `tracing` events to be captured by Extism.
+/// Initialize [`tracing`] events to be captured by Extism.
 pub fn initialize_tracing() {
     initialize_tracing_with_options(WarpgateTracingOptions::default())
 }
 
-/// Initialize `tracing` events to be captured by Extism, with the provided options.
+/// Initialize [`tracing`] events to be captured by Extism, with the provided options.
 pub fn initialize_tracing_with_options(options: WarpgateTracingOptions) {
     set_global_default(Registry::default().with(WarpgateToExtismLayer { options }))
         .expect("Global tracing subscriber has already been set!")

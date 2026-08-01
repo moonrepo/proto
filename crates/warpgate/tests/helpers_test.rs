@@ -3,11 +3,8 @@ use starbase_archive::codecs::Gz;
 use starbase_archive::tar::TarPacker;
 use starbase_sandbox::create_empty_sandbox;
 use starbase_utils::fs;
-use std::path::{Path, PathBuf};
-use warpgate::{
-    WarpgateLoaderError, extract_file_name_from_url, from_virtual_path, move_or_unpack_file,
-    sort_virtual_paths, to_virtual_path,
-};
+use std::path::Path;
+use warpgate::{WarpgateLoaderError, extract_file_name_from_url, move_or_unpack_file};
 
 // A WASM binary's first 4 bytes are the magic header `\0asm`. Used so the
 // file is treated as a real WASM (not an empty file) by anything that sniffs.
@@ -30,84 +27,6 @@ fn pack_tar_gz(source_root: &Path, archive_path: &Path, files: &[(&str, &[u8])])
     archiver
         .pack(|path| Ok(TarPacker::new(Gz::new(fs::create_file(path).unwrap()))))
         .unwrap();
-}
-
-#[test]
-fn sorts_virtual_paths() {
-    let mut paths = vec![
-        (PathBuf::from("/Users/warp"), PathBuf::from("/userhome")),
-        (PathBuf::from("/Users/warp/.proto"), PathBuf::from("/proto")),
-        (
-            PathBuf::from("/Users/warp/.proto/temp"),
-            PathBuf::from("/temp"),
-        ),
-        (
-            PathBuf::from("/Users/warp/Projects/moon/example"),
-            PathBuf::from("/workspace"),
-        ),
-        (
-            PathBuf::from("/Users/warp/Projects/other/length"),
-            PathBuf::from("/workdir"),
-        ),
-        (PathBuf::from("/Other/path"), PathBuf::from("/cwd")),
-    ];
-
-    sort_virtual_paths(&mut paths);
-
-    assert_eq!(
-        paths
-            .iter()
-            .map(|(h, g)| (h.to_str().unwrap(), g.to_str().unwrap()))
-            .collect::<Vec<_>>(),
-        [
-            ("/Users/warp/Projects/other/length", "/workdir"),
-            ("/Users/warp/Projects/moon/example", "/workspace"),
-            ("/Users/warp/.proto/temp", "/temp"),
-            ("/Users/warp/.proto", "/proto"),
-            ("/Users/warp", "/userhome"),
-            ("/Other/path", "/cwd")
-        ]
-    );
-}
-
-#[cfg(not(windows))]
-#[test]
-fn converts_virtual_paths() {
-    let paths = vec![(PathBuf::from("/Users/warp"), PathBuf::from("/userhome"))];
-
-    // Match
-    let a1 = to_virtual_path(&paths, "/Users/warp/some/path");
-    assert_eq!(a1.to_string(), "/userhome/some/path");
-
-    let a2 = from_virtual_path(&paths, a1);
-    assert_eq!(a2.to_str().unwrap(), "/Users/warp/some/path");
-
-    // No match
-    let b1 = to_virtual_path(&paths, "/Unknown/prefix/some/path");
-    assert_eq!(b1.to_string(), "/Unknown/prefix/some/path");
-
-    let b2 = from_virtual_path(&paths, b1);
-    assert_eq!(b2.to_str().unwrap(), "/Unknown/prefix/some/path");
-}
-
-#[cfg(windows)]
-#[test]
-fn converts_virtual_paths() {
-    let paths = vec![(PathBuf::from("C:\\Users\\warp"), PathBuf::from("/userhome"))];
-
-    // Match
-    let a1 = to_virtual_path(&paths, "C:\\Users\\warp\\some\\path");
-    assert_eq!(a1.to_string(), "/userhome/some/path");
-
-    let a2 = from_virtual_path(&paths, a1);
-    assert_eq!(a2.to_str().unwrap(), "C:\\Users\\warp\\some\\path");
-
-    // No match
-    let b1 = to_virtual_path(&paths, "C:\\Unknown\\prefix\\some\\path");
-    assert_eq!(b1.to_string(), "C:/Unknown/prefix/some/path");
-
-    let b2 = from_virtual_path(&paths, b1);
-    assert_eq!(b2.to_str().unwrap(), "C:\\Unknown\\prefix\\some\\path");
 }
 
 mod extract_file_name_from_url {

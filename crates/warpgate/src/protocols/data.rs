@@ -5,6 +5,8 @@ use std::borrow::Cow;
 use tracing::trace;
 use warpgate_api::{DataLocator, Id};
 
+/// A loader for acquiring plugins from inline base64 encoded data,
+/// using [`DataLocator`].
 #[derive(Clone)]
 pub struct DataLoader {}
 

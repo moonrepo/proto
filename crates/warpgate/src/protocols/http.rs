@@ -4,6 +4,8 @@ use std::borrow::Cow;
 use tracing::trace;
 use warpgate_api::{Id, UrlLocator};
 
+/// A loader for downloading plugins from secure URLs,
+/// using [`UrlLocator`].
 #[derive(Clone)]
 pub struct HttpLoader {}
 
