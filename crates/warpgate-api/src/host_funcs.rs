@@ -3,20 +3,29 @@ use crate::{AnyResult, api_struct, api_unit_enum};
 use derive_setters::Setters;
 use rustc_hash::FxHashMap;
 use serde::de::DeserializeOwned;
+use std::path::PathBuf;
 
 api_unit_enum!(
     /// Target where host logs should be written to.
     pub enum HostLogTarget {
-        // Console
+        /// Write to the standard error console stream.
         Stderr,
+
+        /// Write to the standard output console stream.
         Stdout,
-        // Levels
-        Debug,
+
+        /// Log a message with the error level.
         Error,
-        Trace,
+
+        /// Log a message with the warn level.
         Warn,
+
+        /// Log a message with the debug level.
+        Debug,
+
+        /// Log a message with the trace level.
         #[default]
-        Tracing,
+        Trace,
     }
 );
 
@@ -25,11 +34,14 @@ api_struct!(
     #[derive(Setters)]
     #[serde(default)]
     pub struct HostLogInput {
+        /// Additional data/fields to log.
         pub data: FxHashMap<String, serde_json::Value>,
 
+        /// The message to log.
         #[setters(into)]
         pub message: String,
 
+        /// Target where the log should be written to.
         pub target: HostLogTarget,
     }
 );
@@ -89,7 +101,7 @@ api_struct!(
         /// List of real or virtual paths to prepend to the `PATH`
         /// environment variable when executing the command.
         #[serde(skip_serializing_if = "Vec::is_empty")]
-        pub paths: Vec<VirtualPath>,
+        pub paths: Vec<PathBuf>,
 
         /// Mark the command as executable before executing.
         #[setters(skip)]
@@ -128,8 +140,11 @@ impl ExecCommandInput {
     {
         ExecCommandInput {
             command: command.as_ref().to_string(),
-            args: args.into_iter().map(|a| a.as_ref().to_owned()).collect(),
-            ..ExecCommandInput::default()
+            args: args
+                .into_iter()
+                .map(|arg| arg.as_ref().to_owned())
+                .collect(),
+            ..Default::default()
         }
     }
 
@@ -148,15 +163,25 @@ api_struct!(
     /// Output returned from the `exec_command` host function.
     #[serde(default)]
     pub struct ExecCommandOutput {
+        /// The command (without arguments) that was executed.
         pub command: String,
+
+        /// The exit code returned from the command.
         pub exit_code: i32,
+
+        /// The standard error output returned from the command.
         pub stderr: String,
+
+        /// The standard output returned from the command.
         pub stdout: String,
+
+        /// Whether the command was streamed (inherit) or piped.
         pub streamed: bool,
     }
 );
 
 impl ExecCommandOutput {
+    /// Get the combined output of stdout and stderr, trimmed of whitespace.
     pub fn get_output(&self) -> String {
         let mut out = String::new();
         out.push_str(self.stdout.trim());
@@ -212,9 +237,17 @@ impl From<String> for SendRequestInput {
 api_struct!(
     /// Output returned from the `send_request` host function.
     pub struct SendRequestOutput {
+        /// The response body as raw bytes. When empty, the body must be
+        /// loaded from WASM memory using the offset and length.
         pub body: Vec<u8>,
+
+        /// Length of the response body stored in WASM memory.
         pub body_length: u64,
+
+        /// Offset of the response body stored in WASM memory.
         pub body_offset: u64,
+
+        /// The response status code.
         pub status: u16,
     }
 );

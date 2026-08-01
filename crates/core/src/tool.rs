@@ -9,7 +9,7 @@ use crate::tool_error::ProtoToolError;
 use crate::tool_spec::ToolSpec;
 use crate::utils::{archive, git};
 use proto_pdk_api::{
-    PluginContext, PluginFunction, PluginUnresolvedContext, RegisterBackendInput,
+    PluginContext, PluginFunction, PluginUnresolvedContext, RealPath, RegisterBackendInput,
     RegisterBackendOutput, RegisterToolInput, RegisterToolOutput, SourceLocation, VersionSpec,
 };
 use rustc_hash::FxHashMap;
@@ -234,8 +234,8 @@ impl Tool {
     }
 
     /// Convert a virtual path to a real path.
-    pub fn from_virtual_path(&self, path: impl AsRef<Path> + Debug) -> PathBuf {
-        self.plugin.from_virtual_path(path)
+    pub fn to_real_path(&self, path: impl AsRef<Path> + Debug) -> RealPath {
+        self.plugin.to_real_path(path)
     }
 
     /// Convert a real path to a virtual path.
@@ -261,14 +261,10 @@ impl Tool {
     /// Return contextual information to pass to WASM plugin functions,
     /// representing an unresolved state, which has no version or tool
     /// data.
-    #[allow(deprecated)]
     pub fn create_plugin_unresolved_context(&self) -> PluginUnresolvedContext {
         PluginUnresolvedContext {
             proto_version: Some(get_proto_version().to_owned()),
             temp_dir: self.to_virtual_path(&self.inventory.temp_dir),
-            // TODO: temporary until 3rd-party plugins update their PDKs
-            tool_dir: self.to_virtual_path(&self.proto.store.inventory_dir),
-            version: Some(VersionSpec::default()),
             working_dir: self.to_virtual_path(&self.proto.working_dir),
         }
     }
@@ -341,24 +337,24 @@ impl Tool {
             .create_inventory(&inventory_id, &metadata.inventory_options)?;
 
         if let Some(override_dir) = &metadata.inventory_options.override_dir {
-            let override_dir_path = override_dir.real_path();
+            let override_dir_path = self.to_real_path(override_dir);
 
             debug!(
                 tool = self.context.as_str(),
-                override_virtual = ?override_dir.virtual_path(),
+                override_virtual = ?override_dir,
                 override_real = ?override_dir_path,
                 "Attempting to override inventory directory"
             );
 
-            if override_dir_path.as_ref().is_none_or(|p| p.is_relative()) {
+            if override_dir_path.is_relative() {
                 return Err(ProtoToolError::RequiredAbsoluteInventoryDir {
                     tool: metadata.name.clone(),
-                    dir: override_dir_path.unwrap_or_else(|| PathBuf::from("<unknown>")),
+                    dir: override_dir_path.to_path_buf(),
                 });
             }
 
             inventory.dir_original = Some(inventory.dir);
-            inventory.dir = self.from_virtual_path(override_dir);
+            inventory.dir = override_dir_path.to_path_buf();
         }
 
         self.inventory = inventory;

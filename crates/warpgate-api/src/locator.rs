@@ -51,10 +51,14 @@ pub struct FileLocator {
 
 #[cfg(not(target_arch = "wasm32"))]
 impl FileLocator {
+    /// Return the configured file path as-is, without the `file://` prefix,
+    /// and without resolving it to an absolute path.
     pub fn get_unresolved_path(&self) -> PathBuf {
         PathBuf::from(self.file.strip_prefix("file://").unwrap_or(&self.file))
     }
 
+    /// Return an absolute file path. If a path has not been resolved on the
+    /// host side, the unresolved path will be joined to the current working directory.
     pub fn get_resolved_path(&self) -> PathBuf {
         let mut path = self
             .path

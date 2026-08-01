@@ -81,7 +81,7 @@ pub async fn pin(session: ProtoSession, args: PinArgs) -> SessionResult {
             if let Some(file) = output.file
                 && output.pinned
             {
-                config_path = tool.from_virtual_path(file);
+                config_path = tool.to_real_path(file).to_path_buf();
             } else {
                 let mut messages = vec![format!(
                     "Failed to pin version <version>{}</version> for <id>{}</id>.",

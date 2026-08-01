@@ -61,7 +61,7 @@ api_struct!(
         /// The working directory.
         #[setters(strip_option)]
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        pub cwd: Option<PathBuf>,
+        pub cwd: Option<VirtualPath>,
     }
 );
 
@@ -92,7 +92,7 @@ impl CommandInstruction {
 }
 
 api_enum!(
-    /// An instruction to execute.
+    /// An instruction to execute. All paths are relative from the build directory.
     #[serde(tag = "type", content = "instruction", rename_all = "kebab-case")]
     pub enum BuildInstruction {
         /// Install a builder locally that can be referenced in subsequent instructions.

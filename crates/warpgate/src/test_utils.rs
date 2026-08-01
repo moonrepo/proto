@@ -1,3 +1,5 @@
+//! Utilities for locating and testing WASM plugins.
+
 use serde::Serialize;
 use starbase_utils::envx::{is_ci, path_var};
 use starbase_utils::fs;
@@ -124,6 +126,7 @@ pub fn enable_wasm_logging(wasm_file: &Path) {
     );
 }
 
+/// A builder for the plugin manifest config map, used within tests.
 #[derive(Debug)]
 pub struct ConfigBuilder {
     config: HashMap<String, String>,
@@ -132,6 +135,7 @@ pub struct ConfigBuilder {
 }
 
 impl ConfigBuilder {
+    /// Create a new builder with the provided sandbox root and home directory.
     pub fn new(root: &Path, home_dir: &Path) -> Self {
         Self {
             config: HashMap::new(),
@@ -140,6 +144,8 @@ impl ConfigBuilder {
         }
     }
 
+    /// Build and return the config map, injecting default `host_environment`
+    /// and `test_environment` values when not defined.
     pub fn build(mut self) -> HashMap<String, String> {
         if !self.config.contains_key("host_environment") {
             self.host(HostOS::from_env(), HostArch::from_env());
@@ -148,19 +154,24 @@ impl ConfigBuilder {
         if !self.config.contains_key("test_environment") {
             self.test_environment(TestEnvironment {
                 ci: is_ci(),
-                sandbox: VirtualPath::Real(self.sandbox_root.clone()),
+                sandbox: VirtualPath::new(self.sandbox_root.clone()),
             });
         }
+
+        // TODO virtual paths?
 
         self.config
     }
 
+    /// Insert a config setting with the provided key, serializing the value to JSON.
     pub fn insert(&mut self, key: &str, value: impl Serialize) -> &mut Self {
         self.config
             .insert(key.to_owned(), serde_json::to_string(&value).unwrap());
         self
     }
 
+    /// Set the `host_environment` config setting with the provided
+    /// operating system and architecture.
     pub fn host(&mut self, os: HostOS, arch: HostArch) -> &mut Self {
         self.host_environment(HostEnvironment {
             arch,
@@ -171,6 +182,8 @@ impl ConfigBuilder {
         })
     }
 
+    /// Set the `host_environment` config setting with default values,
+    /// which can be customized with the provided function.
     pub fn host_with(&mut self, mut op: impl FnMut(&mut HostEnvironment)) -> &mut Self {
         let os = HostOS::default();
         let mut host = HostEnvironment {
@@ -186,22 +199,22 @@ impl ConfigBuilder {
         self.host_environment(host)
     }
 
+    /// Set the `host_environment` config setting with the provided [`HostEnvironment`].
+    /// If the home directory is empty, it will default to `/userhome`.
     pub fn host_environment(&mut self, mut env: HostEnvironment) -> &mut Self {
-        if env.home_dir.real_path().is_none() || env.home_dir.virtual_path().is_none() {
-            env.home_dir = VirtualPath::Virtual {
-                path: PathBuf::from("/userhome"),
-                virtual_prefix: PathBuf::from("/userhome"),
-                real_prefix: self.sandbox_home_dir.clone(),
-            };
+        if env.home_dir.is_empty() {
+            env.home_dir = VirtualPath::new("/userhome");
         }
 
         self.insert("host_environment", env)
     }
 
+    /// Set the `test_environment` config setting with the provided [`TestEnvironment`].
     pub fn test_environment(&mut self, env: TestEnvironment) -> &mut Self {
         self.insert("test_environment", env)
     }
 
+    /// Set the `plugin_id` config setting.
     pub fn plugin_id(&mut self, id: impl AsRef<str>) -> &mut Self {
         self.config.insert("plugin_id".into(), id.as_ref().into());
         self

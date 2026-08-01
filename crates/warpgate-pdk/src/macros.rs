@@ -1,4 +1,5 @@
-/// Return an error message wrapped in `WithReturnCode` , for use within `#[plugin_fn]`.
+/// Return an error message wrapped in [`WithReturnCode`](extism_pdk::WithReturnCode),
+/// for use within [`#[plugin_fn]`](macro@extism_pdk::plugin_fn).
 #[macro_export]
 macro_rules! plugin_err {
     (code = $code:expr, $($arg:tt)+) => {
@@ -111,71 +112,45 @@ macro_rules! host_log {
         host_log!(input, HostLogInput {
             message: format!($($arg)+),
             target: HostLogTarget::Stdout,
-            ..HostLogInput::default()
+            ..Default::default()
         })
     };
     (stderr, $($arg:tt)+) => {
         host_log!(input, HostLogInput {
             message: format!($($arg)+),
             target: HostLogTarget::Stderr,
-            ..HostLogInput::default()
+            ..Default::default()
         })
     };
     (error, $($arg:tt)+) => {
         host_log!(input, HostLogInput {
             message: format!($($arg)+),
             target: HostLogTarget::Error,
-            ..HostLogInput::default()
+            ..Default::default()
         })
     };
     (warn, $($arg:tt)+) => {
         host_log!(input, HostLogInput {
             message: format!($($arg)+),
             target: HostLogTarget::Warn,
-            ..HostLogInput::default()
+            ..Default::default()
         })
     };
     (debug, $($arg:tt)+) => {
         host_log!(input, HostLogInput {
             message: format!($($arg)+),
             target: HostLogTarget::Debug,
-            ..HostLogInput::default()
+            ..Default::default()
         })
     };
     (trace, $($arg:tt)+) => {
         host_log!(input, HostLogInput {
             message: format!($($arg)+),
             target: HostLogTarget::Trace,
-            ..HostLogInput::default()
+            ..Default::default()
         })
     };
     ($($arg:tt)+) => {
         host_log!(input, HostLogInput::new(format!($($arg)+)))
     };
-}
-
-/// Calls `from_virtual_path` on the host to convert the provided value to a real path
-/// from a virtual path.
-#[macro_export]
-macro_rules! real_path {
-    (buf, $path:expr) => {
-        real_path!($path.to_string_lossy())
-    };
-    ($path:expr) => {
-        std::path::PathBuf::from(unsafe { from_virtual_path($path.try_into()?)? })
-    };
-}
-
-/// Calls `to_virtual_path` on the host to convert the provided value to a virtual path
-/// from a real path.
-#[macro_export]
-macro_rules! virtual_path {
-    (buf, $path:expr) => {
-        virtual_path!($path.to_string_lossy())
-    };
-    ($path:expr) => {{
-        let data = unsafe { to_virtual_path($path.try_into()?)? };
-        let path: VirtualPath = json::from_str(&data)?;
-        path
-    }};
 }

@@ -1081,7 +1081,8 @@ impl Builder<'_> {
                             .current_dir(
                                 cmd.cwd
                                     .as_deref()
-                                    .map(make_absolute)
+                                    .map(|cwd| self.tool.to_real_path(cwd))
+                                    .map(|cwd| make_absolute(&cwd))
                                     .unwrap_or_else(|| self.options.install_dir.to_path_buf()),
                             ),
                         false,

@@ -17,13 +17,19 @@ use std::borrow::Cow;
 use std::path::PathBuf;
 use warpgate_api::Id;
 
+/// A protocol for loading plugins with a specific locator strategy.
 pub trait LoaderProtocol<T> {
+    /// Return true if the locator is using a "latest" version or tag strategy,
+    /// in which the cached plugin is only valid for a duration of time.
     fn is_latest(&self, locator: &T) -> bool;
 
+    /// Return true if an internet connection is required to load the plugin.
     fn requires_online(&self) -> bool {
         true
     }
 
+    /// Load the plugin using the provided locator, and return
+    /// a [`LoadFrom`] source in which to acquire it from.
     async fn load<'a>(
         &self,
         id: &'a Id,
@@ -31,20 +37,34 @@ pub trait LoaderProtocol<T> {
     ) -> Result<LoadFrom<'a>, WarpgateLoaderError>;
 }
 
+/// Sources in which to acquire a plugin from.
 pub enum LoadFrom<'a> {
+    /// Raw bytes, typically from an OCI registry layer.
     Blob {
+        /// The raw bytes.
         data: Cow<'a, [u8]>,
+
+        /// Extension of the final plugin file.
         ext: String,
+
+        /// Extension of the archive, if the bytes represent an archive.
         ext_archive: Option<String>,
 
+        /// A SHA256 hash of the bytes.
         #[allow(dead_code)]
         hash: Cow<'a, str>,
     },
+
+    /// An existing file on the host's file system.
     File(PathBuf),
+
+    /// A URL in which to download the file from.
     Url(Cow<'a, str>),
 }
 
 impl LoadFrom<'_> {
+    /// Return the archive extension if the source represents
+    /// an archive, otherwise return [`None`].
     pub fn is_archive(&self) -> Option<String> {
         match self {
             LoadFrom::Blob { ext_archive, .. } => ext_archive.clone(),
