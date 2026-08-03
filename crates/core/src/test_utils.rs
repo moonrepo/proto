@@ -26,6 +26,33 @@ impl Deref for ProtoSandbox {
     }
 }
 
+// Env vars the `ai_env` crate checks when detecting an AI agent. Neutralized
+// in test commands (empty values count as not set), otherwise output changes
+// when the tests themselves run under an agent. Tests can still opt in
+// explicitly, e.g. `.env("CODEX_CI", "1")`.
+const AI_AGENT_ENV_VARS: &[&str] = &[
+    "AI_AGENT",
+    "ANTIGRAVITY_AGENT",
+    "AUGMENT_AGENT",
+    "CLAUDECODE",
+    "CLAUDE_CODE",
+    "CLAUDE_CODE_IS_COWORK",
+    "CODEX_CI",
+    "CODEX_SANDBOX",
+    "CODEX_THREAD_ID",
+    "COPILOT_ALLOW_ALL",
+    "COPILOT_CLI",
+    "COPILOT_GITHUB_TOKEN",
+    "COPILOT_MODEL",
+    "CURSOR_AGENT",
+    "CURSOR_EXTENSION_HOST_ROLE",
+    "CURSOR_TRACE_ID",
+    "GEMINI_CLI",
+    "OPENCODE",
+    "OPENCODE_CLIENT",
+    "REPL_ID",
+];
+
 fn apply_settings(sandbox: &mut Sandbox) {
     let root = sandbox.path().to_path_buf();
     let home_dir = root.join(".home");
@@ -35,7 +62,15 @@ fn apply_settings(sandbox: &mut Sandbox) {
     fs::create_dir_all(&home_dir).unwrap();
     fs::create_dir_all(&proto_dir).unwrap();
 
+    // Tool plugins read these through `get_env_var` and fail when the
+    // paths cannot be mapped into the sandbox's virtual paths, so keep
+    // them within the sandboxed home directory.
+    let rustup_dir = home_dir.join(".rustup");
+    let cargo_dir = home_dir.join(".cargo");
+
     let mut env = HashMap::new();
+    env.insert("RUSTUP_HOME", rustup_dir.to_str().unwrap());
+    env.insert("CARGO_HOME", cargo_dir.to_str().unwrap());
     env.insert("RUST_BACKTRACE", "1");
     env.insert("WASMTIME_BACKTRACE_DETAILS", "1");
     env.insert("NO_COLOR", "1");
@@ -46,6 +81,10 @@ fn apply_settings(sandbox: &mut Sandbox) {
     env.insert("PROTO_JSON", "false");
     env.insert("PROTO_REPORTER", "text");
     env.insert("PROTO_TEST", "true");
+
+    for key in AI_AGENT_ENV_VARS {
+        env.insert(*key, "");
+    }
 
     sandbox.settings.bin = "proto".into();
     sandbox.settings.timeout = 300;
@@ -84,6 +123,11 @@ pub fn create_shim_command_std<T: AsRef<Path>>(path: T, name: &str) -> std::proc
     cmd.env("PROTO_HOME", path.join(".proto"));
     cmd.env("PROTO_NODE_VERSION", "*"); // For package managers
     cmd.env(format!("PROTO_{}_VERSION", name.to_uppercase()), "*");
+
+    for key in AI_AGENT_ENV_VARS {
+        cmd.env(key, "");
+    }
+
     cmd
 }
 
