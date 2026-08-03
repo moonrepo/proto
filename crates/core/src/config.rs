@@ -125,11 +125,11 @@ impl ProtoConfig {
     }
 
     pub fn builtin_proto_plugin(&self) -> PluginLocator {
-        find_debug_locator_with_fallback("proto_tool", "0.5.7")
+        find_debug_locator_with_fallback("proto_tool", "0.5.8")
     }
 
     pub fn builtin_schema_plugin(&self) -> PluginLocator {
-        find_debug_locator_with_fallback("schema_tool", "0.18.1")
+        find_debug_locator_with_fallback("schema_tool", "0.18.2")
     }
 
     pub fn inherit_builtin_plugins(&mut self) {
@@ -146,21 +146,21 @@ impl ProtoConfig {
         if !backends.contains_key("asdf") && is_backend_allowed("asdf") {
             backends.insert(
                 Id::raw("asdf"),
-                find_debug_locator_with_fallback("asdf_backend", "0.3.4"),
+                find_debug_locator_with_fallback("asdf_backend", "0.3.5"),
             );
         }
 
         if !backends.contains_key("cargo") && is_backend_allowed("cargo") {
             backends.insert(
                 Id::raw("cargo"),
-                find_debug_locator_with_fallback("cargo_backend", "0.1.1"),
+                find_debug_locator_with_fallback("cargo_backend", "0.1.2"),
             );
         }
 
         if !backends.contains_key("npm") && is_backend_allowed("npm") {
             backends.insert(
                 Id::raw("npm"),
-                find_debug_locator_with_fallback("npm_backend", "0.1.2"),
+                find_debug_locator_with_fallback("npm_backend", "0.1.3"),
             );
         }
 
@@ -169,21 +169,21 @@ impl ProtoConfig {
         if !tools.contains_key("bun") && is_tool_allowed("bun") {
             tools.insert(
                 Id::raw("bun"),
-                find_debug_locator_with_fallback("bun_tool", "0.16.9"),
+                find_debug_locator_with_fallback("bun_tool", "0.16.10"),
             );
         }
 
         if !tools.contains_key("deno") && is_tool_allowed("deno") {
             tools.insert(
                 Id::raw("deno"),
-                find_debug_locator_with_fallback("deno_tool", "0.15.10"),
+                find_debug_locator_with_fallback("deno_tool", "11"),
             );
         }
 
         if !tools.contains_key("go") && is_tool_allowed("go") {
             tools.insert(
                 Id::raw("go"),
-                find_debug_locator_with_fallback("go_tool", "0.16.7"),
+                find_debug_locator_with_fallback("go_tool", "0.16.8"),
             );
         }
 
@@ -191,7 +191,7 @@ impl ProtoConfig {
             if !tools.contains_key(id) && is_tool_allowed(id) {
                 tools.insert(
                     Id::raw(id),
-                    find_debug_locator_with_fallback("java_tool", "0.1.0"),
+                    find_debug_locator_with_fallback("java_tool", "0.1.1"),
                 );
             }
         }
@@ -199,14 +199,14 @@ impl ProtoConfig {
         if !tools.contains_key("moon") && is_tool_allowed("moon") {
             tools.insert(
                 Id::raw("moon"),
-                find_debug_locator_with_fallback("moon_tool", "0.4.2"),
+                find_debug_locator_with_fallback("moon_tool", "0.4.3"),
             );
         }
 
         if !tools.contains_key("node") && is_tool_allowed("node") {
             tools.insert(
                 Id::raw("node"),
-                find_debug_locator_with_fallback("node_tool", "0.17.10"),
+                find_debug_locator_with_fallback("node_tool", "0.17.11"),
             );
         }
 
@@ -214,7 +214,7 @@ impl ProtoConfig {
             if !tools.contains_key(depman) && is_tool_allowed(depman) {
                 tools.insert(
                     Id::raw(depman),
-                    find_debug_locator_with_fallback("node_depman_tool", "0.19.0"),
+                    find_debug_locator_with_fallback("node_depman_tool", "0.19.1"),
                 );
             }
         }
@@ -222,35 +222,35 @@ impl ProtoConfig {
         if !tools.contains_key("poetry") && is_tool_allowed("poetry") {
             tools.insert(
                 Id::raw("poetry"),
-                find_debug_locator_with_fallback("python_poetry_tool", "0.1.8"),
+                find_debug_locator_with_fallback("python_poetry_tool", "0.1.9"),
             );
         }
 
         if !tools.contains_key("python") && is_tool_allowed("python") {
             tools.insert(
                 Id::raw("python"),
-                find_debug_locator_with_fallback("python_tool", "0.14.8"),
+                find_debug_locator_with_fallback("python_tool", "0.14.9"),
             );
         }
 
         if !tools.contains_key("uv") && is_tool_allowed("uv") {
             tools.insert(
                 Id::raw("uv"),
-                find_debug_locator_with_fallback("python_uv_tool", "0.3.3"),
+                find_debug_locator_with_fallback("python_uv_tool", "0.3.4"),
             );
         }
 
         if !tools.contains_key("ruby") && is_tool_allowed("ruby") {
             tools.insert(
                 Id::raw("ruby"),
-                find_debug_locator_with_fallback("ruby_tool", "0.2.8"),
+                find_debug_locator_with_fallback("ruby_tool", "0.2.9"),
             );
         }
 
         if !tools.contains_key("rust") && is_tool_allowed("rust") {
             tools.insert(
                 Id::raw("rust"),
-                find_debug_locator_with_fallback("rust_tool", "0.13.9"),
+                find_debug_locator_with_fallback("rust_tool", "0.13.10"),
             );
         }
 
