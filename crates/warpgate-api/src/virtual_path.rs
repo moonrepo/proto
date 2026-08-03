@@ -14,10 +14,7 @@ impl TryFrom<VirtualPathShape> for VirtualPath {
 
     fn try_from(value: VirtualPathShape) -> Result<Self, Self::Error> {
         match value {
-            VirtualPathShape::Real(_) => Err(PathParseError(
-                "Failed to parse real path into a virtual path, as we do not have access to path prefixes.".into(),
-            )),
-            VirtualPathShape::Virtual { path, .. } => Ok(Self(path)),
+            VirtualPathShape::Real(path) | VirtualPathShape::Virtual { path, .. } => Ok(Self(path)),
         }
     }
 }

@@ -165,8 +165,8 @@ macro_rules! create_path_type {
         impl $name {
             /// Create a new instance from the provided path.
             /// This does NOT validate the path.
-            pub fn new(path: impl AsRef<Path>) -> Self {
-                Self(path.as_ref().to_path_buf())
+            pub fn new(path: impl AsRef<std::ffi::OsStr>) -> Self {
+                Self(PathBuf::from(path.as_ref()))
             }
 
             /// Return true if the inner path is empty.

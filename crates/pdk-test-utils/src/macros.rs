@@ -174,6 +174,7 @@ macro_rules! generate_native_install_tests {
         #[tokio::test(flavor = "multi_thread")]
         async fn installs_tool() {
             let sandbox = create_empty_proto_sandbox();
+            sandbox.enable_logging();
             let mut plugin = create_plugin!(sandbox, $id, $schema, $factory);
 
             do_install_prebuilt!(sandbox, plugin, $spec);
