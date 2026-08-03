@@ -58,7 +58,7 @@ impl<'tool> Locker<'tool> {
 
         let proto = &self.tool.proto;
 
-        let Some(mut lock) = proto.load_lock_mut()? else {
+        let Some(mut lock) = proto.load_lock_mut(&self.tool.context)? else {
             return Ok(());
         };
 
@@ -101,7 +101,7 @@ impl<'tool> Locker<'tool> {
     }
 
     pub fn remove_from_lockfile(&self) -> Result<(), ProtoLockError> {
-        let Some(mut lock) = self.tool.proto.load_lock_mut()? else {
+        let Some(mut lock) = self.tool.proto.load_lock_mut(&self.tool.context)? else {
             return Ok(());
         };
 
@@ -117,7 +117,7 @@ impl<'tool> Locker<'tool> {
     ) -> Result<(), ProtoLockError> {
         let proto = &self.tool.proto;
 
-        let Some(mut lock) = proto.load_lock_mut()? else {
+        let Some(mut lock) = proto.load_lock_mut(&self.tool.context)? else {
             return Ok(());
         };
 
@@ -158,7 +158,7 @@ impl<'tool> Locker<'tool> {
     ) -> Result<Option<LockRecord>, ProtoLockError> {
         let proto = &self.tool.proto;
 
-        let Some(lock) = proto.load_lock()? else {
+        let Some(lock) = proto.load_lock(&self.tool.context)? else {
             return Ok(None);
         };
 

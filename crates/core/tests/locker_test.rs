@@ -9,8 +9,12 @@ use system_env::{SystemArch, SystemOS};
 use version_spec::{UnresolvedVersionSpec, VersionSpec};
 
 async fn create_tool_in_sandbox(sandbox_path: &Path) -> Tool {
+    create_tool_in_sandbox_at(sandbox_path, sandbox_path).await
+}
+
+async fn create_tool_in_sandbox_at(sandbox_path: &Path, working_dir: &Path) -> Tool {
     let mut proto = ProtoEnvironment::new_testing(sandbox_path).unwrap();
-    proto.working_dir = sandbox_path.to_path_buf();
+    proto.working_dir = working_dir.to_path_buf();
 
     load_tool_from_locator(
         ToolContext::parse("node").unwrap(),
@@ -213,6 +217,178 @@ mod locker {
 
             // No lockfile should exist
             assert!(!sandbox.path().join(".protolock").exists());
+        }
+    }
+
+    mod config_scoping {
+        use super::*;
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn ignores_lock_when_tool_pinned_in_unlocked_nested_config() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+            sandbox.create_file("nested/.prototools", "node = \"20.0.0\"");
+
+            // Pre-create a lockfile in the locked root with a matching record
+            let os = SystemOS::default();
+            let arch = SystemArch::default();
+            let mut lock = ProtoLock::default();
+            lock.tools
+                .entry(Id::raw("node"))
+                .or_default()
+                .push(LockRecord {
+                    version: Some(VersionSpec::parse("20.0.0").unwrap()),
+                    spec: Some(UnresolvedVersionSpec::parse("20.0.0").unwrap()),
+                    os: Some(os),
+                    arch: Some(arch),
+                    ..Default::default()
+                });
+            lock.path = sandbox.path().join(".protolock");
+            lock.save().unwrap();
+
+            let tool =
+                create_tool_in_sandbox_at(sandbox.path(), &sandbox.path().join("nested")).await;
+            let locker = Locker::new(&tool);
+
+            // The nested config defines node, so the parent lock doesn't apply
+            let spec = ToolSpec::parse("20.0.0").unwrap();
+            let result = locker.resolve_locked_record(&spec).unwrap();
+
+            assert!(result.is_none());
+
+            // And inserting a record is a no-op
+            let record = make_record("21.0.0", "21.0.0", Some(os), Some(arch));
+            locker.insert_record_into_lockfile(&record).unwrap();
+
+            let lock = ProtoLock::load_from(sandbox.path()).unwrap();
+            let records = lock.tools.get(&Id::raw("node")).unwrap();
+
+            assert_eq!(records.len(), 1);
+            assert_eq!(
+                records[0].version,
+                Some(VersionSpec::parse("20.0.0").unwrap())
+            );
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn routes_to_the_config_that_pins_the_tool() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                "node = \"20.0.0\"\n\n[settings]\nlockfile = true",
+            );
+            sandbox.create_file("nested/.prototools", "bun = \"1.0.0\"");
+
+            let tool =
+                create_tool_in_sandbox_at(sandbox.path(), &sandbox.path().join("nested")).await;
+            let locker = Locker::new(&tool);
+
+            // Node is pinned in the locked root, so records are written there,
+            // even when running from within the nested config's directory
+            let record = make_record(
+                "20.0.0",
+                "20.0.0",
+                Some(SystemOS::default()),
+                Some(SystemArch::default()),
+            );
+
+            locker.insert_record_into_lockfile(&record).unwrap();
+
+            assert!(!sandbox.path().join("nested/.protolock").exists());
+
+            let lock = ProtoLock::load_from(sandbox.path()).unwrap();
+            let records = lock.tools.get(&Id::raw("node")).unwrap();
+
+            assert_eq!(records.len(), 1);
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn ignores_lock_for_adhoc_tool_when_closest_config_is_unlocked() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+            sandbox.create_file("nested/.prototools", "bun = \"1.0.0\"");
+
+            let tool =
+                create_tool_in_sandbox_at(sandbox.path(), &sandbox.path().join("nested")).await;
+            let locker = Locker::new(&tool);
+
+            // Node isn't pinned anywhere, so it's owned by the closest
+            // config (nested), which isn't locked
+            let record = make_record(
+                "20.0.0",
+                "20.0.0",
+                Some(SystemOS::default()),
+                Some(SystemArch::default()),
+            );
+
+            locker.insert_record_into_lockfile(&record).unwrap();
+
+            assert!(!sandbox.path().join(".protolock").exists());
+            assert!(!sandbox.path().join("nested/.protolock").exists());
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn applies_lock_for_adhoc_tool_within_locked_config_scope() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+            // No configs between the locked root and the working directory
+            let tool =
+                create_tool_in_sandbox_at(sandbox.path(), &sandbox.path().join("nested/deep"))
+                    .await;
+            let locker = Locker::new(&tool);
+
+            let record = make_record(
+                "20.0.0",
+                "20.0.0",
+                Some(SystemOS::default()),
+                Some(SystemArch::default()),
+            );
+
+            locker.insert_record_into_lockfile(&record).unwrap();
+
+            let lock = ProtoLock::load_from(sandbox.path()).unwrap();
+
+            assert!(lock.tools.contains_key(&Id::raw("node")));
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn supports_sibling_lockfiles_in_nested_configs() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                "node = \"20.0.0\"\n\n[settings]\nlockfile = true",
+            );
+            sandbox.create_file(
+                "nested/.prototools",
+                "node = \"22.0.0\"\n\n[settings]\nlockfile = true",
+            );
+
+            let tool =
+                create_tool_in_sandbox_at(sandbox.path(), &sandbox.path().join("nested")).await;
+            let locker = Locker::new(&tool);
+
+            // The nested config defines node and is locked itself,
+            // so records are written to its own lockfile
+            let record = make_record(
+                "22.0.0",
+                "22.0.0",
+                Some(SystemOS::default()),
+                Some(SystemArch::default()),
+            );
+
+            locker.insert_record_into_lockfile(&record).unwrap();
+
+            assert!(!sandbox.path().join(".protolock").exists());
+
+            let lock = ProtoLock::load_from(sandbox.path().join("nested")).unwrap();
+            let records = lock.tools.get(&Id::raw("node")).unwrap();
+
+            assert_eq!(records.len(), 1);
+            assert_eq!(
+                records[0].version,
+                Some(VersionSpec::parse("22.0.0").unwrap())
+            );
         }
     }
 

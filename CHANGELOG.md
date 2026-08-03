@@ -21,6 +21,11 @@
 
 - **Configuration**
   - Split the `[settings.builtin-plugins]` table into `[settings.builtin-tools]` and `[settings.builtin-backends]` tables. The `builtin-plugins` table is now deprecated, but will remain an alias for `builtin-tools` for backwards compatibility.
+- **Lockfiles**
+  - Reworked the `settings.unstable-lockfile` setting to be scoped to the `.prototools` config in which it was enabled, instead of applying to all nested configs (the previous workspaces-like behavior).
+    - A `.protolock` lockfile will only track tools with versions defined in its sibling `.prototools` (ad-hoc installed tools are tracked by the closest config).
+    - Versions defined in nested `.prototools` configs are no longer included in a parent's lockfile. To lock a nested config, enable the setting in that config as well.
+    - Nested lockfiles no longer trigger an error.
 - **WASM API**
   - Reworked the `VirtualPath` type from the ground up. Is no longer an enum, but instead a newtype wrapper around `PathBuf`.
     - This allows for better interoperability with the Rust ecosystem, and makes it easier to work with virtual paths in general.
