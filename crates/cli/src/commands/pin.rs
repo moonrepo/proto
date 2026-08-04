@@ -1,9 +1,9 @@
 use crate::session::{ProtoSession, SessionResult};
 use clap::Args;
+use proto_core::flow::lock::{Locker, ProtoLockError};
 use proto_core::flow::resolve::Resolver;
 use proto_core::{
-    PinLocation, ProtoConfig, ProtoConfigError, Tool, ToolContext, ToolSpec, cfg,
-    reporter::NoticeOutput,
+    PinLocation, ProtoConfig, Tool, ToolContext, ToolSpec, cfg, reporter::NoticeOutput,
 };
 use proto_pdk_api::{PinVersionInput, PinVersionOutput, PluginFunction};
 use starbase_console::ui::*;
@@ -33,13 +33,21 @@ pub async fn internal_pin(
     tool: &Tool,
     spec: &ToolSpec,
     pin_to: PinLocation,
-) -> Result<PathBuf, ProtoConfigError> {
+) -> Result<PathBuf, ProtoLockError> {
     let version = match &spec.version {
         Some(version) => version.to_string(),
         None => spec.req.to_string(),
     };
 
-    let config_path = ProtoConfig::update_document(tool.proto.get_config_dir(pin_to), |doc| {
+    let config_dir = tool.proto.get_config_dir(pin_to);
+    let mut previous_spec = None;
+
+    let config_path = ProtoConfig::update_document(config_dir, |doc| {
+        previous_spec = doc
+            .get(tool.context.as_str())
+            .and_then(|item| item.as_str())
+            .and_then(|value| ToolSpec::parse(value).ok());
+
         doc[tool.context.as_str()] = cfg::value(&version);
     })?;
 
@@ -49,6 +57,43 @@ pub async fn internal_pin(
         config = ?config_path,
         "Pinned the version",
     );
+
+    // Keep lockfile records in sync with the config change, but only when
+    // the config being modified owns the lock records for the tool
+    let owns_lock = tool
+        .proto
+        .load_file_manager()?
+        .get_locked_dir(&tool.context)
+        .is_some_and(|dir| dir == config_dir);
+
+    if owns_lock {
+        let locker = Locker::new(tool);
+
+        match &spec.version {
+            // We know what the pinned version resolves to, so migrate
+            // records from the requested and previous specs to it
+            Some(new_version) => {
+                let new_spec = new_version.to_unresolved_spec();
+
+                locker.update_spec_in_lockfile(&spec.req, &new_spec, new_version)?;
+
+                if let Some(previous) = previous_spec
+                    && previous.req != spec.req
+                {
+                    locker.update_spec_in_lockfile(&previous.req, &new_spec, new_version)?;
+                }
+            }
+            // We don't know what the pinned version resolves to, so
+            // remove records for the previous spec
+            None => {
+                if let Some(previous) = previous_spec
+                    && previous.req != spec.req
+                {
+                    locker.remove_spec_from_lockfile(&previous.req)?;
+                }
+            }
+        };
+    }
 
     Ok(config_path)
 }

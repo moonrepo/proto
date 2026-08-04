@@ -1,6 +1,7 @@
 use crate::session::{ProtoSession, SessionResult};
 use clap::Args;
-use proto_core::{PinLocation, ProtoConfig, ToolContext, reporter::NoticeOutput};
+use proto_core::flow::lock::Locker;
+use proto_core::{PinLocation, ProtoConfig, ToolContext, ToolSpec, reporter::NoticeOutput};
 use proto_pdk_api::{PluginFunction, UnpinVersionInput, UnpinVersionOutput};
 use starbase_console::ui::*;
 use starbase_styles::encode_style_tags;
@@ -76,12 +77,30 @@ pub async fn unpin(session: ProtoSession, args: UnpinArgs) -> SessionResult {
             return Ok(Some(1));
         }
     } else {
+        let mut removed_spec = None;
+
         config_path = ProtoConfig::update_document(config_dir, |doc| {
             value = doc
                 .as_table_mut()
                 .remove(tool.context.as_str())
-                .map(|item| item.to_string());
+                .map(|item| {
+                    removed_spec = item.as_str().and_then(|value| ToolSpec::parse(value).ok());
+
+                    item.to_string()
+                });
         })?;
+
+        // Remove lockfile records for the unpinned spec, but only when
+        // the config being modified owns the lock records for the tool
+        if let Some(removed) = removed_spec
+            && tool
+                .proto
+                .load_file_manager()?
+                .get_locked_dir(&tool.context)
+                .is_some_and(|dir| dir == config_dir)
+        {
+            Locker::new(&tool).remove_spec_from_lockfile(&removed.req)?;
+        }
     }
 
     let Some(value) = value else {

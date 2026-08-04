@@ -4,12 +4,13 @@ use crate::helpers::fetch_latest_version;
 use crate::session::{ProtoSession, SessionResult};
 use clap::Args;
 use iocraft::prelude::{FlexDirection, View, element};
-use proto_core::{Id, ToolContext};
+use proto_core::{Id, ToolContext, UnresolvedVersionSpec};
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 use starbase_console::ui::*;
 use starbase_shell::ShellType;
 use starbase_utils::envx;
+use std::collections::{BTreeMap, BTreeSet};
 use std::env;
 use std::path::PathBuf;
 use tracing::instrument;
@@ -284,8 +285,116 @@ async fn gather_warnings(
         });
     }
 
+    warnings.extend(gather_lockfile_warnings(session)?);
+
     if !warnings.is_empty() {
         tips.push("Run <shell>proto setup</shell> to resolve some of these issues!".into());
+    }
+
+    Ok(warnings)
+}
+
+fn gather_lockfile_warnings(session: &ProtoSession) -> Result<Vec<Issue>, ProtoCliError> {
+    let mut warnings = vec![];
+    let manager = session.env.load_file_manager()?;
+
+    for entry in &manager.entries {
+        if !entry.locked {
+            continue;
+        }
+
+        let Some(lock) = manager.get_lock(&entry.path)? else {
+            continue;
+        };
+
+        // Gather specs defined in sibling configs, so that we can
+        // detect lockfile records that no longer match a config
+        let mut config_specs: BTreeMap<&ToolContext, BTreeSet<&UnresolvedVersionSpec>> =
+            BTreeMap::default();
+
+        for file in &entry.configs {
+            if let Some(versions) = &file.config.versions {
+                for (context, spec) in versions {
+                    config_specs.entry(context).or_default().insert(&spec.req);
+                }
+            }
+        }
+
+        for (id, records) in &lock.tools {
+            let mut seen: FxHashMap<String, usize> = FxHashMap::default();
+
+            for record in records {
+                let spec_label = record
+                    .spec
+                    .as_ref()
+                    .map(|spec| spec.to_string())
+                    .unwrap_or_else(|| "(unknown)".into());
+
+                if record.version.is_none() {
+                    warnings.push(Issue {
+                        issue: format!(
+                            "Record for <id>{id}</id> with spec <version>{spec_label}</version> in lockfile <path>{}</path> is missing a resolved version",
+                            lock.path.display(),
+                        ),
+                        resolution: Some(
+                            "Run <shell>proto install</shell> to re-resolve the record".into(),
+                        ),
+                        comment: None,
+                    });
+                }
+
+                *seen
+                    .entry(format!(
+                        "{spec_label}|{}|{}|{}",
+                        record
+                            .backend
+                            .as_ref()
+                            .map(|backend| backend.as_str())
+                            .unwrap_or_default(),
+                        record.os.map(|os| os.to_string()).unwrap_or_default(),
+                        record.arch.map(|arch| arch.to_string()).unwrap_or_default(),
+                    ))
+                    .or_insert(0) += 1;
+
+                // Only tools defined in a sibling config can be verified,
+                // as records may also exist for ad-hoc installs
+                let config_context = config_specs
+                    .iter()
+                    .find(|(context, _)| &context.id == id && context.backend == record.backend);
+
+                if let Some((context, specs)) = config_context
+                    && let Some(spec) = &record.spec
+                    && !specs.contains(spec)
+                {
+                    warnings.push(Issue {
+                        issue: format!(
+                            "Record for <id>{context}</id> with spec <version>{spec_label}</version> in lockfile <path>{}</path> does not match any configured version",
+                            lock.path.display(),
+                        ),
+                        resolution: Some(
+                            "Remove the record from the lockfile, or configure the version again"
+                                .into(),
+                        ),
+                        comment: Some("The record is stale and will never be used".into()),
+                    });
+                }
+            }
+
+            for (key, count) in seen {
+                if count > 1 {
+                    let spec_label = key.split('|').next().unwrap_or_default();
+
+                    warnings.push(Issue {
+                        issue: format!(
+                            "Found {count} duplicate records for <id>{id}</id> with spec <version>{spec_label}</version> in lockfile <path>{}</path>",
+                            lock.path.display(),
+                        ),
+                        resolution: Some("Remove the duplicate records from the lockfile".into()),
+                        comment: None,
+                    });
+                }
+            }
+        }
     }
 
     Ok(warnings)

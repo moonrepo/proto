@@ -16,6 +16,7 @@ struct StatusItem {
     is_installed: bool,
     config_source: Option<PathBuf>,
     config_version: ToolSpec,
+    locked_version: Option<VersionSpec>,
     resolved_version: Option<VersionSpec>,
     product_dir: Option<PathBuf>,
 }
@@ -57,6 +58,12 @@ pub async fn status(session: ProtoSession, _args: StatusArgs) -> SessionResult {
             item.resolved_version = Some(version);
         }
 
+        // If the version was inherited from a lockfile record
+        // during resolve, then the version is locked
+        item.locked_version = spec
+            .version_locked
+            .as_ref()
+            .and_then(|record| record.version.clone());
         item.config_version = spec;
         item.config_source = tool.detected_source;
     }
@@ -78,18 +85,30 @@ pub async fn status(session: ProtoSession, _args: StatusArgs) -> SessionResult {
 
     let ctx_width = items.keys().fold(0, |acc, ctx| acc.max(ctx.as_str().len()));
 
+    // Only show the locked column if a tool is using a lockfile
+    let show_locked = items.values().any(|item| item.locked_version.is_some());
+
+    let mut headers = vec![
+        TableHeader::new("Tool", Size::Length((ctx_width + 3).max(10) as u32)),
+        TableHeader::new("Configured", Size::Length(12)),
+        TableHeader::new("Resolved", Size::Length(12)),
+    ];
+
+    if show_locked {
+        headers.push(TableHeader::new("Locked", Size::Length(12)));
+    }
+
+    headers.extend([
+        TableHeader::new("Installed", Size::Percent(30.0)),
+        TableHeader::new("Config", Size::Auto),
+    ]);
+
     session.console.table(
-        vec![
-            TableHeader::new("Tool", Size::Length((ctx_width + 3).max(10) as u32)),
-            TableHeader::new("Configured", Size::Length(12)),
-            TableHeader::new("Resolved", Size::Length(12)),
-            TableHeader::new("Installed", Size::Percent(30.0)),
-            TableHeader::new("Config", Size::Auto),
-        ],
+        headers,
         items
             .into_iter()
             .map(|(ctx, item)| {
-                vec![
+                let mut row = vec![
                     format!("<id>{ctx}</id>"),
                     format!(
                         "<invalid>{}</invalid>",
@@ -100,6 +119,17 @@ pub async fn status(session: ProtoSession, _args: StatusArgs) -> SessionResult {
                     } else {
                         "<mutedlight>N/A</mutedlight>".into()
                     },
+                ];
+
+                if show_locked {
+                    row.push(if let Some(version) = item.locked_version {
+                        format!("<hash>{version}</hash>")
+                    } else {
+                        "<mutedlight>N/A</mutedlight>".into()
+                    });
+                }
+
+                row.extend([
                     if let Some(dir) = item.product_dir {
                         format!("<path>{}</path>", dir.to_string_lossy())
                     } else {
@@ -110,7 +140,9 @@ pub async fn status(session: ProtoSession, _args: StatusArgs) -> SessionResult {
                     } else {
                         "<mutedlight>N/A</mutedlight>".into()
                     },
-                ]
+                ]);
+
+                row
             })
             .collect(),
     )?;

@@ -1,0 +1,6 @@
+protostar = "1"
+
+[settings]
+unstable-lockfile = true
+builtin-backends = false
+builtin-tools = false

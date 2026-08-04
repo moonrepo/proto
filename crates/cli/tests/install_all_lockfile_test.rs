@@ -76,4 +76,75 @@ mod install_all_lockfile {
             "821c8166c5567859da2a1597c8a07b85776a6adf56ecaec4ad95de978fac31ba"
         );
     }
+
+    #[test]
+    fn doesnt_add_tools_from_nested_configs() {
+        let sandbox = create_proto_sandbox("lockfile-nested");
+        let nested_dir = sandbox.path().join("nested");
+
+        // The nested config isn't locked, so the parent lockfile
+        // shouldn't include its tools
+        sandbox.create_file("nested/.prototools", r#"moonstone = "1.2.0""#);
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install").current_dir(&nested_dir);
+            })
+            .success();
+
+        let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
+
+        assert!(lockfile.tools.contains_key("protostar"));
+        assert!(!lockfile.tools.contains_key("moonstone"));
+
+        assert!(!nested_dir.join(".protolock").exists());
+    }
+
+    #[test]
+    fn supports_lockfiles_in_nested_configs() {
+        let sandbox = create_proto_sandbox("lockfile-nested");
+        let nested_dir = sandbox.path().join("nested");
+
+        sandbox.create_file(
+            "nested/.prototools",
+            r#"
+moonstone = "1.2.0"
+
+[settings]
+unstable-lockfile = true
+"#,
+        );
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install").current_dir(&nested_dir);
+            })
+            .success();
+
+        // Each lockfile only includes tools from its own config
+        let root_lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
+
+        assert!(root_lockfile.tools.contains_key("protostar"));
+        assert!(!root_lockfile.tools.contains_key("moonstone"));
+
+        let nested_lockfile = ProtoLock::load(nested_dir.join(".protolock")).unwrap();
+
+        assert!(!nested_lockfile.tools.contains_key("protostar"));
+
+        let moonstone = nested_lockfile
+            .tools
+            .get("moonstone")
+            .unwrap()
+            .first()
+            .unwrap();
+
+        assert_eq!(
+            moonstone.spec.as_ref().unwrap(),
+            &UnresolvedVersionSpec::parse("1.2.0").unwrap()
+        );
+        assert_eq!(
+            moonstone.version.as_ref().unwrap(),
+            &VersionSpec::parse("1.2.0").unwrap()
+        );
+    }
 }

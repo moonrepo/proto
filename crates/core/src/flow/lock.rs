@@ -2,29 +2,37 @@ pub use super::lock_error::ProtoLockError;
 use crate::lockfile::LockRecord;
 use crate::tool::Tool;
 use crate::tool_spec::ToolSpec;
+use std::collections::BTreeSet;
 use tracing::{debug, instrument};
-use version_spec::VersionSpec;
+use version_spec::{UnresolvedVersionSpec, VersionSpec};
 
 // [x] install many
 //      [x] resolve version from lockfile
 //      [x] validate lock record
 //      [x] create lockfile if it does not exist
 //      [x] error if spec/req is not found in lockfile
+//      [ ] frozen lockfiles
+//      [ ] orphan pruning
 // [x] install one
 //      [x] resolve version from lockfile
 //      [x] validate lock record
+//      [ ] frozen lockfiles
+//      [ ] orphan pruning
 // [x] install one version
 //      [x] don't resolve version from lockfile
 //      [x] validate lock record
+//      [ ] frozen lockfiles
+//      [ ] orphan pruning
 // [x] uninstall
 //      [x] remove from lockfile
-// [ ] outdated
-//      [ ] add locked label to table
-//      [ ] integrate with --update
+//      [ ] orphan pruning
+// [x] outdated
+//      [x] add locked label to table
+//      [x] integrate with --update
 // [x] run
 //      [x] resolve version from lockfile
-// [ ] status
-//      [ ] add locked label to table
+// [x] status
+//      [x] add locked label to table
 
 /// Manages records in a lockfile.
 pub struct Locker<'tool> {
@@ -34,6 +42,31 @@ pub struct Locker<'tool> {
 impl<'tool> Locker<'tool> {
     pub fn new(tool: &'tool Tool) -> Self {
         Self { tool }
+    }
+
+    /// Get all resolved versions that have a record in the lockfile,
+    /// scoped to the current operating system and architecture.
+    pub fn get_locked_versions(&self) -> Result<BTreeSet<VersionSpec>, ProtoLockError> {
+        let proto = &self.tool.proto;
+        let mut versions = BTreeSet::default();
+
+        let Some(lock) = proto.load_lock(&self.tool.context)? else {
+            return Ok(versions);
+        };
+
+        if let Some(records) = lock.tools.get(self.tool.get_id()) {
+            for record in records {
+                if record.backend.as_ref() == self.tool.context.backend.as_ref()
+                    && record.os.is_none_or(|os| os == proto.os)
+                    && record.arch.is_none_or(|arch| arch == proto.arch)
+                    && let Some(version) = &record.version
+                {
+                    versions.insert(version.to_owned());
+                }
+            }
+        }
+
+        Ok(versions)
     }
 
     pub fn get_resolved_locked_record<'a>(&'a self, spec: &'a ToolSpec) -> Option<&'a LockRecord> {
@@ -58,7 +91,7 @@ impl<'tool> Locker<'tool> {
 
         let proto = &self.tool.proto;
 
-        let Some(mut lock) = proto.load_lock_mut()? else {
+        let Some(mut lock) = proto.load_lock_mut(&self.tool.context)? else {
             return Ok(());
         };
 
@@ -101,7 +134,7 @@ impl<'tool> Locker<'tool> {
     }
 
     pub fn remove_from_lockfile(&self) -> Result<(), ProtoLockError> {
-        let Some(mut lock) = self.tool.proto.load_lock_mut()? else {
+        let Some(mut lock) = self.tool.proto.load_lock_mut(&self.tool.context)? else {
             return Ok(());
         };
 
@@ -117,7 +150,7 @@ impl<'tool> Locker<'tool> {
     ) -> Result<(), ProtoLockError> {
         let proto = &self.tool.proto;
 
-        let Some(mut lock) = proto.load_lock_mut()? else {
+        let Some(mut lock) = proto.load_lock_mut(&self.tool.context)? else {
             return Ok(());
         };
 
@@ -151,6 +184,133 @@ impl<'tool> Locker<'tool> {
         Ok(())
     }
 
+    /// Migrate records that match the old requirement (typically from a
+    /// configuration file) to the new requirement and resolved version.
+    /// Records are migrated across all operating systems and architectures,
+    /// as a change in configuration applies to every machine.
+    ///
+    /// If the resolved version of a migrated record changes, remove the
+    /// checksum and source, as they are only valid for the version they
+    /// were installed with, and will be re-populated on the next install.
+    #[instrument(skip(self))]
+    pub fn update_spec_in_lockfile(
+        &self,
+        old_spec: &UnresolvedVersionSpec,
+        new_spec: &UnresolvedVersionSpec,
+        new_version: &VersionSpec,
+    ) -> Result<(), ProtoLockError> {
+        if self.tool.metadata.lock_options.no_record || old_spec == new_spec {
+            return Ok(());
+        }
+
+        let Some(mut lock) = self.tool.proto.load_lock_mut(&self.tool.context)? else {
+            return Ok(());
+        };
+
+        let Some(records) = lock.tools.get_mut(self.tool.get_id()) else {
+            return Ok(());
+        };
+
+        let backend = self.tool.context.backend.as_ref();
+        let mut kept = vec![];
+        let mut migrated = vec![];
+
+        for record in std::mem::take(records) {
+            if record.backend.as_ref() == backend && record.spec.as_ref() == Some(old_spec) {
+                migrated.push(record);
+            } else {
+                kept.push(record);
+            }
+        }
+
+        if migrated.is_empty() {
+            *records = kept;
+
+            return Ok(());
+        }
+
+        debug!(
+            tool = self.tool.context.as_str(),
+            old_spec = old_spec.to_string(),
+            new_spec = new_spec.to_string(),
+            "Updating spec for records in lockfile",
+        );
+
+        for mut record in migrated {
+            // The checksum and source are only valid for the version they
+            // were installed with, so remove them when the version changes
+            if record.version.as_ref() != Some(new_version) {
+                record.checksum = None;
+                record.source = None;
+            }
+
+            record.spec = Some(new_spec.to_owned());
+            record.version = Some(new_version.to_owned());
+
+            // If a record already exists for the new spec, for example from
+            // an ad-hoc install, keep the existing record instead, as it may
+            // contain a checksum from a real install
+            if !kept
+                .iter()
+                .any(|existing| existing.is_match(&record, &self.tool.metadata.lock_options))
+            {
+                kept.push(record);
+            }
+        }
+
+        *records = kept;
+
+        lock.sort_records();
+        lock.save()?;
+
+        Ok(())
+    }
+
+    /// Remove records that match the requirement (typically from a
+    /// configuration file) from the lockfile. Records are removed across
+    /// all operating systems and architectures, as a change in
+    /// configuration applies to every machine.
+    #[instrument(skip(self))]
+    pub fn remove_spec_from_lockfile(
+        &self,
+        spec: &UnresolvedVersionSpec,
+    ) -> Result<(), ProtoLockError> {
+        let Some(mut lock) = self.tool.proto.load_lock_mut(&self.tool.context)? else {
+            return Ok(());
+        };
+
+        let Some(records) = lock.tools.get_mut(self.tool.get_id()) else {
+            return Ok(());
+        };
+
+        let backend = self.tool.context.backend.as_ref();
+        let count = records.len();
+
+        records.retain(|record| {
+            !(record.backend.as_ref() == backend && record.spec.as_ref() == Some(spec))
+        });
+
+        // Nothing was removed, so avoid saving
+        if records.len() == count {
+            return Ok(());
+        }
+
+        debug!(
+            tool = self.tool.context.as_str(),
+            spec = spec.to_string(),
+            "Removing records for spec from lockfile",
+        );
+
+        if records.is_empty() {
+            lock.tools.remove(self.tool.get_id());
+        }
+
+        lock.sort_records();
+        lock.save()?;
+
+        Ok(())
+    }
+
     #[instrument(skip(self))]
     pub fn resolve_locked_record(
         &self,
@@ -158,7 +318,7 @@ impl<'tool> Locker<'tool> {
     ) -> Result<Option<LockRecord>, ProtoLockError> {
         let proto = &self.tool.proto;
 
-        let Some(lock) = proto.load_lock()? else {
+        let Some(lock) = proto.load_lock(&self.tool.context)? else {
             return Ok(None);
         };
 

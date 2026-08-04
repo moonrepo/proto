@@ -9,8 +9,12 @@ use system_env::{SystemArch, SystemOS};
 use version_spec::{UnresolvedVersionSpec, VersionSpec};
 
 async fn create_tool_in_sandbox(sandbox_path: &Path) -> Tool {
+    create_tool_in_sandbox_at(sandbox_path, sandbox_path).await
+}
+
+async fn create_tool_in_sandbox_at(sandbox_path: &Path, working_dir: &Path) -> Tool {
     let mut proto = ProtoEnvironment::new_testing(sandbox_path).unwrap();
-    proto.working_dir = sandbox_path.to_path_buf();
+    proto.working_dir = working_dir.to_path_buf();
 
     load_tool_from_locator(
         ToolContext::parse("node").unwrap(),
@@ -213,6 +217,658 @@ mod locker {
 
             // No lockfile should exist
             assert!(!sandbox.path().join(".protolock").exists());
+        }
+    }
+
+    mod update_spec {
+        use super::*;
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn updates_matching_records_across_os_arch() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+            // Pre-create a lockfile with records across multiple platforms
+            let mut linux_record = make_record(
+                "20.0.0",
+                "^20",
+                Some(SystemOS::Linux),
+                Some(SystemArch::X64),
+            );
+            linux_record.checksum = Some(Checksum::sha256("linux_hash".into()));
+
+            let mut macos_record = make_record(
+                "20.0.0",
+                "^20",
+                Some(SystemOS::MacOS),
+                Some(SystemArch::Arm64),
+            );
+            macos_record.checksum = Some(Checksum::sha256("macos_hash".into()));
+
+            let other_record = make_record(
+                "18.0.0",
+                "18.0.0",
+                Some(SystemOS::Linux),
+                Some(SystemArch::X64),
+            );
+
+            let mut lock = ProtoLock::default();
+            lock.tools.insert(
+                Id::raw("node"),
+                vec![linux_record, macos_record, other_record],
+            );
+            lock.path = sandbox.path().join(".protolock");
+            lock.save().unwrap();
+
+            let tool = create_tool_in_sandbox(sandbox.path()).await;
+            let locker = Locker::new(&tool);
+
+            locker
+                .update_spec_in_lockfile(
+                    &UnresolvedVersionSpec::parse("^20").unwrap(),
+                    &UnresolvedVersionSpec::parse("21.1.0").unwrap(),
+                    &VersionSpec::parse("21.1.0").unwrap(),
+                )
+                .unwrap();
+
+            let lock = ProtoLock::load_from(sandbox.path()).unwrap();
+            let records = lock.tools.get(&Id::raw("node")).unwrap();
+
+            assert_eq!(records.len(), 3);
+
+            let migrated = records
+                .iter()
+                .filter(|record| {
+                    record.spec == Some(UnresolvedVersionSpec::parse("21.1.0").unwrap())
+                })
+                .collect::<Vec<_>>();
+
+            assert_eq!(migrated.len(), 2);
+
+            for record in migrated {
+                assert_eq!(record.version, Some(VersionSpec::parse("21.1.0").unwrap()));
+                assert_eq!(record.checksum, None);
+            }
+
+            // Platforms are preserved
+            assert!(
+                records
+                    .iter()
+                    .any(|record| record.os == Some(SystemOS::Linux)
+                        && record.arch == Some(SystemArch::X64)
+                        && record.spec == Some(UnresolvedVersionSpec::parse("21.1.0").unwrap()))
+            );
+            assert!(
+                records
+                    .iter()
+                    .any(|record| record.os == Some(SystemOS::MacOS)
+                        && record.arch == Some(SystemArch::Arm64))
+            );
+
+            // Other specs are left untouched
+            let other = records
+                .iter()
+                .find(|record| record.spec == Some(UnresolvedVersionSpec::parse("18.0.0").unwrap()))
+                .unwrap();
+
+            assert_eq!(other.version, Some(VersionSpec::parse("18.0.0").unwrap()));
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn keeps_existing_record_matching_new_spec() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+            let os = SystemOS::default();
+            let arch = SystemArch::default();
+
+            let old_record = make_record("20.0.0", "^20", Some(os), Some(arch));
+
+            // An ad-hoc install already exists for the new spec, with a checksum
+            let mut new_record = make_record("21.1.0", "21.1.0", Some(os), Some(arch));
+            new_record.checksum = Some(Checksum::sha256("real_hash".into()));
+
+            let mut lock = ProtoLock::default();
+            lock.tools
+                .insert(Id::raw("node"), vec![old_record, new_record]);
+            lock.path = sandbox.path().join(".protolock");
+            lock.save().unwrap();
+
+            let tool = create_tool_in_sandbox(sandbox.path()).await;
+            let locker = Locker::new(&tool);
+
+            locker
+                .update_spec_in_lockfile(
+                    &UnresolvedVersionSpec::parse("^20").unwrap(),
+                    &UnresolvedVersionSpec::parse("21.1.0").unwrap(),
+                    &VersionSpec::parse("21.1.0").unwrap(),
+                )
+                .unwrap();
+
+            let lock = ProtoLock::load_from(sandbox.path()).unwrap();
+            let records = lock.tools.get(&Id::raw("node")).unwrap();
+
+            // The migrated record was merged into the existing one
+            assert_eq!(records.len(), 1);
+            assert_eq!(
+                records[0].spec,
+                Some(UnresolvedVersionSpec::parse("21.1.0").unwrap())
+            );
+            assert_eq!(
+                records[0].checksum,
+                Some(Checksum::sha256("real_hash".into()))
+            );
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn keeps_checksum_when_version_unchanged() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+            let mut record = make_record(
+                "20.0.0",
+                "^20",
+                Some(SystemOS::default()),
+                Some(SystemArch::default()),
+            );
+            record.checksum = Some(Checksum::sha256("keep_me".into()));
+
+            let mut lock = ProtoLock::default();
+            lock.tools.insert(Id::raw("node"), vec![record]);
+            lock.path = sandbox.path().join(".protolock");
+            lock.save().unwrap();
+
+            let tool = create_tool_in_sandbox(sandbox.path()).await;
+            let locker = Locker::new(&tool);
+
+            // Same version, different spec
+            locker
+                .update_spec_in_lockfile(
+                    &UnresolvedVersionSpec::parse("^20").unwrap(),
+                    &UnresolvedVersionSpec::parse("20.0.0").unwrap(),
+                    &VersionSpec::parse("20.0.0").unwrap(),
+                )
+                .unwrap();
+
+            let lock = ProtoLock::load_from(sandbox.path()).unwrap();
+            let records = lock.tools.get(&Id::raw("node")).unwrap();
+
+            assert_eq!(records.len(), 1);
+            assert_eq!(
+                records[0].spec,
+                Some(UnresolvedVersionSpec::parse("20.0.0").unwrap())
+            );
+            assert_eq!(
+                records[0].checksum,
+                Some(Checksum::sha256("keep_me".into()))
+            );
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn no_op_when_spec_not_found() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+            let record = make_record(
+                "18.0.0",
+                "18.0.0",
+                Some(SystemOS::default()),
+                Some(SystemArch::default()),
+            );
+
+            let mut lock = ProtoLock::default();
+            lock.tools.insert(Id::raw("node"), vec![record]);
+            lock.path = sandbox.path().join(".protolock");
+            lock.save().unwrap();
+
+            let tool = create_tool_in_sandbox(sandbox.path()).await;
+            let locker = Locker::new(&tool);
+
+            locker
+                .update_spec_in_lockfile(
+                    &UnresolvedVersionSpec::parse("^20").unwrap(),
+                    &UnresolvedVersionSpec::parse("21.1.0").unwrap(),
+                    &VersionSpec::parse("21.1.0").unwrap(),
+                )
+                .unwrap();
+
+            let lock = ProtoLock::load_from(sandbox.path()).unwrap();
+            let records = lock.tools.get(&Id::raw("node")).unwrap();
+
+            assert_eq!(records.len(), 1);
+            assert_eq!(
+                records[0].spec,
+                Some(UnresolvedVersionSpec::parse("18.0.0").unwrap())
+            );
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn no_op_when_specs_are_equal() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+            let mut record = make_record(
+                "20.0.0",
+                "20.0.0",
+                Some(SystemOS::default()),
+                Some(SystemArch::default()),
+            );
+            record.checksum = Some(Checksum::sha256("keep_me".into()));
+
+            let mut lock = ProtoLock::default();
+            lock.tools.insert(Id::raw("node"), vec![record]);
+            lock.path = sandbox.path().join(".protolock");
+            lock.save().unwrap();
+
+            let tool = create_tool_in_sandbox(sandbox.path()).await;
+            let locker = Locker::new(&tool);
+
+            locker
+                .update_spec_in_lockfile(
+                    &UnresolvedVersionSpec::parse("20.0.0").unwrap(),
+                    &UnresolvedVersionSpec::parse("20.0.0").unwrap(),
+                    &VersionSpec::parse("20.0.0").unwrap(),
+                )
+                .unwrap();
+
+            // The checksum should not have been wiped
+            let lock = ProtoLock::load_from(sandbox.path()).unwrap();
+            let records = lock.tools.get(&Id::raw("node")).unwrap();
+
+            assert_eq!(records.len(), 1);
+            assert_eq!(
+                records[0].checksum,
+                Some(Checksum::sha256("keep_me".into()))
+            );
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn no_op_when_no_lockfile_config() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "");
+
+            let tool = create_tool_in_sandbox(sandbox.path()).await;
+            let locker = Locker::new(&tool);
+
+            locker
+                .update_spec_in_lockfile(
+                    &UnresolvedVersionSpec::parse("^20").unwrap(),
+                    &UnresolvedVersionSpec::parse("21.1.0").unwrap(),
+                    &VersionSpec::parse("21.1.0").unwrap(),
+                )
+                .unwrap();
+
+            assert!(!sandbox.path().join(".protolock").exists());
+        }
+    }
+
+    mod remove_spec {
+        use super::*;
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn removes_matching_records_across_os_arch() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+            let mut lock = ProtoLock::default();
+            lock.tools.insert(
+                Id::raw("node"),
+                vec![
+                    make_record(
+                        "20.0.0",
+                        "^20",
+                        Some(SystemOS::Linux),
+                        Some(SystemArch::X64),
+                    ),
+                    make_record(
+                        "20.0.0",
+                        "^20",
+                        Some(SystemOS::MacOS),
+                        Some(SystemArch::Arm64),
+                    ),
+                    make_record(
+                        "18.0.0",
+                        "18.0.0",
+                        Some(SystemOS::Linux),
+                        Some(SystemArch::X64),
+                    ),
+                ],
+            );
+            lock.path = sandbox.path().join(".protolock");
+            lock.save().unwrap();
+
+            let tool = create_tool_in_sandbox(sandbox.path()).await;
+            let locker = Locker::new(&tool);
+
+            locker
+                .remove_spec_from_lockfile(&UnresolvedVersionSpec::parse("^20").unwrap())
+                .unwrap();
+
+            let lock = ProtoLock::load_from(sandbox.path()).unwrap();
+            let records = lock.tools.get(&Id::raw("node")).unwrap();
+
+            assert_eq!(records.len(), 1);
+            assert_eq!(
+                records[0].spec,
+                Some(UnresolvedVersionSpec::parse("18.0.0").unwrap())
+            );
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn removes_tool_entry_when_all_records_removed() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+            let mut lock = ProtoLock::default();
+            lock.tools.insert(
+                Id::raw("node"),
+                vec![make_record(
+                    "20.0.0",
+                    "^20",
+                    Some(SystemOS::default()),
+                    Some(SystemArch::default()),
+                )],
+            );
+            lock.tools.insert(
+                Id::raw("bun"),
+                vec![make_record(
+                    "1.0.0",
+                    "1.0.0",
+                    Some(SystemOS::default()),
+                    Some(SystemArch::default()),
+                )],
+            );
+            lock.path = sandbox.path().join(".protolock");
+            lock.save().unwrap();
+
+            let tool = create_tool_in_sandbox(sandbox.path()).await;
+            let locker = Locker::new(&tool);
+
+            locker
+                .remove_spec_from_lockfile(&UnresolvedVersionSpec::parse("^20").unwrap())
+                .unwrap();
+
+            let lock = ProtoLock::load_from(sandbox.path()).unwrap();
+
+            assert!(!lock.tools.contains_key(&Id::raw("node")));
+            assert!(lock.tools.contains_key(&Id::raw("bun")));
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn no_op_when_spec_not_found() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+            let mut lock = ProtoLock::default();
+            lock.tools.insert(
+                Id::raw("node"),
+                vec![make_record(
+                    "18.0.0",
+                    "18.0.0",
+                    Some(SystemOS::default()),
+                    Some(SystemArch::default()),
+                )],
+            );
+            lock.path = sandbox.path().join(".protolock");
+            lock.save().unwrap();
+
+            let tool = create_tool_in_sandbox(sandbox.path()).await;
+            let locker = Locker::new(&tool);
+
+            locker
+                .remove_spec_from_lockfile(&UnresolvedVersionSpec::parse("^20").unwrap())
+                .unwrap();
+
+            let lock = ProtoLock::load_from(sandbox.path()).unwrap();
+            let records = lock.tools.get(&Id::raw("node")).unwrap();
+
+            assert_eq!(records.len(), 1);
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn no_op_when_no_lockfile_config() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "");
+
+            let tool = create_tool_in_sandbox(sandbox.path()).await;
+            let locker = Locker::new(&tool);
+
+            locker
+                .remove_spec_from_lockfile(&UnresolvedVersionSpec::parse("^20").unwrap())
+                .unwrap();
+
+            assert!(!sandbox.path().join(".protolock").exists());
+        }
+    }
+
+    mod get_locked_versions {
+        use super::*;
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn returns_versions_for_current_os_arch() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+            let other_os = if SystemOS::default() == SystemOS::Linux {
+                SystemOS::MacOS
+            } else {
+                SystemOS::Linux
+            };
+
+            let mut lock = ProtoLock::default();
+            lock.tools.insert(
+                Id::raw("node"),
+                vec![
+                    // Current platform
+                    make_record(
+                        "20.0.0",
+                        "^20",
+                        Some(SystemOS::default()),
+                        Some(SystemArch::default()),
+                    ),
+                    // Other platform
+                    make_record("21.0.0", "^21", Some(other_os), Some(SystemArch::default())),
+                    // Backwards compatible record without os/arch
+                    make_record("18.0.0", "18.0.0", None, None),
+                ],
+            );
+            lock.path = sandbox.path().join(".protolock");
+            lock.save().unwrap();
+
+            let tool = create_tool_in_sandbox(sandbox.path()).await;
+            let locker = Locker::new(&tool);
+
+            let versions = locker.get_locked_versions().unwrap();
+
+            assert_eq!(versions.len(), 2);
+            assert!(versions.contains(&VersionSpec::parse("18.0.0").unwrap()));
+            assert!(versions.contains(&VersionSpec::parse("20.0.0").unwrap()));
+            assert!(!versions.contains(&VersionSpec::parse("21.0.0").unwrap()));
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn returns_empty_when_no_lockfile() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "");
+
+            let tool = create_tool_in_sandbox(sandbox.path()).await;
+            let locker = Locker::new(&tool);
+
+            let versions = locker.get_locked_versions().unwrap();
+
+            assert!(versions.is_empty());
+        }
+    }
+
+    mod config_scoping {
+        use super::*;
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn ignores_lock_when_tool_pinned_in_unlocked_nested_config() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+            sandbox.create_file("nested/.prototools", "node = \"20.0.0\"");
+
+            // Pre-create a lockfile in the locked root with a matching record
+            let os = SystemOS::default();
+            let arch = SystemArch::default();
+            let mut lock = ProtoLock::default();
+            lock.tools
+                .entry(Id::raw("node"))
+                .or_default()
+                .push(LockRecord {
+                    version: Some(VersionSpec::parse("20.0.0").unwrap()),
+                    spec: Some(UnresolvedVersionSpec::parse("20.0.0").unwrap()),
+                    os: Some(os),
+                    arch: Some(arch),
+                    ..Default::default()
+                });
+            lock.path = sandbox.path().join(".protolock");
+            lock.save().unwrap();
+
+            let tool =
+                create_tool_in_sandbox_at(sandbox.path(), &sandbox.path().join("nested")).await;
+            let locker = Locker::new(&tool);
+
+            // The nested config defines node, so the parent lock doesn't apply
+            let spec = ToolSpec::parse("20.0.0").unwrap();
+            let result = locker.resolve_locked_record(&spec).unwrap();
+
+            assert!(result.is_none());
+
+            // And inserting a record is a no-op
+            let record = make_record("21.0.0", "21.0.0", Some(os), Some(arch));
+            locker.insert_record_into_lockfile(&record).unwrap();
+
+            let lock = ProtoLock::load_from(sandbox.path()).unwrap();
+            let records = lock.tools.get(&Id::raw("node")).unwrap();
+
+            assert_eq!(records.len(), 1);
+            assert_eq!(
+                records[0].version,
+                Some(VersionSpec::parse("20.0.0").unwrap())
+            );
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn routes_to_the_config_that_pins_the_tool() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                "node = \"20.0.0\"\n\n[settings]\nlockfile = true",
+            );
+            sandbox.create_file("nested/.prototools", "bun = \"1.0.0\"");
+
+            let tool =
+                create_tool_in_sandbox_at(sandbox.path(), &sandbox.path().join("nested")).await;
+            let locker = Locker::new(&tool);
+
+            // Node is pinned in the locked root, so records are written there,
+            // even when running from within the nested config's directory
+            let record = make_record(
+                "20.0.0",
+                "20.0.0",
+                Some(SystemOS::default()),
+                Some(SystemArch::default()),
+            );
+
+            locker.insert_record_into_lockfile(&record).unwrap();
+
+            assert!(!sandbox.path().join("nested/.protolock").exists());
+
+            let lock = ProtoLock::load_from(sandbox.path()).unwrap();
+            let records = lock.tools.get(&Id::raw("node")).unwrap();
+
+            assert_eq!(records.len(), 1);
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn ignores_lock_for_adhoc_tool_when_closest_config_is_unlocked() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+            sandbox.create_file("nested/.prototools", "bun = \"1.0.0\"");
+
+            let tool =
+                create_tool_in_sandbox_at(sandbox.path(), &sandbox.path().join("nested")).await;
+            let locker = Locker::new(&tool);
+
+            // Node isn't pinned anywhere, so it's owned by the closest
+            // config (nested), which isn't locked
+            let record = make_record(
+                "20.0.0",
+                "20.0.0",
+                Some(SystemOS::default()),
+                Some(SystemArch::default()),
+            );
+
+            locker.insert_record_into_lockfile(&record).unwrap();
+
+            assert!(!sandbox.path().join(".protolock").exists());
+            assert!(!sandbox.path().join("nested/.protolock").exists());
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn applies_lock_for_adhoc_tool_within_locked_config_scope() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+            // No configs between the locked root and the working directory
+            let tool =
+                create_tool_in_sandbox_at(sandbox.path(), &sandbox.path().join("nested/deep"))
+                    .await;
+            let locker = Locker::new(&tool);
+
+            let record = make_record(
+                "20.0.0",
+                "20.0.0",
+                Some(SystemOS::default()),
+                Some(SystemArch::default()),
+            );
+
+            locker.insert_record_into_lockfile(&record).unwrap();
+
+            let lock = ProtoLock::load_from(sandbox.path()).unwrap();
+
+            assert!(lock.tools.contains_key(&Id::raw("node")));
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn supports_sibling_lockfiles_in_nested_configs() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                "node = \"20.0.0\"\n\n[settings]\nlockfile = true",
+            );
+            sandbox.create_file(
+                "nested/.prototools",
+                "node = \"22.0.0\"\n\n[settings]\nlockfile = true",
+            );
+
+            let tool =
+                create_tool_in_sandbox_at(sandbox.path(), &sandbox.path().join("nested")).await;
+            let locker = Locker::new(&tool);
+
+            // The nested config defines node and is locked itself,
+            // so records are written to its own lockfile
+            let record = make_record(
+                "22.0.0",
+                "22.0.0",
+                Some(SystemOS::default()),
+                Some(SystemArch::default()),
+            );
+
+            locker.insert_record_into_lockfile(&record).unwrap();
+
+            assert!(!sandbox.path().join(".protolock").exists());
+
+            let lock = ProtoLock::load_from(sandbox.path().join("nested")).unwrap();
+            let records = lock.tools.get(&Id::raw("node")).unwrap();
+
+            assert_eq!(records.len(), 1);
+            assert_eq!(
+                records[0].version,
+                Some(VersionSpec::parse("22.0.0").unwrap())
+            );
         }
     }
 

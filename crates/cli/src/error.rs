@@ -2,6 +2,7 @@
 
 use miette::Diagnostic;
 use proto_core::flow::link::ProtoLinkError;
+use proto_core::flow::lock::ProtoLockError;
 use proto_core::flow::manage::ProtoManageError;
 use proto_core::flow::resolve::ProtoResolveError;
 use proto_core::layout::ProtoLayoutError;
@@ -44,6 +45,10 @@ pub enum ProtoCliError {
     #[diagnostic(transparent)]
     #[error(transparent)]
     Link(#[from] Box<ProtoLinkError>),
+
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Lock(#[from] Box<ProtoLockError>),
 
     #[diagnostic(transparent)]
     #[error(transparent)]
@@ -226,6 +231,12 @@ impl From<ProtoLayoutError> for ProtoCliError {
 impl From<ProtoLinkError> for ProtoCliError {
     fn from(e: ProtoLinkError) -> ProtoCliError {
         ProtoCliError::Link(Box::new(e))
+    }
+}
+
+impl From<ProtoLockError> for ProtoCliError {
+    fn from(e: ProtoLockError) -> ProtoCliError {
+        ProtoCliError::Lock(Box::new(e))
     }
 }
 

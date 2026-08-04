@@ -21,6 +21,11 @@
 
 - **Configuration**
   - Split the `[settings.builtin-plugins]` table into `[settings.builtin-tools]` and `[settings.builtin-backends]` tables. The `builtin-plugins` table is now deprecated, but will remain an alias for `builtin-tools` for backwards compatibility.
+- **Lockfiles**
+  - Reworked the `settings.unstable-lockfile` setting to be scoped to the `.prototools` config in which it was enabled, instead of applying to all nested configs (the previous workspaces-like behavior).
+    - A `.protolock` lockfile will only track tools with versions defined in its sibling `.prototools` (ad-hoc installed tools are tracked by the closest config).
+    - Versions defined in nested `.prototools` configs are no longer included in a parent's lockfile. To lock a nested config, enable the setting in that config as well.
+    - Nested lockfiles no longer trigger an error.
 - **WASM API**
   - Reworked the `VirtualPath` type from the ground up. Is no longer an enum, but instead a newtype wrapper around `PathBuf`.
     - This allows for better interoperability with the Rust ecosystem, and makes it easier to work with virtual paths in general.
@@ -36,6 +41,16 @@
 - Updated plugin function calls to run on a separate blocking thread, instead of blocking the main thread.
 - **Configuration**
   - Added `[tools.*.plugin]` and `[backends.*.plugin]` fields for specifying a plugin locator for the respective tool or backend. This is an alternative to the `[plugins.tools]` and `[plugins.backends]` tables.
+- **Lockfiles**
+  - Added a "Locked" column to the `proto outdated` and `proto status` tables, which displays the version locked for the configured spec. The column is only displayed when a tool has a matching lockfile record. Additionally, both commands now include a `locked_version` field in their `--json` output.
+  - Updated `proto outdated --update` to also update matching records in the lockfile when versions are written to their respective configs. Since the new versions have not been installed yet, checksums are removed from the migrated records, and will be re-populated on the next install.
+  - Updated `proto pin` (and `proto install --pin`) to also update matching records in the lockfile. When the pinned version has been resolved, records are migrated to the new spec, otherwise records for the previous spec are removed.
+  - Updated `proto unpin` to remove matching records from the lockfile.
+  - Updated `proto clean` to no longer remove records from the lockfile when cleaning stale versions, as the version may still be required by a config and used on other machines.
+  - Checksums are now only removed from migrated records when the resolved version changes, instead of always.
+  - Added a "locked" label to `proto versions` output for versions that have a lockfile record, and a `locked` field to its `--json` output.
+  - Updated `proto debug config` to render `.protolock` files alongside their sibling configs, and to include them in a `locks` field in its `--json` output.
+  - Updated `proto diagnose` to report lockfile health warnings: records missing a resolved version, duplicate records, and stale records that no longer match a configured version.
 - **WASM API**
   - Added a `RealPath` type, which is a newtype wrapper around `PathBuf` that represents a real path on the host file system. This is a sibling to the `VirtualPath` type, which represents a virtual path in the guest WASM environment.
   - Added `convert_to_virtual_path` and `convert_to_real_path` helper functions for converting between real and virtual paths, using a list of host-to-guest path mappings.
