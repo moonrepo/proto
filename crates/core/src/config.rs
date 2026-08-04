@@ -153,7 +153,7 @@ impl ProtoConfig {
         if !backends.contains_key("cargo") && is_backend_allowed("cargo") {
             backends.insert(
                 Id::raw("cargo"),
-                find_debug_locator_with_fallback("cargo_backend", "0.1.4"),
+                find_debug_locator_with_fallback("cargo_backend", "0.1.5"),
             );
         }
 
@@ -250,7 +250,7 @@ impl ProtoConfig {
         if !tools.contains_key("rust") && is_tool_allowed("rust") {
             tools.insert(
                 Id::raw("rust"),
-                find_debug_locator_with_fallback("rust_tool", "0.13.11"),
+                find_debug_locator_with_fallback("rust_tool", "0.13.12"),
             );
         }
 
