@@ -641,6 +641,65 @@ mod locker {
         }
     }
 
+    mod get_locked_versions {
+        use super::*;
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn returns_versions_for_current_os_arch() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+            let other_os = if SystemOS::default() == SystemOS::Linux {
+                SystemOS::MacOS
+            } else {
+                SystemOS::Linux
+            };
+
+            let mut lock = ProtoLock::default();
+            lock.tools.insert(
+                Id::raw("node"),
+                vec![
+                    // Current platform
+                    make_record(
+                        "20.0.0",
+                        "^20",
+                        Some(SystemOS::default()),
+                        Some(SystemArch::default()),
+                    ),
+                    // Other platform
+                    make_record("21.0.0", "^21", Some(other_os), Some(SystemArch::default())),
+                    // Backwards compatible record without os/arch
+                    make_record("18.0.0", "18.0.0", None, None),
+                ],
+            );
+            lock.path = sandbox.path().join(".protolock");
+            lock.save().unwrap();
+
+            let tool = create_tool_in_sandbox(sandbox.path()).await;
+            let locker = Locker::new(&tool);
+
+            let versions = locker.get_locked_versions().unwrap();
+
+            assert_eq!(versions.len(), 2);
+            assert!(versions.contains(&VersionSpec::parse("18.0.0").unwrap()));
+            assert!(versions.contains(&VersionSpec::parse("20.0.0").unwrap()));
+            assert!(!versions.contains(&VersionSpec::parse("21.0.0").unwrap()));
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn returns_empty_when_no_lockfile() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "");
+
+            let tool = create_tool_in_sandbox(sandbox.path()).await;
+            let locker = Locker::new(&tool);
+
+            let versions = locker.get_locked_versions().unwrap();
+
+            assert!(versions.is_empty());
+        }
+    }
+
     mod config_scoping {
         use super::*;
 

@@ -2,6 +2,7 @@ pub use super::lock_error::ProtoLockError;
 use crate::lockfile::LockRecord;
 use crate::tool::Tool;
 use crate::tool_spec::ToolSpec;
+use std::collections::BTreeSet;
 use tracing::{debug, instrument};
 use version_spec::{UnresolvedVersionSpec, VersionSpec};
 
@@ -10,14 +11,21 @@ use version_spec::{UnresolvedVersionSpec, VersionSpec};
 //      [x] validate lock record
 //      [x] create lockfile if it does not exist
 //      [x] error if spec/req is not found in lockfile
+//      [ ] frozen lockfiles
+//      [ ] orphan pruning
 // [x] install one
 //      [x] resolve version from lockfile
 //      [x] validate lock record
+//      [ ] frozen lockfiles
+//      [ ] orphan pruning
 // [x] install one version
 //      [x] don't resolve version from lockfile
 //      [x] validate lock record
+//      [ ] frozen lockfiles
+//      [ ] orphan pruning
 // [x] uninstall
 //      [x] remove from lockfile
+//      [ ] orphan pruning
 // [x] outdated
 //      [x] add locked label to table
 //      [x] integrate with --update
@@ -34,6 +42,31 @@ pub struct Locker<'tool> {
 impl<'tool> Locker<'tool> {
     pub fn new(tool: &'tool Tool) -> Self {
         Self { tool }
+    }
+
+    /// Get all resolved versions that have a record in the lockfile,
+    /// scoped to the current operating system and architecture.
+    pub fn get_locked_versions(&self) -> Result<BTreeSet<VersionSpec>, ProtoLockError> {
+        let proto = &self.tool.proto;
+        let mut versions = BTreeSet::default();
+
+        let Some(lock) = proto.load_lock(&self.tool.context)? else {
+            return Ok(versions);
+        };
+
+        if let Some(records) = lock.tools.get(self.tool.get_id()) {
+            for record in records {
+                if record.backend.as_ref() == self.tool.context.backend.as_ref()
+                    && record.os.is_none_or(|os| os == proto.os)
+                    && record.arch.is_none_or(|arch| arch == proto.arch)
+                    && let Some(version) = &record.version
+                {
+                    versions.insert(version.to_owned());
+                }
+            }
+        }
+
+        Ok(versions)
     }
 
     pub fn get_resolved_locked_record<'a>(&'a self, spec: &'a ToolSpec) -> Option<&'a LockRecord> {

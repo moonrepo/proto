@@ -48,6 +48,9 @@
   - Updated `proto unpin` to remove matching records from the lockfile.
   - Updated `proto clean` to no longer remove records from the lockfile when cleaning stale versions, as the version may still be required by a config and used on other machines.
   - Checksums are now only removed from migrated records when the resolved version changes, instead of always.
+  - Added a "locked" label to `proto versions` output for versions that have a lockfile record, and a `locked` field to its `--json` output.
+  - Updated `proto debug config` to render `.protolock` files alongside their sibling configs, and to include them in a `locks` field in its `--json` output.
+  - Updated `proto diagnose` to report lockfile health warnings: records missing a resolved version, duplicate records, and stale records that no longer match a configured version.
 - **WASM API**
   - Added a `RealPath` type, which is a newtype wrapper around `PathBuf` that represents a real path on the host file system. This is a sibling to the `VirtualPath` type, which represents a virtual path in the guest WASM environment.
   - Added `convert_to_virtual_path` and `convert_to_real_path` helper functions for converting between real and virtual paths, using a list of host-to-guest path mappings.
