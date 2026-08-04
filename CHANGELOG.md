@@ -44,6 +44,10 @@
 - **Lockfiles**
   - Added a "Locked" column to the `proto outdated` and `proto status` tables, which displays the version locked for the configured spec. The column is only displayed when a tool has a matching lockfile record. Additionally, both commands now include a `locked_version` field in their `--json` output.
   - Updated `proto outdated --update` to also update matching records in the lockfile when versions are written to their respective configs. Since the new versions have not been installed yet, checksums are removed from the migrated records, and will be re-populated on the next install.
+  - Updated `proto pin` (and `proto install --pin`) to also update matching records in the lockfile. When the pinned version has been resolved, records are migrated to the new spec, otherwise records for the previous spec are removed.
+  - Updated `proto unpin` to remove matching records from the lockfile.
+  - Updated `proto clean` to no longer remove records from the lockfile when cleaning stale versions, as the version may still be required by a config and used on other machines.
+  - Checksums are now only removed from migrated records when the resolved version changes, instead of always.
 - **WASM API**
   - Added a `RealPath` type, which is a newtype wrapper around `PathBuf` that represents a real path on the host file system. This is a sibling to the `VirtualPath` type, which represents a virtual path in the guest WASM environment.
   - Added `convert_to_virtual_path` and `convert_to_real_path` helper functions for converting between real and virtual paths, using a list of host-to-guest path mappings.

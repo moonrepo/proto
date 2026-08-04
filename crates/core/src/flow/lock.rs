@@ -156,9 +156,9 @@ impl<'tool> Locker<'tool> {
     /// Records are migrated across all operating systems and architectures,
     /// as a change in configuration applies to every machine.
     ///
-    /// Since the new version has not been installed at this point, remove
-    /// the checksum and source from migrated records, which will be
-    /// re-populated on the next install.
+    /// If the resolved version of a migrated record changes, remove the
+    /// checksum and source, as they are only valid for the version they
+    /// were installed with, and will be re-populated on the next install.
     #[instrument(skip(self))]
     pub fn update_spec_in_lockfile(
         &self,
@@ -204,10 +204,15 @@ impl<'tool> Locker<'tool> {
         );
 
         for mut record in migrated {
+            // The checksum and source are only valid for the version they
+            // were installed with, so remove them when the version changes
+            if record.version.as_ref() != Some(new_version) {
+                record.checksum = None;
+                record.source = None;
+            }
+
             record.spec = Some(new_spec.to_owned());
             record.version = Some(new_version.to_owned());
-            record.checksum = None;
-            record.source = None;
 
             // If a record already exists for the new spec, for example from
             // an ad-hoc install, keep the existing record instead, as it may
@@ -221,6 +226,51 @@ impl<'tool> Locker<'tool> {
         }
 
         *records = kept;
+
+        lock.sort_records();
+        lock.save()?;
+
+        Ok(())
+    }
+
+    /// Remove records that match the requirement (typically from a
+    /// configuration file) from the lockfile. Records are removed across
+    /// all operating systems and architectures, as a change in
+    /// configuration applies to every machine.
+    #[instrument(skip(self))]
+    pub fn remove_spec_from_lockfile(
+        &self,
+        spec: &UnresolvedVersionSpec,
+    ) -> Result<(), ProtoLockError> {
+        let Some(mut lock) = self.tool.proto.load_lock_mut(&self.tool.context)? else {
+            return Ok(());
+        };
+
+        let Some(records) = lock.tools.get_mut(self.tool.get_id()) else {
+            return Ok(());
+        };
+
+        let backend = self.tool.context.backend.as_ref();
+        let count = records.len();
+
+        records.retain(|record| {
+            !(record.backend.as_ref() == backend && record.spec.as_ref() == Some(spec))
+        });
+
+        // Nothing was removed, so avoid saving
+        if records.len() == count {
+            return Ok(());
+        }
+
+        debug!(
+            tool = self.tool.context.as_str(),
+            spec = spec.to_string(),
+            "Removing records for spec from lockfile",
+        );
+
+        if records.is_empty() {
+            lock.tools.remove(self.tool.get_id());
+        }
 
         lock.sort_records();
         lock.save()?;
