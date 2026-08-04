@@ -6,6 +6,7 @@ use crate::helpers::is_offline;
 use crate::layout::Store;
 use crate::lockfile::ProtoLock;
 use crate::telemetry::MetricTimer;
+use crate::tool_context::ToolContext;
 use once_cell::sync::OnceCell;
 use proto_pdk_api::sort_paths_list;
 use starbase_utils::dirs::home_dir;
@@ -183,14 +184,28 @@ impl ProtoEnvironment {
             .collect())
     }
 
-    pub fn load_lock(&self) -> Result<Option<RwLockReadGuard<'_, ProtoLock>>, ProtoConfigError> {
-        self.load_file_manager()?.get_lock()
+    pub fn load_lock(
+        &self,
+        context: &ToolContext,
+    ) -> Result<Option<RwLockReadGuard<'_, ProtoLock>>, ProtoConfigError> {
+        let manager = self.load_file_manager()?;
+
+        match manager.get_locked_dir(context) {
+            Some(dir) => manager.get_lock(dir),
+            None => Ok(None),
+        }
     }
 
     pub fn load_lock_mut(
         &self,
+        context: &ToolContext,
     ) -> Result<Option<RwLockWriteGuard<'_, ProtoLock>>, ProtoConfigError> {
-        self.load_file_manager()?.get_lock_mut()
+        let manager = self.load_file_manager()?;
+
+        match manager.get_locked_dir(context) {
+            Some(dir) => manager.get_lock_mut(dir),
+            None => Ok(None),
+        }
     }
 
     #[instrument(skip_all)]

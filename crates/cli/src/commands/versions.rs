@@ -3,6 +3,7 @@ use crate::session::{LoadToolOptions, ProtoSession, SessionResult};
 use clap::Args;
 use indexmap::IndexMap;
 use iocraft::prelude::{View, element};
+use proto_core::flow::lock::Locker;
 use proto_core::{
     MatchesVersion, Requirement, ToolContext, ToolSpec, UnresolvedVersionSpec, VersionSpec,
 };
@@ -30,6 +31,7 @@ pub struct VersionsArgs {
 pub struct VersionItem {
     #[serde(skip_serializing_if = "Option::is_none")]
     installed_at: Option<u128>,
+    locked: bool,
     version: VersionSpec,
 }
 
@@ -67,6 +69,8 @@ pub async fn versions(session: ProtoSession, args: VersionsArgs) -> SessionResul
         return Ok(Some(1));
     }
 
+    let locked_versions = Locker::new(&tool).get_locked_versions()?;
+
     let mut versions = tool
         .remote_versions
         .iter()
@@ -83,6 +87,7 @@ pub async fn versions(session: ProtoSession, args: VersionsArgs) -> SessionResul
             } else {
                 Some(VersionItem {
                     installed_at,
+                    locked: locked_versions.contains(version),
                     version: version.to_owned(),
                 })
             }
@@ -117,21 +122,34 @@ pub async fn versions(session: ProtoSession, args: VersionsArgs) -> SessionResul
     session.console.render(element! {
         Container {
             #(versions.into_iter().map(|item| {
+                let mut labels = vec![];
+
+                if let Some(timestamp) = item.installed_at {
+                    labels.push(format!(
+                        "installed {}",
+                        create_datetime(timestamp).unwrap_or_default().format("%x")
+                    ));
+                }
+
+                if item.locked {
+                    labels.push("locked".into());
+                }
+
                 element! {
                     View {
-                        #(if let Some(timestamp) = item.installed_at {
+                        #(if labels.is_empty() {
                             element! {
-                                StyledText(
-                                    content: format!(
-                                        "<shell>{}</shell> <muted>-</muted> <mutedlight>installed {}</mutedlight>",
-                                        item.version,
-                                        create_datetime(timestamp).unwrap_or_default().format("%x")
-                                    ),
-                                )
+                                StyledText(content: item.version.to_string())
                             }
                         } else {
                             element! {
-                                StyledText(content: item.version.to_string())
+                                StyledText(
+                                    content: format!(
+                                        "<shell>{}</shell> <muted>-</muted> <mutedlight>{}</mutedlight>",
+                                        item.version,
+                                        labels.join(", ")
+                                    ),
+                                )
                             }
                         })
                     }

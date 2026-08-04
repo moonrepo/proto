@@ -207,9 +207,13 @@ pub async fn clean_tool(
                 version: version.clone(),
             });
 
-            manager
-                .uninstall(&mut ToolSpec::new_resolved(version))
-                .await?;
+            // Cleaning stale versions is local housekeeping, so keep
+            // records in the lockfile, as the version may still be
+            // required by a config and used on other machines
+            let mut spec = ToolSpec::new_resolved(version);
+            spec.update_lockfile = false;
+
+            manager.uninstall(&mut spec).await?;
         }
 
         manager.sync_manifest().await?;

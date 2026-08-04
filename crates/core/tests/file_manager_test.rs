@@ -311,8 +311,7 @@ deno = "7.8.9"
         use super::*;
 
         #[test]
-        #[should_panic(expected = "AlreadyLocked")]
-        fn errors_for_nested_locks() {
+        fn supports_nested_locks() {
             let sandbox = create_empty_sandbox();
 
             sandbox.create_file(
@@ -326,6 +325,133 @@ lockfile = true
             );
 
             sandbox.create_file(
+                "one/.protolock",
+                r#"
+[[tools.node]]
+spec = "1.2.3"
+"#,
+            );
+
+            sandbox.create_file(
+                ".prototools",
+                r#"
+node = "7.8.9"
+deno = "7.8.9"
+
+[settings]
+lockfile = true
+"#,
+            );
+
+            sandbox.create_file(
+                ".protolock",
+                r#"
+[[tools.node]]
+spec = "7.8.9"
+"#,
+            );
+
+            let manager = ProtoFileManager::load(
+                sandbox.path().join("one"),
+                Some(sandbox.path().parent().unwrap()),
+                None,
+            )
+            .unwrap();
+
+            // Each directory loads its own lockfile
+            let nested_lock = manager
+                .get_lock(&sandbox.path().join("one"))
+                .unwrap()
+                .unwrap();
+
+            assert_eq!(
+                nested_lock.tools,
+                BTreeMap::from_iter([(
+                    Id::raw("node"),
+                    vec![LockRecord {
+                        spec: Some(UnresolvedVersionSpec::parse("1.2.3").unwrap()),
+                        ..Default::default()
+                    }]
+                )])
+            );
+
+            let root_lock = manager.get_lock(sandbox.path()).unwrap().unwrap();
+
+            assert_eq!(
+                root_lock.tools,
+                BTreeMap::from_iter([(
+                    Id::raw("node"),
+                    vec![LockRecord {
+                        spec: Some(UnresolvedVersionSpec::parse("7.8.9").unwrap()),
+                        ..Default::default()
+                    }]
+                )])
+            );
+
+            // And each tool is routed to the config that defines it
+            assert_eq!(
+                manager.get_locked_dir(&ToolContext::parse("node").unwrap()),
+                Some(sandbox.path().join("one").as_path())
+            );
+            assert_eq!(
+                manager.get_locked_dir(&ToolContext::parse("deno").unwrap()),
+                Some(sandbox.path())
+            );
+        }
+
+        #[test]
+        fn doesnt_apply_parent_lock_to_tools_in_nested_configs() {
+            let sandbox = create_empty_sandbox();
+
+            sandbox.create_file(
+                "one/.prototools",
+                r#"
+node = "1.2.3"
+"#,
+            );
+
+            sandbox.create_file(
+                ".prototools",
+                r#"
+node = "7.8.9"
+deno = "7.8.9"
+
+[settings]
+lockfile = true
+"#,
+            );
+
+            let manager = ProtoFileManager::load(
+                sandbox.path().join("one"),
+                Some(sandbox.path().parent().unwrap()),
+                None,
+            )
+            .unwrap();
+
+            // Defined in the nested (unlocked) config
+            assert_eq!(
+                manager.get_locked_dir(&ToolContext::parse("node").unwrap()),
+                None
+            );
+
+            // Defined in the locked config
+            assert_eq!(
+                manager.get_locked_dir(&ToolContext::parse("deno").unwrap()),
+                Some(sandbox.path())
+            );
+
+            // Not defined anywhere, owned by the closest config (unlocked)
+            assert_eq!(
+                manager.get_locked_dir(&ToolContext::parse("bun").unwrap()),
+                None
+            );
+        }
+
+        #[test]
+        fn applies_lock_to_adhoc_tools_from_closest_config() {
+            let sandbox = create_empty_sandbox();
+
+            sandbox.create_file(
                 ".prototools",
                 r#"
 node = "7.8.9"
@@ -335,12 +461,22 @@ lockfile = true
 "#,
             );
 
-            ProtoFileManager::load(
-                sandbox.path().join("one"),
+            // No configs in the nested dir, so the parent owns the scope
+            let manager = ProtoFileManager::load(
+                sandbox.path().join("one/two"),
                 Some(sandbox.path().parent().unwrap()),
                 None,
             )
             .unwrap();
+
+            assert_eq!(
+                manager.get_locked_dir(&ToolContext::parse("node").unwrap()),
+                Some(sandbox.path())
+            );
+            assert_eq!(
+                manager.get_locked_dir(&ToolContext::parse("bun").unwrap()),
+                Some(sandbox.path())
+            );
         }
 
         #[test]
@@ -385,7 +521,7 @@ bun = "1.2.3"
                 None,
             )
             .unwrap();
-            let lockfile = manager.get_lock().unwrap().unwrap();
+            let lockfile = manager.get_lock(sandbox.path()).unwrap().unwrap();
 
             assert_eq!(
                 lockfile.tools,
@@ -396,6 +532,12 @@ bun = "1.2.3"
                         ..Default::default()
                     }]
                 )])
+            );
+
+            // The nested config defines node, so the lock doesn't apply to it
+            assert_eq!(
+                manager.get_locked_dir(&ToolContext::parse("node").unwrap()),
+                None
             );
         }
 
@@ -427,7 +569,7 @@ spec = "7.8.9"
                 Some(&"production".to_owned()),
             )
             .unwrap();
-            let lockfile = manager.get_lock().unwrap().unwrap();
+            let lockfile = manager.get_lock(sandbox.path()).unwrap().unwrap();
 
             assert_eq!(
                 lockfile.tools,
@@ -467,7 +609,7 @@ spec = "1.2.3"
             )
             .unwrap();
 
-            assert!(manager.get_lock().unwrap().is_none());
+            assert!(manager.get_lock(sandbox.path()).unwrap().is_none());
 
             // Now testing false
             sandbox.create_file(
@@ -487,7 +629,7 @@ lockfile = false
             )
             .unwrap();
 
-            assert!(manager.get_lock().unwrap().is_none());
+            assert!(manager.get_lock(sandbox.path()).unwrap().is_none());
         }
 
         #[test]
@@ -519,7 +661,12 @@ spec = "1.2.3"
             )
             .unwrap();
 
-            assert!(manager.get_lock().unwrap().is_none());
+            assert!(
+                manager
+                    .get_lock(&sandbox.path().join(".proto"))
+                    .unwrap()
+                    .is_none()
+            );
         }
 
         #[test]
@@ -551,7 +698,12 @@ spec = "1.2.3"
             )
             .unwrap();
 
-            assert!(manager.get_lock().unwrap().is_none());
+            assert!(
+                manager
+                    .get_lock(&sandbox.path().join(".home"))
+                    .unwrap()
+                    .is_none()
+            );
         }
 
         #[test]
@@ -583,7 +735,7 @@ spec = "7.8.9"
             )
             .unwrap();
 
-            assert!(manager.get_lock().unwrap().is_none());
+            assert!(manager.get_lock(sandbox.path()).unwrap().is_none());
             assert!(!sandbox.path().join(".protolock").exists());
         }
     }

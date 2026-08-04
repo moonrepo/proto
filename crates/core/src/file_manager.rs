@@ -7,6 +7,7 @@ use once_cell::sync::OnceCell;
 use schematic::{Config, PartialConfig};
 use serde::Serialize;
 use starbase_utils::fs;
+use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
@@ -42,8 +43,9 @@ pub struct ProtoFileManager {
     global_config: Arc<OnceCell<ProtoConfig>>,
     local_config: Arc<OnceCell<ProtoConfig>>,
 
-    lock: Arc<RwLock<ProtoLock>>,
-    locked: bool,
+    // Lockfiles keyed by the directory of the config
+    // in which they were enabled
+    locks: BTreeMap<PathBuf, Arc<RwLock<ProtoLock>>>,
 }
 
 impl ProtoFileManager {
@@ -54,9 +56,7 @@ impl ProtoFileManager {
     ) -> Result<Self, ProtoConfigError> {
         let mut current_dir = Some(start_dir.as_ref());
         let mut entries = vec![];
-        let mut locked_dirs: Vec<PathBuf> = vec![];
-        let mut locked = false;
-        let mut lock = ProtoLock::default();
+        let mut locks = BTreeMap::default();
 
         while let Some(dir) = current_dir {
             let mut configs = vec![];
@@ -98,20 +98,10 @@ impl ProtoFileManager {
                 });
 
             if load_lockfile {
-                if let Some(locked_dir) = locked_dirs
-                    .iter()
-                    .find(|child_dir| child_dir.starts_with(dir))
-                {
-                    return Err(ProtoConfigError::AlreadyLocked {
-                        child_dir: locked_dir.into(),
-                        parent_dir: dir.into(),
-                    });
-                } else {
-                    locked_dirs.push(dir.to_path_buf());
-                }
-
-                lock = ProtoLock::load_from(dir)?;
-                locked = true;
+                locks.insert(
+                    dir.to_path_buf(),
+                    Arc::new(RwLock::new(ProtoLock::load_from(dir)?)),
+                );
             } else if lock_path.exists() {
                 fs::remove_file(lock_path)?;
             }
@@ -136,35 +126,67 @@ impl ProtoFileManager {
             all_config_no_global: Arc::new(OnceCell::new()),
             global_config: Arc::new(OnceCell::new()),
             local_config: Arc::new(OnceCell::new()),
-            locked,
-            lock: Arc::new(RwLock::new(lock)),
+            locks,
         })
     }
 
-    pub fn get_lock(&self) -> Result<Option<RwLockReadGuard<'_, ProtoLock>>, ProtoConfigError> {
-        if self.locked {
-            return Ok(Some(
-                self.lock
-                    .read()
-                    .map_err(|_| ProtoConfigError::FailedLockfileLock)?,
-            ));
+    /// Return the directory of the lockfile that applies to the provided tool,
+    /// if there is one. A lockfile is scoped to the config in which it was
+    /// enabled: it only applies to tools with versions defined in that config,
+    /// or ad-hoc installs within that config's directory scope, and never to
+    /// tools defined in nested (or global/user) configs.
+    pub fn get_locked_dir(&self, context: &ToolContext) -> Option<&Path> {
+        // The closest config that defines a version for the tool
+        // owns its lock records
+        for entry in &self.entries {
+            if entry.configs.iter().any(|file| {
+                file.exists
+                    && file
+                        .config
+                        .versions
+                        .as_ref()
+                        .is_some_and(|versions| versions.contains_key(context))
+            }) {
+                return entry.locked.then_some(entry.path.as_path());
+            }
         }
 
-        Ok(None)
+        // When not defined in any config, treat the tool as an ad-hoc
+        // install owned by the closest directory with a config
+        for entry in &self.entries {
+            if entry.location == PinLocation::Local && entry.configs.iter().any(|file| file.exists)
+            {
+                return entry.locked.then_some(entry.path.as_path());
+            }
+        }
+
+        None
+    }
+
+    pub fn get_lock(
+        &self,
+        dir: &Path,
+    ) -> Result<Option<RwLockReadGuard<'_, ProtoLock>>, ProtoConfigError> {
+        self.locks
+            .get(dir)
+            .map(|lock| {
+                lock.read()
+                    .map_err(|_| ProtoConfigError::FailedLockfileLock)
+            })
+            .transpose()
     }
 
     pub fn get_lock_mut(
         &self,
+        dir: &Path,
     ) -> Result<Option<RwLockWriteGuard<'_, ProtoLock>>, ProtoConfigError> {
-        if self.locked {
-            return Ok(Some(
-                self.lock
-                    .write()
-                    .map_err(|_| ProtoConfigError::FailedLockfileLock)?,
-            ));
-        }
-
-        Ok(None)
+        self.locks
+            .get(dir)
+            .map(|lock| {
+                lock.write()
+                    .map_err(|_| ProtoConfigError::FailedLockfileLock)
+            })
+            .transpose()
     }
 
     pub fn get_config_files(&self) -> Vec<&ProtoConfigFile> {
