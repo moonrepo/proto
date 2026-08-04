@@ -3,7 +3,7 @@ use crate::lockfile::LockRecord;
 use crate::tool::Tool;
 use crate::tool_spec::ToolSpec;
 use tracing::{debug, instrument};
-use version_spec::VersionSpec;
+use version_spec::{UnresolvedVersionSpec, VersionSpec};
 
 // [x] install many
 //      [x] resolve version from lockfile
@@ -20,7 +20,7 @@ use version_spec::VersionSpec;
 //      [x] remove from lockfile
 // [ ] outdated
 //      [ ] add locked label to table
-//      [ ] integrate with --update
+//      [x] integrate with --update
 // [x] run
 //      [x] resolve version from lockfile
 // [ ] status
@@ -144,6 +144,83 @@ impl<'tool> Locker<'tool> {
         {
             lock.tools.remove(self.tool.get_id());
         }
+
+        lock.sort_records();
+        lock.save()?;
+
+        Ok(())
+    }
+
+    /// Migrate records that match the old requirement (typically from a
+    /// configuration file) to the new requirement and resolved version.
+    /// Records are migrated across all operating systems and architectures,
+    /// as a change in configuration applies to every machine.
+    ///
+    /// Since the new version has not been installed at this point, remove
+    /// the checksum and source from migrated records, which will be
+    /// re-populated on the next install.
+    #[instrument(skip(self))]
+    pub fn update_spec_in_lockfile(
+        &self,
+        old_spec: &UnresolvedVersionSpec,
+        new_spec: &UnresolvedVersionSpec,
+        new_version: &VersionSpec,
+    ) -> Result<(), ProtoLockError> {
+        if self.tool.metadata.lock_options.no_record || old_spec == new_spec {
+            return Ok(());
+        }
+
+        let Some(mut lock) = self.tool.proto.load_lock_mut(&self.tool.context)? else {
+            return Ok(());
+        };
+
+        let Some(records) = lock.tools.get_mut(self.tool.get_id()) else {
+            return Ok(());
+        };
+
+        let backend = self.tool.context.backend.as_ref();
+        let mut kept = vec![];
+        let mut migrated = vec![];
+
+        for record in std::mem::take(records) {
+            if record.backend.as_ref() == backend && record.spec.as_ref() == Some(old_spec) {
+                migrated.push(record);
+            } else {
+                kept.push(record);
+            }
+        }
+
+        if migrated.is_empty() {
+            *records = kept;
+
+            return Ok(());
+        }
+
+        debug!(
+            tool = self.tool.context.as_str(),
+            old_spec = old_spec.to_string(),
+            new_spec = new_spec.to_string(),
+            "Updating spec for records in lockfile",
+        );
+
+        for mut record in migrated {
+            record.spec = Some(new_spec.to_owned());
+            record.version = Some(new_version.to_owned());
+            record.checksum = None;
+            record.source = None;
+
+            // If a record already exists for the new spec, for example from
+            // an ad-hoc install, keep the existing record instead, as it may
+            // contain a checksum from a real install
+            if !kept
+                .iter()
+                .any(|existing| existing.is_match(&record, &self.tool.metadata.lock_options))
+            {
+                kept.push(record);
+            }
+        }
+
+        *records = kept;
 
         lock.sort_records();
         lock.save()?;

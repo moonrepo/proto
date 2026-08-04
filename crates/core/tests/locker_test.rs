@@ -220,6 +220,244 @@ mod locker {
         }
     }
 
+    mod update_spec {
+        use super::*;
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn updates_matching_records_across_os_arch() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+            // Pre-create a lockfile with records across multiple platforms
+            let mut linux_record = make_record(
+                "20.0.0",
+                "^20",
+                Some(SystemOS::Linux),
+                Some(SystemArch::X64),
+            );
+            linux_record.checksum = Some(Checksum::sha256("linux_hash".into()));
+
+            let mut macos_record = make_record(
+                "20.0.0",
+                "^20",
+                Some(SystemOS::MacOS),
+                Some(SystemArch::Arm64),
+            );
+            macos_record.checksum = Some(Checksum::sha256("macos_hash".into()));
+
+            let other_record = make_record(
+                "18.0.0",
+                "18.0.0",
+                Some(SystemOS::Linux),
+                Some(SystemArch::X64),
+            );
+
+            let mut lock = ProtoLock::default();
+            lock.tools.insert(
+                Id::raw("node"),
+                vec![linux_record, macos_record, other_record],
+            );
+            lock.path = sandbox.path().join(".protolock");
+            lock.save().unwrap();
+
+            let tool = create_tool_in_sandbox(sandbox.path()).await;
+            let locker = Locker::new(&tool);
+
+            locker
+                .update_spec_in_lockfile(
+                    &UnresolvedVersionSpec::parse("^20").unwrap(),
+                    &UnresolvedVersionSpec::parse("21.1.0").unwrap(),
+                    &VersionSpec::parse("21.1.0").unwrap(),
+                )
+                .unwrap();
+
+            let lock = ProtoLock::load_from(sandbox.path()).unwrap();
+            let records = lock.tools.get(&Id::raw("node")).unwrap();
+
+            assert_eq!(records.len(), 3);
+
+            let migrated = records
+                .iter()
+                .filter(|record| {
+                    record.spec == Some(UnresolvedVersionSpec::parse("21.1.0").unwrap())
+                })
+                .collect::<Vec<_>>();
+
+            assert_eq!(migrated.len(), 2);
+
+            for record in migrated {
+                assert_eq!(record.version, Some(VersionSpec::parse("21.1.0").unwrap()));
+                assert_eq!(record.checksum, None);
+            }
+
+            // Platforms are preserved
+            assert!(
+                records
+                    .iter()
+                    .any(|record| record.os == Some(SystemOS::Linux)
+                        && record.arch == Some(SystemArch::X64)
+                        && record.spec == Some(UnresolvedVersionSpec::parse("21.1.0").unwrap()))
+            );
+            assert!(
+                records
+                    .iter()
+                    .any(|record| record.os == Some(SystemOS::MacOS)
+                        && record.arch == Some(SystemArch::Arm64))
+            );
+
+            // Other specs are left untouched
+            let other = records
+                .iter()
+                .find(|record| record.spec == Some(UnresolvedVersionSpec::parse("18.0.0").unwrap()))
+                .unwrap();
+
+            assert_eq!(other.version, Some(VersionSpec::parse("18.0.0").unwrap()));
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn keeps_existing_record_matching_new_spec() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+            let os = SystemOS::default();
+            let arch = SystemArch::default();
+
+            let old_record = make_record("20.0.0", "^20", Some(os), Some(arch));
+
+            // An ad-hoc install already exists for the new spec, with a checksum
+            let mut new_record = make_record("21.1.0", "21.1.0", Some(os), Some(arch));
+            new_record.checksum = Some(Checksum::sha256("real_hash".into()));
+
+            let mut lock = ProtoLock::default();
+            lock.tools
+                .insert(Id::raw("node"), vec![old_record, new_record]);
+            lock.path = sandbox.path().join(".protolock");
+            lock.save().unwrap();
+
+            let tool = create_tool_in_sandbox(sandbox.path()).await;
+            let locker = Locker::new(&tool);
+
+            locker
+                .update_spec_in_lockfile(
+                    &UnresolvedVersionSpec::parse("^20").unwrap(),
+                    &UnresolvedVersionSpec::parse("21.1.0").unwrap(),
+                    &VersionSpec::parse("21.1.0").unwrap(),
+                )
+                .unwrap();
+
+            let lock = ProtoLock::load_from(sandbox.path()).unwrap();
+            let records = lock.tools.get(&Id::raw("node")).unwrap();
+
+            // The migrated record was merged into the existing one
+            assert_eq!(records.len(), 1);
+            assert_eq!(
+                records[0].spec,
+                Some(UnresolvedVersionSpec::parse("21.1.0").unwrap())
+            );
+            assert_eq!(
+                records[0].checksum,
+                Some(Checksum::sha256("real_hash".into()))
+            );
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn no_op_when_spec_not_found() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+            let record = make_record(
+                "18.0.0",
+                "18.0.0",
+                Some(SystemOS::default()),
+                Some(SystemArch::default()),
+            );
+
+            let mut lock = ProtoLock::default();
+            lock.tools.insert(Id::raw("node"), vec![record]);
+            lock.path = sandbox.path().join(".protolock");
+            lock.save().unwrap();
+
+            let tool = create_tool_in_sandbox(sandbox.path()).await;
+            let locker = Locker::new(&tool);
+
+            locker
+                .update_spec_in_lockfile(
+                    &UnresolvedVersionSpec::parse("^20").unwrap(),
+                    &UnresolvedVersionSpec::parse("21.1.0").unwrap(),
+                    &VersionSpec::parse("21.1.0").unwrap(),
+                )
+                .unwrap();
+
+            let lock = ProtoLock::load_from(sandbox.path()).unwrap();
+            let records = lock.tools.get(&Id::raw("node")).unwrap();
+
+            assert_eq!(records.len(), 1);
+            assert_eq!(
+                records[0].spec,
+                Some(UnresolvedVersionSpec::parse("18.0.0").unwrap())
+            );
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn no_op_when_specs_are_equal() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+            let mut record = make_record(
+                "20.0.0",
+                "20.0.0",
+                Some(SystemOS::default()),
+                Some(SystemArch::default()),
+            );
+            record.checksum = Some(Checksum::sha256("keep_me".into()));
+
+            let mut lock = ProtoLock::default();
+            lock.tools.insert(Id::raw("node"), vec![record]);
+            lock.path = sandbox.path().join(".protolock");
+            lock.save().unwrap();
+
+            let tool = create_tool_in_sandbox(sandbox.path()).await;
+            let locker = Locker::new(&tool);
+
+            locker
+                .update_spec_in_lockfile(
+                    &UnresolvedVersionSpec::parse("20.0.0").unwrap(),
+                    &UnresolvedVersionSpec::parse("20.0.0").unwrap(),
+                    &VersionSpec::parse("20.0.0").unwrap(),
+                )
+                .unwrap();
+
+            // The checksum should not have been wiped
+            let lock = ProtoLock::load_from(sandbox.path()).unwrap();
+            let records = lock.tools.get(&Id::raw("node")).unwrap();
+
+            assert_eq!(records.len(), 1);
+            assert_eq!(
+                records[0].checksum,
+                Some(Checksum::sha256("keep_me".into()))
+            );
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn no_op_when_no_lockfile_config() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "");
+
+            let tool = create_tool_in_sandbox(sandbox.path()).await;
+            let locker = Locker::new(&tool);
+
+            locker
+                .update_spec_in_lockfile(
+                    &UnresolvedVersionSpec::parse("^20").unwrap(),
+                    &UnresolvedVersionSpec::parse("21.1.0").unwrap(),
+                    &VersionSpec::parse("21.1.0").unwrap(),
+                )
+                .unwrap();
+
+            assert!(!sandbox.path().join(".protolock").exists());
+        }
+    }
+
     mod config_scoping {
         use super::*;
 

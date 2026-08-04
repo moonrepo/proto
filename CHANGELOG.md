@@ -41,6 +41,8 @@
 - Updated plugin function calls to run on a separate blocking thread, instead of blocking the main thread.
 - **Configuration**
   - Added `[tools.*.plugin]` and `[backends.*.plugin]` fields for specifying a plugin locator for the respective tool or backend. This is an alternative to the `[plugins.tools]` and `[plugins.backends]` tables.
+- **Lockfiles**
+  - Updated `proto outdated --update` to also update matching records in the lockfile when versions are written to their respective configs. Since the new versions have not been installed yet, checksums are removed from the migrated records, and will be re-populated on the next install.
 - **WASM API**
   - Added a `RealPath` type, which is a newtype wrapper around `PathBuf` that represents a real path on the host file system. This is a sibling to the `VirtualPath` type, which represents a virtual path in the guest WASM environment.
   - Added `convert_to_virtual_path` and `convert_to_real_path` helper functions for converting between real and virtual paths, using a list of host-to-guest path mappings.
