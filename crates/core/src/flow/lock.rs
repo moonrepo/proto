@@ -18,13 +18,13 @@ use version_spec::{UnresolvedVersionSpec, VersionSpec};
 //      [x] validate lock record
 // [x] uninstall
 //      [x] remove from lockfile
-// [ ] outdated
-//      [ ] add locked label to table
+// [x] outdated
+//      [x] add locked label to table
 //      [x] integrate with --update
 // [x] run
 //      [x] resolve version from lockfile
-// [ ] status
-//      [ ] add locked label to table
+// [x] status
+//      [x] add locked label to table
 
 /// Manages records in a lockfile.
 pub struct Locker<'tool> {

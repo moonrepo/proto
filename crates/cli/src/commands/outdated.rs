@@ -39,6 +39,7 @@ pub struct OutdatedItem {
     config_source: Option<PathBuf>,
     config_version: ToolSpec,
     current_version: VersionSpec,
+    locked_version: Option<VersionSpec>,
     newest_version: VersionSpec,
     latest_version: VersionSpec,
 }
@@ -104,12 +105,25 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> SessionResul
                 .resolve_version_candidate(&UnresolvedVersionSpec::default(), true, true)
                 .await?;
 
+            // If a lockfile record exists for the configured spec, then the
+            // version is locked, and installs will use it instead
+            let locked_version = if let Some(record) = &tool.spec.version_locked {
+                record.version.clone()
+            } else {
+                Locker::new(&tool)
+                    .resolve_locked_record(config_version)
+                    .ok()
+                    .flatten()
+                    .and_then(|record| record.version)
+            };
+
             let item = OutdatedItem {
                 is_latest: current_version == latest_version,
                 is_outdated: newest_version > current_version || latest_version > current_version,
                 config_source: tool.detected_source.clone(),
                 config_version: config_version.to_owned(),
                 current_version,
+                locked_version,
                 newest_version,
                 latest_version,
             };
@@ -145,20 +159,40 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> SessionResul
 
     let ctx_width = items.keys().fold(0, |acc, ctx| acc.max(ctx.as_str().len()));
 
+    // Only show the locked column if a tool is using a lockfile
+    let show_locked = items.values().any(|item| item.locked_version.is_some());
+
+    let mut headers = vec![
+        TableHeader::new("Tool", Size::Length((ctx_width + 3).max(10) as u32)),
+        TableHeader::new("Current", Size::Length(10)),
+    ];
+
+    if show_locked {
+        headers.push(TableHeader::new("Locked", Size::Length(10)));
+    }
+
+    headers.extend([
+        TableHeader::new("Newest", Size::Length(10)),
+        TableHeader::new("Latest", Size::Length(10)),
+        TableHeader::new("Config", Size::Auto),
+    ]);
+
     session.console.table(
-        vec![
-            TableHeader::new("Tool", Size::Length((ctx_width + 3).max(10) as u32)),
-            TableHeader::new("Current", Size::Length(10)),
-            TableHeader::new("Newest", Size::Length(10)),
-            TableHeader::new("Latest", Size::Length(10)),
-            TableHeader::new("Config", Size::Auto),
-        ],
+        headers,
         items
             .iter()
             .map(|(ctx, item)| {
-                vec![
-                    format!("<id>{ctx}</id>"),
-                    item.current_version.to_string(),
+                let mut row = vec![format!("<id>{ctx}</id>"), item.current_version.to_string()];
+
+                if show_locked {
+                    row.push(if let Some(version) = &item.locked_version {
+                        format!("<hash>{version}</hash>")
+                    } else {
+                        "<mutedlight>N/A</mutedlight>".into()
+                    });
+                }
+
+                row.extend([
                     if item.newest_version == item.current_version {
                         format!("<mutedlight>{}</mutedlight>", item.newest_version)
                     } else {
@@ -176,7 +210,9 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> SessionResul
                     } else {
                         "<mutedlight>N/A</mutedlight>".into()
                     },
-                ]
+                ]);
+
+                row
             })
             .collect(),
     )?;
