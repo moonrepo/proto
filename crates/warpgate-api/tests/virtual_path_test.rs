@@ -228,17 +228,14 @@ mod virtual_path {
             assert_eq!(path, VirtualPath::new("/virtual/file.txt"));
         }
 
-        // A real path cannot be converted to a virtual path, as the
-        // shape provides no prefixes to convert with.
+        // Virtual paths serialize to plain strings, so the string shape
+        // must deserialize back for round-trips. The path is used as-is,
+        // as the shape provides no prefixes to convert with.
         #[test]
-        fn errors_when_deserializing_from_a_string() {
-            let error = serde_json::from_str::<VirtualPath>(r#""/real/dir/file.txt""#).unwrap_err();
+        fn deserializes_from_a_string() {
+            let path: VirtualPath = serde_json::from_str(r#""/real/dir/file.txt""#).unwrap();
 
-            assert!(
-                error
-                    .to_string()
-                    .contains("do not have access to path prefixes")
-            );
+            assert_eq!(path, VirtualPath::new("/real/dir/file.txt"));
         }
     }
 }

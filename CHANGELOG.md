@@ -41,6 +41,11 @@
   - Added `convert_to_virtual_path` and `convert_to_real_path` helper functions for converting between real and virtual paths, using a list of host-to-guest path mappings.
     - Can also use `VirtualPathExt::to_real_path` and `RealPathExt::to_virtual_path` extension traits for the same functionality.
 
+#### 🧩 Plugins
+
+- **Ruby**
+  - Added support for installing pre-built Ruby binaries from `jdx/ruby` when available. This is now the default instead of build from source.
+
 ## 0.59.0
 
 #### 💥 Breaking

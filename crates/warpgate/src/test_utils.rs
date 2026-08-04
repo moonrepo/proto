@@ -131,6 +131,7 @@ pub fn enable_wasm_logging(wasm_file: &Path) {
 pub struct ConfigBuilder {
     config: HashMap<String, String>,
     sandbox_root: PathBuf,
+    #[allow(dead_code)]
     sandbox_home_dir: PathBuf,
 }
 
@@ -157,8 +158,6 @@ impl ConfigBuilder {
                 sandbox: VirtualPath::new(self.sandbox_root.clone()),
             });
         }
-
-        // TODO virtual paths?
 
         self.config
     }

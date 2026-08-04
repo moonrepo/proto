@@ -284,13 +284,14 @@ impl PluginContainer {
 
     /// Convert the provided virtual guest path to an absolute host path.
     pub fn to_real_path(&self, path: impl AsRef<Path> + Debug) -> RealPath {
-        convert_to_real_path(&path, &self.virtual_paths).unwrap_or_else(|| RealPath::new(path))
+        convert_to_real_path(&path, &self.virtual_paths)
+            .unwrap_or_else(|| RealPath::new(path.as_ref().as_os_str()))
     }
 
     /// Convert the provided absolute host path to a virtual guest path.
     pub fn to_virtual_path(&self, path: impl AsRef<Path> + Debug) -> VirtualPath {
         convert_to_virtual_path(&path, &self.virtual_paths)
-            .unwrap_or_else(|| VirtualPath::new(path))
+            .unwrap_or_else(|| VirtualPath::new(path.as_ref().as_os_str()))
     }
 
     /// Call a function on the plugin with the given raw input and return the raw output.
