@@ -1,5 +1,5 @@
 pub use super::manage_error::ProtoManageError;
-use crate::flow::install::{InstallOptions, Installer, ProtoInstallError};
+use crate::flow::install::{InstallOptions, Installer};
 use crate::flow::link::Linker;
 use crate::flow::lock::Locker;
 use crate::flow::resolve::Resolver;
@@ -13,6 +13,13 @@ use starbase_utils::fs;
 use std::collections::{BTreeMap, BTreeSet};
 use tracing::{debug, instrument};
 
+#[allow(clippy::large_enum_variant)]
+enum InstallOutcome {
+    AlreadyInstalled,
+    InstalledConcurrently,
+    Installed(LockRecord),
+}
+
 /// Set up and tears down tools.
 pub struct Manager<'tool> {
     tool: &'tool mut Tool,
@@ -25,6 +32,10 @@ impl<'tool> Manager<'tool> {
 
     /// Setup the tool by resolving a semantic version, installing the tool,
     /// locating binaries, creating shims, and more.
+    ///
+    /// Concurrent installs of the same version, from any process, are
+    /// serialized through a lock on the version-keyed temp directory, and
+    /// only the first will do the actual work.
     #[instrument(skip(self, options))]
     pub async fn install(
         &mut self,
@@ -35,36 +46,105 @@ impl<'tool> Manager<'tool> {
         let strategy = install_strategy_name(&options.strategy);
         let mut cache = "unknown";
 
+        // Lock the version-keyed temporary directory instead of the
+        // install directory, because the latter needs to be clean for
+        // "build from source", and the `.lock` file breaks that contract
+        let temp_dir = self.tool.get_version_temp_dir(spec);
+        let mut install_lock = fs::lock_directory(&temp_dir)?;
+
         let result = async {
-            let version = Resolver::resolve(self.tool, spec, false).await?;
-            let cache_hit = self.tool.is_installed(spec) && !options.force;
-            cache = cache_status(cache_hit);
+            match self.do_install(spec, options).await? {
+                InstallOutcome::AlreadyInstalled | InstallOutcome::InstalledConcurrently => {
+                    cache = "hit";
+                    self.post_install(spec, None).await?;
 
-            let record = match Installer::new(self.tool, spec).install(options).await? {
-                // Update lock record with resolved spec information
-                Some(mut record) => {
-                    record.version = Some(version.clone());
-                    record.spec = Some(spec.req.clone());
-                    record
+                    Ok(None)
                 }
-                // Return an existing lock record if already installed
-                None => {
-                    self.post_install(spec, false).await?;
+                InstallOutcome::Installed(record) => {
+                    cache = "miss";
+                    self.post_install(spec, Some(&record)).await?;
 
-                    return Ok(Locker::new(self.tool)
-                        .get_resolved_locked_record(spec)
-                        .cloned());
+                    Ok(Some(record))
                 }
-            };
+            }
+        }
+        .await;
 
+        // Unlock and then remove the version-keyed temp directory. Removal must
+        // happen after unlocking, as some platforms (Windows) cannot delete a
+        // directory containing an open lock file.
+        install_lock.unlock()?;
+        let _ = fs::remove_dir_all(temp_dir);
+
+        timer.record_tool_install(&self.tool.context, strategy, cache, result)
+    }
+
+    async fn do_install(
+        &mut self,
+        spec: &mut ToolSpec,
+        options: InstallOptions,
+    ) -> Result<InstallOutcome, ProtoManageError> {
+        let version = Resolver::resolve(self.tool, spec, false).await?;
+
+        if self.tool.is_installed(spec) && !options.force {
+            return Ok(InstallOutcome::AlreadyInstalled);
+        }
+
+        // While we were waiting on the lock, another process may have
+        // installed this version, so merge the latest manifest from
+        // disk and check again
+        if self.was_installed_concurrently(spec, &options).await? {
+            return Ok(InstallOutcome::InstalledConcurrently);
+        }
+
+        let record = match Installer::new(self.tool, spec).install(options).await {
+            // Update lock record with resolved spec information
+            Ok(Some(mut record)) => {
+                record.version = Some(version.clone());
+                record.spec = Some(spec.req.clone());
+                record
+            }
+            // Return an existing lock record if already installed
+            Ok(None) => {
+                return Ok(InstallOutcome::AlreadyInstalled);
+            }
+            // Clean up our partial install if it failed. This can never
+            // delete a live install: reaching the installer requires the
+            // version to not be installed, or `force` to be set, in which
+            // case the directory contents are already suspect
+            Err(error) => {
+                debug!(
+                    tool = self.tool.context.as_str(),
+                    install_dir = ?self.tool.get_product_dir(spec),
+                    "Failed to install tool, cleaning up",
+                );
+
+                let _ = fs::remove_dir_all(self.tool.get_product_dir(spec));
+
+                return Err(error.into());
+            }
+        };
+
+        Ok(InstallOutcome::Installed(record))
+    }
+
+    #[instrument(skip(self))]
+    async fn post_install(
+        &mut self,
+        spec: &mut ToolSpec,
+        record: Option<&LockRecord>,
+    ) -> Result<(), ProtoManageError> {
+        if let Some(record) = record {
             // Add record to lockfile
             if spec.update_lockfile {
-                Locker::new(self.tool).insert_record_into_lockfile(&record)?;
+                Locker::new(self.tool).insert_record_into_lockfile(record)?;
             }
 
-            // Add version to manifest
+            // Add version to manifest and persist it *before* releasing the
+            // lock, so that other processes waiting on the lock immediately
+            // see the completed install once they acquire it
             self.tool.inventory.manifest.add_version(
-                &version,
+                record.version.as_ref().unwrap(),
                 ToolManifestVersion {
                     lock: Some(record.for_manifest()),
                     suffix: self.tool.inventory.config.version_suffix.clone(),
@@ -72,22 +152,11 @@ impl<'tool> Manager<'tool> {
                 },
             );
 
-            self.post_install(spec, true).await?;
-
-            Ok(Some(record))
+            self.tool.inventory.manifest.save()?;
         }
-        .await;
 
-        timer.record_tool_install(&self.tool.context, strategy, cache, result)
-    }
-
-    #[instrument(skip(self))]
-    async fn post_install(&self, spec: &mut ToolSpec, force: bool) -> Result<(), ProtoManageError> {
         // Link all the things
-        Linker::link(self.tool, spec, force).await?;
-
-        // Remove temp files
-        self.cleanup().await?;
+        Linker::link(self.tool, spec, record.is_some()).await?;
 
         Ok(())
     }
@@ -140,7 +209,9 @@ impl<'tool> Manager<'tool> {
         timer.record_tool_uninstall(&self.tool.context, "version", cache, result)
     }
 
-    /// Delete temporary files and downloads for the current version.
+    /// Delete temporary files and downloads for this tool. Directories that
+    /// are locked by another process (an install currently in progress) are
+    /// skipped, so that we don't delete its lock file or in-flight downloads.
     #[instrument(skip(self))]
     pub async fn cleanup(&self) -> Result<(), ProtoManageError> {
         debug!(
@@ -148,9 +219,31 @@ impl<'tool> Manager<'tool> {
             "Cleaning up temporary files and downloads"
         );
 
-        fs::remove_dir_all(self.tool.get_temp_dir()).map_err(|error| {
-            ProtoManageError::Install(Box::new(ProtoInstallError::Fs(Box::new(error))))
-        })?;
+        let temp_dir = self.tool.get_temp_dir();
+
+        if !temp_dir.exists() {
+            return Ok(());
+        }
+
+        for entry in fs::read_dir(temp_dir)? {
+            let path = entry.path();
+
+            if path.is_dir() {
+                if fs::is_dir_locked(&path) {
+                    debug!(
+                        tool = self.tool.context.as_str(),
+                        dir = ?path,
+                        "Skipping temporary directory, an install is currently in progress"
+                    );
+
+                    continue;
+                }
+
+                fs::remove_dir_all(&path)?;
+            } else {
+                fs::remove_file(&path)?;
+            }
+        }
 
         Ok(())
     }
@@ -212,6 +305,25 @@ impl<'tool> Manager<'tool> {
         self.tool.inventory.manifest.save()?;
 
         Ok(())
+    }
+
+    async fn was_installed_concurrently(
+        &mut self,
+        spec: &ToolSpec,
+        options: &InstallOptions,
+    ) -> Result<bool, ProtoManageError> {
+        self.tool.inventory.manifest.reload_from_disk()?;
+
+        if self.tool.is_installed(spec) && !options.force {
+            debug!(
+                tool = self.tool.context.as_str(),
+                "Tool was installed by another process while waiting on the install lock, continuing"
+            );
+
+            return Ok(true);
+        }
+
+        Ok(false)
     }
 }
 

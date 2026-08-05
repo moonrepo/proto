@@ -15,7 +15,7 @@ use starbase_archive::get_compression_extensions;
 use starbase_shell::{ShellType, join_exe_args};
 use starbase_styles::color;
 use starbase_utils::net::DownloadOptions;
-use starbase_utils::{fs, hash, net, path};
+use starbase_utils::{fs, net, path};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use system_env::System;
@@ -65,9 +65,7 @@ impl<'tool> Installer<'tool> {
     pub fn new(tool: &'tool Tool, spec: &'tool ToolSpec) -> Self {
         Self {
             product_dir: tool.get_product_dir(spec),
-            temp_dir: tool
-                .get_temp_dir()
-                .join(hash::base64::from_bytes(spec.req.to_string())),
+            temp_dir: tool.get_version_temp_dir(spec),
             tool,
             spec,
         }
@@ -75,6 +73,12 @@ impl<'tool> Installer<'tool> {
 
     /// Install a tool into proto, either by downloading and unpacking
     /// a pre-built archive, or by using a native installation method.
+    ///
+    /// This method does not guard against concurrent installs, and does not
+    /// clean up partial state when erroring. Cross-process mutual exclusion,
+    /// completion bookkeeping, and cleanup are provided by
+    /// [`Manager::install`](crate::flow::manage::Manager), which wraps this
+    /// call in a lock on [`Installer::temp_dir`].
     #[instrument(skip(self, options))]
     pub async fn install(
         &self,
@@ -93,10 +97,8 @@ impl<'tool> Installer<'tool> {
             return Err(ProtoInstallError::RequiredInternetConnection);
         }
 
-        // Lock the temporary directory instead of the install directory,
-        // because the latter needs to be clean for "build from source",
-        // and the `.lock` file breaks that contract
-        let mut install_lock = fs::lock_directory(&self.temp_dir)?;
+        // Downloads (and the lock file managed by the caller) live here
+        fs::create_dir_all(&self.temp_dir)?;
 
         // If this function is defined, it acts like an escape hatch and
         // takes precedence over all other install strategies
@@ -153,7 +155,7 @@ impl<'tool> Installer<'tool> {
         }
 
         // Build the tool from source
-        let mut result = if matches!(options.strategy, InstallStrategy::BuildFromSource) {
+        let result = if matches!(options.strategy, InstallStrategy::BuildFromSource) {
             self.build_from_source(options).await
         }
         // Install from a prebuilt archive
@@ -162,49 +164,32 @@ impl<'tool> Installer<'tool> {
         };
 
         // Ensure that we installed something
-        if result.is_ok()
-            && (!self.product_dir.exists() || fs::read_dir(&self.product_dir)?.is_empty())
-        {
-            result = Err(ProtoInstallError::FailedInstallNoFiles {
-                tool: self.tool.get_name().to_owned(),
-                dir: self.product_dir.clone(),
-            });
-        }
-
-        match result {
+        let record = match result {
             Ok(record) => {
-                // Verify against lockfile
-                Locker::new(self.tool).verify_locked_record(self.spec, &record)?;
+                if !self.product_dir.exists() || fs::read_dir(&self.product_dir)?.is_empty() {
+                    return Err(ProtoInstallError::FailedInstallNoFiles {
+                        tool: self.tool.get_name().to_owned(),
+                        dir: self.product_dir.clone(),
+                    });
+                }
 
-                debug!(
-                    tool = self.tool.context.as_str(),
-                    install_dir = ?self.product_dir,
-                    "Successfully installed tool",
-                );
-
-                install_lock.unlock()?;
-
-                let _ = fs::remove_dir_all(&self.temp_dir);
-
-                Ok(Some(record))
+                record
             }
-
-            // Clean up if the install failed
             Err(error) => {
-                debug!(
-                    tool = self.tool.context.as_str(),
-                    install_dir = ?self.product_dir,
-                    "Failed to install tool, cleaning up",
-                );
-
-                install_lock.unlock()?;
-
-                let _ = fs::remove_dir_all(&self.product_dir);
-                let _ = fs::remove_dir_all(&self.temp_dir);
-
-                Err(error)
+                return Err(error);
             }
-        }
+        };
+
+        // Verify against lockfile
+        Locker::new(self.tool).verify_locked_record(self.spec, &record)?;
+
+        debug!(
+            tool = self.tool.context.as_str(),
+            install_dir = ?self.product_dir,
+            "Successfully installed tool",
+        );
+
+        Ok(Some(record))
     }
 
     /// Build the tool from source using a set of requirements and instructions
