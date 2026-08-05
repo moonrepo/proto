@@ -15,7 +15,7 @@ use proto_pdk_api::{
 use rustc_hash::FxHashMap;
 use starbase_styles::color;
 use starbase_utils::net::DownloadOptions;
-use starbase_utils::{fs, path};
+use starbase_utils::{fs, hash, path};
 use std::fmt::{self, Debug};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -191,6 +191,18 @@ impl Tool {
         &self.inventory.temp_dir
     }
 
+    /// Return an absolute path to a temp directory unique to the resolved
+    /// version of this tool. Downloads are staged here, and the directory
+    /// also acts as the lock root that serializes concurrent installs of
+    /// the same version. This *requires* the spec to have been resolved
+    /// before hand, so that all processes derive the same path regardless
+    /// of the version requirement they started from.
+    pub fn get_version_temp_dir(&self, spec: &ToolSpec) -> PathBuf {
+        self.get_temp_dir().join(hash::base64::from_bytes(
+            spec.get_resolved_version().to_string(),
+        ))
+    }
+
     /// Return an absolute path to the tool's install directory for the currently resolved version.
     pub fn get_product_dir(&self, spec: &ToolSpec) -> PathBuf {
         match &spec.version {
@@ -208,6 +220,7 @@ impl Tool {
     /// have been resolved before hand.
     pub fn is_installed(&self, spec: &ToolSpec) -> bool {
         let dir = self.get_product_dir(spec);
+        let lock_dir = self.get_version_temp_dir(spec);
 
         debug!(
             tool = self.context.as_str(),
@@ -218,7 +231,7 @@ impl Tool {
         let installed = spec.version.as_ref().is_some_and(|v| {
             !v.is_latest() && self.inventory.manifest.installed_versions.contains(v)
         }) && dir.exists()
-            && !fs::is_dir_locked(&dir);
+            && !fs::is_dir_locked(&lock_dir);
 
         if installed {
             debug!(
