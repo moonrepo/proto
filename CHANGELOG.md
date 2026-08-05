@@ -56,6 +56,10 @@
   - Added `convert_to_virtual_path` and `convert_to_real_path` helper functions for converting between real and virtual paths, using a list of host-to-guest path mappings.
     - Can also use `VirtualPathExt::to_real_path` and `RealPathExt::to_virtual_path` extension traits for the same functionality.
 
+#### 🐞 Fixes
+
+- Fixed an issue where multiple `proto install` commands running concurrently could cause a race condition where they would all unpack to the same directory, clobbering the install.
+
 #### 🧩 Plugins
 
 - **Ruby**
