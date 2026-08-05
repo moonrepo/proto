@@ -3492,7 +3492,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.60.0"
+version = "0.60.1"
 dependencies = [
  "ai_env",
  "clap",
