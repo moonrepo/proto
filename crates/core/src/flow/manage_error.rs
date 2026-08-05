@@ -5,6 +5,7 @@ use crate::flow::locate::ProtoLocateError;
 use crate::flow::lock::ProtoLockError;
 use crate::flow::resolve::ProtoResolveError;
 use crate::layout::ProtoLayoutError;
+use starbase_utils::fs::FsError;
 use starbase_utils::json::JsonError;
 use thiserror::Error;
 use warpgate::WarpgatePluginError;
@@ -18,6 +19,10 @@ pub enum ProtoManageError {
     #[diagnostic(transparent)]
     #[error(transparent)]
     Install(#[from] Box<ProtoInstallError>),
+
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Fs(#[from] Box<FsError>),
 
     #[diagnostic(transparent)]
     #[error(transparent)]
@@ -57,6 +62,12 @@ impl From<ProtoConfigError> for ProtoManageError {
 impl From<ProtoInstallError> for ProtoManageError {
     fn from(e: ProtoInstallError) -> ProtoManageError {
         ProtoManageError::Install(Box::new(e))
+    }
+}
+
+impl From<FsError> for ProtoManageError {
+    fn from(e: FsError) -> ProtoManageError {
+        ProtoManageError::Fs(Box::new(e))
     }
 }
 

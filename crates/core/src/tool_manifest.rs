@@ -80,6 +80,33 @@ impl ToolManifest {
         Ok(())
     }
 
+    /// Reload the manifest from disk and merge its contents into this
+    /// instance, without discarding unsaved in-memory changes (on conflict,
+    /// the in-memory entry wins). Versions removed from disk by another
+    /// process are *not* removed here.
+    ///
+    /// This exists to observe installs completed by other processes after
+    /// this manifest was first loaded, e.g. while waiting on an install lock.
+    #[instrument(skip(self))]
+    pub fn reload_from_disk(&mut self) -> Result<(), JsonError> {
+        if !self.path.exists() {
+            return Ok(());
+        }
+
+        debug!(file = ?self.path, "Reloading and merging latest {} from disk", MANIFEST_NAME);
+
+        let disk = Self::load(&self.path)?;
+
+        self.shim_version = self.shim_version.max(disk.shim_version);
+        self.installed_versions.extend(disk.installed_versions);
+
+        for (version, meta) in disk.versions {
+            self.versions.entry(version).or_insert(meta);
+        }
+
+        Ok(())
+    }
+
     pub fn add_version(&mut self, version: &VersionSpec, meta: ToolManifestVersion) {
         self.installed_versions.insert(version.to_owned());
         self.versions.insert(version.to_owned(), meta);
