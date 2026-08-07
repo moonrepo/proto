@@ -3492,7 +3492,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.60.1"
+version = "0.60.2"
 dependencies = [
  "ai_env",
  "clap",
@@ -5846,7 +5846,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.35.0"
+version = "0.35.1"
 dependencies = [
  "async-trait",
  "compact_str 0.10.0",
@@ -5882,7 +5882,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_api"
-version = "0.18.0"
+version = "0.18.1"
 dependencies = [
  "anyhow",
  "derive_setters",
