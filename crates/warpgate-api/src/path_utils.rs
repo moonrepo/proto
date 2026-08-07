@@ -1,7 +1,7 @@
 use crate::real_path::RealPath;
 use crate::virtual_path::VirtualPath;
 use serde::{Deserialize, Serialize};
-use std::fmt::{Debug, Display};
+use std::fmt::Display;
 use std::path::{Path, PathBuf};
 
 #[cfg(any(unix, target_os = "wasi"))]
@@ -38,7 +38,7 @@ pub fn sort_paths_list(paths_list: &mut [(PathBuf, PathBuf)]) {
 /// If the host path does not match any of the provided virtual paths,
 /// it will return `None`.
 pub fn convert_to_virtual_path(
-    path: impl AsRef<Path> + Debug,
+    path: impl AsRef<Path>,
     paths_list: &[(PathBuf, PathBuf)],
 ) -> Option<VirtualPath> {
     let path = path.as_ref();
@@ -62,7 +62,7 @@ pub fn convert_to_virtual_path(
 /// If the guest path does not match any of the provided virtual paths,
 /// it will return `None`.
 pub fn convert_to_real_path(
-    path: impl AsRef<Path> + Debug,
+    path: impl AsRef<Path>,
     paths_list: &[(PathBuf, PathBuf)],
 ) -> Option<RealPath> {
     let path = path.as_ref();
@@ -87,7 +87,7 @@ pub fn convert_to_real_path(
 /// does not match any of the provided virtual paths,
 /// it will return the original path.
 pub fn convert_to_real_native_path(
-    path: impl AsRef<Path> + Debug,
+    path: impl AsRef<Path>,
     paths_list: &[(PathBuf, PathBuf)],
 ) -> PathBuf {
     let path = path.as_ref();

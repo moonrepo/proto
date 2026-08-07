@@ -115,7 +115,9 @@ pub struct PluginContainer {
     /// Mapping of virtual paths, from host to guest paths.
     pub virtual_paths: Vec<(PathBuf, PathBuf)>,
 
-    debug_call: bool,
+    cache: bool,
+    debug: bool,
+
     func_cache: Arc<scc::HashMap<String, Vec<u8>>>,
     on_call_func: Arc<OnceLock<OnCallFn>>,
     plugin: Arc<RwLock<Plugin>>,
@@ -165,16 +167,9 @@ impl PluginContainer {
             id,
             func_cache: Arc::new(scc::HashMap::new()),
             on_call_func: Arc::new(OnceLock::new()),
-            debug_call: bool_var("WARPGATE_DEBUG_CALL"),
+            cache: !bool_var("WARPGATE_NO_FUNC_CACHE"),
+            debug: bool_var("WARPGATE_DEBUG_CALL"),
         })
-    }
-
-    /// Create a new container with the provided manifest.
-    pub fn new_without_functions(
-        id: Id,
-        manifest: Manifest,
-    ) -> Result<PluginContainer, WarpgatePluginError> {
-        Self::new(id, manifest, [])
     }
 
     /// Set a callback handler to be executed when calling a plugin function.
@@ -205,6 +200,10 @@ impl PluginContainer {
         I: Debug + Serialize,
         O: Debug + DeserializeOwned,
     {
+        if !self.cache {
+            return self.call_func_with(func, input).await;
+        }
+
         let func = func.as_ref();
         let input = self.format_input(func, input)?;
         let cache_key = format!("{func}-{}", hash::base64::from_bytes(&input));
@@ -267,33 +266,6 @@ impl PluginContainer {
         Ok(())
     }
 
-    /// Return true if the plugin has a function with the given id.
-    #[instrument(skip(self))]
-    pub async fn has_func(&self, func: impl AsRef<str> + Debug) -> bool {
-        let func = func.as_ref();
-
-        match self.func_cache.entry_async(func.into()).await {
-            Entry::Occupied(entry) => entry.get()[0] == 1,
-            Entry::Vacant(entry) => {
-                let exists = self.plugin.read().await.function_exists(func);
-                entry.insert_entry(vec![exists as u8]);
-                exists
-            }
-        }
-    }
-
-    /// Convert the provided virtual guest path to an absolute host path.
-    pub fn to_real_path(&self, path: impl AsRef<Path> + Debug) -> RealPath {
-        convert_to_real_path(&path, &self.virtual_paths)
-            .unwrap_or_else(|| RealPath::new(path.as_ref().as_os_str()))
-    }
-
-    /// Convert the provided absolute host path to a virtual guest path.
-    pub fn to_virtual_path(&self, path: impl AsRef<Path> + Debug) -> VirtualPath {
-        convert_to_virtual_path(&path, &self.virtual_paths)
-            .unwrap_or_else(|| VirtualPath::new(path.as_ref().as_os_str()))
-    }
-
     /// Call a function on the plugin with the given raw input and return the raw output.
     #[instrument(skip(self, input))]
     pub async fn call(&self, func: &str, input: String) -> Result<Vec<u8>, WarpgatePluginError> {
@@ -305,7 +277,7 @@ impl PluginContainer {
         trace!(
             id = self.id.as_str(),
             plugin = &uuid,
-            input = %(if input.len() > truncate_size && !self.debug_call {
+            input = %(if input.len() > truncate_size && !self.debug {
                 "(truncated)"
             } else {
                 &input
@@ -366,7 +338,7 @@ impl PluginContainer {
         trace!(
             id = self.id.as_str(),
             plugin = &uuid,
-            output = %(if output.len() > truncate_size && !self.debug_call {
+            output = %(if output.len() > truncate_size && !self.debug {
                 "(truncated)".to_string()
             } else {
                 String::from_utf8_lossy(&output).to_string()
@@ -381,6 +353,66 @@ impl PluginContainer {
         }
 
         Ok(output)
+    }
+
+    /// Return true if the plugin has a function with the given id.
+    #[instrument(skip(self))]
+    pub async fn has_func<T>(&self, func: T) -> bool
+    where
+        T: AsRef<str> + Debug,
+    {
+        let func = func.as_ref();
+
+        match self.func_cache.entry_async(func.into()).await {
+            Entry::Occupied(entry) => entry.get()[0] == 1,
+            Entry::Vacant(entry) => {
+                let exists = self.plugin.read().await.function_exists(func);
+                entry.insert_entry(vec![exists as u8]);
+                exists
+            }
+        }
+    }
+
+    /// Convert the provided virtual guest path to an absolute host path.
+    pub fn to_real_path<P>(&self, path: P) -> RealPath
+    where
+        P: AsRef<Path>,
+    {
+        convert_to_real_path(&path, &self.virtual_paths)
+            .unwrap_or_else(|| RealPath::new(path.as_ref().as_os_str()))
+    }
+
+    /// Convert the provided list of virtual guest paths to an absolute host paths.
+    pub fn to_real_paths<I, P>(&self, paths: I) -> Vec<RealPath>
+    where
+        I: IntoIterator<Item = P>,
+        P: AsRef<Path>,
+    {
+        paths
+            .into_iter()
+            .map(|path| self.to_real_path(path))
+            .collect()
+    }
+
+    /// Convert the provided absolute host path to a virtual guest path.
+    pub fn to_virtual_path<P>(&self, path: P) -> VirtualPath
+    where
+        P: AsRef<Path>,
+    {
+        convert_to_virtual_path(&path, &self.virtual_paths)
+            .unwrap_or_else(|| VirtualPath::new(path.as_ref().as_os_str()))
+    }
+
+    /// Convert the provided list of absolute host paths to virtual guest paths.
+    pub fn to_virtual_paths<I, P>(&self, paths: I) -> Vec<VirtualPath>
+    where
+        I: IntoIterator<Item = P>,
+        P: AsRef<Path>,
+    {
+        paths
+            .into_iter()
+            .map(|path| self.to_virtual_path(path))
+            .collect()
     }
 
     fn format_input<I: Serialize>(

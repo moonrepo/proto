@@ -247,12 +247,12 @@ impl Tool {
     }
 
     /// Convert a virtual path to a real path.
-    pub fn to_real_path(&self, path: impl AsRef<Path> + Debug) -> RealPath {
+    pub fn to_real_path(&self, path: impl AsRef<Path>) -> RealPath {
         self.plugin.to_real_path(path)
     }
 
     /// Convert a real path to a virtual path.
-    pub fn to_virtual_path(&self, path: impl AsRef<Path> + Debug) -> VirtualPath {
+    pub fn to_virtual_path(&self, path: impl AsRef<Path>) -> VirtualPath {
         self.plugin.to_virtual_path(path)
     }
 }
