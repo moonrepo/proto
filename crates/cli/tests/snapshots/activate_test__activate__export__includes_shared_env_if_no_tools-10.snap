@@ -2,6 +2,7 @@
 source: crates/cli/tests/activate_test.rs
 expression: "get_activate_output(&assert, &sandbox)"
 ---
+
 $env:KEY = value;
 if (Test-Path "env:PROTO_VERSION") {
   Remove-Item -LiteralPath "env:PROTO_VERSION";

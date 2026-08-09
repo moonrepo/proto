@@ -15,6 +15,30 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added experimental support for [Nub](https://nubjs.com/): `proto install nub`.
+- Updated nushell activate output to use `get --optional` instead of `get -i`.
+
+#### 🔩 Backends
+
+- **Cargo**
+  - Added a `locked` config setting, which will be passed to install commands as `--locked`.
+
+#### 🛠️ Tools
+
+- **Node (and package managers)**
+  - Updated version detection to loop through all possible fields (`packageManager`, `engines`, etc) to find an applicable version, instead of failing on the first invalid version.
+  - Fixed an issue where auth headers were not included in load version requests, which would cause failures for private registries.
+- **pnpm**
+  - Added experimental support for v12 (Rust based implementation).
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.60.0
 
 #### 💥 Breaking

@@ -682,7 +682,7 @@ builtin-plugins = true
             let plugins = config.builtin_plugins();
 
             assert_eq!(plugins.backends.len(), 3);
-            assert_eq!(plugins.tools.len(), 22);
+            assert_eq!(plugins.tools.len(), 23);
         }
 
         #[test]
@@ -834,7 +834,7 @@ builtin-backends = false
             let plugins = config.builtin_plugins();
 
             assert_eq!(plugins.backends.len(), 0);
-            assert_eq!(plugins.tools.len(), 22);
+            assert_eq!(plugins.tools.len(), 23);
         }
 
         #[test]
@@ -858,7 +858,7 @@ builtin-backends = []
             let plugins = config.builtin_plugins();
 
             assert_eq!(plugins.backends.len(), 0);
-            assert_eq!(plugins.tools.len(), 22);
+            assert_eq!(plugins.tools.len(), 23);
         }
     }
 

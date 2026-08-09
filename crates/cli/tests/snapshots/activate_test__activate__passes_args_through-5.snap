@@ -2,6 +2,7 @@
 source: crates/cli/tests/activate_test.rs
 expression: "get_activate_output(&assert, &sandbox)"
 ---
+
 set -gx __ORIG_PATH $PATH
 
 function _proto_activate_hook --on-variable PWD;

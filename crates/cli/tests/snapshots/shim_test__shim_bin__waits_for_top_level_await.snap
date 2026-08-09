@@ -5,5 +5,3 @@ expression: get_assert_output(&assert)
 start
 running
 stop
-
-
