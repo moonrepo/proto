@@ -4,5 +4,3 @@ expression: get_assert_output(&assert)
 ---
 stdout
 stderr
-
-
