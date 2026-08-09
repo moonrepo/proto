@@ -236,6 +236,24 @@ macro_rules! create_path_type {
             }
         }
 
+        impl AsMut<PathBuf> for $name {
+            fn as_mut(&mut self) -> &mut PathBuf {
+                &mut self.0
+            }
+        }
+
+        impl AsMut<Path> for $name {
+            fn as_mut(&mut self) -> &mut Path {
+                &mut self.0
+            }
+        }
+
+        impl AsMut<std::ffi::OsStr> for $name {
+            fn as_mut(&mut self) -> &mut std::ffi::OsStr {
+                self.0.as_mut_os_str()
+            }
+        }
+
         impl std::ops::DerefMut for $name {
             fn deref_mut(&mut self) -> &mut Self::Target {
                 &mut self.0
