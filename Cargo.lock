@@ -3406,7 +3406,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.60.0"
+version = "0.60.1"
 dependencies = [
  "ai_env",
  "anyhow",
@@ -3467,7 +3467,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.60.2"
+version = "0.60.3"
 dependencies = [
  "ai_env",
  "clap",
