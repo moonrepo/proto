@@ -340,6 +340,26 @@ mod plugins {
         }
 
         #[test]
+        fn supports_nub() {
+            let sandbox = create_empty_proto_sandbox();
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("nub");
+                })
+                .success();
+
+            create_shim_command(sandbox.path(), "nub")
+                .arg("--version")
+                .assert()
+                .success();
+
+            assert_snapshot!(
+                fs::read_to_string(sandbox.path().join(".proto/shims/registry.json")).unwrap()
+            );
+        }
+
+        #[test]
         fn supports_python() {
             let sandbox = create_empty_proto_sandbox();
 

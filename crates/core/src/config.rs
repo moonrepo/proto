@@ -153,7 +153,7 @@ impl ProtoConfig {
         if !backends.contains_key("cargo") && is_backend_allowed("cargo") {
             backends.insert(
                 Id::raw("cargo"),
-                find_debug_locator_with_fallback("cargo_backend", "0.1.5"),
+                find_debug_locator_with_fallback("cargo_backend", "0.1.6"),
             );
         }
 
@@ -206,15 +206,15 @@ impl ProtoConfig {
         if !tools.contains_key("node") && is_tool_allowed("node") {
             tools.insert(
                 Id::raw("node"),
-                find_debug_locator_with_fallback("node_tool", "0.17.11"),
+                find_debug_locator_with_fallback("node_tool", "0.17.12"),
             );
         }
 
-        for depman in ["npm", "pnpm", "yarn"] {
+        for depman in ["npm", "nub", "pnpm", "yarn"] {
             if !tools.contains_key(depman) && is_tool_allowed(depman) {
                 tools.insert(
                     Id::raw(depman),
-                    find_debug_locator_with_fallback("node_depman_tool", "0.19.1"),
+                    find_debug_locator_with_fallback("node_depman_tool", "0.20.1"),
                 );
             }
         }

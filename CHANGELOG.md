@@ -17,6 +17,23 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- Added experimental support for [Nub](https://nubjs.com/): `proto install nub`.
+
+#### 🔩 Backends
+
+- **Cargo**
+  - Added a `locked` config setting, which will be passed to install commands as `--locked`.
+
+#### 🛠️ Tools
+
+- **Node (and package managers)**
+  - Updated version detection to loop through all possible fields (`packageManager`, `engines`, etc) to find an applicable version, instead of failing on the first invalid version.
+  - Fixed an issue where auth headers were not included in load version requests, which would cause failures for private registries.
+- **pnpm**
+  - Added experimental support for v12 (Rust based implementation).
+
 #### ⚙️ Internal
 
 - Updated dependencies.
