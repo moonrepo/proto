@@ -6,4 +6,4 @@ unset PROTO_VERSION;
 alias ..=cd' ..';
 alias gs=git' status';
 export _PROTO_ACTIVATED_ALIASES=..,gs;
-export _PROTO_ACTIVATED_PATH=<WORKSPACE>/.proto/shims':<WORKSPACE>/.proto/bin';
+export _PROTO_ACTIVATED_PATH=<WORKSPACE>/.proto/shims:<WORKSPACE>/.proto/bin;

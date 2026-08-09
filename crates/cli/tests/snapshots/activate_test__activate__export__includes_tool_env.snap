@@ -6,4 +6,4 @@ export KEY1=value1;
 export KEY2=value2;
 unset PROTO_VERSION;
 export _PROTO_ACTIVATED_ENV=KEY1,KEY2;
-export _PROTO_ACTIVATED_PATH=<WORKSPACE>/.proto/shims':<WORKSPACE>/.proto/bin';
+export _PROTO_ACTIVATED_PATH=<WORKSPACE>/.proto/shims:<WORKSPACE>/.proto/bin;

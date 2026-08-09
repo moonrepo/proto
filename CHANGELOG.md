@@ -20,6 +20,7 @@
 #### 🚀 Updates
 
 - Added experimental support for [Nub](https://nubjs.com/): `proto install nub`.
+- Updated nushell activate output to use `get --optional` instead of `get -i`.
 
 #### 🔩 Backends
 
