@@ -19,13 +19,19 @@ export type VersionSpec = string;
 export type UnresolvedVersionSpec = string;
 
 /** Target where host logs should be written to. */
-export type HostLogTarget = 'stderr' | 'stdout' | 'debug' | 'error' | 'trace' | 'warn' | 'tracing';
+export type HostLogTarget = 'stderr' | 'stdout' | 'error' | 'warn' | 'debug' | 'trace';
 
 /** Input passed to the `host_log` host function. */
 export interface HostLogInput {
+	/** Additional data/fields to log. */
 	data?: Record<string, unknown>;
+	/** The message to log. */
 	message?: string;
-	/** @type {'stderr' | 'stdout' | 'debug' | 'error' | 'trace' | 'warn' | 'tracing'} */
+	/**
+	 * Target where the log should be written to.
+	 *
+	 * @type {'stderr' | 'stdout' | 'error' | 'warn' | 'debug' | 'trace'}
+	 */
 	target?: HostLogTarget;
 }
 
@@ -70,28 +76,49 @@ export interface ExecCommandInput {
 
 /** Output returned from the `exec_command` host function. */
 export interface ExecCommandOutput {
+	/** The command (without arguments) that was executed. */
 	command?: string;
+	/** The exit code returned from the command. */
 	exitCode?: number;
+	/** The standard error output returned from the command. */
 	stderr?: string;
+	/** The standard output returned from the command. */
 	stdout?: string;
+	/** Whether the command was streamed (inherit) or piped. */
 	streamed?: boolean;
 }
 
 /** Information about the host environment (the current runtime). */
 export interface HostEnvironment {
-	/** @type {'x86' | 'x64' | 'arm' | 'arm64' | 'longarm64' | 'm68k' | 'mips' | 'mips64' | 'powerpc' | 'powerpc64' | 'riscv64' | 's390x' | 'sparc64'} */
+	/**
+	 * The architecture of the host system.
+	 *
+	 * @type {'x86' | 'x64' | 'arm' | 'arm64' | 'longarm64' | 'm68k' | 'mips' | 'mips64' | 'powerpc' | 'powerpc64' | 'riscv64' | 's390x' | 'sparc64'}
+	 */
 	arch: SystemArch;
+	/** Whether the plugin is running in a CI environment. */
 	ci: boolean;
+	/** Virtual path to the home directory of the current user. */
 	homeDir: VirtualPath;
-	/** @type {'gnu' | 'musl' | 'unknown'} */
+	/**
+	 * The libc implementation of the host system.
+	 *
+	 * @type {'gnu' | 'musl' | 'unknown'}
+	 */
 	libc: SystemLibc;
-	/** @type {'android' | 'dragonfly' | 'freebsd' | 'ios' | 'linux' | 'macos' | 'netbsd' | 'openbsd' | 'solaris' | 'windows'} */
+	/**
+	 * The operating system of the host system.
+	 *
+	 * @type {'android' | 'dragonfly' | 'freebsd' | 'ios' | 'linux' | 'macos' | 'netbsd' | 'openbsd' | 'solaris' | 'windows'}
+	 */
 	os: SystemOS;
 }
 
 /** Information about the current testing environment. */
 export interface TestEnvironment {
+	/** Whether the current test is running in a CI environment. */
 	ci: boolean;
+	/** Virtual path to the sandbox directory for the current test. */
 	sandbox: VirtualPath;
 }
 

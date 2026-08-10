@@ -15,6 +15,12 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Updated all HTTP requests to expand environment variables (`${VAR}`) in the request headers, so that you can use environment variables in your config for things like auth tokens and API keys.
+
 ## 0.60.1
 
 #### 🚀 Updates
