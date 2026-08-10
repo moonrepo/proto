@@ -335,7 +335,7 @@ fn send_request(
         let mut client = data.http_client.get(&input.url);
 
         for (name, value) in input.headers {
-            client = client.header(name, value);
+            client = client.header(name, data.http_client.expand_env_vars(&value));
         }
 
         if let Some(timeout) = plugin.time_remaining() {

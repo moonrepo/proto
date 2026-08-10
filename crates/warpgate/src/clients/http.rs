@@ -2,6 +2,7 @@ use super::WarpgateHttpClientError;
 use async_trait::async_trait;
 use core::ops::Deref;
 use netrc::Netrc;
+use regex::Regex;
 use reqwest::{Client, Response, Url};
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware, RequestBuilder, RequestInitialiser};
 use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
@@ -11,9 +12,14 @@ use starbase_utils::{
     envx, fs,
     net::{Downloader, NetError},
 };
+use std::env;
 use std::path::PathBuf;
+use std::sync::LazyLock;
 use std::time::Duration;
 use tracing::{debug, instrument, trace, warn};
+
+// ${ENV_VAR}
+static ENV_VAR: LazyLock<Regex> = LazyLock::new(|| Regex::new("\\$\\{([A-Z0-9_]+)\\}").unwrap());
 
 /// A downloader that uses our internal HTTP(S) client.
 pub struct HttpDownloader {
@@ -31,7 +37,7 @@ impl Downloader for HttpDownloader {
 
         if !self.headers.is_empty() {
             for (key, value) in &self.headers {
-                request = request.header(key, value);
+                request = request.header(key, self.client.expand_env_vars(value));
             }
         }
 
@@ -100,6 +106,17 @@ impl HttpClient {
                 url,
             },
         }
+    }
+
+    /// Expand all environment variables (`${VAR}`) in the provided value.
+    /// If the environment variable is not set, it will be replaced with the
+    /// original `${VAR}` string.
+    pub fn expand_env_vars(&self, value: &str) -> String {
+        ENV_VAR
+            .replace_all(value, |caps: &regex::Captures| {
+                env::var(&caps[1]).unwrap_or_else(|_| caps[0].to_string())
+            })
+            .to_string()
     }
 }
 
