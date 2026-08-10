@@ -3406,7 +3406,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.60.1"
+version = "0.60.2"
 dependencies = [
  "ai_env",
  "anyhow",
@@ -3467,7 +3467,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.60.3"
+version = "0.60.4"
 dependencies = [
  "ai_env",
  "clap",
@@ -5800,7 +5800,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.35.1"
+version = "0.35.2"
 dependencies = [
  "async-trait",
  "compact_str 0.10.0",
