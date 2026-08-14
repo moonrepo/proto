@@ -3,4 +3,4 @@
 set -euo pipefail
 source "$(dirname "$0")/../lib/utils.sh"
 
-install_tool python 3.12
+install_tool python 3.12.13
