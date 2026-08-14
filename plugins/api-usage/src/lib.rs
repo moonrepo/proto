@@ -5,6 +5,7 @@ use std::collections::HashMap;
 
 #[host_fn]
 extern "ExtismHost" {
+    fn download_file(input: Json<DownloadFileInput>) -> Json<DownloadFileOutput>;
     fn exec_command(input: Json<ExecCommandInput>) -> Json<ExecCommandOutput>;
     fn get_env_var(name: String) -> String;
     fn host_log(input: Json<HostLogInput>);
@@ -54,6 +55,13 @@ pub fn testing_macros(_: ()) -> FnResult<()> {
     send_request!("https://some/url");
     send_request!(input, SendRequestInput::new("https://some/url"));
 
+    // Downloads
+    download_file!("https://some/url", "/proto/temp/file");
+    download_file!(
+        input,
+        DownloadFileInput::new("https://some/url", "/proto/temp/file")
+    );
+
     // Env vars
     let name = "VAR";
 
@@ -74,6 +82,13 @@ pub fn testing_macros(_: ()) -> FnResult<()> {
     host_log!(stderr, "Message {} {} {}", 1, 2, 3);
 
     Ok(())
+}
+
+#[plugin_fn]
+pub fn testing_download_file(
+    Json(input): Json<DownloadFileInput>,
+) -> FnResult<Json<DownloadFileOutput>> {
+    Ok(Json(download(input)?))
 }
 
 #[plugin_fn]
