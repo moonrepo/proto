@@ -93,6 +93,13 @@ pub fn testing_download_file(
 }
 
 #[plugin_fn]
+pub fn testing_send_request(
+    Json(input): Json<SendRequestInput>,
+) -> FnResult<Json<SendRequestOutput>> {
+    Ok(Json(fetch(input)?))
+}
+
+#[plugin_fn]
 pub fn register_tool(_: ()) -> FnResult<Json<RegisterToolOutput>> {
     initialize_tracing();
 
