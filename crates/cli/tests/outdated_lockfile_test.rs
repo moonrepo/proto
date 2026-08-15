@@ -131,6 +131,97 @@ builtin-tools = false
     }
 
     #[test]
+    fn updates_env_config_and_its_lockfile_records() {
+        let sandbox = create_empty_proto_sandbox();
+        sandbox.create_file(
+            ".prototools",
+            r#"protostar = "4.0.0"
+protoform = "3.0.0"
+
+[settings]
+lockfile = true
+builtin-backends = false
+builtin-tools = false
+"#,
+        );
+        sandbox.create_file(".prototools.production", r#"protostar = "3.0.0""#);
+
+        let mut lock = ProtoLock::default();
+        lock.tools.insert(
+            Id::raw("protostar"),
+            vec![create_lockfile_record("4.0.0", "4.0.0")],
+        );
+        lock.tools.insert(
+            Id::raw("protoform"),
+            vec![create_lockfile_record("3.0.0", "3.0.0")],
+        );
+        lock.path = sandbox.path().join(".protolock");
+        lock.save().unwrap();
+
+        let mut lock = ProtoLock::default();
+        lock.tools.insert(
+            Id::raw("protostar"),
+            vec![create_lockfile_record("3.0.0", "3.0.0")],
+        );
+        lock.path = sandbox.path().join(".protolock.production");
+        lock.save().unwrap();
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("outdated")
+                    .arg("--update")
+                    .arg("--yes")
+                    .env("PROTO_ENV", "production");
+            })
+            .success();
+
+        // The env config takes precedence for protostar, so it was updated
+        let config = fs::read_to_string(sandbox.path().join(".prototools.production")).unwrap();
+
+        assert!(predicate::str::contains(r#"protostar = "3.10.15""#).eval(&config));
+
+        // While the base config was updated for protoform only
+        let config = fs::read_to_string(sandbox.path().join(".prototools")).unwrap();
+
+        assert!(predicate::str::contains(r#"protostar = "4.0.0""#).eval(&config));
+        assert!(predicate::str::contains(r#"protoform = "3.10.15""#).eval(&config));
+
+        // Each lockfile was migrated to match its config
+        let lock = ProtoLock::load(sandbox.path().join(".protolock.production")).unwrap();
+        let records = lock.tools.get(&Id::raw("protostar")).unwrap();
+
+        assert_eq!(records.len(), 1);
+        assert_eq!(
+            records[0].spec.as_ref().unwrap(),
+            &UnresolvedVersionSpec::parse("3.10.15").unwrap()
+        );
+        assert_eq!(
+            records[0].version.as_ref().unwrap(),
+            &VersionSpec::parse("3.10.15").unwrap()
+        );
+        assert!(records[0].checksum.is_none());
+
+        let lock = ProtoLock::load_from(sandbox.path()).unwrap();
+        let records = lock.tools.get(&Id::raw("protostar")).unwrap();
+
+        assert_eq!(records.len(), 1);
+        assert_eq!(
+            records[0].spec.as_ref().unwrap(),
+            &UnresolvedVersionSpec::parse("4.0.0").unwrap()
+        );
+        assert!(records[0].checksum.is_some());
+
+        let records = lock.tools.get(&Id::raw("protoform")).unwrap();
+
+        assert_eq!(records.len(), 1);
+        assert_eq!(
+            records[0].spec.as_ref().unwrap(),
+            &UnresolvedVersionSpec::parse("3.10.15").unwrap()
+        );
+        assert!(records[0].checksum.is_none());
+    }
+
+    #[test]
     fn doesnt_create_lockfile_if_disabled() {
         let sandbox = create_empty_proto_sandbox();
         sandbox.create_file(

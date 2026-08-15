@@ -52,11 +52,7 @@ fn spawn_echo_server() -> String {
             let mut request = Vec::new();
             let mut buffer = [0u8; 1024];
 
-            loop {
-                let Ok(bytes) = stream.read(&mut buffer) else {
-                    break;
-                };
-
+            while let Ok(bytes) = stream.read(&mut buffer) {
                 request.extend_from_slice(&buffer[..bytes]);
 
                 if bytes == 0 || request.windows(4).any(|window| window == b"\r\n\r\n") {

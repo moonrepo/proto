@@ -1,8 +1,15 @@
 use proto_core::{Id, LockRecord, ProtoFileManager, ToolContext};
 use starbase_sandbox::create_empty_sandbox;
 use std::collections::BTreeMap;
+use std::path::PathBuf;
 use version_spec::UnresolvedVersionSpec;
 use warpgate::{FileLocator, PluginLocator};
+
+fn get_locked_config_path(manager: &ProtoFileManager, id: &str) -> Option<PathBuf> {
+    manager
+        .get_locked_config(&ToolContext::parse(id).unwrap())
+        .map(|file| file.path.clone())
+}
 
 mod file_manager {
     use super::*;
@@ -358,12 +365,13 @@ spec = "7.8.9"
             )
             .unwrap();
 
-            // Each directory loads its own lockfile
+            // Each config loads its own lockfile
             let nested_lock = manager
-                .get_lock(&sandbox.path().join("one"))
+                .get_lock(&sandbox.path().join("one/.prototools"))
                 .unwrap()
                 .unwrap();
 
+            assert_eq!(nested_lock.path, sandbox.path().join("one/.protolock"));
             assert_eq!(
                 nested_lock.tools,
                 BTreeMap::from_iter([(
@@ -375,8 +383,12 @@ spec = "7.8.9"
                 )])
             );
 
-            let root_lock = manager.get_lock(sandbox.path()).unwrap().unwrap();
+            let root_lock = manager
+                .get_lock(&sandbox.path().join(".prototools"))
+                .unwrap()
+                .unwrap();
 
+            assert_eq!(root_lock.path, sandbox.path().join(".protolock"));
             assert_eq!(
                 root_lock.tools,
                 BTreeMap::from_iter([(
@@ -390,12 +402,12 @@ spec = "7.8.9"
 
             // And each tool is routed to the config that defines it
             assert_eq!(
-                manager.get_locked_dir(&ToolContext::parse("node").unwrap()),
-                Some(sandbox.path().join("one").as_path())
+                get_locked_config_path(&manager, "node"),
+                Some(sandbox.path().join("one/.prototools"))
             );
             assert_eq!(
-                manager.get_locked_dir(&ToolContext::parse("deno").unwrap()),
-                Some(sandbox.path())
+                get_locked_config_path(&manager, "deno"),
+                Some(sandbox.path().join(".prototools"))
             );
         }
 
@@ -429,22 +441,16 @@ lockfile = true
             .unwrap();
 
             // Defined in the nested (unlocked) config
-            assert_eq!(
-                manager.get_locked_dir(&ToolContext::parse("node").unwrap()),
-                None
-            );
+            assert_eq!(get_locked_config_path(&manager, "node"), None);
 
             // Defined in the locked config
             assert_eq!(
-                manager.get_locked_dir(&ToolContext::parse("deno").unwrap()),
-                Some(sandbox.path())
+                get_locked_config_path(&manager, "deno"),
+                Some(sandbox.path().join(".prototools"))
             );
 
             // Not defined anywhere, owned by the closest config (unlocked)
-            assert_eq!(
-                manager.get_locked_dir(&ToolContext::parse("bun").unwrap()),
-                None
-            );
+            assert_eq!(get_locked_config_path(&manager, "bun"), None);
         }
 
         #[test]
@@ -470,12 +476,12 @@ lockfile = true
             .unwrap();
 
             assert_eq!(
-                manager.get_locked_dir(&ToolContext::parse("node").unwrap()),
-                Some(sandbox.path())
+                get_locked_config_path(&manager, "node"),
+                Some(sandbox.path().join(".prototools"))
             );
             assert_eq!(
-                manager.get_locked_dir(&ToolContext::parse("bun").unwrap()),
-                Some(sandbox.path())
+                get_locked_config_path(&manager, "bun"),
+                Some(sandbox.path().join(".prototools"))
             );
         }
 
@@ -521,7 +527,10 @@ bun = "1.2.3"
                 None,
             )
             .unwrap();
-            let lockfile = manager.get_lock(sandbox.path()).unwrap().unwrap();
+            let lockfile = manager
+                .get_lock(&sandbox.path().join(".prototools"))
+                .unwrap()
+                .unwrap();
 
             assert_eq!(
                 lockfile.tools,
@@ -535,52 +544,7 @@ bun = "1.2.3"
             );
 
             // The nested config defines node, so the lock doesn't apply to it
-            assert_eq!(
-                manager.get_locked_dir(&ToolContext::parse("node").unwrap()),
-                None
-            );
-        }
-
-        #[test]
-        fn loads_if_only_an_env_file_exists() {
-            let sandbox = create_empty_sandbox();
-
-            sandbox.create_file(
-                ".prototools.production",
-                r#"
-node = "7.8.9"
-
-[settings]
-lockfile = true
-"#,
-            );
-
-            sandbox.create_file(
-                ".protolock",
-                r#"
-[[tools.node]]
-spec = "7.8.9"
-"#,
-            );
-
-            let manager = ProtoFileManager::load(
-                sandbox.path().join("one"),
-                Some(sandbox.path().parent().unwrap()),
-                Some(&"production".to_owned()),
-            )
-            .unwrap();
-            let lockfile = manager.get_lock(sandbox.path()).unwrap().unwrap();
-
-            assert_eq!(
-                lockfile.tools,
-                BTreeMap::from_iter([(
-                    Id::raw("node"),
-                    vec![LockRecord {
-                        spec: Some(UnresolvedVersionSpec::parse("7.8.9").unwrap()),
-                        ..Default::default()
-                    }]
-                )])
-            );
+            assert_eq!(get_locked_config_path(&manager, "node"), None);
         }
 
         #[test]
@@ -609,7 +573,12 @@ spec = "1.2.3"
             )
             .unwrap();
 
-            assert!(manager.get_lock(sandbox.path()).unwrap().is_none());
+            assert!(
+                manager
+                    .get_lock(&sandbox.path().join(".prototools"))
+                    .unwrap()
+                    .is_none()
+            );
 
             // Now testing false
             sandbox.create_file(
@@ -629,7 +598,12 @@ lockfile = false
             )
             .unwrap();
 
-            assert!(manager.get_lock(sandbox.path()).unwrap().is_none());
+            assert!(
+                manager
+                    .get_lock(&sandbox.path().join(".prototools"))
+                    .unwrap()
+                    .is_none()
+            );
         }
 
         #[test]
@@ -663,7 +637,7 @@ spec = "1.2.3"
 
             assert!(
                 manager
-                    .get_lock(&sandbox.path().join(".proto"))
+                    .get_lock(&sandbox.path().join(".proto/.prototools"))
                     .unwrap()
                     .is_none()
             );
@@ -700,7 +674,7 @@ spec = "1.2.3"
 
             assert!(
                 manager
-                    .get_lock(&sandbox.path().join(".home"))
+                    .get_lock(&sandbox.path().join(".home/.prototools"))
                     .unwrap()
                     .is_none()
             );
@@ -735,8 +709,594 @@ spec = "7.8.9"
             )
             .unwrap();
 
-            assert!(manager.get_lock(sandbox.path()).unwrap().is_none());
+            assert!(
+                manager
+                    .get_lock(&sandbox.path().join(".prototools"))
+                    .unwrap()
+                    .is_none()
+            );
             assert!(!sandbox.path().join(".protolock").exists());
+        }
+
+        mod env_mode {
+            use super::*;
+
+            #[test]
+            fn loads_a_lockfile_for_each_config() {
+                let sandbox = create_empty_sandbox();
+
+                sandbox.create_file(
+                    ".prototools.production",
+                    r#"
+node = "1.2.3"
+
+[settings]
+lockfile = true
+"#,
+                );
+
+                sandbox.create_file(
+                    ".protolock.production",
+                    r#"
+[[tools.node]]
+spec = "1.2.3"
+"#,
+                );
+
+                sandbox.create_file(
+                    ".prototools",
+                    r#"
+node = "7.8.9"
+deno = "7.8.9"
+
+[settings]
+lockfile = true
+"#,
+                );
+
+                sandbox.create_file(
+                    ".protolock",
+                    r#"
+[[tools.node]]
+spec = "7.8.9"
+"#,
+                );
+
+                let manager = ProtoFileManager::load(
+                    sandbox.path(),
+                    Some(sandbox.path().parent().unwrap()),
+                    Some(&"production".to_owned()),
+                )
+                .unwrap();
+
+                // The env config is locked to its own lockfile
+                let env_lock = manager
+                    .get_lock(&sandbox.path().join(".prototools.production"))
+                    .unwrap()
+                    .unwrap();
+
+                assert_eq!(env_lock.path, sandbox.path().join(".protolock.production"));
+                assert_eq!(
+                    env_lock.tools,
+                    BTreeMap::from_iter([(
+                        Id::raw("node"),
+                        vec![LockRecord {
+                            spec: Some(UnresolvedVersionSpec::parse("1.2.3").unwrap()),
+                            ..Default::default()
+                        }]
+                    )])
+                );
+
+                // And the base config to its own
+                let base_lock = manager
+                    .get_lock(&sandbox.path().join(".prototools"))
+                    .unwrap()
+                    .unwrap();
+
+                assert_eq!(base_lock.path, sandbox.path().join(".protolock"));
+                assert_eq!(
+                    base_lock.tools,
+                    BTreeMap::from_iter([(
+                        Id::raw("node"),
+                        vec![LockRecord {
+                            spec: Some(UnresolvedVersionSpec::parse("7.8.9").unwrap()),
+                            ..Default::default()
+                        }]
+                    )])
+                );
+
+                // The env config takes precedence for node,
+                // while deno is only defined in the base config
+                assert_eq!(
+                    get_locked_config_path(&manager, "node"),
+                    Some(sandbox.path().join(".prototools.production"))
+                );
+                assert_eq!(
+                    get_locked_config_path(&manager, "deno"),
+                    Some(sandbox.path().join(".prototools"))
+                );
+
+                // Ad-hoc tools are owned by the base config
+                assert_eq!(
+                    get_locked_config_path(&manager, "bun"),
+                    Some(sandbox.path().join(".prototools"))
+                );
+
+                assert!(sandbox.path().join(".protolock").exists());
+                assert!(sandbox.path().join(".protolock.production").exists());
+            }
+
+            #[test]
+            fn loads_if_only_an_env_file_exists() {
+                let sandbox = create_empty_sandbox();
+
+                sandbox.create_file(
+                    ".prototools.production",
+                    r#"
+node = "7.8.9"
+
+[settings]
+lockfile = true
+"#,
+                );
+
+                sandbox.create_file(
+                    ".protolock.production",
+                    r#"
+[[tools.node]]
+spec = "7.8.9"
+"#,
+                );
+
+                let manager = ProtoFileManager::load(
+                    sandbox.path().join("one"),
+                    Some(sandbox.path().parent().unwrap()),
+                    Some(&"production".to_owned()),
+                )
+                .unwrap();
+
+                let lockfile = manager
+                    .get_lock(&sandbox.path().join(".prototools.production"))
+                    .unwrap()
+                    .unwrap();
+
+                assert_eq!(
+                    lockfile.tools,
+                    BTreeMap::from_iter([(
+                        Id::raw("node"),
+                        vec![LockRecord {
+                            spec: Some(UnresolvedVersionSpec::parse("7.8.9").unwrap()),
+                            ..Default::default()
+                        }]
+                    )])
+                );
+
+                // The base config doesn't exist, so it has no lockfile
+                assert!(
+                    manager
+                        .get_lock(&sandbox.path().join(".prototools"))
+                        .unwrap()
+                        .is_none()
+                );
+
+                assert_eq!(
+                    get_locked_config_path(&manager, "node"),
+                    Some(sandbox.path().join(".prototools.production"))
+                );
+
+                // Ad-hoc tools fall back to the env config
+                // when the base config doesn't exist
+                assert_eq!(
+                    get_locked_config_path(&manager, "bun"),
+                    Some(sandbox.path().join(".prototools.production"))
+                );
+            }
+
+            #[test]
+            fn inherits_setting_from_base_config() {
+                let sandbox = create_empty_sandbox();
+
+                sandbox.create_file(
+                    ".prototools.production",
+                    r#"
+node = "1.2.3"
+"#,
+                );
+
+                sandbox.create_file(
+                    ".prototools",
+                    r#"
+node = "7.8.9"
+
+[settings]
+lockfile = true
+"#,
+                );
+
+                let manager = ProtoFileManager::load(
+                    sandbox.path(),
+                    Some(sandbox.path().parent().unwrap()),
+                    Some(&"production".to_owned()),
+                )
+                .unwrap();
+
+                // Both configs are locked, even though only the base
+                // config enabled the setting
+                assert!(
+                    manager
+                        .get_lock(&sandbox.path().join(".prototools.production"))
+                        .unwrap()
+                        .is_some()
+                );
+                assert!(
+                    manager
+                        .get_lock(&sandbox.path().join(".prototools"))
+                        .unwrap()
+                        .is_some()
+                );
+
+                assert_eq!(
+                    get_locked_config_path(&manager, "node"),
+                    Some(sandbox.path().join(".prototools.production"))
+                );
+            }
+
+            #[test]
+            fn can_disable_setting_inherited_from_base_config() {
+                let sandbox = create_empty_sandbox();
+
+                sandbox.create_file(
+                    ".prototools.production",
+                    r#"
+node = "1.2.3"
+
+[settings]
+lockfile = false
+"#,
+                );
+
+                sandbox.create_file(
+                    ".protolock.production",
+                    r#"
+[[tools.node]]
+spec = "1.2.3"
+"#,
+                );
+
+                sandbox.create_file(
+                    ".prototools",
+                    r#"
+node = "7.8.9"
+deno = "7.8.9"
+
+[settings]
+lockfile = true
+"#,
+                );
+
+                sandbox.create_file(
+                    ".protolock",
+                    r#"
+[[tools.node]]
+spec = "7.8.9"
+"#,
+                );
+
+                let manager = ProtoFileManager::load(
+                    sandbox.path(),
+                    Some(sandbox.path().parent().unwrap()),
+                    Some(&"production".to_owned()),
+                )
+                .unwrap();
+
+                // The env lockfile is disabled and removed
+                assert!(
+                    manager
+                        .get_lock(&sandbox.path().join(".prototools.production"))
+                        .unwrap()
+                        .is_none()
+                );
+                assert!(!sandbox.path().join(".protolock.production").exists());
+
+                // But the base lockfile is untouched
+                assert!(
+                    manager
+                        .get_lock(&sandbox.path().join(".prototools"))
+                        .unwrap()
+                        .is_some()
+                );
+                assert!(sandbox.path().join(".protolock").exists());
+
+                // The env config defines node but is not locked, and
+                // never falls through to the base config
+                assert_eq!(get_locked_config_path(&manager, "node"), None);
+                assert_eq!(
+                    get_locked_config_path(&manager, "deno"),
+                    Some(sandbox.path().join(".prototools"))
+                );
+            }
+
+            #[test]
+            fn doesnt_apply_setting_from_env_config_to_base_config() {
+                let sandbox = create_empty_sandbox();
+
+                sandbox.create_file(
+                    ".prototools.production",
+                    r#"
+node = "1.2.3"
+
+[settings]
+lockfile = true
+"#,
+                );
+
+                sandbox.create_file(
+                    ".prototools",
+                    r#"
+node = "7.8.9"
+deno = "7.8.9"
+"#,
+                );
+
+                sandbox.create_file(
+                    ".protolock",
+                    r#"
+[[tools.node]]
+spec = "7.8.9"
+"#,
+                );
+
+                let manager = ProtoFileManager::load(
+                    sandbox.path(),
+                    Some(sandbox.path().parent().unwrap()),
+                    Some(&"production".to_owned()),
+                )
+                .unwrap();
+
+                assert!(
+                    manager
+                        .get_lock(&sandbox.path().join(".prototools.production"))
+                        .unwrap()
+                        .is_some()
+                );
+
+                // The base config didn't enable the setting,
+                // so its lockfile is removed
+                assert!(
+                    manager
+                        .get_lock(&sandbox.path().join(".prototools"))
+                        .unwrap()
+                        .is_none()
+                );
+                assert!(!sandbox.path().join(".protolock").exists());
+
+                assert_eq!(
+                    get_locked_config_path(&manager, "node"),
+                    Some(sandbox.path().join(".prototools.production"))
+                );
+                assert_eq!(get_locked_config_path(&manager, "deno"), None);
+            }
+
+            #[test]
+            fn ignores_env_lockfile_when_mode_not_defined() {
+                let sandbox = create_empty_sandbox();
+
+                sandbox.create_file(
+                    ".prototools.production",
+                    r#"
+node = "1.2.3"
+
+[settings]
+lockfile = true
+"#,
+                );
+
+                sandbox.create_file(
+                    ".protolock.production",
+                    r#"
+[[tools.node]]
+spec = "1.2.3"
+"#,
+                );
+
+                sandbox.create_file(
+                    ".prototools",
+                    r#"
+node = "7.8.9"
+
+[settings]
+lockfile = true
+"#,
+                );
+
+                let manager = ProtoFileManager::load(
+                    sandbox.path(),
+                    Some(sandbox.path().parent().unwrap()),
+                    None,
+                )
+                .unwrap();
+
+                assert!(
+                    manager
+                        .get_lock(&sandbox.path().join(".prototools.production"))
+                        .unwrap()
+                        .is_none()
+                );
+                assert!(
+                    manager
+                        .get_lock(&sandbox.path().join(".prototools"))
+                        .unwrap()
+                        .is_some()
+                );
+
+                // Lockfiles for inactive environments are never touched
+                assert!(sandbox.path().join(".protolock.production").exists());
+
+                assert_eq!(
+                    get_locked_config_path(&manager, "node"),
+                    Some(sandbox.path().join(".prototools"))
+                );
+            }
+
+            #[test]
+            fn ignores_env_lockfile_when_mode_not_matching() {
+                let sandbox = create_empty_sandbox();
+
+                sandbox.create_file(
+                    ".prototools.production",
+                    r#"
+node = "1.2.3"
+
+[settings]
+lockfile = true
+"#,
+                );
+
+                sandbox.create_file(
+                    ".protolock.production",
+                    r#"
+[[tools.node]]
+spec = "1.2.3"
+"#,
+                );
+
+                sandbox.create_file(
+                    ".prototools",
+                    r#"
+node = "7.8.9"
+
+[settings]
+lockfile = true
+"#,
+                );
+
+                let manager = ProtoFileManager::load(
+                    sandbox.path(),
+                    Some(sandbox.path().parent().unwrap()),
+                    Some(&"development".to_owned()),
+                )
+                .unwrap();
+
+                assert!(
+                    manager
+                        .get_lock(&sandbox.path().join(".prototools.production"))
+                        .unwrap()
+                        .is_none()
+                );
+                assert!(
+                    manager
+                        .get_lock(&sandbox.path().join(".prototools.development"))
+                        .unwrap()
+                        .is_none()
+                );
+
+                // Lockfiles for inactive environments are never touched
+                assert!(sandbox.path().join(".protolock.production").exists());
+
+                assert_eq!(
+                    get_locked_config_path(&manager, "node"),
+                    Some(sandbox.path().join(".prototools"))
+                );
+            }
+
+            #[test]
+            fn deletes_env_lockfile_if_config_doesnt_exist() {
+                let sandbox = create_empty_sandbox();
+
+                sandbox.create_file(
+                    ".protolock.production",
+                    r#"
+[[tools.node]]
+spec = "1.2.3"
+"#,
+                );
+
+                sandbox.create_file(
+                    ".prototools",
+                    r#"
+node = "7.8.9"
+
+[settings]
+lockfile = true
+"#,
+                );
+
+                let manager = ProtoFileManager::load(
+                    sandbox.path(),
+                    Some(sandbox.path().parent().unwrap()),
+                    Some(&"production".to_owned()),
+                )
+                .unwrap();
+
+                assert!(
+                    manager
+                        .get_lock(&sandbox.path().join(".prototools.production"))
+                        .unwrap()
+                        .is_none()
+                );
+                assert!(!sandbox.path().join(".protolock.production").exists());
+
+                // Not defined in the env config, so it falls through
+                assert_eq!(
+                    get_locked_config_path(&manager, "node"),
+                    Some(sandbox.path().join(".prototools"))
+                );
+                assert_eq!(
+                    get_locked_config_path(&manager, "bun"),
+                    Some(sandbox.path().join(".prototools"))
+                );
+            }
+
+            #[test]
+            fn supports_nested_locks() {
+                let sandbox = create_empty_sandbox();
+
+                sandbox.create_file(
+                    "one/.prototools.production",
+                    r#"
+node = "1.2.3"
+"#,
+                );
+
+                sandbox.create_file(
+                    "one/.prototools",
+                    r#"
+[settings]
+lockfile = true
+"#,
+                );
+
+                sandbox.create_file(
+                    ".prototools",
+                    r#"
+node = "7.8.9"
+deno = "7.8.9"
+
+[settings]
+lockfile = true
+"#,
+                );
+
+                let manager = ProtoFileManager::load(
+                    sandbox.path().join("one"),
+                    Some(sandbox.path().parent().unwrap()),
+                    Some(&"production".to_owned()),
+                )
+                .unwrap();
+
+                assert_eq!(
+                    get_locked_config_path(&manager, "node"),
+                    Some(sandbox.path().join("one/.prototools.production"))
+                );
+                assert_eq!(
+                    get_locked_config_path(&manager, "deno"),
+                    Some(sandbox.path().join(".prototools"))
+                );
+                assert_eq!(
+                    get_locked_config_path(&manager, "bun"),
+                    Some(sandbox.path().join("one/.prototools"))
+                );
+            }
         }
     }
 }

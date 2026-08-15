@@ -3,7 +3,7 @@ use clap::Args;
 use proto_core::flow::lock::{Locker, ProtoLockError};
 use proto_core::flow::resolve::Resolver;
 use proto_core::{
-    PinLocation, ProtoConfig, Tool, ToolContext, ToolSpec, cfg, reporter::NoticeOutput,
+    LockRecord, PinLocation, ProtoConfig, Tool, ToolContext, ToolSpec, cfg, reporter::NoticeOutput,
 };
 use proto_pdk_api::{PinVersionInput, PinVersionOutput, PluginFunction};
 use starbase_console::ui::*;
@@ -29,10 +29,15 @@ pub struct PinArgs {
     pub tool_native: bool,
 }
 
+/// Pin the version to the config at the provided location, and keep the
+/// lockfile owned by that config in sync. When pinning as part of an install,
+/// the record of the fresh install should be provided, so that it's tracked
+/// by the pinned config, which now defines a version for the tool.
 pub async fn internal_pin(
     tool: &Tool,
     spec: &ToolSpec,
     pin_to: PinLocation,
+    install_record: Option<&LockRecord>,
 ) -> Result<PathBuf, ProtoLockError> {
     let version = match &spec.version {
         Some(version) => version.to_string(),
@@ -58,42 +63,40 @@ pub async fn internal_pin(
         "Pinned the version",
     );
 
-    // Keep lockfile records in sync with the config change, but only when
-    // the config being modified owns the lock records for the tool
-    let owns_lock = tool
-        .proto
-        .load_file_manager()?
-        .get_locked_dir(&tool.context)
-        .is_some_and(|dir| dir == config_dir);
+    // Keep records in the lockfile owned by the modified config in sync
+    // with the change (no-op if the config has not enabled a lockfile)
+    let locker = Locker::for_config(tool, &config_path);
 
-    if owns_lock {
-        let locker = Locker::new(tool);
-
-        match &spec.version {
-            // We know what the pinned version resolves to, so migrate
-            // records from the requested and previous specs to it
-            Some(new_version) => {
-                let new_spec = new_version.to_unresolved_spec();
-
-                locker.update_spec_in_lockfile(&spec.req, &new_spec, new_version)?;
-
-                if let Some(previous) = previous_spec
-                    && previous.req != spec.req
-                {
-                    locker.update_spec_in_lockfile(&previous.req, &new_spec, new_version)?;
-                }
-            }
-            // We don't know what the pinned version resolves to, so
-            // remove records for the previous spec
-            None => {
-                if let Some(previous) = previous_spec
-                    && previous.req != spec.req
-                {
-                    locker.remove_spec_from_lockfile(&previous.req)?;
-                }
-            }
-        };
+    // The install record was tracked by the config that previously defined
+    // the tool (if any), which may not be the config we just pinned to
+    if let Some(record) = install_record {
+        locker.insert_record_into_lockfile(record)?;
     }
+
+    match &spec.version {
+        // We know what the pinned version resolves to, so migrate
+        // records from the requested and previous specs to it
+        Some(new_version) => {
+            let new_spec = new_version.to_unresolved_spec();
+
+            locker.update_spec_in_lockfile(&spec.req, &new_spec, new_version)?;
+
+            if let Some(previous) = previous_spec
+                && previous.req != spec.req
+            {
+                locker.update_spec_in_lockfile(&previous.req, &new_spec, new_version)?;
+            }
+        }
+        // We don't know what the pinned version resolves to, so
+        // remove records for the previous spec
+        None => {
+            if let Some(previous) = previous_spec
+                && previous.req != spec.req
+            {
+                locker.remove_spec_from_lockfile(&previous.req)?;
+            }
+        }
+    };
 
     Ok(config_path)
 }
@@ -158,7 +161,7 @@ pub async fn pin(session: ProtoSession, args: PinArgs) -> SessionResult {
             return Ok(Some(1));
         }
     } else {
-        config_path = internal_pin(&tool, &spec, args.to).await?;
+        config_path = internal_pin(&tool, &spec, args.to, None).await?;
     }
 
     session.console.notice(
