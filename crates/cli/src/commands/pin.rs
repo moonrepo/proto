@@ -3,7 +3,7 @@ use clap::Args;
 use proto_core::flow::lock::{Locker, ProtoLockError};
 use proto_core::flow::resolve::Resolver;
 use proto_core::{
-    PinLocation, ProtoConfig, Tool, ToolContext, ToolSpec, cfg, reporter::NoticeOutput,
+    LockRecord, PinLocation, ProtoConfig, Tool, ToolContext, ToolSpec, cfg, reporter::NoticeOutput,
 };
 use proto_pdk_api::{PinVersionInput, PinVersionOutput, PluginFunction};
 use starbase_console::ui::*;
@@ -29,10 +29,15 @@ pub struct PinArgs {
     pub tool_native: bool,
 }
 
+/// Pin the version to the config at the provided location, and keep the
+/// lockfile owned by that config in sync. When pinning as part of an install,
+/// the record of the fresh install should be provided, so that it's tracked
+/// by the pinned config, which now defines a version for the tool.
 pub async fn internal_pin(
     tool: &Tool,
     spec: &ToolSpec,
     pin_to: PinLocation,
+    install_record: Option<&LockRecord>,
 ) -> Result<PathBuf, ProtoLockError> {
     let version = match &spec.version {
         Some(version) => version.to_string(),
@@ -61,6 +66,12 @@ pub async fn internal_pin(
     // Keep records in the lockfile owned by the modified config in sync
     // with the change (no-op if the config has not enabled a lockfile)
     let locker = Locker::for_config(tool, &config_path);
+
+    // The install record was tracked by the config that previously defined
+    // the tool (if any), which may not be the config we just pinned to
+    if let Some(record) = install_record {
+        locker.insert_record_into_lockfile(record)?;
+    }
 
     match &spec.version {
         // We know what the pinned version resolves to, so migrate
@@ -150,7 +161,7 @@ pub async fn pin(session: ProtoSession, args: PinArgs) -> SessionResult {
             return Ok(Some(1));
         }
     } else {
-        config_path = internal_pin(&tool, &spec, args.to).await?;
+        config_path = internal_pin(&tool, &spec, args.to, None).await?;
     }
 
     session.console.notice(

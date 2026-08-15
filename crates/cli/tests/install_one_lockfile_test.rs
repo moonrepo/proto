@@ -658,6 +658,68 @@ unstable-lockfile = true
         }
 
         #[test]
+        fn can_override_env_locked_record_with_flag() {
+            let sandbox = create_proto_sandbox("lockfile");
+            sandbox.create_file(".prototools.production", r#"protostar = "5.10.0""#);
+
+            let invalid_record = format!(
+                r#"
+[[tools.protostar]]
+os = "{}"
+arch = "{}"
+spec = "5.10.0"
+version = "5.10.0"
+checksum = "sha256:invalid"
+"#,
+                SystemOS::default(),
+                SystemArch::default()
+            );
+
+            sandbox.create_file(".protolock", &invalid_record);
+            sandbox.create_file(".protolock.production", &invalid_record);
+
+            // Fails verification against the env lockfile
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("protostar")
+                        .env("PROTO_ENV", "production");
+                })
+                .failure()
+                .stderr(predicate::str::contains("Checksum mismatch"));
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("protostar")
+                        .arg("--update-lockfile")
+                        .env("PROTO_ENV", "production");
+                })
+                .success();
+
+            // The env lockfile record was replaced
+            let lockfile = ProtoLock::load(sandbox.path().join(".protolock.production")).unwrap();
+            let records = lockfile.tools.get("protostar").unwrap();
+
+            assert_eq!(records.len(), 1);
+            assert_record!(records[0], "5.10.0");
+            assert_ne!(
+                records[0].checksum.as_ref().unwrap().hash.as_ref().unwrap(),
+                "invalid"
+            );
+
+            // While the base lockfile is untouched
+            let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
+            let records = lockfile.tools.get("protostar").unwrap();
+
+            assert_eq!(records.len(), 1);
+            assert_eq!(
+                records[0].checksum.as_ref().unwrap().hash.as_ref().unwrap(),
+                "invalid"
+            );
+        }
+
+        #[test]
         fn doesnt_create_env_lockfile_if_disabled_in_env_config() {
             let sandbox = create_proto_sandbox("lockfile");
             sandbox.create_file(

@@ -29,7 +29,9 @@
 
 - **Lockfiles**
   - Updated `proto pin` and `proto unpin` to always keep the lockfile of the modified config in sync, even when another config (like an environment config) takes precedence for the tool.
-  - Updated `proto uninstall` (all versions) to remove the tool from all applicable lockfiles, as the tool is unpinned from all configs.
+  - Updated `proto install --pin` to track the record of the installed version in the lockfile of the pinned config, even when another config (like an environment config) takes precedence for the tool.
+  - Updated `proto uninstall` to remove records for the uninstalled version from all applicable lockfiles, as the version may be pinned in multiple configs (each of which is unpinned). When uninstalling all versions, the tool is removed from all applicable lockfiles.
+  - Updated `proto outdated --update` to also update versions defined in environment scoped configs (`.prototools.<env>`), including the records in their lockfiles. Previously these versions were skipped with a warning.
 - **WASM API**
   - Added a `download_file` host function, which downloads a file from a URL directly to a file on the host machine, without loading the contents into WASM memory. Requests are made with proto's HTTP client, respecting `[settings.http]` and `.netrc` configuration.
     - Added `download` and `download_from_url` functions, and a `download_file!` macro, to the PDK.

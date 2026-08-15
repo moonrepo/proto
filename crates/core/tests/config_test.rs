@@ -420,6 +420,21 @@ foo = "file://./test.toml"
         use super::*;
 
         #[test]
+        fn detects_config_files() {
+            assert!(ProtoConfig::is_config_file(".prototools"));
+            assert!(ProtoConfig::is_config_file("/root/.prototools"));
+            assert!(ProtoConfig::is_config_file("/root/.prototools.production"));
+            assert!(ProtoConfig::is_config_file(".prototools.dev"));
+
+            assert!(!ProtoConfig::is_config_file("/root"));
+            assert!(!ProtoConfig::is_config_file("/root/.prototools."));
+            assert!(!ProtoConfig::is_config_file("/root/.prototoolsdev"));
+            assert!(!ProtoConfig::is_config_file("/root/prototools"));
+            assert!(!ProtoConfig::is_config_file("/root/.protolock"));
+            assert!(!ProtoConfig::is_config_file("/root/.nvmrc"));
+        }
+
+        #[test]
         fn resolves_a_dir_to_the_config_file() {
             let sandbox = create_empty_sandbox();
 

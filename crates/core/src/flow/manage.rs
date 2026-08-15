@@ -178,9 +178,15 @@ impl<'tool> Manager<'tool> {
                 return Ok(false);
             }
 
-            // Remove record from lockfile
+            // Remove records from all lockfiles, as the version
+            // may be tracked by multiple configs
             if spec.update_lockfile {
-                Locker::new(self.tool).remove_version_from_lockfile(&version)?;
+                for file in self.tool.proto.load_file_manager()?.get_config_files() {
+                    if file.locked {
+                        Locker::for_config(self.tool, &file.path)
+                            .remove_version_from_lockfile(&version)?;
+                    }
+                }
             }
 
             // Delete bins and shims

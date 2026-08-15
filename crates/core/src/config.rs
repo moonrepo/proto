@@ -669,17 +669,20 @@ impl ProtoConfig {
         url
     }
 
+    /// Return true if the provided path is a proto config file, either the
+    /// base `.prototools` or an environment scoped `.prototools.<env>`.
+    pub fn is_config_file<P: AsRef<Path>>(path: P) -> bool {
+        path.as_ref()
+            .file_name()
+            .and_then(|name| name.to_str())
+            .and_then(|name| name.strip_prefix(PROTO_CONFIG_NAME))
+            .is_some_and(|suffix| suffix.is_empty() || suffix.len() > 1 && suffix.starts_with('.'))
+    }
+
     fn resolve_path(path: impl AsRef<Path>) -> PathBuf {
         let path = path.as_ref();
 
-        // Already a config file, either the base `.prototools`
-        // or an environment scoped `.prototools.<env>`
-        let is_config_file = path
-            .file_name()
-            .and_then(|name| name.to_str())
-            .is_some_and(|name| name.starts_with(PROTO_CONFIG_NAME));
-
-        if is_config_file {
+        if Self::is_config_file(path) {
             path.to_path_buf()
         } else {
             path.join(PROTO_CONFIG_NAME)

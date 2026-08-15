@@ -112,7 +112,7 @@ impl InstallWorkflow {
         Resolver::resolve(&self.tool, spec, false).await?;
 
         if !params.force && self.tool.is_installed(spec) {
-            self.pin_version(spec, &params.pin_to).await?;
+            self.pin_version(spec, None, params.pin_to.as_ref()).await?;
             self.finish_progress(spec, started);
 
             // Ensure bins/shims exist
@@ -125,13 +125,21 @@ impl InstallWorkflow {
         self.pre_install(spec, &params).await?;
 
         // Run install
-        let record = self.do_install(spec, &params).await?;
-
-        if record.is_none() {
+        let Some(record) = self.do_install(spec, &params).await? else {
             return Ok(InstallOutcome::FailedToInstall(self.tool.get_id().clone()));
-        }
+        };
 
-        let pinned = self.pin_version(spec, &params.pin_to).await?;
+        let pinned = self
+            .pin_version(
+                spec,
+                if spec.update_lockfile {
+                    Some(&record)
+                } else {
+                    None
+                },
+                params.pin_to.as_ref(),
+            )
+            .await?;
         self.finish_progress(spec, started);
 
         // Run post-install hooks
@@ -396,7 +404,8 @@ impl InstallWorkflow {
     async fn pin_version(
         &mut self,
         spec: &ToolSpec,
-        arg_pin_to: &Option<PinLocation>,
+        install_record: Option<&LockRecord>,
+        arg_pin_to: Option<&PinLocation>,
     ) -> Result<bool, ProtoCliError> {
         let config = self.tool.proto.load_config()?;
         let mut pin_to = PinLocation::Local;
@@ -422,7 +431,7 @@ impl InstallWorkflow {
         }
 
         if pin {
-            internal_pin(&self.tool.tool, spec, pin_to).await?;
+            internal_pin(&self.tool.tool, spec, pin_to, install_record).await?;
         }
 
         Ok(pin)

@@ -168,6 +168,40 @@ unstable-lockfile = true
         }
 
         #[test]
+        fn removes_version_from_base_lockfile_when_env_config_takes_precedence() {
+            let sandbox = create_env_sandbox();
+
+            // The env config pins 5.10.0, but the base config pins 5.0.0
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("uninstall")
+                        .arg("protostar")
+                        .arg("5.0.0")
+                        .arg("--yes")
+                        .env("PROTO_ENV", "production");
+                })
+                .success();
+
+            // The base lockfile is now empty and removed
+            assert!(!sandbox.path().join(".protolock").exists());
+
+            // While the env lockfile is untouched
+            let lockfile = ProtoLock::load(sandbox.path().join(".protolock.production")).unwrap();
+            let records = lockfile.tools.get("protostar").unwrap();
+
+            assert_eq!(records.len(), 1);
+
+            // And the version is only unpinned from the base config
+            let config = fs::read_to_string(sandbox.path().join(".prototools")).unwrap();
+
+            assert!(!config.contains("protostar"));
+
+            let config = fs::read_to_string(sandbox.path().join(".prototools.production")).unwrap();
+
+            assert!(config.contains("protostar"));
+        }
+
+        #[test]
         fn removes_all_versions_from_all_lockfiles_and_unpins_from_all_configs() {
             let sandbox = create_env_sandbox();
 

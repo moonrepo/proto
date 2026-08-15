@@ -195,27 +195,31 @@ impl<'tool> Locker<'tool> {
             return Ok(());
         };
 
-        if let Some(records) = lock.tools.get_mut(self.tool.get_id()) {
-            let spec = version.to_unresolved_spec();
+        let Some(records) = lock.tools.get_mut(self.tool.get_id()) else {
+            return Ok(());
+        };
 
-            records.retain(|record| {
-                let matched = record.is_match_with(
-                    self.tool.context.backend.as_ref(),
-                    Some(&spec),
-                    Some(&proto.os),
-                    Some(&proto.arch),
-                    &self.tool.metadata.lock_options,
-                );
+        let spec = version.to_unresolved_spec();
+        let count = records.len();
 
-                !(matched && record.version.as_ref().is_some_and(|ver| ver == version))
-            });
+        records.retain(|record| {
+            let matched = record.is_match_with(
+                self.tool.context.backend.as_ref(),
+                Some(&spec),
+                Some(&proto.os),
+                Some(&proto.arch),
+                &self.tool.metadata.lock_options,
+            );
+
+            !(matched && record.version.as_ref().is_some_and(|ver| ver == version))
+        });
+
+        // Nothing was removed, so avoid saving
+        if records.len() == count && !records.is_empty() {
+            return Ok(());
         }
 
-        if lock
-            .tools
-            .get(self.tool.get_id())
-            .is_none_or(|records| records.is_empty())
-        {
+        if records.is_empty() {
             lock.tools.remove(self.tool.get_id());
         }
 
