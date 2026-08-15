@@ -17,6 +17,7 @@ pub enum ChecksumError {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ChecksumAlgorithm {
+    Gpg,
     Minisign,
     Sha256,
     Sha512,
@@ -33,12 +34,29 @@ pub struct Checksum {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub key: Option<String>,
 
-    /// File hash / private key.
+    /// File hash.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub hash: Option<String>,
 }
 
 impl Checksum {
+    pub fn gpg(key: String) -> Self {
+        Self {
+            algo: ChecksumAlgorithm::Gpg,
+            key: Some(key),
+            hash: None,
+        }
+    }
+
+    /// Create a compact record of a successfully verified GPG signature.
+    pub fn gpg_verified(fingerprint: String, sha256: String) -> Self {
+        Self {
+            algo: ChecksumAlgorithm::Gpg,
+            key: Some(fingerprint),
+            hash: Some(sha256),
+        }
+    }
+
     pub fn minisign(key: String) -> Self {
         Self {
             algo: ChecksumAlgorithm::Minisign,
@@ -78,6 +96,21 @@ impl FromStr for Checksum {
 
         match value.split_once(':') {
             Some((tag, hash)) => match tag {
+                "gpg" => {
+                    if let Some((fingerprint, sha256)) = hash.split_once(":sha256:")
+                        && matches!(fingerprint.len(), 32 | 40 | 64)
+                        && fingerprint.bytes().all(|byte| byte.is_ascii_hexdigit())
+                        && sha256.len() == 64
+                        && sha256.bytes().all(|byte| byte.is_ascii_hexdigit())
+                    {
+                        Ok(Self::gpg_verified(
+                            fingerprint.to_owned(),
+                            sha256.to_owned(),
+                        ))
+                    } else {
+                        Ok(Self::gpg(hash.to_owned()))
+                    }
+                }
                 "minisign" => Ok(Self::minisign(hash.to_owned())),
                 "sha256" => Ok(Self::sha256(hash.to_owned())),
                 "sha512" => Ok(Self::sha512(hash.to_owned())),
@@ -101,6 +134,15 @@ impl TryFrom<String> for Checksum {
 impl fmt::Display for Checksum {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.algo {
+            ChecksumAlgorithm::Gpg => {
+                write!(f, "gpg:{}", self.key.as_deref().unwrap_or_default())?;
+
+                if let Some(hash) = &self.hash {
+                    write!(f, ":sha256:{hash}")?;
+                }
+
+                Ok(())
+            }
             ChecksumAlgorithm::Minisign => {
                 write!(f, "minisign:{}", self.key.as_deref().unwrap_or_default())
             }
@@ -129,5 +171,27 @@ impl schematic::Schematic for Checksum {
 
     fn build_schema(mut schema: schematic::SchemaBuilder) -> schematic::Schema {
         schema.string_default()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_verified_gpg_checksum() {
+        let fingerprint = "0123456789ABCDEF0123456789ABCDEF01234567";
+        let hash = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+        let checksum = Checksum::gpg_verified(fingerprint.into(), hash.into());
+
+        assert_eq!(checksum.to_string().parse::<Checksum>().unwrap(), checksum);
+    }
+
+    #[test]
+    fn preserves_armored_gpg_public_key() {
+        let key = "-----BEGIN PGP PUBLIC KEY BLOCK-----\ncomment:sha256:not-a-hash\n-----END PGP PUBLIC KEY BLOCK-----";
+        let checksum = Checksum::gpg(key.into());
+
+        assert_eq!(checksum.to_string().parse::<Checksum>().unwrap(), checksum);
     }
 }

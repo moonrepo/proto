@@ -33,6 +33,7 @@ minisign-verify = "0.2.5"
 oci-client = { workspace = true }
 once_cell = { workspace = true }
 opentelemetry = { workspace = true, optional = true }
+pgp = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true }
 rustc-hash = { workspace = true }
@@ -68,6 +69,7 @@ uuid = { workspace = true }
 
 [dev-dependencies]
 proto_core = { path = ".", features = ["test-plugins"] }
+rand = "0.8.7"
 starbase_sandbox = { workspace = true }
 tokio = { workspace = true }
 
