@@ -4,13 +4,12 @@ use crate::helpers::fetch_latest_version;
 use crate::session::{ProtoSession, SessionResult};
 use clap::Args;
 use iocraft::prelude::{FlexDirection, View, element};
-use proto_core::{Id, ToolContext, UnresolvedVersionSpec};
+use proto_core::{Id, ToolContext};
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 use starbase_console::ui::*;
 use starbase_shell::ShellType;
 use starbase_utils::envx;
-use std::collections::{BTreeMap, BTreeSet};
 use std::env;
 use std::path::PathBuf;
 use tracing::instrument;
@@ -356,9 +355,11 @@ fn gather_lockfile_warnings(session: &ProtoSession) -> Result<Vec<Issue>, ProtoC
 
                 // Only tools defined in a sibling config can be verified,
                 // as records may also exist for ad-hoc installs
-                let config_context = config_specs
-                    .iter()
-                    .find(|(context, _)| &context.id == id && context.backend == record.backend);
+                let config_context = config_specs.as_ref().and_then(|specs| {
+                    specs
+                        .iter()
+                        .find(|(context, _)| context.id == *id && context.backend == record.backend)
+                });
 
                 if let Some((context, specs)) = config_context
                     && let Some(spec) = &record.spec

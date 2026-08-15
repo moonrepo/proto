@@ -743,5 +743,66 @@ lockfile = false
             assert!(!sandbox.path().join(".protolock.production").exists());
             assert!(!sandbox.path().join(".protolock").exists());
         }
+
+        #[test]
+        fn considers_env_scoped_configs() {
+            let sandbox = create_empty_proto_sandbox();
+
+            sandbox.create_file(
+                ".prototools",
+                r#"
+protostar = "1"
+
+[settings]
+unstable-lockfile = true
+builtin-backends = false
+builtin-tools = false
+"#,
+            );
+
+            // Not active, but shares the same lockfile
+            sandbox.create_file(".prototools.prod", r#"moonstone = "5.0.0""#);
+
+            sandbox.create_file(
+                ".protolock",
+                format!(
+                    r#"
+[[tools.moonstone]]
+os = "{os}"
+arch = "{arch}"
+spec = "4.0.0"
+version = "4.0.0"
+
+[[tools.moonstone]]
+os = "{os}"
+arch = "{arch}"
+spec = "5.0.0"
+version = "5.0.0"
+
+[[tools.protostar]]
+os = "{os}"
+arch = "{arch}"
+spec = "1"
+version = "1.10.15"
+"#,
+                    os = SystemOS::default(),
+                    arch = SystemArch::default()
+                ),
+            );
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("protostar");
+                })
+                .success();
+
+            let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
+
+            // The spec pinned in the inactive env config was kept,
+            // while the spec matching no config was pruned
+            let moonstone = lockfile.tools.get("moonstone").unwrap();
+
+            assert_eq!(record_specs(moonstone), parsed_specs(&["5.0.0"]));
+        }
     }
 }

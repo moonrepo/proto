@@ -1421,6 +1421,8 @@ mod locker {
         fn create_env_in_sandbox(sandbox_path: &Path) -> ProtoEnvironment {
             let mut proto = ProtoEnvironment::new_testing(sandbox_path).unwrap();
             proto.working_dir = sandbox_path.to_path_buf();
+            // Don't inherit `PROTO_ENV` from the test process
+            proto.env_mode = None;
             proto
         }
 
@@ -1612,6 +1614,93 @@ mod locker {
                 nested_records[0].spec.as_ref().unwrap(),
                 &UnresolvedVersionSpec::parse("21").unwrap()
             );
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn keeps_records_for_specs_in_inactive_env_configs() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                "node = \"20\"\n\n[settings]\nlockfile = true",
+            );
+            // Not active, but shares the same lockfile
+            sandbox.create_file(".prototools.prod", "node = \"22\"");
+            seed_lockfile(
+                sandbox.path(),
+                &[
+                    ("node", "20", None),
+                    ("node", "22", None),
+                    ("node", "18", None),
+                ],
+            );
+
+            let proto = create_env_in_sandbox(sandbox.path());
+            let pruned = Locker::prune_orphaned_records(&proto, &BTreeMap::default()).unwrap();
+
+            assert_eq!(pruned, 1);
+
+            let lock = ProtoLock::load_from(sandbox.path()).unwrap();
+            let records = lock.tools.get("node").unwrap();
+
+            assert_eq!(records.len(), 2);
+
+            for spec in ["20", "22"] {
+                let spec = UnresolvedVersionSpec::parse(spec).unwrap();
+
+                assert!(
+                    records
+                        .iter()
+                        .any(|record| record.spec.as_ref() == Some(&spec))
+                );
+            }
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn prunes_against_active_env_configs() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+            sandbox.create_file(".prototools.dev", "bun = \"1.1\"");
+            seed_lockfile(
+                sandbox.path(),
+                &[("bun", "1.1", None), ("bun", "1.0", None)],
+            );
+
+            let mut proto = create_env_in_sandbox(sandbox.path());
+            proto.env_mode = Some("dev".into());
+
+            let pruned = Locker::prune_orphaned_records(&proto, &BTreeMap::default()).unwrap();
+
+            assert_eq!(pruned, 1);
+
+            let lock = ProtoLock::load_from(sandbox.path()).unwrap();
+            let records = lock.tools.get("bun").unwrap();
+
+            assert_eq!(records.len(), 1);
+            assert_eq!(
+                records[0].spec.as_ref().unwrap(),
+                &UnresolvedVersionSpec::parse("1.1").unwrap()
+            );
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn skips_pruning_when_env_config_is_unloadable() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                "node = \"20\"\n\n[settings]\nlockfile = true",
+            );
+            // Invalid TOML, so the full set of specs cannot be determined
+            sandbox.create_file(".prototools.broken", "node = [");
+            seed_lockfile(sandbox.path(), &[("node", "18", None)]);
+
+            let proto = create_env_in_sandbox(sandbox.path());
+            let pruned = Locker::prune_orphaned_records(&proto, &BTreeMap::default()).unwrap();
+
+            assert_eq!(pruned, 0);
+
+            let lock = ProtoLock::load_from(sandbox.path()).unwrap();
+
+            assert_eq!(lock.tools.get("node").unwrap().len(), 1);
         }
     }
 }

@@ -108,21 +108,13 @@ impl<'tool> Locker<'tool> {
                 continue;
             }
 
-            // Gather specs defined in sibling configs, as only these
-            // configs dictate which records in the lockfile are used
-            let mut config_specs: BTreeMap<ToolContext, BTreeSet<UnresolvedVersionSpec>> =
-                BTreeMap::default();
-
-            for file in &entry.configs {
-                if let Some(versions) = &file.config.versions {
-                    for (context, spec) in versions {
-                        config_specs
-                            .entry(context.to_owned())
-                            .or_default()
-                            .insert(spec.req.clone());
-                    }
-                }
-            }
+            // Gather specs defined in sibling configs (including inactive
+            // environment scoped configs), as only these configs dictate
+            // which records in the lockfile are used. If they cannot be
+            // reliably gathered, avoid pruning entirely
+            let Some(mut config_specs) = entry.gather_config_specs() else {
+                continue;
+            };
 
             // If nothing is configured, all records are ad-hoc installs
             if config_specs.is_empty() {

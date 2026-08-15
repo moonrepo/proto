@@ -7,11 +7,12 @@ use once_cell::sync::OnceCell;
 use schematic::{Config, PartialConfig};
 use serde::Serialize;
 use starbase_utils::fs;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
-use tracing::debug;
+use tracing::{debug, warn};
+use version_spec::UnresolvedVersionSpec;
 
 #[derive(Debug, Serialize)]
 pub struct ProtoConfigFile {
@@ -33,6 +34,85 @@ pub struct ProtoDirEntry {
     // Configs are ordered by precedence, so the environment
     // config (when enabled) comes before the base config
     pub configs: Vec<ProtoConfigFile>,
+}
+
+impl ProtoDirEntry {
+    /// Gather all version specs defined in configs within this directory,
+    /// including environment scoped configs (`.prototools.{env}`) that are
+    /// not currently active, as all configs in the directory share the same
+    /// lockfile, and their specs must be considered used.
+    ///
+    /// Returns `None` when a config could not be loaded, as the full set of
+    /// specs cannot be reliably determined.
+    pub fn gather_config_specs(
+        &self,
+    ) -> Option<BTreeMap<ToolContext, BTreeSet<UnresolvedVersionSpec>>> {
+        let mut specs: BTreeMap<ToolContext, BTreeSet<UnresolvedVersionSpec>> = BTreeMap::default();
+
+        fn collect(
+            specs: &mut BTreeMap<ToolContext, BTreeSet<UnresolvedVersionSpec>>,
+            config: &PartialProtoConfig,
+        ) {
+            if let Some(versions) = &config.versions {
+                for (context, spec) in versions {
+                    specs
+                        .entry(context.to_owned())
+                        .or_default()
+                        .insert(spec.req.clone());
+                }
+            }
+        }
+
+        // Configs already loaded, for the active environment mode
+        for file in &self.configs {
+            collect(&mut specs, &file.config);
+        }
+
+        // Environment scoped configs that are not active
+        let env_prefix = format!("{PROTO_CONFIG_NAME}.");
+
+        let dir = match fs::read_dir(&self.path) {
+            Ok(dir) => dir,
+            Err(error) => {
+                warn!(
+                    dir = ?self.path,
+                    "Failed to detect environment scoped configs: {error}",
+                );
+
+                return None;
+            }
+        };
+
+        for dir_entry in dir {
+            let path = dir_entry.path();
+
+            if !path.is_file()
+                || !path
+                    .file_name()
+                    .and_then(|name| name.to_str())
+                    .is_some_and(|name| name.starts_with(&env_prefix))
+                || self.configs.iter().any(|file| file.path == path)
+            {
+                continue;
+            }
+
+            match ProtoConfig::load(&path, false) {
+                Ok(config) => {
+                    collect(&mut specs, &config);
+                }
+                Err(error) => {
+                    warn!(
+                        file = ?path,
+                        "Failed to load environment scoped config: {error}",
+                    );
+
+                    return None;
+                }
+            };
+        }
+
+        Some(specs)
+    }
 }
 
 #[derive(Debug)]

@@ -38,6 +38,8 @@
   - Updated `proto uninstall` to remove records for the uninstalled version from all applicable lockfiles, as the version may be pinned in multiple configs (each of which is unpinned). When uninstalling all versions, the tool is removed from all applicable lockfiles.
   - Updated `proto outdated --update` to also update versions defined in environment scoped configs (`.prototools.<env>`), including the records in their lockfiles. Previously these versions were skipped with a warning.
   - Updated `proto install` and `proto uninstall` to prune orphaned records from lockfiles. A record is orphaned when its tool has a version defined in the lockfile's sibling configs, but the record's spec no longer matches any of the configured specs, which typically happens when a config is modified outside of proto. Records for tools that are not defined in a sibling config are ad-hoc installs, and are never pruned.
+    - Environment scoped configs (`.prototools.{env}`) share the lockfile of their directory, so specs defined in them are also considered used, even when the environment is not active.
+  - Updated `proto diagnose` to no longer report records as stale when they match a version defined in an inactive environment scoped config.
 - **WASM API**
   - Added a `download_file` host function, which downloads a file from a URL directly to a file on the host machine, without loading the contents into WASM memory. Requests are made with proto's HTTP client, respecting `[settings.http]` and `.netrc` configuration.
     - Added `download` and `download_from_url` functions, and a `download_file!` macro, to the PDK.
