@@ -298,25 +298,23 @@ fn gather_lockfile_warnings(session: &ProtoSession) -> Result<Vec<Issue>, ProtoC
     let mut warnings = vec![];
     let manager = session.env.load_file_manager()?;
 
-    for entry in &manager.entries {
-        if !entry.locked {
+    for file in manager.get_config_files() {
+        if !file.locked {
             continue;
         }
 
-        let Some(lock) = manager.get_lock(&entry.path)? else {
+        let Some(lock) = manager.get_lock(&file.path)? else {
             continue;
         };
 
-        // Gather specs defined in sibling configs, so that we can
-        // detect lockfile records that no longer match a config
+        // Gather specs defined in the config that owns the lockfile, so
+        // that we can detect lockfile records that no longer match it
         let mut config_specs: BTreeMap<&ToolContext, BTreeSet<&UnresolvedVersionSpec>> =
             BTreeMap::default();
 
-        for file in &entry.configs {
-            if let Some(versions) = &file.config.versions {
-                for (context, spec) in versions {
-                    config_specs.entry(context).or_default().insert(&spec.req);
-                }
+        if let Some(versions) = &file.config.versions {
+            for (context, spec) in versions {
+                config_specs.entry(context).or_default().insert(&spec.req);
             }
         }
 

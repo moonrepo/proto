@@ -250,7 +250,9 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> SessionResul
                 continue;
             };
 
-            if !src.ends_with(PROTO_CONFIG_NAME) {
+            // Only proto configs can be updated, including environment scoped
+            // configs, as versions may also be detected from ecosystem files
+            if !ProtoConfig::is_config_file(src) {
                 warn!(
                     config = ?src,
                     "Unable to update the version for {}, as its config source is not a {} file",
@@ -297,23 +299,25 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> SessionResul
             })?;
         }
 
-        // Update lockfile records to match the newly updated configs,
+        // Update records in the lockfiles owned by the updated configs,
         // otherwise the stale records will be used indefinitely
         for tool in &tools {
             let Some(item) = items.get(&tool.context) else {
                 continue;
             };
 
-            let Some(new_spec) = item
-                .config_source
-                .as_ref()
-                .and_then(|src| updates.get(src))
+            let Some(src) = &item.config_source else {
+                continue;
+            };
+
+            let Some(new_spec) = updates
+                .get(src)
                 .and_then(|versions| versions.get(&tool.context))
             else {
                 continue;
             };
 
-            Locker::new(tool).update_spec_in_lockfile(
+            Locker::for_config(tool, src).update_spec_in_lockfile(
                 &item.config_version.req,
                 new_spec,
                 if args.latest {

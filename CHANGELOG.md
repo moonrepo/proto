@@ -17,8 +17,21 @@
 
 ## Unreleased
 
+#### 💥 Breaking
+
+- **Lockfiles**
+  - Added support for environment scoped lockfiles. When `PROTO_ENV` is set, a `.prototools.<env>` config is now locked to a sibling `.protolock.<env>` lockfile, instead of sharing the directory's `.protolock` with the base `.prototools` config.
+    - Each lockfile only tracks tools with versions defined in its own config. A version overridden by an environment config is tracked in `.protolock.<env>`, while versions inherited from `.prototools` remain in `.protolock`. Ad-hoc installs are tracked by the base `.prototools` config.
+    - Environment configs inherit the `settings.lockfile` setting from the `.prototools` config in the same directory, but can override it. Lockfiles for inactive environments are never loaded or modified.
+    - Records for environment specific versions that were previously written to `.protolock` are no longer used, and will be re-created in `.protolock.<env>` on the next install.
+
 #### 🚀 Updates
 
+- **Lockfiles**
+  - Updated `proto pin` and `proto unpin` to always keep the lockfile of the modified config in sync, even when another config (like an environment config) takes precedence for the tool.
+  - Updated `proto install --pin` to track the record of the installed version in the lockfile of the pinned config, even when another config (like an environment config) takes precedence for the tool.
+  - Updated `proto uninstall` to remove records for the uninstalled version from all applicable lockfiles, as the version may be pinned in multiple configs (each of which is unpinned). When uninstalling all versions, the tool is removed from all applicable lockfiles.
+  - Updated `proto outdated --update` to also update versions defined in environment scoped configs (`.prototools.<env>`), including the records in their lockfiles. Previously these versions were skipped with a warning.
 - **WASM API**
   - Added a `download_file` host function, which downloads a file from a URL directly to a file on the host machine, without loading the contents into WASM memory. Requests are made with proto's HTTP client, respecting `[settings.http]` and `.netrc` configuration.
     - Added `download` and `download_from_url` functions, and a `download_file!` macro, to the PDK.
@@ -27,6 +40,7 @@
 
 #### 🐞 Fixes
 
+- Fixed an issue where `proto uninstall` would fail when `PROTO_ENV` is set and an environment scoped `.prototools.<env>` config exists, as it would attempt to unpin the version from an invalid path.
 - Fixed `proto install <tool>` not respecting the `detect-strategy` setting. It resolved a version by scanning the working directory for the tool's own version file before consulting `.prototools`, unlike `proto run`, `proto status` and a bare `proto install`, which all honour the setting. A repo pinning `go = "1.26.7"` with `detect-strategy = "prefer-prototools"` beside a `go.work` would install whatever the `go` directive's range resolved to, and `proto run go` would then fail with `missing_tool`. As a consequence, `install` now also detects ecosystem files by traversing the config file chain rather than only the working directory, and honours `PROTO_<TOOL>_VERSION`.
 - Fixed virtual path conversion producing a path with a trailing separator when the path being converted is a virtual/real prefix itself (`Path::join("")` appends a separator). This surfaced in moon as `$env.PWD contains trailing slashes` errors from nushell when plugin commands ran at the workspace root.
 - Fixed concurrent commands that write to a `.prototools` file erasing each other's changes. The config was read under a shared lock, the lock released, then an exclusive lock acquired to write, so 2 processes could both read the same content and the last writer would erase the entries added by the first. Running `proto install <tool> --pin` in parallel (or `pin`, `unpin`, `alias`, `unalias`, `uninstall`, `plugin add`, `plugin remove`) would silently drop tools from the config, surfacing much later as `proto run` failing to detect a version for a tool that had just installed successfully.

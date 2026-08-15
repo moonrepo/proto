@@ -147,4 +147,85 @@ unstable-lockfile = true
             &VersionSpec::parse("1.2.0").unwrap()
         );
     }
+
+    #[test]
+    fn locks_env_configs_to_their_own_lockfiles() {
+        let sandbox = create_proto_sandbox("lockfile-nested");
+        sandbox.create_file(
+            ".prototools",
+            r#"
+protostar = "1"
+protoform = "2.1"
+
+[settings]
+unstable-lockfile = true
+builtin-backends = false
+builtin-tools = false
+"#,
+        );
+        sandbox.create_file(".prototools.production", r#"protostar = "5.0.0""#);
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install").env("PROTO_ENV", "production");
+            })
+            .success();
+
+        // Tools defined in the env config are locked to the env lockfile
+        let env_lockfile = ProtoLock::load(sandbox.path().join(".protolock.production")).unwrap();
+
+        assert!(!env_lockfile.tools.contains_key("protoform"));
+
+        let protostar = env_lockfile.tools.get("protostar").unwrap();
+
+        assert_eq!(protostar.len(), 1);
+        assert_eq!(
+            protostar[0].spec.as_ref().unwrap(),
+            &UnresolvedVersionSpec::parse("5.0.0").unwrap()
+        );
+        assert_eq!(
+            protostar[0].version.as_ref().unwrap(),
+            &VersionSpec::parse("5.0.0").unwrap()
+        );
+        assert!(protostar[0].checksum.is_some());
+
+        // While tools defined in the base config are locked to the base lockfile,
+        // which doesn't include the version overridden by the env config
+        let base_lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
+
+        assert!(!base_lockfile.tools.contains_key("protostar"));
+
+        let protoform = base_lockfile.tools.get("protoform").unwrap();
+
+        assert_eq!(protoform.len(), 1);
+        assert_record!(
+            protoform[0],
+            "2.1",
+            "2.1.15",
+            "882a417d8801e2aead2142f47c9f19bd48bf8ddc03c0ca15c150c58ddc9836c8"
+        );
+
+        // Installing without the env only touches the base lockfile
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install");
+            })
+            .success();
+
+        let base_lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
+        let protostar = base_lockfile.tools.get("protostar").unwrap();
+
+        assert_eq!(protostar.len(), 1);
+        assert_record!(
+            protostar[0],
+            "1",
+            "1.10.15",
+            "602c5dc51581977f71cc2fb181099846a441598283ea74cba45eb1cf99f7548d"
+        );
+
+        let env_lockfile = ProtoLock::load(sandbox.path().join(".protolock.production")).unwrap();
+
+        assert_eq!(env_lockfile.tools.len(), 1);
+        assert_eq!(env_lockfile.tools.get("protostar").unwrap().len(), 1);
+    }
 }

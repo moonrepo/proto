@@ -87,8 +87,12 @@ async fn try_uninstall_all(tool: &mut ToolRecord) -> miette::Result<()> {
     fs::remove_dir_all(tool.get_inventory_dir())?;
     fs::remove_dir_all(tool.get_temp_dir())?;
 
-    // Remove from lockfile
-    Locker::new(tool).remove_from_lockfile()?;
+    // Remove from all lockfiles, as the tool is unpinned from all configs
+    for file in tool.proto.load_file_manager()?.get_config_files() {
+        if file.locked {
+            Locker::for_config(tool, &file.path).remove_from_lockfile()?;
+        }
+    }
 
     Ok(())
 }
