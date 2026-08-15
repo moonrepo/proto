@@ -198,6 +198,20 @@ impl ExecCommandOutput {
     }
 }
 
+api_unit_enum!(
+    /// HTTP method to send a request with.
+    pub enum SendRequestMethod {
+        /// Send a `GET` request.
+        #[default]
+        #[serde(alias = "GET")]
+        Get,
+
+        /// Send a `POST` request.
+        #[serde(alias = "POST")]
+        Post,
+    }
+);
+
 api_struct!(
     /// Input passed to the `download_file` host function.
     #[derive(Setters)]
@@ -250,6 +264,10 @@ api_struct!(
         /// HTTP headers to inject into the request.
         #[serde(default, skip_serializing_if = "FxHashMap::is_empty")]
         pub headers: FxHashMap<String, String>,
+
+        /// HTTP method to send the request with.
+        #[serde(default)]
+        pub method: SendRequestMethod,
     }
 );
 
@@ -257,6 +275,16 @@ impl SendRequestInput {
     /// Create a new send request with the provided url.
     pub fn new(url: impl AsRef<str>) -> Self {
         Self {
+            url: url.as_ref().to_owned(),
+            ..Default::default()
+        }
+    }
+
+    /// Create a new send request with the provided url,
+    /// that sends with the `POST` method.
+    pub fn post(url: impl AsRef<str>) -> Self {
+        Self {
+            method: SendRequestMethod::Post,
             url: url.as_ref().to_owned(),
             ..Default::default()
         }

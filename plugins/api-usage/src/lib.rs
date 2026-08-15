@@ -54,6 +54,7 @@ pub fn testing_macros(_: ()) -> FnResult<()> {
     // Requests
     send_request!("https://some/url");
     send_request!(input, SendRequestInput::new("https://some/url"));
+    send_request!(input, SendRequestInput::post("https://some/url"));
 
     // Downloads
     download_file!("https://some/url", "/proto/temp/file");
@@ -89,6 +90,13 @@ pub fn testing_download_file(
     Json(input): Json<DownloadFileInput>,
 ) -> FnResult<Json<DownloadFileOutput>> {
     Ok(Json(download(input)?))
+}
+
+#[plugin_fn]
+pub fn testing_send_request(
+    Json(input): Json<SendRequestInput>,
+) -> FnResult<Json<SendRequestOutput>> {
+    Ok(Json(fetch(input)?))
 }
 
 #[plugin_fn]

@@ -22,6 +22,8 @@
 - **WASM API**
   - Added a `download_file` host function, which downloads a file from a URL directly to a file on the host machine, without loading the contents into WASM memory. Requests are made with proto's HTTP client, respecting `[settings.http]` and `.netrc` configuration.
     - Added `download` and `download_from_url` functions, and a `download_file!` macro, to the PDK.
+  - Added a `method` field to the `send_request` host function input (`SendRequestInput`), which supports `GET` (default) and `POST`.
+  - Added a `SendRequestInput::post()` constructor for creating `POST` requests.
 
 ## 0.60.2
 
