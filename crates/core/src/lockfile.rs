@@ -1,9 +1,10 @@
 use crate::id::Id;
+use crate::tool_context::ToolContext;
 use proto_pdk_api::{Checksum, ToolLockOptions};
 use serde::{Deserialize, Serialize};
 use starbase_utils::fs;
 use starbase_utils::toml::{self, TomlError};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use system_env::{SystemArch, SystemOS};
@@ -147,6 +148,60 @@ impl ProtoLock {
         )?;
 
         Ok(())
+    }
+
+    /// Remove records that have been orphaned by configuration changes.
+    /// A record is orphaned when its tool has a version defined in the
+    /// provided map of configured specifications, but the record's spec
+    /// no longer matches any of them. Records for tools that are not in
+    /// the map are ad-hoc installs, and are always kept. Records are
+    /// removed across all operating systems and architectures, as a
+    /// change in configuration applies to every machine.
+    ///
+    /// Returns the number of records that were removed.
+    pub fn prune_orphaned_records(
+        &mut self,
+        config_specs: &BTreeMap<ToolContext, BTreeSet<UnresolvedVersionSpec>>,
+    ) -> usize {
+        let path = &self.path;
+        let mut pruned = 0;
+
+        self.tools.retain(|id, records| {
+            records.retain(|record| {
+                // Records without a spec exist for backwards compatibility,
+                // and cannot be compared against the configuration
+                let Some(record_spec) = &record.spec else {
+                    return true;
+                };
+
+                // Only tools defined in a config can be verified, as
+                // records may also exist for ad-hoc installs
+                let Some(specs) = config_specs.iter().find_map(|(context, specs)| {
+                    (context.id == *id && context.backend == record.backend).then_some(specs)
+                }) else {
+                    return true;
+                };
+
+                if specs.contains(record_spec) {
+                    return true;
+                }
+
+                debug!(
+                    file = ?path,
+                    tool = id.as_str(),
+                    spec = record_spec.to_string(),
+                    "Pruning orphaned record from lock file",
+                );
+
+                pruned += 1;
+                false
+            });
+
+            // Remove the tool entirely if all records were pruned
+            !records.is_empty()
+        });
+
+        pruned
     }
 
     pub fn sort_records(&mut self) {

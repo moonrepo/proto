@@ -370,7 +370,7 @@ fn gather_lockfile_warnings(session: &ProtoSession) -> Result<Vec<Issue>, ProtoC
                             lock.path.display(),
                         ),
                         resolution: Some(
-                            "Remove the record from the lockfile, or configure the version again"
+                            "Run <shell>proto install</shell> to prune the record, or configure the version again"
                                 .into(),
                         ),
                         comment: Some("The record is stale and will never be used".into()),

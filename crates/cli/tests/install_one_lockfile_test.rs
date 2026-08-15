@@ -1,5 +1,5 @@
 use proto_core::test_utils::*;
-use proto_core::{ProtoLock, UnresolvedVersionSpec, VersionSpec};
+use proto_core::{LockRecord, ProtoLock, UnresolvedVersionSpec, VersionSpec};
 use proto_pdk_api::ChecksumAlgorithm;
 use starbase_sandbox::predicates::prelude::*;
 use system_env::{SystemArch, SystemOS};

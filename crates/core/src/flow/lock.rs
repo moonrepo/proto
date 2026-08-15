@@ -1,8 +1,10 @@
 pub use super::lock_error::ProtoLockError;
+use crate::ProtoEnvironment;
 use crate::lockfile::{LockRecord, ProtoLock};
 use crate::tool::Tool;
+use crate::tool_context::ToolContext;
 use crate::tool_spec::ToolSpec;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::sync::{RwLockReadGuard, RwLockWriteGuard};
 use tracing::{debug, instrument};
@@ -14,20 +16,20 @@ use version_spec::{UnresolvedVersionSpec, VersionSpec};
 //      [x] create lockfile if it does not exist
 //      [x] error if spec/req is not found in lockfile
 //      [ ] frozen lockfiles
-//      [ ] orphan pruning
+//      [x] orphan pruning
 // [x] install one
 //      [x] resolve version from lockfile
 //      [x] validate lock record
 //      [ ] frozen lockfiles
-//      [ ] orphan pruning
+//      [x] orphan pruning
 // [x] install one version
 //      [x] don't resolve version from lockfile
 //      [x] validate lock record
 //      [ ] frozen lockfiles
-//      [ ] orphan pruning
+//      [x] orphan pruning
 // [x] uninstall
 //      [x] remove from lockfile
-//      [ ] orphan pruning
+//      [x] orphan pruning
 // [x] outdated
 //      [x] add locked label to table
 //      [x] integrate with --update
@@ -79,6 +81,87 @@ impl<'tool> Locker<'tool> {
             Some(config_path) => proto.load_file_manager()?.get_lock_mut(config_path)?,
             None => proto.load_lock_mut(&self.tool.context)?,
         })
+    }
+
+    /// Remove orphaned records from all loaded lockfiles. A record is
+    /// orphaned when its tool has a version defined in the lockfile's
+    /// sibling configs, but the record's spec no longer matches any of
+    /// the configured specs, which is typically caused by a config being
+    /// modified outside of proto. Records for tools that are not defined
+    /// in a sibling config are ad-hoc installs, and are never pruned.
+    ///
+    /// Specs that are actively being installed can be provided, so that
+    /// records the current command depends on are never pruned.
+    ///
+    /// This should only be triggered from explicit install and uninstall
+    /// flows, as other flows should not modify the lockfile.
+    #[instrument(skip(proto))]
+    pub fn prune_orphaned_records(
+        proto: &ProtoEnvironment,
+        installing: &BTreeMap<ToolContext, UnresolvedVersionSpec>,
+    ) -> Result<usize, ProtoLockError> {
+        let manager = proto.load_file_manager()?;
+        let mut pruned = 0;
+
+        for entry in &manager.entries {
+            if !entry.locked {
+                continue;
+            }
+
+            // Gather specs defined in sibling configs, as only these
+            // configs dictate which records in the lockfile are used
+            let mut config_specs: BTreeMap<ToolContext, BTreeSet<UnresolvedVersionSpec>> =
+                BTreeMap::default();
+
+            for file in &entry.configs {
+                if let Some(versions) = &file.config.versions {
+                    for (context, spec) in versions {
+                        config_specs
+                            .entry(context.to_owned())
+                            .or_default()
+                            .insert(spec.req.clone());
+                    }
+                }
+            }
+
+            // If nothing is configured, all records are ad-hoc installs
+            if config_specs.is_empty() {
+                continue;
+            }
+
+            // Treat specs that are actively being installed as if they
+            // were configured, but only when this lockfile owns the
+            // tool's records, so that in-flight records are never pruned
+            for (context, spec) in installing {
+                if let Some(specs) = config_specs.get_mut(context)
+                    && manager
+                        .get_locked_dir(context)
+                        .is_some_and(|dir| dir == entry.path)
+                {
+                    specs.insert(spec.to_owned());
+                }
+            }
+
+            let Some(mut lock) = manager.get_lock_mut(&entry.path)? else {
+                continue;
+            };
+
+            let count = lock.prune_orphaned_records(&config_specs);
+
+            if count > 0 {
+                debug!(
+                    file = ?lock.path,
+                    "Pruned {count} orphaned record(s) from lock file",
+                );
+
+                lock.sort_records();
+                lock.save()?;
+
+                pruned += count;
+            }
+        }
+
+        Ok(pruned)
     }
 
     /// Get all resolved versions that have a record in the lockfile,

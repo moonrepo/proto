@@ -1,6 +1,7 @@
 use proto_core::test_utils::*;
 use proto_core::{ProtoLock, UnresolvedVersionSpec, VersionSpec};
 use proto_pdk_api::ChecksumAlgorithm;
+use system_env::{SystemArch, SystemOS};
 
 macro_rules! assert_record {
     ($var:expr, $spec:literal, $ver:literal, $checksum:literal) => {
