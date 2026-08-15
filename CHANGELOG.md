@@ -17,13 +17,28 @@
 
 ## Unreleased
 
+#### 💥 Breaking
+
+- **Lockfiles**
+  - Added support for environment scoped lockfiles. When `PROTO_ENV` is set, a `.prototools.<env>` config is now locked to a sibling `.protolock.<env>` lockfile, instead of sharing the directory's `.protolock` with the base `.prototools` config.
+    - Each lockfile only tracks tools with versions defined in its own config. A version overridden by an environment config is tracked in `.protolock.<env>`, while versions inherited from `.prototools` remain in `.protolock`. Ad-hoc installs are tracked by the base `.prototools` config.
+    - Environment configs inherit the `settings.lockfile` setting from the `.prototools` config in the same directory, but can override it. Lockfiles for inactive environments are never loaded or modified.
+    - Records for environment specific versions that were previously written to `.protolock` are no longer used, and will be re-created in `.protolock.<env>` on the next install.
+
 #### 🚀 Updates
 
+- **Lockfiles**
+  - Updated `proto pin` and `proto unpin` to always keep the lockfile of the modified config in sync, even when another config (like an environment config) takes precedence for the tool.
+  - Updated `proto uninstall` (all versions) to remove the tool from all applicable lockfiles, as the tool is unpinned from all configs.
 - **WASM API**
   - Added a `download_file` host function, which downloads a file from a URL directly to a file on the host machine, without loading the contents into WASM memory. Requests are made with proto's HTTP client, respecting `[settings.http]` and `.netrc` configuration.
     - Added `download` and `download_from_url` functions, and a `download_file!` macro, to the PDK.
   - Added a `method` field to the `send_request` host function input (`SendRequestInput`), which supports `GET` (default) and `POST`.
   - Added a `SendRequestInput::post()` constructor for creating `POST` requests.
+
+#### 🐞 Fixes
+
+- Fixed an issue where `proto uninstall` would fail when `PROTO_ENV` is set and an environment scoped `.prototools.<env>` config exists, as it would attempt to unpin the version from an invalid path.
 
 ## 0.60.2
 

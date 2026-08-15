@@ -13,8 +13,17 @@ async fn create_tool_in_sandbox(sandbox_path: &Path) -> Tool {
 }
 
 async fn create_tool_in_sandbox_at(sandbox_path: &Path, working_dir: &Path) -> Tool {
+    create_tool_in_sandbox_with_env(sandbox_path, working_dir, None).await
+}
+
+async fn create_tool_in_sandbox_with_env(
+    sandbox_path: &Path,
+    working_dir: &Path,
+    env_mode: Option<&str>,
+) -> Tool {
     let mut proto = ProtoEnvironment::new_testing(sandbox_path).unwrap();
     proto.working_dir = working_dir.to_path_buf();
+    proto.env_mode = env_mode.map(|env| env.to_owned());
 
     load_tool_from_locator(
         ToolContext::parse("node").unwrap(),
@@ -869,6 +878,198 @@ mod locker {
                 records[0].version,
                 Some(VersionSpec::parse("22.0.0").unwrap())
             );
+        }
+    }
+
+    mod env_scoping {
+        use super::*;
+
+        fn create_lock(path: &Path, version: &str) {
+            let mut lock = ProtoLock::default();
+            lock.tools
+                .entry(Id::raw("node"))
+                .or_default()
+                .push(make_record(
+                    version,
+                    version,
+                    Some(SystemOS::default()),
+                    Some(SystemArch::default()),
+                ));
+            lock.path = path.to_path_buf();
+            lock.save().unwrap();
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn routes_to_the_env_lockfile_when_pinned_in_env_config() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                "node = \"20.0.0\"\n\n[settings]\nlockfile = true",
+            );
+            sandbox.create_file(".prototools.production", "node = \"22.0.0\"");
+
+            create_lock(&sandbox.path().join(".protolock"), "20.0.0");
+            create_lock(&sandbox.path().join(".protolock.production"), "22.0.0");
+
+            let tool =
+                create_tool_in_sandbox_with_env(sandbox.path(), sandbox.path(), Some("production"))
+                    .await;
+            let locker = Locker::new(&tool);
+
+            // Resolves from the env lockfile, and never the base lockfile
+            let record = locker
+                .resolve_locked_record(&ToolSpec::parse("22.0.0").unwrap())
+                .unwrap()
+                .unwrap();
+
+            assert_eq!(record.version, Some(VersionSpec::parse("22.0.0").unwrap()));
+
+            assert!(
+                locker
+                    .resolve_locked_record(&ToolSpec::parse("20.0.0").unwrap())
+                    .unwrap()
+                    .is_none()
+            );
+
+            // Records are written to the env lockfile
+            let record = make_record(
+                "22.1.0",
+                "22.1.0",
+                Some(SystemOS::default()),
+                Some(SystemArch::default()),
+            );
+
+            locker.insert_record_into_lockfile(&record).unwrap();
+
+            let env_lock = ProtoLock::load(sandbox.path().join(".protolock.production")).unwrap();
+            let records = env_lock.tools.get(&Id::raw("node")).unwrap();
+
+            assert_eq!(records.len(), 2);
+            assert_eq!(
+                records[1].version,
+                Some(VersionSpec::parse("22.1.0").unwrap())
+            );
+
+            // While the base lockfile is untouched
+            let base_lock = ProtoLock::load_from(sandbox.path()).unwrap();
+            let records = base_lock.tools.get(&Id::raw("node")).unwrap();
+
+            assert_eq!(records.len(), 1);
+            assert_eq!(
+                records[0].version,
+                Some(VersionSpec::parse("20.0.0").unwrap())
+            );
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn routes_to_the_base_lockfile_when_not_pinned_in_env_config() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                "node = \"20.0.0\"\n\n[settings]\nlockfile = true",
+            );
+            sandbox.create_file(".prototools.production", "bun = \"1.0.0\"");
+
+            create_lock(&sandbox.path().join(".protolock"), "20.0.0");
+
+            let tool =
+                create_tool_in_sandbox_with_env(sandbox.path(), sandbox.path(), Some("production"))
+                    .await;
+            let locker = Locker::new(&tool);
+
+            let record = locker
+                .resolve_locked_record(&ToolSpec::parse("20.0.0").unwrap())
+                .unwrap()
+                .unwrap();
+
+            assert_eq!(record.version, Some(VersionSpec::parse("20.0.0").unwrap()));
+
+            let record = make_record(
+                "20.1.0",
+                "20.1.0",
+                Some(SystemOS::default()),
+                Some(SystemArch::default()),
+            );
+
+            locker.insert_record_into_lockfile(&record).unwrap();
+
+            let base_lock = ProtoLock::load_from(sandbox.path()).unwrap();
+
+            assert_eq!(base_lock.tools.get(&Id::raw("node")).unwrap().len(), 2);
+
+            // The env config doesn't define node, so its lockfile is never created
+            assert!(!sandbox.path().join(".protolock.production").exists());
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn ignores_env_lockfile_when_env_not_active() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                "node = \"20.0.0\"\n\n[settings]\nlockfile = true",
+            );
+            sandbox.create_file(".prototools.production", "node = \"22.0.0\"");
+
+            create_lock(&sandbox.path().join(".protolock.production"), "22.0.0");
+
+            let tool = create_tool_in_sandbox(sandbox.path()).await;
+            let locker = Locker::new(&tool);
+
+            assert!(
+                locker
+                    .resolve_locked_record(&ToolSpec::parse("22.0.0").unwrap())
+                    .unwrap()
+                    .is_none()
+            );
+
+            let record = make_record(
+                "20.0.0",
+                "20.0.0",
+                Some(SystemOS::default()),
+                Some(SystemArch::default()),
+            );
+
+            locker.insert_record_into_lockfile(&record).unwrap();
+
+            let base_lock = ProtoLock::load_from(sandbox.path()).unwrap();
+
+            assert!(base_lock.tools.contains_key(&Id::raw("node")));
+
+            // Inactive env lockfiles are never touched
+            let env_lock = ProtoLock::load(sandbox.path().join(".protolock.production")).unwrap();
+            let records = env_lock.tools.get(&Id::raw("node")).unwrap();
+
+            assert_eq!(records.len(), 1);
+            assert_eq!(
+                records[0].version,
+                Some(VersionSpec::parse("22.0.0").unwrap())
+            );
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn removes_from_the_env_lockfile_only() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                "node = \"20.0.0\"\n\n[settings]\nlockfile = true",
+            );
+            sandbox.create_file(".prototools.production", "node = \"22.0.0\"");
+
+            create_lock(&sandbox.path().join(".protolock"), "20.0.0");
+            create_lock(&sandbox.path().join(".protolock.production"), "22.0.0");
+
+            let tool =
+                create_tool_in_sandbox_with_env(sandbox.path(), sandbox.path(), Some("production"))
+                    .await;
+
+            Locker::new(&tool).remove_from_lockfile().unwrap();
+
+            // Empty lockfiles are removed
+            assert!(!sandbox.path().join(".protolock.production").exists());
+
+            let base_lock = ProtoLock::load_from(sandbox.path()).unwrap();
+
+            assert!(base_lock.tools.contains_key(&Id::raw("node")));
         }
     }
 

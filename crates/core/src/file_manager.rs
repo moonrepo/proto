@@ -18,14 +18,21 @@ pub struct ProtoConfigFile {
     pub exists: bool,
     pub path: PathBuf,
     pub config: PartialProtoConfig,
+
+    /// Whether the sibling lockfile of this config has been enabled
+    /// and loaded. Each config owns its own lockfile: `.prototools`
+    /// is locked to `.protolock`, and `.prototools.<env>` is locked
+    /// to `.protolock.<env>`.
+    pub locked: bool,
 }
 
 #[derive(Debug, Serialize)]
 pub struct ProtoDirEntry {
     pub path: PathBuf,
     pub location: PinLocation,
+    // Configs are ordered by precedence, so the environment
+    // config (when enabled) comes before the base config
     pub configs: Vec<ProtoConfigFile>,
-    pub locked: bool,
 }
 
 #[derive(Debug)]
@@ -43,7 +50,7 @@ pub struct ProtoFileManager {
     global_config: Arc<OnceCell<ProtoConfig>>,
     local_config: Arc<OnceCell<ProtoConfig>>,
 
-    // Lockfiles keyed by the directory of the config
+    // Lockfiles keyed by the path of the config
     // in which they were enabled
     locks: BTreeMap<PathBuf, Arc<RwLock<ProtoLock>>>,
 }
@@ -59,7 +66,6 @@ impl ProtoFileManager {
         let mut locks = BTreeMap::default();
 
         while let Some(dir) = current_dir {
-            let mut configs = vec![];
             let is_end = end_dir.is_some_and(|end| end == dir);
             let location = if is_end {
                 PinLocation::User
@@ -67,50 +73,65 @@ impl ProtoFileManager {
                 PinLocation::Local
             };
 
+            // Config and lockfile paths, ordered by precedence
+            let mut paths = vec![];
+
             if let Some(env) = env_mode {
-                let env_path = dir.join(format!("{PROTO_CONFIG_NAME}.{env}"));
-
-                configs.push(ProtoConfigFile {
-                    config: ProtoConfig::load(&env_path, false)?,
-                    exists: env_path.exists(),
-                    path: env_path,
-                });
+                paths.push((
+                    dir.join(format!("{PROTO_CONFIG_NAME}.{env}")),
+                    dir.join(format!("{PROTO_LOCK_NAME}.{env}")),
+                ));
             }
 
-            let lock_path = dir.join(PROTO_LOCK_NAME);
-            let path = dir.join(PROTO_CONFIG_NAME);
+            paths.push((dir.join(PROTO_CONFIG_NAME), dir.join(PROTO_LOCK_NAME)));
 
-            configs.push(ProtoConfigFile {
-                config: ProtoConfig::load(&path, false)?,
-                exists: path.exists(),
-                path,
-            });
+            let mut configs = Vec::with_capacity(paths.len());
+            let mut inherited_lockfile = None;
 
-            // Only load the lockfile if any of the configs
-            // in the current directory are enabled
-            let load_lockfile = location == PinLocation::Local
-                && configs.iter().any(|file| {
-                    file.config
-                        .settings
-                        .as_ref()
-                        .and_then(|settings| settings.lockfile)
-                        .unwrap_or(false)
-                });
+            // Load in reverse so that the base config comes first,
+            // as environment configs inherit settings from it
+            for (config_path, lock_path) in paths.into_iter().rev() {
+                let mut file = ProtoConfigFile {
+                    config: ProtoConfig::load(&config_path, false)?,
+                    exists: config_path.exists(),
+                    path: config_path,
+                    locked: false,
+                };
 
-            if load_lockfile {
-                locks.insert(
-                    dir.to_path_buf(),
-                    Arc::new(RwLock::new(ProtoLock::load_from(dir)?)),
-                );
-            } else if lock_path.exists() {
-                fs::remove_file(lock_path)?;
+                // A lockfile is scoped to the config in which it was enabled,
+                // and is never enabled for user or global configs. Since an
+                // environment config layers on top of the base config in the
+                // same directory, it inherits the setting when not set
+                let lockfile = file
+                    .config
+                    .settings
+                    .as_ref()
+                    .and_then(|settings| settings.lockfile)
+                    .or(inherited_lockfile);
+
+                inherited_lockfile = lockfile;
+
+                if location == PinLocation::Local && file.exists && lockfile.unwrap_or(false) {
+                    locks.insert(
+                        file.path.clone(),
+                        Arc::new(RwLock::new(ProtoLock::load(&lock_path)?)),
+                    );
+
+                    file.locked = true;
+                } else if lock_path.exists() {
+                    fs::remove_file(lock_path)?;
+                }
+
+                configs.push(file);
             }
+
+            // Restore precedence order
+            configs.reverse();
 
             entries.push(ProtoDirEntry {
                 path: dir.to_path_buf(),
                 location,
                 configs,
-                locked: load_lockfile,
             });
 
             if is_end {
@@ -130,45 +151,48 @@ impl ProtoFileManager {
         })
     }
 
-    /// Return the directory of the lockfile that applies to the provided tool,
-    /// if there is one. A lockfile is scoped to the config in which it was
+    /// Return the config whose lockfile applies to the provided tool, if
+    /// there is one. A lockfile is scoped to the config in which it was
     /// enabled: it only applies to tools with versions defined in that config,
     /// or ad-hoc installs within that config's directory scope, and never to
-    /// tools defined in nested (or global/user) configs.
-    pub fn get_locked_dir(&self, context: &ToolContext) -> Option<&Path> {
+    /// tools defined in other (nested, sibling, global, or user) configs.
+    pub fn get_locked_config(&self, context: &ToolContext) -> Option<&ProtoConfigFile> {
         // The closest config that defines a version for the tool
         // owns its lock records
-        for entry in &self.entries {
-            if entry.configs.iter().any(|file| {
-                file.exists
-                    && file
-                        .config
-                        .versions
-                        .as_ref()
-                        .is_some_and(|versions| versions.contains_key(context))
-            }) {
-                return entry.locked.then_some(entry.path.as_path());
+        for file in self.entries.iter().flat_map(|dir| &dir.configs) {
+            if file.exists
+                && file
+                    .config
+                    .versions
+                    .as_ref()
+                    .is_some_and(|versions| versions.contains_key(context))
+            {
+                return file.locked.then_some(file);
             }
         }
 
         // When not defined in any config, treat the tool as an ad-hoc
-        // install owned by the closest directory with a config
+        // install owned by the closest directory with a config. Since
+        // ad-hoc installs are not environment specific, prefer the base
+        // config over the environment config in that directory
         for entry in &self.entries {
-            if entry.location == PinLocation::Local && entry.configs.iter().any(|file| file.exists)
+            if entry.location == PinLocation::Local
+                && let Some(file) = entry.configs.iter().rev().find(|file| file.exists)
             {
-                return entry.locked.then_some(entry.path.as_path());
+                return file.locked.then_some(file);
             }
         }
 
         None
     }
 
+    /// Return the lockfile that was enabled by the config at the provided path.
     pub fn get_lock(
         &self,
-        dir: &Path,
+        config_path: &Path,
     ) -> Result<Option<RwLockReadGuard<'_, ProtoLock>>, ProtoConfigError> {
         self.locks
-            .get(dir)
+            .get(config_path)
             .map(|lock| {
                 lock.read()
                     .map_err(|_| ProtoConfigError::FailedLockfileLock)
@@ -176,12 +200,14 @@ impl ProtoFileManager {
             .transpose()
     }
 
+    /// Return the lockfile that was enabled by the config at the provided path,
+    /// for mutation.
     pub fn get_lock_mut(
         &self,
-        dir: &Path,
+        config_path: &Path,
     ) -> Result<Option<RwLockWriteGuard<'_, ProtoLock>>, ProtoConfigError> {
         self.locks
-            .get(dir)
+            .get(config_path)
             .map(|lock| {
                 lock.write()
                     .map_err(|_| ProtoConfigError::FailedLockfileLock)

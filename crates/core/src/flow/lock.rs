@@ -1,8 +1,10 @@
 pub use super::lock_error::ProtoLockError;
-use crate::lockfile::LockRecord;
+use crate::lockfile::{LockRecord, ProtoLock};
 use crate::tool::Tool;
 use crate::tool_spec::ToolSpec;
 use std::collections::BTreeSet;
+use std::path::{Path, PathBuf};
+use std::sync::{RwLockReadGuard, RwLockWriteGuard};
 use tracing::{debug, instrument};
 use version_spec::{UnresolvedVersionSpec, VersionSpec};
 
@@ -37,11 +39,46 @@ use version_spec::{UnresolvedVersionSpec, VersionSpec};
 /// Manages records in a lockfile.
 pub struct Locker<'tool> {
     tool: &'tool Tool,
+    config_path: Option<PathBuf>,
 }
 
 impl<'tool> Locker<'tool> {
+    /// Create a locker for the lockfile that applies to the tool, which is
+    /// owned by the closest config that defines a version for it.
     pub fn new(tool: &'tool Tool) -> Self {
-        Self { tool }
+        Self {
+            tool,
+            config_path: None,
+        }
+    }
+
+    /// Create a locker for the lockfile owned by the config at the provided
+    /// path, regardless of which config defines a version for the tool.
+    /// Useful when a config has been modified and its lockfile must be kept
+    /// in sync. Does nothing if the config has not enabled a lockfile.
+    pub fn for_config(tool: &'tool Tool, config_path: impl AsRef<Path>) -> Self {
+        Self {
+            tool,
+            config_path: Some(config_path.as_ref().to_path_buf()),
+        }
+    }
+
+    fn load_lock(&self) -> Result<Option<RwLockReadGuard<'_, ProtoLock>>, ProtoLockError> {
+        let proto = &self.tool.proto;
+
+        Ok(match &self.config_path {
+            Some(config_path) => proto.load_file_manager()?.get_lock(config_path)?,
+            None => proto.load_lock(&self.tool.context)?,
+        })
+    }
+
+    fn load_lock_mut(&self) -> Result<Option<RwLockWriteGuard<'_, ProtoLock>>, ProtoLockError> {
+        let proto = &self.tool.proto;
+
+        Ok(match &self.config_path {
+            Some(config_path) => proto.load_file_manager()?.get_lock_mut(config_path)?,
+            None => proto.load_lock_mut(&self.tool.context)?,
+        })
     }
 
     /// Get all resolved versions that have a record in the lockfile,
@@ -50,7 +87,7 @@ impl<'tool> Locker<'tool> {
         let proto = &self.tool.proto;
         let mut versions = BTreeSet::default();
 
-        let Some(lock) = proto.load_lock(&self.tool.context)? else {
+        let Some(lock) = self.load_lock()? else {
             return Ok(versions);
         };
 
@@ -91,7 +128,7 @@ impl<'tool> Locker<'tool> {
 
         let proto = &self.tool.proto;
 
-        let Some(mut lock) = proto.load_lock_mut(&self.tool.context)? else {
+        let Some(mut lock) = self.load_lock_mut()? else {
             return Ok(());
         };
 
@@ -134,11 +171,15 @@ impl<'tool> Locker<'tool> {
     }
 
     pub fn remove_from_lockfile(&self) -> Result<(), ProtoLockError> {
-        let Some(mut lock) = self.tool.proto.load_lock_mut(&self.tool.context)? else {
+        let Some(mut lock) = self.load_lock_mut()? else {
             return Ok(());
         };
 
-        lock.tools.remove(self.tool.get_id());
+        // Nothing was removed, so avoid saving
+        if lock.tools.remove(self.tool.get_id()).is_none() {
+            return Ok(());
+        }
+
         lock.save()?;
 
         Ok(())
@@ -150,7 +191,7 @@ impl<'tool> Locker<'tool> {
     ) -> Result<(), ProtoLockError> {
         let proto = &self.tool.proto;
 
-        let Some(mut lock) = proto.load_lock_mut(&self.tool.context)? else {
+        let Some(mut lock) = self.load_lock_mut()? else {
             return Ok(());
         };
 
@@ -203,7 +244,7 @@ impl<'tool> Locker<'tool> {
             return Ok(());
         }
 
-        let Some(mut lock) = self.tool.proto.load_lock_mut(&self.tool.context)? else {
+        let Some(mut lock) = self.load_lock_mut()? else {
             return Ok(());
         };
 
@@ -275,7 +316,7 @@ impl<'tool> Locker<'tool> {
         &self,
         spec: &UnresolvedVersionSpec,
     ) -> Result<(), ProtoLockError> {
-        let Some(mut lock) = self.tool.proto.load_lock_mut(&self.tool.context)? else {
+        let Some(mut lock) = self.load_lock_mut()? else {
             return Ok(());
         };
 
@@ -318,7 +359,7 @@ impl<'tool> Locker<'tool> {
     ) -> Result<Option<LockRecord>, ProtoLockError> {
         let proto = &self.tool.proto;
 
-        let Some(lock) = proto.load_lock(&self.tool.context)? else {
+        let Some(lock) = self.load_lock()? else {
             return Ok(None);
         };
 

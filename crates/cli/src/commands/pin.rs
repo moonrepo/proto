@@ -58,42 +58,34 @@ pub async fn internal_pin(
         "Pinned the version",
     );
 
-    // Keep lockfile records in sync with the config change, but only when
-    // the config being modified owns the lock records for the tool
-    let owns_lock = tool
-        .proto
-        .load_file_manager()?
-        .get_locked_dir(&tool.context)
-        .is_some_and(|dir| dir == config_dir);
+    // Keep records in the lockfile owned by the modified config in sync
+    // with the change (no-op if the config has not enabled a lockfile)
+    let locker = Locker::for_config(tool, &config_path);
 
-    if owns_lock {
-        let locker = Locker::new(tool);
+    match &spec.version {
+        // We know what the pinned version resolves to, so migrate
+        // records from the requested and previous specs to it
+        Some(new_version) => {
+            let new_spec = new_version.to_unresolved_spec();
 
-        match &spec.version {
-            // We know what the pinned version resolves to, so migrate
-            // records from the requested and previous specs to it
-            Some(new_version) => {
-                let new_spec = new_version.to_unresolved_spec();
+            locker.update_spec_in_lockfile(&spec.req, &new_spec, new_version)?;
 
-                locker.update_spec_in_lockfile(&spec.req, &new_spec, new_version)?;
-
-                if let Some(previous) = previous_spec
-                    && previous.req != spec.req
-                {
-                    locker.update_spec_in_lockfile(&previous.req, &new_spec, new_version)?;
-                }
+            if let Some(previous) = previous_spec
+                && previous.req != spec.req
+            {
+                locker.update_spec_in_lockfile(&previous.req, &new_spec, new_version)?;
             }
-            // We don't know what the pinned version resolves to, so
-            // remove records for the previous spec
-            None => {
-                if let Some(previous) = previous_spec
-                    && previous.req != spec.req
-                {
-                    locker.remove_spec_from_lockfile(&previous.req)?;
-                }
+        }
+        // We don't know what the pinned version resolves to, so
+        // remove records for the previous spec
+        None => {
+            if let Some(previous) = previous_spec
+                && previous.req != spec.req
+            {
+                locker.remove_spec_from_lockfile(&previous.req)?;
             }
-        };
-    }
+        }
+    };
 
     Ok(config_path)
 }

@@ -97,4 +97,101 @@ mod uninstall_lockfile {
 
         assert!(!lockfile_path.exists());
     }
+
+    mod env_mode {
+        use super::*;
+
+        fn create_env_sandbox() -> ProtoSandbox {
+            let sandbox = create_proto_sandbox("lockfile");
+            sandbox.create_file(
+                ".prototools",
+                r#"
+protostar = "5.0.0"
+
+[settings]
+unstable-lockfile = true
+"#,
+            );
+            sandbox.create_file(".prototools.production", r#"protostar = "5.10.0""#);
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("protostar");
+                })
+                .success();
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("protostar")
+                        .env("PROTO_ENV", "production");
+                })
+                .success();
+
+            assert!(sandbox.path().join(".protolock").exists());
+            assert!(sandbox.path().join(".protolock.production").exists());
+
+            sandbox
+        }
+
+        #[test]
+        fn removes_version_from_env_lockfile_and_unpins_from_env_config() {
+            let sandbox = create_env_sandbox();
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("uninstall")
+                        .arg("protostar")
+                        .arg("5.10.0")
+                        .arg("--yes")
+                        .env("PROTO_ENV", "production");
+                })
+                .success();
+
+            // The env lockfile is now empty and removed
+            assert!(!sandbox.path().join(".protolock.production").exists());
+
+            // While the base lockfile is untouched
+            let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
+            let records = lockfile.tools.get("protostar").unwrap();
+
+            assert_eq!(records.len(), 1);
+
+            // And the version is only unpinned from the env config
+            let config = fs::read_to_string(sandbox.path().join(".prototools")).unwrap();
+
+            assert!(config.contains("protostar"));
+
+            let config = fs::read_to_string(sandbox.path().join(".prototools.production")).unwrap();
+
+            assert!(!config.contains("protostar"));
+        }
+
+        #[test]
+        fn removes_all_versions_from_all_lockfiles_and_unpins_from_all_configs() {
+            let sandbox = create_env_sandbox();
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("uninstall")
+                        .arg("protostar")
+                        .arg("--yes")
+                        .env("PROTO_ENV", "production");
+                })
+                .success();
+
+            // Both lockfiles are now empty and removed
+            assert!(!sandbox.path().join(".protolock").exists());
+            assert!(!sandbox.path().join(".protolock.production").exists());
+
+            // And the version is unpinned from both configs
+            let config = fs::read_to_string(sandbox.path().join(".prototools")).unwrap();
+
+            assert!(!config.contains("protostar"));
+
+            let config = fs::read_to_string(sandbox.path().join(".prototools.production")).unwrap();
+
+            assert!(!config.contains("protostar"));
+        }
+    }
 }

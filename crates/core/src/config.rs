@@ -672,7 +672,14 @@ impl ProtoConfig {
     fn resolve_path(path: impl AsRef<Path>) -> PathBuf {
         let path = path.as_ref();
 
-        if path.ends_with(PROTO_CONFIG_NAME) {
+        // Already a config file, either the base `.prototools`
+        // or an environment scoped `.prototools.<env>`
+        let is_config_file = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .is_some_and(|name| name.starts_with(PROTO_CONFIG_NAME));
+
+        if is_config_file {
             path.to_path_buf()
         } else {
             path.join(PROTO_CONFIG_NAME)

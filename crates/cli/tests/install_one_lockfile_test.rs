@@ -504,4 +504,182 @@ version = "5.10.10"
             ));
         }
     }
+
+    mod env_mode {
+        use super::*;
+
+        fn create_locked_record(spec: &str, version: &str) -> String {
+            format!(
+                r#"
+[[tools.protostar]]
+os = "{}"
+arch = "{}"
+spec = "{spec}"
+version = "{version}"
+"#,
+                SystemOS::default(),
+                SystemArch::default()
+            )
+        }
+
+        #[test]
+        fn locks_env_config_to_env_lockfile() {
+            let sandbox = create_proto_sandbox("lockfile");
+            sandbox.create_file(".prototools.production", r#"protostar = "5.0.0""#);
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("protostar")
+                        .env("PROTO_ENV", "production");
+                })
+                .success();
+
+            // The env config defines the version, so the
+            // record is written to its lockfile
+            let lockfile = ProtoLock::load(sandbox.path().join(".protolock.production")).unwrap();
+            let records = lockfile.tools.get("protostar").unwrap();
+
+            assert_eq!(records.len(), 1);
+            assert_record!(records[0], "5.0.0");
+
+            assert!(!sandbox.path().join(".protolock").exists());
+        }
+
+        #[test]
+        fn locks_adhoc_install_to_base_config() {
+            let sandbox = create_proto_sandbox("lockfile");
+            sandbox.create_file(".prototools.production", "");
+
+            // Not pinned in any config, so the base config
+            // owns the record, even when in env mode
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("protostar")
+                        .arg("5.0.0")
+                        .env("PROTO_ENV", "production");
+                })
+                .success();
+
+            let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
+            let records = lockfile.tools.get("protostar").unwrap();
+
+            assert_eq!(records.len(), 1);
+            assert_record!(records[0], "5.0.0");
+
+            assert!(!sandbox.path().join(".protolock.production").exists());
+        }
+
+        #[test]
+        fn locks_adhoc_install_to_env_config_when_base_config_missing() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file(
+                ".prototools.production",
+                r#"
+[settings]
+lockfile = true
+"#,
+            );
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("protostar")
+                        .arg("5.0.0")
+                        .env("PROTO_ENV", "production");
+                })
+                .success();
+
+            let lockfile = ProtoLock::load(sandbox.path().join(".protolock.production")).unwrap();
+            let records = lockfile.tools.get("protostar").unwrap();
+
+            assert_eq!(records.len(), 1);
+            assert_record!(records[0], "5.0.0");
+
+            assert!(!sandbox.path().join(".protolock").exists());
+        }
+
+        #[test]
+        fn inherits_version_from_env_lockfile() {
+            let sandbox = create_proto_sandbox("lockfile");
+            sandbox.create_file(
+                ".prototools",
+                r#"
+protostar = "^5.10"
+
+[settings]
+unstable-lockfile = true
+"#,
+            );
+            sandbox.create_file(".protolock", create_locked_record("^5.10", "5.10.5"));
+            sandbox.create_file(".prototools.production", r#"protostar = "^5.10""#);
+            sandbox.create_file(
+                ".protolock.production",
+                create_locked_record("^5.10", "5.10.10"),
+            );
+
+            // Resolves from the env lockfile
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("protostar")
+                        .env("PROTO_ENV", "production");
+                })
+                .success();
+
+            assert.stdout(predicate::str::contains(
+                "protostar 5.10.10 has been installed",
+            ));
+
+            // And the base lockfile without an env
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("protostar");
+                })
+                .success();
+
+            assert.stdout(predicate::str::contains(
+                "protostar 5.10.5 has been installed",
+            ));
+
+            // Neither lockfile was modified
+            let lockfile = ProtoLock::load(sandbox.path().join(".protolock.production")).unwrap();
+            let records = lockfile.tools.get("protostar").unwrap();
+
+            assert_eq!(records.len(), 1);
+            assert_record!(records[0], "^5.10", "5.10.10");
+
+            let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
+            let records = lockfile.tools.get("protostar").unwrap();
+
+            assert_eq!(records.len(), 1);
+            assert_record!(records[0], "^5.10", "5.10.5");
+        }
+
+        #[test]
+        fn doesnt_create_env_lockfile_if_disabled_in_env_config() {
+            let sandbox = create_proto_sandbox("lockfile");
+            sandbox.create_file(
+                ".prototools.production",
+                r#"
+protostar = "5.0.0"
+
+[settings]
+lockfile = false
+"#,
+            );
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("protostar")
+                        .env("PROTO_ENV", "production");
+                })
+                .success();
+
+            assert!(!sandbox.path().join(".protolock.production").exists());
+            assert!(!sandbox.path().join(".protolock").exists());
+        }
+    }
 }
