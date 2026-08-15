@@ -17,6 +17,7 @@ pub enum ChecksumError {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ChecksumAlgorithm {
+    Gpg,
     Minisign,
     Sha256,
     Sha512,
@@ -33,12 +34,20 @@ pub struct Checksum {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub key: Option<String>,
 
-    /// File hash / private key.
+    /// File hash.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub hash: Option<String>,
 }
 
 impl Checksum {
+    pub fn gpg(key: String) -> Self {
+        Self {
+            algo: ChecksumAlgorithm::Gpg,
+            key: Some(key),
+            hash: None,
+        }
+    }
+
     pub fn minisign(key: String) -> Self {
         Self {
             algo: ChecksumAlgorithm::Minisign,
@@ -78,6 +87,7 @@ impl FromStr for Checksum {
 
         match value.split_once(':') {
             Some((tag, hash)) => match tag {
+                "gpg" => Ok(Self::gpg(hash.to_owned())),
                 "minisign" => Ok(Self::minisign(hash.to_owned())),
                 "sha256" => Ok(Self::sha256(hash.to_owned())),
                 "sha512" => Ok(Self::sha512(hash.to_owned())),
@@ -101,6 +111,9 @@ impl TryFrom<String> for Checksum {
 impl fmt::Display for Checksum {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.algo {
+            ChecksumAlgorithm::Gpg => {
+                write!(f, "gpg:{}", self.key.as_deref().unwrap_or_default())
+            }
             ChecksumAlgorithm::Minisign => {
                 write!(f, "minisign:{}", self.key.as_deref().unwrap_or_default())
             }

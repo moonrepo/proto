@@ -1,4 +1,5 @@
 mod checksum_error;
+mod gpg;
 mod minisign;
 mod sha;
 
@@ -17,6 +18,14 @@ pub fn verify_checksum(
     checksum: &Checksum,
 ) -> Result<bool, ProtoChecksumError> {
     match checksum.algo {
+        ChecksumAlgorithm::Gpg => gpg::verify_checksum(
+            download_file,
+            checksum_file,
+            checksum
+                .key
+                .as_deref()
+                .ok_or(ProtoChecksumError::MissingPublicKey)?,
+        ),
         ChecksumAlgorithm::Minisign => minisign::verify_checksum(
             download_file,
             checksum_file,
@@ -43,6 +52,11 @@ pub fn generate_checksum(
     checksum_public_key: Option<&str>,
 ) -> Result<Checksum, ProtoChecksumError> {
     match detect_checksum_algorithm(checksum_file)? {
+        ChecksumAlgorithm::Gpg => Ok(Checksum::gpg(
+            checksum_public_key
+                .ok_or(ProtoChecksumError::MissingPublicKey)?
+                .to_owned(),
+        )),
         ChecksumAlgorithm::Minisign => Ok(Checksum::minisign(
             checksum_public_key
                 .ok_or(ProtoChecksumError::MissingPublicKey)?
@@ -67,6 +81,7 @@ pub fn detect_checksum_algorithm(
 ) -> Result<ChecksumAlgorithm, ProtoChecksumError> {
     // Check file extension
     let mut algo = match checksum_file.extension().and_then(|ext| ext.to_str()) {
+        Some("asc" | "sig") => Some(ChecksumAlgorithm::Gpg),
         Some("minisig" | "minisign") => Some(ChecksumAlgorithm::Minisign),
         Some("sha256" | "sha256sum") => Some(ChecksumAlgorithm::Sha256),
         Some("sha512" | "sha512sum") => Some(ChecksumAlgorithm::Sha512),
@@ -128,4 +143,21 @@ pub fn detect_checksum_algorithm(
     algo.ok_or_else(|| ProtoChecksumError::UnknownAlgorithm {
         path: checksum_file.to_path_buf(),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn detects_gpg_signature_extensions() {
+        assert_eq!(
+            detect_checksum_algorithm(Path::new("tool.tar.gz.sig")).unwrap(),
+            ChecksumAlgorithm::Gpg
+        );
+        assert_eq!(
+            detect_checksum_algorithm(Path::new("tool.tar.gz.asc")).unwrap(),
+            ChecksumAlgorithm::Gpg
+        );
+    }
 }

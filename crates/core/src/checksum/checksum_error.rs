@@ -12,6 +12,13 @@ pub enum ProtoChecksumError {
     #[error(transparent)]
     Fs(#[from] Box<FsError>),
 
+    #[diagnostic(code(proto::checksum::gpg))]
+    #[error("Failed to verify GPG signature.")]
+    Gpg {
+        #[source]
+        error: Box<pgp::errors::Error>,
+    },
+
     #[diagnostic(code(proto::checksum::minisign))]
     #[error("Failed to verify minisign checksum.")]
     Minisign {
