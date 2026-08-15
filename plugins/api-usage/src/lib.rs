@@ -54,6 +54,7 @@ pub fn testing_macros(_: ()) -> FnResult<()> {
     // Requests
     send_request!("https://some/url");
     send_request!(input, SendRequestInput::new("https://some/url"));
+    send_request!(input, SendRequestInput::post("https://some/url"));
 
     // Downloads
     download_file!("https://some/url", "/proto/temp/file");
