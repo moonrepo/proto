@@ -19,7 +19,8 @@ use tokio::runtime::Handle;
 use tracing::{debug, error, instrument, trace, warn};
 use warpgate_api::{
     DownloadFileInput, DownloadFileOutput, ExecCommandInput, ExecCommandOutput, HostLogInput,
-    HostLogTarget, SendRequestInput, SendRequestOutput, convert_to_real_native_path,
+    HostLogTarget, SendRequestInput, SendRequestMethod, SendRequestOutput,
+    convert_to_real_native_path,
 };
 
 /// Data passed to each host function.
@@ -335,12 +336,16 @@ fn send_request(
 
     trace!(
         plugin = &uuid,
+        method = ?input.method,
         url = &input.url,
         "Sending request from host machine"
     );
 
     let (ok, status, bytes) = Handle::current().block_on(async {
-        let mut client = data.http_client.get(&input.url);
+        let mut client = match input.method {
+            SendRequestMethod::Get => data.http_client.get(&input.url),
+            SendRequestMethod::Post => data.http_client.post(&input.url),
+        };
 
         for (name, value) in input.headers {
             client = client.header(name, data.http_client.expand_env_vars(&value));
