@@ -1,17 +1,19 @@
 use crate::api::populate_send_request_output;
-use crate::{exec_command, send_request};
+use crate::{download_file, exec_command, send_request};
 use extism_pdk::*;
 use serde::de::DeserializeOwned;
 use std::path::PathBuf;
 use std::sync::OnceLock;
 use std::vec;
 use warpgate_api::{
-    AnyResult, ExecCommandInput, ExecCommandOutput, HostEnvironment, HostOS, Id, SendRequestInput,
-    SendRequestOutput, TestEnvironment, anyhow,
+    AnyResult, DownloadFileInput, DownloadFileOutput, ExecCommandInput, ExecCommandOutput,
+    HostEnvironment, HostOS, Id, SendRequestInput, SendRequestOutput, TestEnvironment, VirtualPath,
+    anyhow,
 };
 
 #[host_fn]
 extern "ExtismHost" {
+    fn download_file(input: Json<DownloadFileInput>) -> Json<DownloadFileOutput>;
     fn exec_command(input: Json<ExecCommandInput>) -> Json<ExecCommandOutput>;
     fn send_request(input: Json<SendRequestInput>) -> Json<SendRequestOutput>;
     fn get_env_var(key: String) -> String;
@@ -68,6 +70,27 @@ where
     U: AsRef<str>,
 {
     fetch(SendRequestInput::new(url))?.text()
+}
+
+/// Download a file with the requested input, and save it to the
+/// destination file on the host machine.
+pub fn download(input: DownloadFileInput) -> AnyResult<DownloadFileOutput> {
+    debug!(
+        "Downloading <url>{}</url> to <path>{}</path>",
+        input.url, input.file
+    );
+
+    Ok(download_file!(input, input))
+}
+
+/// Download a file from the provided URL, and save it to the
+/// destination file on the host machine.
+pub fn download_from_url<U, F>(url: U, file: F) -> AnyResult<DownloadFileOutput>
+where
+    U: AsRef<str>,
+    F: AsRef<VirtualPath>,
+{
+    download(DownloadFileInput::new(url, file.as_ref()))
 }
 
 /// Execute a command on the host with the provided input.
