@@ -39,9 +39,9 @@ pub async fn config(session: ProtoSession, args: DebugConfigArgs) -> SessionResu
     if session.is_json_format() {
         let mut locks = BTreeMap::default();
 
-        for entry in &manager.entries {
-            if entry.locked
-                && let Some(lock) = manager.get_lock(&entry.path)?
+        for file in manager.get_config_files() {
+            if file.locked
+                && let Some(lock) = manager.get_lock(&file.path)?
             {
                 locks.insert(lock.path.clone(), (*lock).clone());
             }
@@ -61,25 +61,25 @@ pub async fn config(session: ProtoSession, args: DebugConfigArgs) -> SessionResu
         return Ok(None);
     }
 
-    for entry in manager.entries.iter().rev() {
-        for file in &entry.configs {
-            if file.exists {
-                let code = toml::format(&file.config, true)?;
+    // Render from lowest to highest precedence, with each
+    // config followed by the lockfile it enabled
+    for file in manager.get_config_files().into_iter().rev() {
+        if file.exists {
+            let code = toml::format(&file.config, true)?;
 
-                session.console.render(element! {
-                    Container {
-                        Section(
-                            title: file.path.to_string_lossy(),
-                            title_color: style_to_color(Style::Path)
-                        )
-                        CodeBlock(code, format: "toml")
-                    }
-                })?;
-            }
+            session.console.render(element! {
+                Container {
+                    Section(
+                        title: file.path.to_string_lossy(),
+                        title_color: style_to_color(Style::Path)
+                    )
+                    CodeBlock(code, format: "toml")
+                }
+            })?;
         }
 
-        if entry.locked
-            && let Some(lock) = manager.get_lock(&entry.path)?
+        if file.locked
+            && let Some(lock) = manager.get_lock(&file.path)?
         {
             let code = toml::format(&*lock, true)?;
 

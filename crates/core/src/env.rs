@@ -190,8 +190,8 @@ impl ProtoEnvironment {
     ) -> Result<Option<RwLockReadGuard<'_, ProtoLock>>, ProtoConfigError> {
         let manager = self.load_file_manager()?;
 
-        match manager.get_locked_dir(context) {
-            Some(dir) => manager.get_lock(dir),
+        match manager.get_locked_config(context) {
+            Some(file) => manager.get_lock(&file.path),
             None => Ok(None),
         }
     }
@@ -202,8 +202,8 @@ impl ProtoEnvironment {
     ) -> Result<Option<RwLockWriteGuard<'_, ProtoLock>>, ProtoConfigError> {
         let manager = self.load_file_manager()?;
 
-        match manager.get_locked_dir(context) {
-            Some(dir) => manager.get_lock_mut(dir),
+        match manager.get_locked_config(context) {
+            Some(file) => manager.get_lock_mut(&file.path),
             None => Ok(None),
         }
     }
@@ -232,8 +232,8 @@ impl ProtoEnvironment {
                     exists: path.exists(),
                     path,
                     config: ProtoConfig::load_from(&self.store.dir, true)?,
+                    locked: false,
                 }],
-                locked: false,
             });
 
             // Remove the pinned `proto` version from global/user configs,

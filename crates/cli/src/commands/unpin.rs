@@ -90,16 +90,10 @@ pub async fn unpin(session: ProtoSession, args: UnpinArgs) -> SessionResult {
                 });
         })?;
 
-        // Remove lockfile records for the unpinned spec, but only when
-        // the config being modified owns the lock records for the tool
-        if let Some(removed) = removed_spec
-            && tool
-                .proto
-                .load_file_manager()?
-                .get_locked_dir(&tool.context)
-                .is_some_and(|dir| dir == config_dir)
-        {
-            Locker::new(&tool).remove_spec_from_lockfile(&removed.req)?;
+        // Remove records for the unpinned spec from the lockfile owned by
+        // the modified config (no-op if the config has not enabled a lockfile)
+        if let Some(removed) = removed_spec {
+            Locker::for_config(&tool, &config_path).remove_spec_from_lockfile(&removed.req)?;
         }
     }
 

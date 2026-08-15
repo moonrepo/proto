@@ -416,6 +416,64 @@ foo = "file://./test.toml"
         );
     }
 
+    mod paths {
+        use super::*;
+
+        #[test]
+        fn detects_config_files() {
+            assert!(ProtoConfig::is_config_file(".prototools"));
+            assert!(ProtoConfig::is_config_file("/root/.prototools"));
+            assert!(ProtoConfig::is_config_file("/root/.prototools.production"));
+            assert!(ProtoConfig::is_config_file(".prototools.dev"));
+
+            assert!(!ProtoConfig::is_config_file("/root"));
+            assert!(!ProtoConfig::is_config_file("/root/.prototools."));
+            assert!(!ProtoConfig::is_config_file("/root/.prototoolsdev"));
+            assert!(!ProtoConfig::is_config_file("/root/prototools"));
+            assert!(!ProtoConfig::is_config_file("/root/.protolock"));
+            assert!(!ProtoConfig::is_config_file("/root/.nvmrc"));
+        }
+
+        #[test]
+        fn resolves_a_dir_to_the_config_file() {
+            let sandbox = create_empty_sandbox();
+
+            let path = ProtoConfig::update_document(sandbox.path(), |_| {}).unwrap();
+
+            assert_eq!(path, sandbox.path().join(".prototools"));
+            assert!(path.exists());
+        }
+
+        #[test]
+        fn resolves_a_config_file_to_itself() {
+            let sandbox = create_empty_sandbox();
+
+            let path =
+                ProtoConfig::update_document(sandbox.path().join(".prototools"), |_| {}).unwrap();
+
+            assert_eq!(path, sandbox.path().join(".prototools"));
+            assert!(path.exists());
+        }
+
+        #[test]
+        fn resolves_an_env_config_file_to_itself() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools.production", r#"node = "20""#);
+
+            let path = ProtoConfig::update_document(
+                sandbox.path().join(".prototools.production"),
+                |doc| {
+                    doc.as_table_mut().remove("node");
+                },
+            )
+            .unwrap();
+
+            assert_eq!(path, sandbox.path().join(".prototools.production"));
+            assert_eq!(std::fs::read_to_string(path).unwrap().trim(), "");
+            assert!(!sandbox.path().join(".prototools").exists());
+        }
+    }
+
     mod envs {
         use super::*;
 
