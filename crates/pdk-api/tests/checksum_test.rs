@@ -14,6 +14,17 @@ fn errors_unknown_algo() {
 }
 
 #[test]
+fn parses_gpg() {
+    let public_key =
+        "-----BEGIN PGP PUBLIC KEY BLOCK-----\nkey\n-----END PGP PUBLIC KEY BLOCK-----";
+
+    assert_eq!(
+        Checksum::from_str(&format!("gpg:{public_key}")).unwrap(),
+        Checksum::gpg(public_key.into())
+    );
+}
+
+#[test]
 fn parses_minisign() {
     assert_eq!(
         Checksum::from_str("minisign:RWSGOq2NVecA2UPNdBUZykf1CCb147pkmdtYxgb3Ti+JO/wCYvhbAb/U")

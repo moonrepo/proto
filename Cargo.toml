@@ -30,6 +30,7 @@ miette = "7.6.0"
 oci-client = "0.17.0"
 once_cell = "1.21.4"
 opentelemetry = "0.32.0"
+pgp = { version = "0.20.0", default-features = false }
 regex = { version = "1.13.1", default-features = false, features = ["std"] }
 reqwest = { version = "0.13.4", default-features = false, features = [
     "charset",
