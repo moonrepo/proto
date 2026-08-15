@@ -1,3 +1,4 @@
+use rustc_hash::FxHashMap;
 use starbase_sandbox::create_empty_sandbox;
 use starbase_utils::fs;
 use std::io::{Read, Write};
@@ -5,7 +6,7 @@ use std::net::TcpListener;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::thread;
-use warpgate::api::{DownloadFileInput, DownloadFileOutput};
+use warpgate::api::{DownloadFileInput, DownloadFileOutput, SendRequestInput, SendRequestOutput};
 use warpgate::host::{HostData, create_host_functions};
 use warpgate::{
     Id, PluginContainer, PluginManifest, VirtualPath, Wasm, create_http_client,
@@ -34,6 +35,45 @@ fn spawn_http_server(status: &'static str, body: &'static str) -> String {
     });
 
     format!("http://{addr}/archive.txt")
+}
+
+// Serve a response that echoes the received request head (request line and
+// headers) back as the response body, and return the URL to request.
+fn spawn_echo_server() -> String {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let addr = listener.local_addr().unwrap();
+
+    thread::spawn(move || {
+        for stream in listener.incoming() {
+            let Ok(mut stream) = stream else {
+                break;
+            };
+
+            let mut request = Vec::new();
+            let mut buffer = [0u8; 1024];
+
+            loop {
+                let Ok(bytes) = stream.read(&mut buffer) else {
+                    break;
+                };
+
+                request.extend_from_slice(&buffer[..bytes]);
+
+                if bytes == 0 || request.windows(4).any(|window| window == b"\r\n\r\n") {
+                    break;
+                }
+            }
+
+            let body = String::from_utf8_lossy(&request).into_owned();
+            let _ = write!(
+                stream,
+                "HTTP/1.1 200 OK\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}",
+                body.len(),
+            );
+        }
+    });
+
+    format!("http://{addr}/request")
 }
 
 fn find_api_usage_wasm() -> PathBuf {
@@ -113,5 +153,90 @@ mod download_file {
 
         assert!(result.is_err());
         assert!(!sandbox.path().join("dl/archive.txt").exists());
+    }
+}
+
+mod send_request {
+    use super::*;
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn sends_a_get_request_by_default() {
+        let sandbox = create_empty_sandbox();
+        let container = create_container(sandbox.path());
+        let url = spawn_echo_server();
+
+        let output: SendRequestOutput = container
+            .call_func_with("testing_send_request", SendRequestInput::new(url))
+            .await
+            .unwrap();
+
+        assert_eq!(output.status, 200);
+        assert!(
+            output
+                .text()
+                .unwrap()
+                .starts_with("GET /request HTTP/1.1\r\n")
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn sends_a_post_request() {
+        let sandbox = create_empty_sandbox();
+        let container = create_container(sandbox.path());
+        let url = spawn_echo_server();
+
+        let output: SendRequestOutput = container
+            .call_func_with("testing_send_request", SendRequestInput::post(url))
+            .await
+            .unwrap();
+
+        assert_eq!(output.status, 200);
+        assert!(
+            output
+                .text()
+                .unwrap()
+                .starts_with("POST /request HTTP/1.1\r\n")
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn expands_env_vars_in_request_headers() {
+        unsafe { std::env::set_var("WARPGATE_TEST_SEND_REQUEST_TOKEN", "wg-secret-value") };
+
+        let sandbox = create_empty_sandbox();
+        let container = create_container(sandbox.path());
+        let url = spawn_echo_server();
+
+        let output: SendRequestOutput = container
+            .call_func_with(
+                "testing_send_request",
+                SendRequestInput::new(url).headers(FxHashMap::from_iter([(
+                    "Authorization".into(),
+                    "Bearer ${WARPGATE_TEST_SEND_REQUEST_TOKEN}".into(),
+                )])),
+            )
+            .await
+            .unwrap();
+
+        let request = output.text().unwrap().to_lowercase();
+
+        assert!(!request.contains("${"));
+        assert!(request.contains("authorization: bearer wg-secret-value"));
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn errors_when_response_is_not_ok() {
+        let sandbox = create_empty_sandbox();
+        let container = create_container(sandbox.path());
+        let url = spawn_http_server("404 Not Found", "");
+
+        let result = container
+            .call_func_with::<_, _, SendRequestOutput>(
+                "testing_send_request",
+                SendRequestInput::new(url),
+            )
+            .await;
+
+        assert!(result.is_err());
     }
 }
