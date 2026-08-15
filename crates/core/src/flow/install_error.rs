@@ -10,6 +10,7 @@ use starbase_utils::hash::HashError;
 use starbase_utils::net::NetError;
 use std::path::PathBuf;
 use thiserror::Error;
+use tokio::task::JoinError;
 use warpgate::{WarpgateHttpClientError, WarpgatePluginError};
 
 #[derive(Error, Debug, miette::Diagnostic)]
@@ -71,6 +72,13 @@ pub enum ProtoInstallError {
         .dir.style(Style::Path)
     )]
     FailedInstallNoFiles { tool: String, dir: PathBuf },
+
+    #[diagnostic(code(proto::install::failed_join))]
+    #[error("Failed to verify a tool download in the background.")]
+    FailedJoin {
+        #[source]
+        error: Box<JoinError>,
+    },
 
     #[diagnostic(code(proto::uninstall::failed))]
     #[error("Failed to uninstall {tool}. {}", apply_style_tags(.error))]
