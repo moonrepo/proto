@@ -1,0 +1,52 @@
+name: Nix
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+    paths:
+      - flake.nix
+      - flake.lock
+      - Cargo.toml
+      - Cargo.lock
+      - rust-toolchain.toml
+      - crates/**
+  pull_request:
+    paths:
+      - flake.nix
+      - flake.lock
+      - Cargo.toml
+      - Cargo.lock
+      - rust-toolchain.toml
+      - crates/**
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build (${{ matrix.system }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - system: x86_64-linux
+            runner: depot-ubuntu-24.04-8
+          - system: aarch64-linux
+            runner: depot-ubuntu-22.04-arm-8
+          - system: aarch64-darwin
+            runner: depot-macos-15
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: DeterminateSystems/nix-installer-action@v22
+      - uses: cachix/cachix-action@v17
+        with:
+          name: moonrepo
+          authToken: ${{ github.event_name != 'pull_request' && secrets.CACHIX_AUTH_TOKEN || '' }}
+      - name: Check flake
+        run: nix flake check --no-build --no-write-lock-file
+      - name: Build package
+        run: nix build .#packages.${{ matrix.system }}.default -L
