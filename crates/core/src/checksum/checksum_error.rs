@@ -23,6 +23,10 @@ pub enum ProtoChecksumError {
     #[error("Invalid GPG public keyring: {reason}.")]
     InvalidGpgKeyring { reason: String },
 
+    #[diagnostic(code(proto::checksum::gpg_signatures))]
+    #[error("Invalid GPG signature file: {reason}.")]
+    InvalidGpgSignatures { reason: String },
+
     #[diagnostic(code(proto::checksum::minisign))]
     #[error("Failed to verify minisign checksum.")]
     Minisign {

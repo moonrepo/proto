@@ -11,41 +11,64 @@ use tracing::instrument;
 pub use checksum_error::*;
 pub use sha::{hash_file_contents_sha256, hash_file_contents_sha512};
 
-#[instrument]
+#[instrument(skip(checksum))]
 pub fn verify_checksum(
     download_file: &Path,
     checksum_file: &Path,
     checksum: &Checksum,
 ) -> Result<bool, ProtoChecksumError> {
+    Ok(verify_checksum_with_metadata(download_file, checksum_file, checksum)?.is_some())
+}
+
+#[instrument(skip(checksum))]
+pub fn verify_checksum_with_metadata(
+    download_file: &Path,
+    checksum_file: &Path,
+    checksum: &Checksum,
+) -> Result<Option<Checksum>, ProtoChecksumError> {
     match checksum.algo {
-        ChecksumAlgorithm::Gpg => gpg::verify_checksum(
+        ChecksumAlgorithm::Gpg => {
+            let Some(fingerprint) = gpg::verify_checksum(
+                download_file,
+                checksum_file,
+                checksum
+                    .key
+                    .as_deref()
+                    .ok_or(ProtoChecksumError::MissingPublicKey)?,
+            )?
+            else {
+                return Ok(None);
+            };
+            let hash = hash_file_contents_sha256(download_file).map_err(|error| {
+                ProtoChecksumError::Sha {
+                    error: Box::new(error),
+                }
+            })?;
+
+            Ok(Some(Checksum::gpg_verified(fingerprint, hash)))
+        }
+        ChecksumAlgorithm::Minisign => Ok(minisign::verify_checksum(
             download_file,
             checksum_file,
             checksum
                 .key
                 .as_deref()
                 .ok_or(ProtoChecksumError::MissingPublicKey)?,
-        ),
-        ChecksumAlgorithm::Minisign => minisign::verify_checksum(
-            download_file,
-            checksum_file,
-            checksum
-                .key
-                .as_deref()
-                .ok_or(ProtoChecksumError::MissingPublicKey)?,
-        ),
-        ChecksumAlgorithm::Sha256 | ChecksumAlgorithm::Sha512 => sha::verify_checksum(
+        )?
+        .then(|| checksum.clone())),
+        ChecksumAlgorithm::Sha256 | ChecksumAlgorithm::Sha512 => Ok(sha::verify_checksum(
             download_file,
             checksum_file,
             checksum
                 .hash
                 .as_deref()
                 .ok_or(ProtoChecksumError::MissingHash)?,
-        ),
+        )?
+        .then(|| checksum.clone())),
     }
 }
 
-#[instrument]
+#[instrument(skip(checksum_public_key))]
 pub fn generate_checksum(
     download_file: &Path,
     checksum_file: &Path,

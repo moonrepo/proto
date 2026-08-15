@@ -28,7 +28,10 @@
 #### 🚀 Updates
 
 - **Checksums**
-  - Added support for verifying prebuilt downloads with GPG detached signatures (`.sig` and `.asc`) provided through `checksum_url`, using the plugin-provided `checksum_public_key`. Public keyrings may contain multiple certificates in a single armored block or multiple concatenated armored blocks.
+  - Added support for verifying prebuilt downloads with GPG detached signatures (`.sig` and `.asc`) provided through `checksum_url`, using the plugin-provided `checksum_public_key`.
+    - Public keyrings may contain multiple certificates in a single armored block or multiple concatenated armored blocks.
+    - Signature files may contain multiple binary signatures, multiple signatures in one armored block, or multiple concatenated armored blocks. Verification succeeds when any signature matches a trusted key.
+    - GPG verification streams the artifact from disk in a blocking worker and records only the verified signer fingerprint and artifact SHA256 in lockfiles, instead of the armored public keyring.
 - **Lockfiles**
   - Updated `proto pin` and `proto unpin` to always keep the lockfile of the modified config in sync, even when another config (like an environment config) takes precedence for the tool.
   - Updated `proto install --pin` to track the record of the installed version in the lockfile of the pinned config, even when another config (like an environment config) takes precedence for the tool.
