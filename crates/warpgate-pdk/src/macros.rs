@@ -63,6 +63,21 @@ macro_rules! exec_command {
     };
 }
 
+/// Calls the `download_file` host function to download a file from a URL
+/// and save it to a destination file on the host machine.
+#[macro_export]
+macro_rules! download_file {
+    (input, $input:expr) => {{
+        #[allow(clippy::macro_metavars_in_unsafe)]
+        unsafe {
+            download_file(Json($input))?.0
+        }
+    }};
+    ($url:expr, $file:expr) => {
+        download_file!(input, DownloadFileInput::new($url, $file))
+    };
+}
+
 /// Calls the `send_request` host function to send an HTTP request
 /// and return a response. Not OK responses must be handled by the guest.
 #[macro_export]

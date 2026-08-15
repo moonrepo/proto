@@ -17,6 +17,12 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- **WASM API**
+  - Added a `download_file` host function, which downloads a file from a URL directly to a file on the host machine, without loading the contents into WASM memory. Requests are made with proto's HTTP client, respecting `[settings.http]` and `.netrc` configuration.
+    - Added `download` and `download_from_url` functions, and a `download_file!` macro, to the PDK.
+
 #### 🐞 Fixes
 
 - Fixed `proto install <tool>` not respecting the `detect-strategy` setting. It resolved a version by scanning the working directory for the tool's own version file before consulting `.prototools`, unlike `proto run`, `proto status` and a bare `proto install`, which all honour the setting. A repo pinning `go = "1.26.7"` with `detect-strategy = "prefer-prototools"` beside a `go.work` would install whatever the `go` directive's range resolved to, and `proto run go` would then fail with `missing_tool`. As a consequence, `install` now also detects ecosystem files by traversing the config file chain rather than only the working directory, and honours `PROTO_<TOOL>_VERSION`.
