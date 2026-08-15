@@ -19,6 +19,10 @@ pub enum ProtoChecksumError {
         error: Box<pgp::errors::Error>,
     },
 
+    #[diagnostic(code(proto::checksum::gpg_keyring))]
+    #[error("Invalid GPG public keyring: {reason}.")]
+    InvalidGpgKeyring { reason: String },
+
     #[diagnostic(code(proto::checksum::minisign))]
     #[error("Failed to verify minisign checksum.")]
     Minisign {
