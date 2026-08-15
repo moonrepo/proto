@@ -6,6 +6,7 @@ use crate::plugin_error::WarpgatePluginError;
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
 use starbase_shell::{ShellType, join_exe_args};
 use starbase_styles::{apply_style_tags, color};
+use starbase_utils::net::{self, DownloadOptions};
 use starbase_utils::{envx, fs};
 use std::env;
 use std::path::PathBuf;
@@ -17,8 +18,8 @@ use system_env::find_command_on_path;
 use tokio::runtime::Handle;
 use tracing::{debug, error, instrument, trace, warn};
 use warpgate_api::{
-    ExecCommandInput, ExecCommandOutput, HostLogInput, HostLogTarget, SendRequestInput,
-    SendRequestOutput, convert_to_real_native_path,
+    DownloadFileInput, DownloadFileOutput, ExecCommandInput, ExecCommandOutput, HostLogInput,
+    HostLogTarget, SendRequestInput, SendRequestOutput, convert_to_real_native_path,
 };
 
 /// Data passed to each host function.
@@ -40,6 +41,13 @@ pub struct HostData {
 /// Create a list of our built-in host functions.
 pub fn create_host_functions(data: HostData) -> Vec<Function> {
     vec![
+        Function::new(
+            "download_file",
+            [ValType::I64],
+            [ValType::I64],
+            UserData::new(data.clone()),
+            download_file,
+        ),
         Function::new(
             "exec_command",
             [ValType::I64],
@@ -377,6 +385,67 @@ fn send_request(
         length = memory.length,
         "Called host function {} in {:?}",
         color::label("send_request"),
+        instant.elapsed()
+    );
+
+    plugin.memory_set_val(&mut outputs[0], serde_json::to_string(&output)?)?;
+
+    Ok(())
+}
+
+#[instrument(name = "host_func_download_file", skip_all)]
+fn download_file(
+    plugin: &mut CurrentPlugin,
+    inputs: &[Val],
+    outputs: &mut [Val],
+    user_data: UserData<HostData>,
+) -> Result<(), Error> {
+    let instant = Instant::now();
+    let input_raw: String = plugin.memory_get_val(&inputs[0])?;
+    let input: DownloadFileInput = serde_json::from_str(&input_raw)?;
+    let uuid = plugin.id().to_string();
+
+    trace!(
+        plugin = &uuid,
+        input = %input_raw,
+        "Calling host function {}",
+        color::label("download_file"),
+    );
+
+    let data = user_data.get()?;
+    let data = data.lock().unwrap();
+
+    let dest_file = convert_to_real_native_path(&input.file, &data.virtual_paths);
+
+    trace!(
+        plugin = &uuid,
+        url = &input.url,
+        file = ?dest_file,
+        "Downloading file on host machine"
+    );
+
+    Handle::current().block_on(net::download_from_url_with_options(
+        &input.url,
+        &dest_file,
+        DownloadOptions {
+            downloader: Some(Box::new(
+                data.http_client
+                    .create_downloader_with_headers(input.headers),
+            )),
+            ..Default::default()
+        },
+    ))?;
+
+    let output = DownloadFileOutput {
+        file: input.file,
+        size: fs::metadata(&dest_file)?.len(),
+    };
+
+    trace!(
+        plugin = &uuid,
+        size = output.size,
+        "Called host function {} in {:?}",
+        color::label("download_file"),
         instant.elapsed()
     );
 

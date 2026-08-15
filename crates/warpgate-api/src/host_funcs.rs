@@ -199,6 +199,47 @@ impl ExecCommandOutput {
 }
 
 api_struct!(
+    /// Input passed to the `download_file` host function.
+    #[derive(Setters)]
+    pub struct DownloadFileInput {
+        /// The URL to download a file from.
+        #[setters(into)]
+        pub url: String,
+
+        /// Virtual path of the destination file to write the
+        /// downloaded contents to.
+        pub file: VirtualPath,
+
+        /// HTTP headers to inject into the request.
+        #[serde(default, skip_serializing_if = "FxHashMap::is_empty")]
+        pub headers: FxHashMap<String, String>,
+    }
+);
+
+impl DownloadFileInput {
+    /// Create a new download request with the provided URL and destination file.
+    pub fn new(url: impl AsRef<str>, file: impl AsRef<std::ffi::OsStr>) -> Self {
+        Self {
+            url: url.as_ref().to_owned(),
+            file: VirtualPath::new(file),
+            headers: FxHashMap::default(),
+        }
+    }
+}
+
+api_struct!(
+    /// Output returned from the `download_file` host function.
+    #[serde(default)]
+    pub struct DownloadFileOutput {
+        /// Virtual path of the destination file that was written to.
+        pub file: VirtualPath,
+
+        /// The size of the downloaded file, in bytes.
+        pub size: u64,
+    }
+);
+
+api_struct!(
     /// Input passed to the `send_request` host function.
     #[derive(Setters)]
     pub struct SendRequestInput {
