@@ -27,6 +27,47 @@ pub struct ProtoConfigFile {
     pub locked: bool,
 }
 
+impl ProtoConfigFile {
+    /// Return the environment mode this config is scoped to, if any.
+    /// For example, `.prototools.production` is scoped to `production`,
+    /// while the base `.prototools` is not scoped at all.
+    pub fn get_env_mode(&self) -> Option<&str> {
+        self.path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .and_then(|name| name.strip_prefix(PROTO_CONFIG_NAME))
+            .and_then(|suffix| suffix.strip_prefix('.'))
+    }
+
+    /// Return the path of the lockfile that this config owns. Each config
+    /// owns a sibling lockfile of the same environment scope: `.prototools`
+    /// is locked to `.protolock`, and `.prototools.<env>` to `.protolock.<env>`.
+    pub fn get_lock_path(&self) -> PathBuf {
+        self.path.with_file_name(match self.get_env_mode() {
+            Some(env) => format!("{PROTO_LOCK_NAME}.{env}"),
+            None => PROTO_LOCK_NAME.to_owned(),
+        })
+    }
+
+    /// Gather the version specs defined in this config only. Since a lockfile
+    /// is scoped to the config in which it was enabled, these are the only
+    /// specs that dictate which of its records are used.
+    pub fn get_config_specs(&self) -> BTreeMap<ToolContext, BTreeSet<UnresolvedVersionSpec>> {
+        let mut specs: BTreeMap<ToolContext, BTreeSet<UnresolvedVersionSpec>> = BTreeMap::default();
+
+        if let Some(versions) = &self.config.versions {
+            for (context, spec) in versions {
+                specs
+                    .entry(context.to_owned())
+                    .or_default()
+                    .insert(spec.req.clone());
+            }
+        }
+
+        specs
+    }
+}
+
 #[derive(Debug, Serialize)]
 pub struct ProtoDirEntry {
     pub path: PathBuf,
@@ -37,42 +78,35 @@ pub struct ProtoDirEntry {
 }
 
 impl ProtoDirEntry {
-    /// Gather all version specs defined in configs within this directory,
-    /// including environment scoped configs (`.prototools.{env}`) that are
-    /// not currently active, as all configs in the directory share the same
-    /// lockfile, and their specs must be considered used.
+    /// Find environment scoped configs (`.prototools.<env>`) in this directory
+    /// that were not loaded, as they are not the active environment mode. Each
+    /// of these configs owns its own lockfile, which may still require
+    /// maintenance even when its environment is not active.
     ///
-    /// Returns `None` when a config could not be loaded, as the full set of
-    /// specs cannot be reliably determined.
-    pub fn gather_config_specs(
-        &self,
-    ) -> Option<BTreeMap<ToolContext, BTreeSet<UnresolvedVersionSpec>>> {
-        let mut specs: BTreeMap<ToolContext, BTreeSet<UnresolvedVersionSpec>> = BTreeMap::default();
-
-        fn collect(
-            specs: &mut BTreeMap<ToolContext, BTreeSet<UnresolvedVersionSpec>>,
-            config: &PartialProtoConfig,
-        ) {
-            if let Some(versions) = &config.versions {
-                for (context, spec) in versions {
-                    specs
-                        .entry(context.to_owned())
-                        .or_default()
-                        .insert(spec.req.clone());
-                }
-            }
+    /// Only configs that have an existing sibling lockfile are returned, as
+    /// there is nothing to maintain otherwise. Returns `None` when the
+    /// directory or one of these configs could not be read, as the configs
+    /// cannot be reliably determined.
+    pub fn find_inactive_env_configs(&self) -> Option<Vec<ProtoConfigFile>> {
+        // Lockfiles are never enabled for user or global configs
+        if self.location != PinLocation::Local {
+            return Some(vec![]);
         }
 
-        // Configs already loaded, for the active environment mode
-        for file in &self.configs {
-            collect(&mut specs, &file.config);
-        }
+        // Environment configs layer on top of the base config in the same
+        // directory, so they inherit its setting when not set themselves.
+        // The base config is always last by precedence
+        let inherited_lockfile = self
+            .configs
+            .last()
+            .and_then(|file| file.config.settings.as_ref())
+            .and_then(|settings| settings.lockfile);
 
-        // Environment scoped configs that are not active
         let env_prefix = format!("{PROTO_CONFIG_NAME}.");
+        let mut configs = vec![];
 
-        let dir = match fs::read_dir(&self.path) {
-            Ok(dir) => dir,
+        let dir_entries = match fs::read_dir(&self.path) {
+            Ok(entries) => entries,
             Err(error) => {
                 warn!(
                     dir = ?self.path,
@@ -83,7 +117,7 @@ impl ProtoDirEntry {
             }
         };
 
-        for dir_entry in dir {
+        for dir_entry in dir_entries {
             let path = dir_entry.path();
 
             if !path.is_file()
@@ -96,22 +130,44 @@ impl ProtoDirEntry {
                 continue;
             }
 
-            match ProtoConfig::load(&path, false) {
-                Ok(config) => {
-                    collect(&mut specs, &config);
-                }
+            let mut file = ProtoConfigFile {
+                config: PartialProtoConfig::default(),
+                exists: true,
+                path,
+                locked: false,
+            };
+
+            // Avoid loading the config when there's no lockfile to maintain,
+            // so that unrelated files that happen to share the config naming
+            // convention, like a `.prototools.bak` backup, are never a problem
+            if !file.get_lock_path().exists() {
+                continue;
+            }
+
+            file.config = match ProtoConfig::load(&file.path, false) {
+                Ok(config) => config,
                 Err(error) => {
                     warn!(
-                        file = ?path,
+                        file = ?file.path,
                         "Failed to load environment scoped config: {error}",
                     );
 
                     return None;
                 }
             };
+
+            file.locked = file
+                .config
+                .settings
+                .as_ref()
+                .and_then(|settings| settings.lockfile)
+                .or(inherited_lockfile)
+                .unwrap_or(false);
+
+            configs.push(file);
         }
 
-        Some(specs)
+        Some(configs)
     }
 }
 

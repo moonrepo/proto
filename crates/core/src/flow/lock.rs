@@ -38,6 +38,32 @@ use version_spec::{UnresolvedVersionSpec, VersionSpec};
 // [x] status
 //      [x] add locked label to table
 
+/// Remove orphaned records from the lockfile and persist the change.
+/// Returns the number of records that were removed.
+fn prune_lock(
+    lock: &mut ProtoLock,
+    config_specs: &BTreeMap<ToolContext, BTreeSet<UnresolvedVersionSpec>>,
+) -> Result<usize, ProtoLockError> {
+    // If nothing is configured, all records are ad-hoc installs
+    if config_specs.is_empty() {
+        return Ok(0);
+    }
+
+    let count = lock.prune_orphaned_records(config_specs);
+
+    if count > 0 {
+        debug!(
+            file = ?lock.path,
+            "Pruned {count} orphaned record(s) from lock file",
+        );
+
+        lock.sort_records();
+        lock.save()?;
+    }
+
+    Ok(count)
+}
+
 /// Manages records in a lockfile.
 pub struct Locker<'tool> {
     tool: &'tool Tool,
@@ -83,12 +109,16 @@ impl<'tool> Locker<'tool> {
         })
     }
 
-    /// Remove orphaned records from all loaded lockfiles. A record is
-    /// orphaned when its tool has a version defined in the lockfile's
-    /// sibling configs, but the record's spec no longer matches any of
-    /// the configured specs, which is typically caused by a config being
-    /// modified outside of proto. Records for tools that are not defined
-    /// in a sibling config are ad-hoc installs, and are never pruned.
+    /// Remove orphaned records from every lockfile in scope. A record is
+    /// orphaned when its tool has a version defined in the config that owns
+    /// the lockfile, but the record's spec no longer matches any of that
+    /// config's specs, which is typically caused by a config being modified
+    /// outside of proto. Records for tools that the owning config does not
+    /// define are ad-hoc installs, and are never pruned.
+    ///
+    /// Every lockfile in each directory is pruned, including the environment
+    /// scoped lockfiles (`.protolock.<env>`) of environments that are not
+    /// currently active, as each is owned by the config of the same scope.
     ///
     /// Specs that are actively being installed can be provided, so that
     /// records the current command depends on are never pruned.
@@ -104,52 +134,51 @@ impl<'tool> Locker<'tool> {
         let mut pruned = 0;
 
         for entry in &manager.entries {
-            if !entry.locked {
-                continue;
-            }
-
-            // Gather specs defined in sibling configs (including inactive
-            // environment scoped configs), as only these configs dictate
-            // which records in the lockfile are used. If they cannot be
-            // reliably gathered, avoid pruning entirely
-            let Some(mut config_specs) = entry.gather_config_specs() else {
-                continue;
-            };
-
-            // If nothing is configured, all records are ad-hoc installs
-            if config_specs.is_empty() {
-                continue;
-            }
-
-            // Treat specs that are actively being installed as if they
-            // were configured, but only when this lockfile owns the
-            // tool's records, so that in-flight records are never pruned
-            for (context, spec) in installing {
-                if let Some(specs) = config_specs.get_mut(context)
-                    && manager
-                        .get_locked_dir(context)
-                        .is_some_and(|dir| dir == entry.path)
-                {
-                    specs.insert(spec.to_owned());
+            // Lockfiles owned by the configs of the active environment mode,
+            // which have been loaded and may be written to by this command
+            for file in &entry.configs {
+                if !file.locked {
+                    continue;
                 }
+
+                let mut config_specs = file.get_config_specs();
+
+                // Treat specs that are actively being installed as if they
+                // were configured, but only when this lockfile owns the
+                // tool's records, so that in-flight records are never pruned
+                for (context, spec) in installing {
+                    if let Some(specs) = config_specs.get_mut(context)
+                        && manager
+                            .get_locked_config(context)
+                            .is_some_and(|owner| owner.path == file.path)
+                    {
+                        specs.insert(spec.to_owned());
+                    }
+                }
+
+                let Some(mut lock) = manager.get_lock_mut(&file.path)? else {
+                    continue;
+                };
+
+                pruned += prune_lock(&mut lock, &config_specs)?;
             }
 
-            let Some(mut lock) = manager.get_lock_mut(&entry.path)? else {
+            // Lockfiles owned by environment configs that are not active.
+            // They are never written to by this command, so the specs being
+            // installed are not applicable. If they cannot be reliably
+            // determined, avoid pruning them entirely
+            let Some(env_files) = entry.find_inactive_env_configs() else {
                 continue;
             };
 
-            let count = lock.prune_orphaned_records(&config_specs);
+            for file in env_files {
+                if !file.locked {
+                    continue;
+                }
 
-            if count > 0 {
-                debug!(
-                    file = ?lock.path,
-                    "Pruned {count} orphaned record(s) from lock file",
-                );
+                let mut lock = ProtoLock::load(file.get_lock_path())?;
 
-                lock.sort_records();
-                lock.save()?;
-
-                pruned += count;
+                pruned += prune_lock(&mut lock, &file.get_config_specs())?;
             }
         }
 

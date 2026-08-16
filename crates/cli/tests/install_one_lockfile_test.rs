@@ -743,9 +743,146 @@ lockfile = false
             assert!(!sandbox.path().join(".protolock.production").exists());
             assert!(!sandbox.path().join(".protolock").exists());
         }
+    }
+
+    mod orphan_pruning {
+        use super::*;
+
+        fn create_prune_sandbox() -> ProtoSandbox {
+            let sandbox = create_empty_proto_sandbox();
+
+            sandbox.create_file(
+                ".prototools",
+                r#"
+protostar = "1"
+protoform = "2.1"
+
+[settings]
+unstable-lockfile = true
+builtin-backends = false
+builtin-tools = false
+"#,
+            );
+
+            sandbox.create_file(
+                ".protolock",
+                format!(
+                    r#"
+[[tools.protoform]]
+os = "{os}"
+arch = "{arch}"
+spec = "3.0.0"
+version = "3.0.0"
+
+[[tools.moonstone]]
+os = "{os}"
+arch = "{arch}"
+spec = "5.0.0"
+version = "5.0.0"
+
+[[tools.protostar]]
+os = "{os}"
+arch = "{arch}"
+spec = "1"
+version = "1.10.15"
+
+[[tools.protostar]]
+os = "{os}"
+arch = "{arch}"
+spec = "^4.5"
+version = "4.5.15"
+
+[[tools.protostar]]
+os = "{os}"
+arch = "{arch}"
+spec = "5.10.0"
+version = "5.10.0"
+"#,
+                    os = SystemOS::default(),
+                    arch = SystemArch::default()
+                ),
+            );
+
+            sandbox
+        }
+
+        fn record_specs(records: &[LockRecord]) -> Vec<String> {
+            let mut specs = records
+                .iter()
+                .map(|record| record.spec.as_ref().unwrap().to_string())
+                .collect::<Vec<_>>();
+            specs.sort();
+            specs
+        }
+
+        // Parse the expected values, as specs are normalized when
+        // parsed, e.g. "1" becomes "~1"
+        fn parsed_specs(list: &[&str]) -> Vec<String> {
+            let mut specs = list
+                .iter()
+                .map(|spec| UnresolvedVersionSpec::parse(spec).unwrap().to_string())
+                .collect::<Vec<_>>();
+            specs.sort();
+            specs
+        }
 
         #[test]
-        fn considers_env_scoped_configs() {
+        fn prunes_orphaned_records_across_all_tools() {
+            let sandbox = create_prune_sandbox();
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("protostar");
+                })
+                .success();
+
+            let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
+
+            // Specs that no longer match the config were pruned
+            let protostar = lockfile.tools.get("protostar").unwrap();
+
+            assert_eq!(record_specs(protostar), parsed_specs(&["1"]));
+            assert_record!(protostar[0], "1", "1.10.15");
+
+            // Stale records for other configured tools are also pruned
+            assert!(!lockfile.tools.contains_key("protoform"));
+
+            // Unconfigured tools are ad-hoc installs and are kept
+            let moonstone = lockfile.tools.get("moonstone").unwrap();
+
+            assert_eq!(record_specs(moonstone), parsed_specs(&["5.0.0"]));
+        }
+
+        #[test]
+        fn keeps_record_for_spec_being_installed() {
+            let sandbox = create_prune_sandbox();
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("protostar").arg("5.10.0");
+                })
+                .success();
+
+            let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
+            let protostar = lockfile.tools.get("protostar").unwrap();
+
+            // The record for the installed spec was kept and updated,
+            // while other stale specs were pruned
+            assert_eq!(record_specs(protostar), parsed_specs(&["1", "5.10.0"]));
+
+            let installed = protostar
+                .iter()
+                .find(|record| {
+                    record.spec.as_ref().unwrap()
+                        == &UnresolvedVersionSpec::parse("5.10.0").unwrap()
+                })
+                .unwrap();
+
+            assert!(installed.checksum.is_some());
+        }
+
+        #[test]
+        fn prunes_env_scoped_lockfiles() {
             let sandbox = create_empty_proto_sandbox();
 
             sandbox.create_file(
@@ -760,49 +897,84 @@ builtin-tools = false
 "#,
             );
 
-            // Not active, but shares the same lockfile
-            sandbox.create_file(".prototools.prod", r#"moonstone = "5.0.0""#);
+            // Each env config owns a lockfile of the same scope
+            sandbox.create_file(".prototools.dev", r#"moonstone = "5.0.0""#);
+            sandbox.create_file(".prototools.prod", r#"moonstone = "4.0.0""#);
 
             sandbox.create_file(
                 ".protolock",
                 format!(
                     r#"
-[[tools.moonstone]]
-os = "{os}"
-arch = "{arch}"
-spec = "4.0.0"
-version = "4.0.0"
-
-[[tools.moonstone]]
-os = "{os}"
-arch = "{arch}"
-spec = "5.0.0"
-version = "5.0.0"
-
 [[tools.protostar]]
 os = "{os}"
 arch = "{arch}"
 spec = "1"
 version = "1.10.15"
+
+[[tools.protostar]]
+os = "{os}"
+arch = "{arch}"
+spec = "3.0.0"
+version = "3.0.0"
 "#,
                     os = SystemOS::default(),
                     arch = SystemArch::default()
                 ),
             );
 
+            let env_records = |spec: &str| {
+                format!(
+                    r#"
+[[tools.moonstone]]
+os = "{os}"
+arch = "{arch}"
+spec = "{spec}"
+version = "{spec}"
+
+[[tools.moonstone]]
+os = "{os}"
+arch = "{arch}"
+spec = "1.0.0"
+version = "1.0.0"
+"#,
+                    os = SystemOS::default(),
+                    arch = SystemArch::default()
+                )
+            };
+
+            sandbox.create_file(".protolock.dev", env_records("5.0.0"));
+            sandbox.create_file(".protolock.prod", env_records("4.0.0"));
+
+            // Run in the dev environment, so the prod lockfile is never loaded
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install").arg("protostar");
+                    cmd.arg("install").arg("protostar").env("PROTO_ENV", "dev");
                 })
                 .success();
 
-            let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
+            // The base lockfile is pruned against the base config
+            let base_lock = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
 
-            // The spec pinned in the inactive env config was kept,
-            // while the spec matching no config was pruned
-            let moonstone = lockfile.tools.get("moonstone").unwrap();
+            assert_eq!(
+                record_specs(base_lock.tools.get("protostar").unwrap()),
+                parsed_specs(&["1"])
+            );
 
-            assert_eq!(record_specs(moonstone), parsed_specs(&["5.0.0"]));
+            // And each env lockfile against its own env config, whether
+            // that environment is the active one or not
+            let dev_lock = ProtoLock::load(sandbox.path().join(".protolock.dev")).unwrap();
+
+            assert_eq!(
+                record_specs(dev_lock.tools.get("moonstone").unwrap()),
+                parsed_specs(&["5.0.0"])
+            );
+
+            let prod_lock = ProtoLock::load(sandbox.path().join(".protolock.prod")).unwrap();
+
+            assert_eq!(
+                record_specs(prod_lock.tools.get("moonstone").unwrap()),
+                parsed_specs(&["4.0.0"])
+            );
         }
     }
 }

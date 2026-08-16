@@ -1419,14 +1419,25 @@ mod locker {
         use std::collections::BTreeMap;
 
         fn create_env_in_sandbox(sandbox_path: &Path) -> ProtoEnvironment {
+            create_env_in_sandbox_with_mode(sandbox_path, None)
+        }
+
+        fn create_env_in_sandbox_with_mode(
+            sandbox_path: &Path,
+            env_mode: Option<&str>,
+        ) -> ProtoEnvironment {
             let mut proto = ProtoEnvironment::new_testing(sandbox_path).unwrap();
             proto.working_dir = sandbox_path.to_path_buf();
             // Don't inherit `PROTO_ENV` from the test process
-            proto.env_mode = None;
+            proto.env_mode = env_mode.map(|env| env.to_owned());
             proto
         }
 
         fn seed_lockfile(dir: &Path, records: &[(&str, &str, Option<&str>)]) {
+            seed_lockfile_at(&dir.join(".protolock"), records);
+        }
+
+        fn seed_lockfile_at(lock_path: &Path, records: &[(&str, &str, Option<&str>)]) {
             let mut lock = ProtoLock::default();
 
             for (id, spec, backend) in records {
@@ -1439,7 +1450,7 @@ mod locker {
                 });
             }
 
-            lock.path = dir.join(".protolock");
+            lock.path = lock_path.to_path_buf();
             lock.save().unwrap();
         }
 
@@ -1617,21 +1628,131 @@ mod locker {
         }
 
         #[tokio::test(flavor = "multi_thread")]
-        async fn keeps_records_for_specs_in_inactive_env_configs() {
+        async fn prunes_the_active_env_lockfile_against_its_own_config() {
             let sandbox = create_empty_sandbox();
             sandbox.create_file(
                 ".prototools",
                 "node = \"20\"\n\n[settings]\nlockfile = true",
             );
-            // Not active, but shares the same lockfile
-            sandbox.create_file(".prototools.prod", "node = \"22\"");
+            sandbox.create_file(".prototools.dev", "node = \"22\"");
+
             seed_lockfile(
                 sandbox.path(),
-                &[
-                    ("node", "20", None),
-                    ("node", "22", None),
-                    ("node", "18", None),
-                ],
+                &[("node", "20", None), ("node", "19", None)],
+            );
+            seed_lockfile_at(
+                &sandbox.path().join(".protolock.dev"),
+                &[("node", "22", None), ("node", "21", None)],
+            );
+
+            let proto = create_env_in_sandbox_with_mode(sandbox.path(), Some("dev"));
+            let pruned = Locker::prune_orphaned_records(&proto, &BTreeMap::default()).unwrap();
+
+            assert_eq!(pruned, 2);
+
+            // Each lockfile is scoped to the config that enabled it, so the
+            // base spec doesn't protect records in the env lockfile
+            let base_lock = ProtoLock::load_from(sandbox.path()).unwrap();
+            let base_records = base_lock.tools.get("node").unwrap();
+
+            assert_eq!(base_records.len(), 1);
+            assert_eq!(
+                base_records[0].spec.as_ref().unwrap(),
+                &UnresolvedVersionSpec::parse("20").unwrap()
+            );
+
+            let env_lock = ProtoLock::load(sandbox.path().join(".protolock.dev")).unwrap();
+            let env_records = env_lock.tools.get("node").unwrap();
+
+            assert_eq!(env_records.len(), 1);
+            assert_eq!(
+                env_records[0].spec.as_ref().unwrap(),
+                &UnresolvedVersionSpec::parse("22").unwrap()
+            );
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn prunes_env_lockfiles_that_are_not_active() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                "node = \"20\"\n\n[settings]\nlockfile = true",
+            );
+            // Neither environment is active, but both own a lockfile
+            sandbox.create_file(".prototools.dev", "node = \"22\"");
+            sandbox.create_file(".prototools.prod", "node = \"18\"");
+
+            seed_lockfile(sandbox.path(), &[("node", "20", None)]);
+            seed_lockfile_at(
+                &sandbox.path().join(".protolock.dev"),
+                &[("node", "22", None), ("node", "21", None)],
+            );
+            seed_lockfile_at(
+                &sandbox.path().join(".protolock.prod"),
+                &[("node", "17", None)],
+            );
+
+            let proto = create_env_in_sandbox(sandbox.path());
+            let pruned = Locker::prune_orphaned_records(&proto, &BTreeMap::default()).unwrap();
+
+            assert_eq!(pruned, 2);
+
+            assert_eq!(
+                ProtoLock::load_from(sandbox.path())
+                    .unwrap()
+                    .tools
+                    .get("node")
+                    .unwrap()
+                    .len(),
+                1
+            );
+
+            let dev_lock = ProtoLock::load(sandbox.path().join(".protolock.dev")).unwrap();
+            let dev_records = dev_lock.tools.get("node").unwrap();
+
+            assert_eq!(dev_records.len(), 1);
+            assert_eq!(
+                dev_records[0].spec.as_ref().unwrap(),
+                &UnresolvedVersionSpec::parse("22").unwrap()
+            );
+
+            // Every record was orphaned, so the lockfile was removed
+            assert!(!sandbox.path().join(".protolock.prod").exists());
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn doesnt_prune_env_lockfiles_when_not_enabled() {
+            let sandbox = create_empty_sandbox();
+            // Lockfiles are not enabled, so neither config owns one
+            sandbox.create_file(".prototools", "node = \"20\"");
+            sandbox.create_file(".prototools.dev", "node = \"22\"");
+
+            seed_lockfile_at(
+                &sandbox.path().join(".protolock.dev"),
+                &[("node", "21", None)],
+            );
+
+            let proto = create_env_in_sandbox(sandbox.path());
+            let pruned = Locker::prune_orphaned_records(&proto, &BTreeMap::default()).unwrap();
+
+            assert_eq!(pruned, 0);
+            assert!(sandbox.path().join(".protolock.dev").exists());
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn prunes_env_lockfiles_that_enable_the_setting_themselves() {
+            let sandbox = create_empty_sandbox();
+            // Only the env config enables a lockfile
+            sandbox.create_file(".prototools", "node = \"20\"");
+            sandbox.create_file(
+                ".prototools.dev",
+                "node = \"22\"\n\n[settings]\nlockfile = true",
+            );
+
+            seed_lockfile(sandbox.path(), &[("node", "19", None)]);
+            seed_lockfile_at(
+                &sandbox.path().join(".protolock.dev"),
+                &[("node", "21", None)],
             );
 
             let proto = create_env_in_sandbox(sandbox.path());
@@ -1639,46 +1760,42 @@ mod locker {
 
             assert_eq!(pruned, 1);
 
-            let lock = ProtoLock::load_from(sandbox.path()).unwrap();
-            let records = lock.tools.get("node").unwrap();
+            // Every record was orphaned, so the lockfile was removed
+            assert!(!sandbox.path().join(".protolock.dev").exists());
 
-            assert_eq!(records.len(), 2);
-
-            for spec in ["20", "22"] {
-                let spec = UnresolvedVersionSpec::parse(spec).unwrap();
-
-                assert!(
-                    records
-                        .iter()
-                        .any(|record| record.spec.as_ref() == Some(&spec))
-                );
-            }
+            // And the base lockfile was removed when configs were loaded,
+            // since its config never enabled the setting
+            assert!(!sandbox.path().join(".protolock").exists());
         }
 
         #[tokio::test(flavor = "multi_thread")]
-        async fn prunes_against_active_env_configs() {
+        async fn ignores_config_like_files_without_a_lockfile() {
             let sandbox = create_empty_sandbox();
-            sandbox.create_file(".prototools", "[settings]\nlockfile = true");
-            sandbox.create_file(".prototools.dev", "bun = \"1.1\"");
+            sandbox.create_file(
+                ".prototools",
+                "node = \"20\"\n\n[settings]\nlockfile = true",
+            );
+            // Not a real config, and has no lockfile to maintain,
+            // so it's never loaded and can't disrupt pruning
+            sandbox.create_file(".prototools.bak", "node = [");
+
             seed_lockfile(
                 sandbox.path(),
-                &[("bun", "1.1", None), ("bun", "1.0", None)],
+                &[("node", "20", None), ("node", "18", None)],
             );
 
-            let mut proto = create_env_in_sandbox(sandbox.path());
-            proto.env_mode = Some("dev".into());
-
+            let proto = create_env_in_sandbox(sandbox.path());
             let pruned = Locker::prune_orphaned_records(&proto, &BTreeMap::default()).unwrap();
 
             assert_eq!(pruned, 1);
-
-            let lock = ProtoLock::load_from(sandbox.path()).unwrap();
-            let records = lock.tools.get("bun").unwrap();
-
-            assert_eq!(records.len(), 1);
             assert_eq!(
-                records[0].spec.as_ref().unwrap(),
-                &UnresolvedVersionSpec::parse("1.1").unwrap()
+                ProtoLock::load_from(sandbox.path())
+                    .unwrap()
+                    .tools
+                    .get("node")
+                    .unwrap()
+                    .len(),
+                1
             );
         }
 
@@ -1689,18 +1806,24 @@ mod locker {
                 ".prototools",
                 "node = \"20\"\n\n[settings]\nlockfile = true",
             );
-            // Invalid TOML, so the full set of specs cannot be determined
+            // Invalid TOML, and owns a lockfile, so the specs that
+            // protect its records cannot be determined
             sandbox.create_file(".prototools.broken", "node = [");
+
             seed_lockfile(sandbox.path(), &[("node", "18", None)]);
+            seed_lockfile_at(
+                &sandbox.path().join(".protolock.broken"),
+                &[("node", "17", None)],
+            );
 
             let proto = create_env_in_sandbox(sandbox.path());
             let pruned = Locker::prune_orphaned_records(&proto, &BTreeMap::default()).unwrap();
 
-            assert_eq!(pruned, 0);
-
-            let lock = ProtoLock::load_from(sandbox.path()).unwrap();
-
-            assert_eq!(lock.tools.get("node").unwrap().len(), 1);
+            // The base lockfile is still pruned, as it's loaded and
+            // doesn't depend on the broken config
+            assert_eq!(pruned, 1);
+            assert!(!sandbox.path().join(".protolock").exists());
+            assert!(sandbox.path().join(".protolock.broken").exists());
         }
     }
 }
