@@ -1413,4 +1413,292 @@ mod locker {
             assert!(result.is_none());
         }
     }
+
+    mod prune_orphaned_records {
+        use super::*;
+        use proto_core::flow::lock::prune_orphaned_records;
+        use std::collections::BTreeMap;
+
+        fn create_env_in_sandbox(sandbox_path: &Path) -> ProtoEnvironment {
+            create_env_in_sandbox_with_mode(sandbox_path, None)
+        }
+
+        fn create_env_in_sandbox_with_mode(
+            sandbox_path: &Path,
+            env_mode: Option<&str>,
+        ) -> ProtoEnvironment {
+            let mut proto = ProtoEnvironment::new_testing(sandbox_path).unwrap();
+            proto.working_dir = sandbox_path.to_path_buf();
+            // Don't inherit `PROTO_ENV` from the test process
+            proto.env_mode = env_mode.map(|env| env.to_owned());
+            proto
+        }
+
+        fn seed_lockfile(dir: &Path, records: &[(&str, &str)]) {
+            seed_lockfile_at(&dir.join(".protolock"), records);
+        }
+
+        fn seed_lockfile_at(lock_path: &Path, records: &[(&str, &str)]) {
+            let mut lock = ProtoLock::default();
+
+            for (id, spec) in records {
+                lock.tools.entry(Id::raw(id)).or_default().push(LockRecord {
+                    spec: Some(UnresolvedVersionSpec::parse(spec).unwrap()),
+                    os: Some(SystemOS::default()),
+                    arch: Some(SystemArch::default()),
+                    ..Default::default()
+                });
+            }
+
+            lock.path = lock_path.to_path_buf();
+            lock.save().unwrap();
+        }
+
+        fn installing(entries: &[(&str, &str)]) -> BTreeMap<ToolContext, UnresolvedVersionSpec> {
+            entries
+                .iter()
+                .map(|(context, spec)| {
+                    (
+                        ToolContext::parse(context).unwrap(),
+                        UnresolvedVersionSpec::parse(spec).unwrap(),
+                    )
+                })
+                .collect()
+        }
+
+        fn get_specs(lock: &ProtoLock, id: &str) -> Vec<String> {
+            lock.tools
+                .get(id)
+                .map(|records| {
+                    records
+                        .iter()
+                        .map(|record| record.spec.as_ref().unwrap().to_string())
+                        .collect()
+                })
+                .unwrap_or_default()
+        }
+
+        #[test]
+        fn prunes_stale_records_for_configured_tools() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                "node = \"20\"\n\n[settings]\nlockfile = true",
+            );
+            seed_lockfile(
+                sandbox.path(),
+                &[("node", "20"), ("node", "18"), ("bun", "1")],
+            );
+
+            let proto = create_env_in_sandbox(sandbox.path());
+            let pruned = prune_orphaned_records(&proto, &BTreeMap::default()).unwrap();
+
+            assert_eq!(pruned, 1);
+
+            let lock = ProtoLock::load_from(sandbox.path()).unwrap();
+
+            assert_eq!(get_specs(&lock, "node"), vec!["~20"]);
+
+            // Not configured, so ad-hoc records are kept
+            assert_eq!(get_specs(&lock, "bun"), vec!["~1"]);
+        }
+
+        #[test]
+        fn keeps_records_for_specs_being_installed() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                "node = \"20\"\n\n[settings]\nlockfile = true",
+            );
+            seed_lockfile(sandbox.path(), &[("node", "21")]);
+
+            let proto = create_env_in_sandbox(sandbox.path());
+            let pruned = prune_orphaned_records(&proto, &installing(&[("node", "21")])).unwrap();
+
+            assert_eq!(pruned, 0);
+            assert_eq!(
+                get_specs(&ProtoLock::load_from(sandbox.path()).unwrap(), "node"),
+                vec!["~21"]
+            );
+        }
+
+        #[test]
+        fn installing_specs_dont_verify_unconfigured_tools() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                "node = \"20\"\n\n[settings]\nlockfile = true",
+            );
+            seed_lockfile(sandbox.path(), &[("bun", "1.0.0"), ("bun", "1.1.0")]);
+
+            let proto = create_env_in_sandbox(sandbox.path());
+
+            // Installing an ad-hoc tool must not cause its other
+            // ad-hoc records to be treated as orphans
+            let pruned = prune_orphaned_records(&proto, &installing(&[("bun", "1.1.0")])).unwrap();
+
+            assert_eq!(pruned, 0);
+            assert_eq!(
+                get_specs(&ProtoLock::load_from(sandbox.path()).unwrap(), "bun").len(),
+                2
+            );
+        }
+
+        #[test]
+        fn does_nothing_when_no_versions_configured() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+            seed_lockfile(sandbox.path(), &[("node", "20"), ("node", "18")]);
+
+            let proto = create_env_in_sandbox(sandbox.path());
+            let pruned = prune_orphaned_records(&proto, &BTreeMap::default()).unwrap();
+
+            assert_eq!(pruned, 0);
+            assert_eq!(
+                get_specs(&ProtoLock::load_from(sandbox.path()).unwrap(), "node").len(),
+                2
+            );
+        }
+
+        #[test]
+        fn does_nothing_when_lockfile_not_enabled() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "node = \"20\"");
+            seed_lockfile(sandbox.path(), &[("node", "18")]);
+
+            let proto = create_env_in_sandbox(sandbox.path());
+            let pruned = prune_orphaned_records(&proto, &BTreeMap::default()).unwrap();
+
+            assert_eq!(pruned, 0);
+        }
+
+        #[test]
+        fn removes_lockfile_when_all_records_are_pruned() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                "node = \"20\"\n\n[settings]\nlockfile = true",
+            );
+            seed_lockfile(sandbox.path(), &[("node", "18")]);
+
+            let proto = create_env_in_sandbox(sandbox.path());
+            let pruned = prune_orphaned_records(&proto, &BTreeMap::default()).unwrap();
+
+            assert_eq!(pruned, 1);
+            assert!(!sandbox.path().join(".protolock").exists());
+        }
+
+        #[test]
+        fn prunes_each_lockfile_against_its_own_config() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                "node = \"20\"\n\n[settings]\nlockfile = true",
+            );
+            sandbox.create_file(
+                "nested/.prototools",
+                "node = \"21\"\n\n[settings]\nlockfile = true",
+            );
+            seed_lockfile(sandbox.path(), &[("node", "20"), ("node", "19")]);
+            seed_lockfile(
+                &sandbox.path().join("nested"),
+                &[("node", "21"), ("node", "20")],
+            );
+
+            let mut proto = create_env_in_sandbox(sandbox.path());
+            proto.working_dir = sandbox.path().join("nested");
+
+            let pruned = prune_orphaned_records(&proto, &BTreeMap::default()).unwrap();
+
+            assert_eq!(pruned, 2);
+            assert_eq!(
+                get_specs(&ProtoLock::load_from(sandbox.path()).unwrap(), "node"),
+                vec!["~20"]
+            );
+            assert_eq!(
+                get_specs(
+                    &ProtoLock::load_from(sandbox.path().join("nested")).unwrap(),
+                    "node"
+                ),
+                vec!["~21"]
+            );
+        }
+
+        #[test]
+        fn prunes_the_active_env_lockfile_against_its_own_config() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                "node = \"20\"\n\n[settings]\nlockfile = true",
+            );
+            sandbox.create_file(".prototools.dev", "node = \"22\"");
+
+            seed_lockfile(sandbox.path(), &[("node", "20"), ("node", "19")]);
+            seed_lockfile_at(
+                &sandbox.path().join(".protolock.dev"),
+                &[("node", "22"), ("node", "21")],
+            );
+
+            let proto = create_env_in_sandbox_with_mode(sandbox.path(), Some("dev"));
+            let pruned = prune_orphaned_records(&proto, &BTreeMap::default()).unwrap();
+
+            assert_eq!(pruned, 2);
+
+            // Each lockfile is scoped to the config that enabled it, so the
+            // base spec doesn't protect records in the env lockfile
+            assert_eq!(
+                get_specs(&ProtoLock::load_from(sandbox.path()).unwrap(), "node"),
+                vec!["~20"]
+            );
+            assert_eq!(
+                get_specs(
+                    &ProtoLock::load(sandbox.path().join(".protolock.dev")).unwrap(),
+                    "node"
+                ),
+                vec!["~22"]
+            );
+        }
+
+        #[test]
+        fn doesnt_prune_env_lockfiles_that_are_not_active() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                "node = \"20\"\n\n[settings]\nlockfile = true",
+            );
+            sandbox.create_file(".prototools.dev", "node = \"22\"");
+
+            seed_lockfile(sandbox.path(), &[("node", "20"), ("node", "19")]);
+            seed_lockfile_at(&sandbox.path().join(".protolock.dev"), &[("node", "21")]);
+
+            let proto = create_env_in_sandbox(sandbox.path());
+            let pruned = prune_orphaned_records(&proto, &BTreeMap::default()).unwrap();
+
+            // Only the active configs are loaded, and lockfiles of inactive
+            // environments are never touched by any flow
+            assert_eq!(pruned, 1);
+            assert_eq!(
+                get_specs(
+                    &ProtoLock::load(sandbox.path().join(".protolock.dev")).unwrap(),
+                    "node"
+                ),
+                vec!["~21"]
+            );
+        }
+
+        #[test]
+        fn doesnt_prune_user_or_global_lockfiles() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".proto/.prototools",
+                "node = \"20\"\n\n[settings]\nlockfile = true",
+            );
+            seed_lockfile(&sandbox.path().join(".proto"), &[("node", "18")]);
+
+            let proto = create_env_in_sandbox(sandbox.path());
+            let pruned = prune_orphaned_records(&proto, &BTreeMap::default()).unwrap();
+
+            assert_eq!(pruned, 0);
+        }
+    }
 }

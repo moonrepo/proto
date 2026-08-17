@@ -7,11 +7,12 @@ use once_cell::sync::OnceCell;
 use schematic::{Config, PartialConfig};
 use serde::Serialize;
 use starbase_utils::fs;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use tracing::debug;
+use version_spec::UnresolvedVersionSpec;
 
 #[derive(Debug, Serialize)]
 pub struct ProtoConfigFile {
@@ -24,6 +25,24 @@ pub struct ProtoConfigFile {
     /// is locked to `.protolock`, and `.prototools.<env>` is locked
     /// to `.protolock.<env>`.
     pub locked: bool,
+}
+
+impl ProtoConfigFile {
+    /// Gather the version specifications defined in this config only. Since a
+    /// lockfile is scoped to the config in which it was enabled, these are the
+    /// only specifications that dictate which of its records are still in use.
+    pub fn get_config_specs(&self) -> BTreeMap<&ToolContext, BTreeSet<&UnresolvedVersionSpec>> {
+        let mut specs: BTreeMap<&ToolContext, BTreeSet<&UnresolvedVersionSpec>> =
+            BTreeMap::default();
+
+        if let Some(versions) = &self.config.versions {
+            for (context, spec) in versions {
+                specs.entry(context).or_default().insert(&spec.req);
+            }
+        }
+
+        specs
+    }
 }
 
 #[derive(Debug, Serialize)]

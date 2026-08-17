@@ -4,12 +4,13 @@ use crate::telemetry::{Metric, track_usage};
 use crate::utils::tool_record::ToolRecord;
 use clap::Args;
 use iocraft::element;
-use proto_core::flow::lock::Locker;
+use proto_core::flow::lock::{Locker, prune_orphaned_records};
 use proto_core::flow::manage::Manager;
 use proto_core::flow::resolve::Resolver;
 use proto_core::{ProtoConfig, ProtoConfigError, Tool, ToolContext, ToolSpec};
 use starbase_console::ui::*;
 use starbase_utils::fs;
+use std::collections::BTreeMap;
 use tracing::{debug, instrument};
 
 #[derive(Args, Clone, Debug)]
@@ -136,6 +137,9 @@ async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> SessionRes
         return Ok(None);
     }
 
+    // Reconcile lockfiles by removing orphaned records
+    prune_orphaned_records(&session.env, &BTreeMap::default())?;
+
     debug!("Uninstalling all {} versions", tool.get_name());
 
     if args.quiet {
@@ -225,6 +229,9 @@ async fn uninstall_one(
     if !skip_prompts && !confirmed {
         return Ok(None);
     }
+
+    // Reconcile lockfiles by removing orphaned records
+    prune_orphaned_records(&session.env, &BTreeMap::default())?;
 
     debug!("Uninstalling {} with version {}", tool.get_name(), spec);
 

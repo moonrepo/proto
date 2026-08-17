@@ -1,6 +1,7 @@
 use proto_core::test_utils::*;
 use proto_core::{ProtoLock, UnresolvedVersionSpec, VersionSpec};
 use proto_pdk_api::ChecksumAlgorithm;
+use system_env::{SystemArch, SystemOS};
 
 macro_rules! assert_record {
     ($var:expr, $spec:literal, $ver:literal, $checksum:literal) => {
@@ -227,5 +228,95 @@ builtin-tools = false
 
         assert_eq!(env_lockfile.tools.len(), 1);
         assert_eq!(env_lockfile.tools.get("protostar").unwrap().len(), 1);
+    }
+
+    #[test]
+    fn prunes_orphaned_records() {
+        let sandbox = create_empty_proto_sandbox();
+
+        sandbox.create_file(
+            ".prototools",
+            r#"
+protostar = "1"
+protoform = "2.1"
+
+[settings]
+unstable-lockfile = true
+builtin-backends = false
+builtin-tools = false
+"#,
+        );
+
+        sandbox.create_file(
+            ".protolock",
+            format!(
+                r#"
+[[tools.protoform]]
+os = "{os}"
+arch = "{arch}"
+spec = "3.0.0"
+version = "3.0.0"
+
+[[tools.moonstone]]
+os = "{os}"
+arch = "{arch}"
+spec = "5.0.0"
+version = "5.0.0"
+
+[[tools.protostar]]
+os = "{os}"
+arch = "{arch}"
+spec = "1"
+version = "1.10.15"
+
+[[tools.protostar]]
+os = "{os}"
+arch = "{arch}"
+spec = "^4.5"
+version = "4.5.15"
+"#,
+                os = SystemOS::default(),
+                arch = SystemArch::default()
+            ),
+        );
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install");
+            })
+            .success();
+
+        let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
+
+        // Specs that no longer match the config were pruned,
+        // and the configured specs were installed and recorded
+        let protostar = lockfile.tools.get("protostar").unwrap();
+
+        assert_eq!(protostar.len(), 1);
+        assert_record!(
+            protostar[0],
+            "1",
+            "1.10.15",
+            "602c5dc51581977f71cc2fb181099846a441598283ea74cba45eb1cf99f7548d"
+        );
+
+        let protoform = lockfile.tools.get("protoform").unwrap();
+
+        assert_eq!(protoform.len(), 1);
+        assert_record!(
+            protoform[0],
+            "2.1",
+            "2.1.15",
+            "882a417d8801e2aead2142f47c9f19bd48bf8ddc03c0ca15c150c58ddc9836c8"
+        );
+
+        // Unconfigured tools are ad-hoc installs and are kept
+        let moonstone = lockfile.tools.get("moonstone").unwrap();
+
+        assert_eq!(moonstone.len(), 1);
+        assert_eq!(
+            moonstone[0].spec.as_ref().unwrap(),
+            &UnresolvedVersionSpec::parse("5.0.0").unwrap()
+        );
     }
 }
