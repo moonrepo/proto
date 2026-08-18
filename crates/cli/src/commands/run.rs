@@ -156,18 +156,39 @@ async fn get_tool_executable(
 }
 
 // Set when falling back to a global executable, so that we can detect
-// when the "global" executable re-enters proto (an execution loop)
+// when the "global" executable re-enters proto (an execution loop).
+//
+// Each entry is scoped to the process that performed the fallback
+// (`id:pid`), because this variable is inherited by the *entire* process
+// tree, not just the immediate child. A genuine loop re-enters proto
+// through `execvp`, which replaces the process in place and preserves the
+// PID, so the re-entry reports our own PID. An unrelated, legitimate
+// invocation of the same tool deeper in the tree (e.g. an npm script that
+// runs `node`) is reached through a real `fork` and carries a different
+// PID, so it must not be treated as a loop.
+// https://github.com/moonrepo/proto/issues/1086
 const FALLBACK_GUARD_VAR: &str = "PROTO_INTERNAL_RUN_FALLBACK";
 
-fn has_fallen_back(guard: &str, id: &str) -> bool {
-    guard.split(',').any(|prev| prev == id)
+fn has_fallen_back(guard: &str, id: &str, pid: u32) -> bool {
+    guard.split(',').any(|entry| match entry.split_once(':') {
+        // Scoped to a PID: only a loop when it names *this* process.
+        Some((entry_id, entry_pid)) => {
+            entry_id == id && entry_pid.parse::<u32>().is_ok_and(|prev| prev == pid)
+        }
+        // proto always writes a PID, so a bare id can only be stale (e.g.
+        // written by an older proto and inherited across a fork) or set by
+        // hand. Either way it isn't this process looping, so ignore it.
+        None => false,
+    })
 }
 
-fn append_fallback(guard: &str, id: &str) -> String {
+fn append_fallback(guard: &str, id: &str, pid: u32) -> String {
+    let entry = format!("{id}:{pid}");
+
     if guard.is_empty() {
-        id.to_owned()
+        entry
     } else {
-        format!("{guard},{id}")
+        format!("{guard},{entry}")
     }
 }
 
@@ -208,6 +229,16 @@ fn find_global_executable(
             continue;
         }
 
+        // The store above may also live under a directory that isn't named
+        // `.proto` (a custom `PROTO_HOME`), so the name checks won't catch
+        // it. Every proto shims directory contains a `registry.json`, so use
+        // that as a reliable marker and skip such a directory regardless of
+        // its name -- executing one of its shims would re-enter proto and
+        // loop. https://github.com/moonrepo/proto/issues/1086
+        if path_dir.join("registry.json").is_file() {
+            continue;
+        }
+
         // Local development may have ~/.proto on PATH, so ignore!
         #[cfg(debug_assertions)]
         if path_dir.to_string_lossy().contains(".proto") {
@@ -242,11 +273,13 @@ fn run_global_tool(
     if let Some(global_exe) = get_global_executable(&session.env, args.context.id.as_str()) {
         let id = args.context.id.to_string();
         let guard = env::var(FALLBACK_GUARD_VAR).unwrap_or_default();
+        let pid = std::process::id();
 
-        // If we've already fallen back for this tool once in this execution
-        // chain, then the "global" executable is actually a proto shim,
-        // and executing it would recurse forever!
-        if has_fallen_back(&guard, &id) {
+        // If this same process has already fallen back for this tool, then
+        // the "global" executable resolves back into proto (a shim on PATH,
+        // or a wrapper that re-resolves through it), and executing it would
+        // recurse forever!
+        if has_fallen_back(&guard, &id, pid) {
             return Err(ProtoCliError::RunFallbackLoop {
                 tool: id,
                 path: global_exe,
@@ -262,7 +295,7 @@ fn run_global_tool(
 
         let mut command = Command::new(global_exe);
         command.args(args.passthrough);
-        command.env(FALLBACK_GUARD_VAR, append_fallback(&guard, &id));
+        command.env(FALLBACK_GUARD_VAR, append_fallback(&guard, &id, pid));
 
         return exec_command_and_replace(command).into_diagnostic();
     }
@@ -564,18 +597,37 @@ mod tests {
         use super::*;
 
         #[test]
-        fn matches_exact_ids_only() {
-            assert!(has_fallen_back("node", "node"));
-            assert!(has_fallen_back("node,npm", "npm"));
-            assert!(!has_fallen_back("", "node"));
-            assert!(!has_fallen_back("node", "npm"));
-            assert!(!has_fallen_back("nodejs", "node"));
+        fn pid_scoped_entries_match_only_this_process() {
+            // Same tool, same process (an `execvp` re-entry) is a loop.
+            assert!(has_fallen_back("node:100", "node", 100));
+            assert!(has_fallen_back("npm:5,node:100", "node", 100));
+
+            // Same tool, but a different process (reached via a `fork`, like
+            // an npm script running `node`) is NOT a loop. This is the leak
+            // that #1086 was about.
+            assert!(!has_fallen_back("node:100", "node", 200));
+            assert!(!has_fallen_back("npm:5,node:100", "node", 200));
+
+            // Different tool never matches, regardless of process.
+            assert!(!has_fallen_back("node:100", "npm", 100));
+            assert!(!has_fallen_back("nodejs:100", "node", 100));
         }
 
         #[test]
-        fn appends_ids() {
-            assert_eq!(append_fallback("", "node"), "node");
-            assert_eq!(append_fallback("node", "npm"), "node,npm");
+        fn bare_ids_are_ignored() {
+            // proto always writes `id:pid`, so a bare id is stale/foreign
+            // (e.g. left by an older proto) and must never trip the guard.
+            assert!(!has_fallen_back("node", "node", 100));
+            assert!(!has_fallen_back("node,npm", "npm", 100));
+            assert!(!has_fallen_back("", "node", 100));
+            // A bare id mixed with a matching pid-scoped entry still trips.
+            assert!(has_fallen_back("node,npm:100", "npm", 100));
+        }
+
+        #[test]
+        fn appends_pid_scoped_entries() {
+            assert_eq!(append_fallback("", "node", 100), "node:100");
+            assert_eq!(append_fallback("node:100", "npm", 200), "node:100,npm:200");
         }
     }
 
@@ -648,6 +700,26 @@ mod tests {
                     sandbox.path().join("other-home/.proto/shims"),
                     sandbox.path().join("other-home/.proto/bin"),
                 ]),
+            );
+
+            assert_eq!(result, None);
+        }
+
+        #[test]
+        fn skips_foreign_store_shims_dir_by_registry_marker() {
+            let sandbox = create_empty_sandbox();
+            let env = create_env(sandbox.path());
+
+            // A proto store whose home isn't named `.proto` (a custom
+            // `PROTO_HOME`), so the name-based checks can't catch it. The
+            // `registry.json` marks the directory as a proto shims dir.
+            sandbox.create_file(format!("custom/shims/{}", path::exe_name("tool")), "");
+            sandbox.create_file("custom/shims/registry.json", "{}");
+
+            let result = find_global_executable(
+                &env,
+                "tool",
+                &join_dirs(&[sandbox.path().join("custom/shims")]),
             );
 
             assert_eq!(result, None);
