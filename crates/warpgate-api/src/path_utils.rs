@@ -46,6 +46,10 @@ pub fn convert_to_virtual_path(
     for (host_path, guest_path) in paths_list {
         let virtual_path = if path.starts_with(guest_path) {
             path.to_owned()
+        } else if path == host_path {
+            // The prefix itself, otherwise `join` below would
+            // append a trailing separator
+            guest_path.to_owned()
         } else if let Ok(rel_path) = path.strip_prefix(host_path) {
             guest_path.join(rel_path)
         } else {
@@ -70,6 +74,10 @@ pub fn convert_to_real_path(
     for (host_path, guest_path) in paths_list {
         let real_path = if path.starts_with(host_path) {
             path.to_owned()
+        } else if path == guest_path {
+            // The prefix itself, otherwise `join` below would
+            // append a trailing separator
+            host_path.to_owned()
         } else if let Ok(rel_path) = path.strip_prefix(guest_path) {
             host_path.join(rel_path)
         } else {
@@ -95,6 +103,10 @@ pub fn convert_to_real_native_path(
     for (host_path, guest_path) in paths_list {
         let real_path = if path.starts_with(host_path) {
             path.to_owned()
+        } else if path == guest_path {
+            // The prefix itself, otherwise `join` below would
+            // append a trailing separator
+            host_path.to_owned()
         } else if let Ok(rel_path) = path.strip_prefix(guest_path) {
             host_path.join(rel_path)
         } else {
