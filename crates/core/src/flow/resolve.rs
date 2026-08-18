@@ -1,5 +1,5 @@
 pub use super::resolve_error::ProtoResolveError;
-use crate::flow::lock::Locker;
+use crate::flow::lock::{Locker, ProtoLockError};
 use crate::helpers::is_offline;
 use crate::tool::Tool;
 use crate::tool_spec::ToolSpec;
@@ -128,23 +128,34 @@ impl<'tool> Resolver<'tool> {
         let mut candidate = spec.req.clone();
 
         // If requested, resolve the version from a lockfile
-        if spec.resolve_from_lockfile
-            && let Some(record) = Locker::new(self.tool).resolve_locked_record(spec)?
-        {
-            let version = record
-                .version
-                .clone()
-                .expect("Version missing from lockfile record!");
+        if spec.resolve_from_lockfile {
+            if let Some(record) = Locker::new(self.tool).resolve_locked_record(spec)? {
+                let version = record
+                    .version
+                    .clone()
+                    .expect("Version missing from lockfile record!");
 
-            debug!(
-                tool = self.tool.context.as_str(),
-                spec = candidate.to_string(),
-                "Inherited version {} from lockfile",
-                version
-            );
+                debug!(
+                    tool = self.tool.context.as_str(),
+                    spec = candidate.to_string(),
+                    "Inherited version {} from lockfile",
+                    version
+                );
 
-            spec.version_locked = Some(record);
-            candidate = version.to_unresolved_spec();
+                spec.version_locked = Some(record);
+                candidate = version.to_unresolved_spec();
+            }
+            // When frozen, the lockfile is authoritative and must already
+            // contain a record for the requested specification. Resolving a
+            // fresh version would require writing to the lockfile, so error
+            // instead of silently falling through to remote resolution
+            else if spec.frozen {
+                return Err(ProtoLockError::FrozenMissingRecord {
+                    tool: self.tool.get_name().to_owned(),
+                    spec: spec.req.to_string(),
+                }
+                .into());
+            }
         }
 
         let version = self
