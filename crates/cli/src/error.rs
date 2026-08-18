@@ -113,13 +113,16 @@ pub enum ProtoCliError {
     MigrateUnknownOperation { op: String },
 
     // RUN
-    #[diagnostic(code(proto::commands::run::fallback_loop))]
+    #[diagnostic(
+        code(proto::commands::run::fallback_loop),
+        help(
+            "This typically means the executable resolves back to a proto shim -- for example a version manager shim on PATH, or another proto store on PATH whose HOME or PROTO_HOME differs from the current one."
+        )
+    )]
     #[error(
-        "Unable to run {tool}, as the global executable found at {} is a proto shim, which would trigger a recursive execution loop.\nThis can happen when a proto store exists on {} that does not match the current store, typically caused by {} or {} changing.",
+        "Unable to run {tool}, as the global executable at {} re-entered proto for the same tool, which would loop indefinitely.\nDetected via the inherited {} environment variable.",
         .path.style(Style::Path),
-        "PATH".style(Style::Property),
-        "HOME".style(Style::Property),
-        "PROTO_HOME".style(Style::Property),
+        "PROTO_INTERNAL_RUN_FALLBACK".style(Style::Property),
     )]
     RunFallbackLoop { tool: String, path: PathBuf },
 
