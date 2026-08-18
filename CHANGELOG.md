@@ -33,6 +33,9 @@
     - Signature files may contain multiple binary signatures, multiple signatures in one armored block, or multiple concatenated armored blocks. Verification succeeds when any signature matches a trusted key.
     - GPG verification streams the artifact from disk in a blocking worker and records only the verified signer fingerprint and artifact SHA256 in lockfiles, instead of the armored public keyring.
 - **Lockfiles**
+  - Added a `--frozen-lockfile` flag to `proto install` (and a `PROTO_FROZEN_LOCKFILE` environment variable) that treats the lockfile as read-only. Versions are resolved from existing lockfile records, and the lockfile is never created, updated, or pruned.
+    - If a tool being installed has no matching record, the install fails instead of resolving a fresh version, which is useful for reproducible installs in CI.
+    - This flag cannot be combined with `--update-lockfile` or `--pin`.
   - Updated `proto pin` and `proto unpin` to always keep the lockfile of the modified config in sync, even when another config (like an environment config) takes precedence for the tool.
   - Updated `proto install --pin` to track the record of the installed version in the lockfile of the pinned config, even when another config (like an environment config) takes precedence for the tool.
   - Updated `proto uninstall` to remove records for the uninstalled version from all applicable lockfiles, as the version may be pinned in multiple configs (each of which is unpinned). When uninstalling all versions, the tool is removed from all applicable lockfiles.
@@ -53,6 +56,7 @@
   - Proto now also skips any directory on `PATH` that contains a shims `registry.json`, so a foreign proto store (from a mismatched `PROTO_HOME`) is never selected as the global fallback and can't trigger a loop.
   - Reworded the `fallback_loop` error to describe the actual cause instead of incorrectly claiming the resolved binary is a proto shim.
 - Fixed an issue where `proto uninstall` would fail when `PROTO_ENV` is set and an environment scoped `.prototools.<env>` config exists, as it would attempt to unpin the version from an invalid path.
+- Fixed an issue where an install that failed very early (before any progress output) could hang when not running in a TTY, as the non-TTY progress monitor could miss the exit signal.
 
 ## 0.60.2
 

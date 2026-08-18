@@ -319,4 +319,128 @@ version = "4.5.15"
             &UnresolvedVersionSpec::parse("5.0.0").unwrap()
         );
     }
+
+    mod frozen {
+        use super::*;
+
+        fn create_sandbox() -> ProtoSandbox {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+protostar = "1"
+protoform = "2.1"
+
+[settings]
+unstable-lockfile = true
+builtin-backends = false
+builtin-tools = false
+"#,
+            );
+            sandbox
+        }
+
+        // protoform ignores os/arch, so its records must omit them to match
+        fn record(tool: &str, spec: &str, version: &str) -> String {
+            if tool == "protoform" {
+                format!(
+                    r#"
+[[tools.{tool}]]
+spec = "{spec}"
+version = "{version}"
+"#
+                )
+            } else {
+                format!(
+                    r#"
+[[tools.{tool}]]
+os = "{}"
+arch = "{}"
+spec = "{spec}"
+version = "{version}"
+"#,
+                    SystemOS::default(),
+                    SystemArch::default()
+                )
+            }
+        }
+
+        #[test]
+        fn installs_all_without_modifying_lockfile() {
+            let sandbox = create_sandbox();
+            sandbox.create_file(
+                ".protolock",
+                format!(
+                    "{}{}",
+                    record("protostar", "1", "1.10.15"),
+                    record("protoform", "2.1", "2.1.15"),
+                ),
+            );
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("--frozen-lockfile");
+                })
+                .success();
+
+            // The lockfile is read-only, so no checksums were written back
+            let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
+
+            let protostar = lockfile.tools.get("protostar").unwrap();
+
+            assert_eq!(protostar.len(), 1);
+            assert!(protostar[0].checksum.is_none());
+
+            let protoform = lockfile.tools.get("protoform").unwrap();
+
+            assert_eq!(protoform.len(), 1);
+            assert!(protoform[0].checksum.is_none());
+        }
+
+        #[test]
+        fn doesnt_prune_orphans_when_frozen() {
+            let sandbox = create_sandbox();
+            sandbox.create_file(
+                ".protolock",
+                format!(
+                    "{}{}{}",
+                    record("protostar", "1", "1.10.15"),
+                    // Orphaned: no longer matches the configured "1"
+                    record("protostar", "^4.5", "4.5.15"),
+                    record("protoform", "2.1", "2.1.15"),
+                ),
+            );
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("--frozen-lockfile");
+                })
+                .success();
+
+            // Pruning would modify the lockfile, so the orphan is kept
+            let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
+            let protostar = lockfile.tools.get("protostar").unwrap();
+
+            assert_eq!(protostar.len(), 2);
+        }
+
+        #[test]
+        fn errors_when_a_tool_is_missing_from_lockfile() {
+            let sandbox = create_sandbox();
+
+            // Only protostar is recorded; protoform has no record
+            sandbox.create_file(".protolock", record("protostar", "1", "1.10.15"));
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("--frozen-lockfile");
+                })
+                .failure();
+
+            // The missing tool was never resolved or written to the lockfile
+            let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
+
+            assert!(!lockfile.tools.contains_key("protoform"));
+        }
+    }
 }

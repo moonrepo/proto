@@ -45,6 +45,17 @@ pub enum ProtoLockError {
         source_url: String,
     },
 
+    #[diagnostic(
+        code(proto::install::frozen_lockfile),
+        help = "Run `proto install` without `--frozen-lockfile` to populate the lockfile, then commit the changes."
+    )]
+    #[error(
+        "Lockfile is frozen, but is missing a record for {} {}. The lockfile is either not enabled or out of date.",
+        .tool.style(Style::Id),
+        .spec.style(Style::Hash),
+    )]
+    FrozenMissingRecord { tool: String, spec: String },
+
     #[diagnostic(code(proto::install::mismatched_arch))]
     #[error(
         "System architecture mismatch! Received {} but expected {}.",
