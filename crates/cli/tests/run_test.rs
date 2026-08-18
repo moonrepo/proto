@@ -27,18 +27,42 @@ mod run {
         assert.stdout(predicate::str::contains("usage: git"));
     }
 
+    // A genuine execution loop: a "global" executable that re-invokes proto
+    // for the same tool through `exec`, which preserves the PID (as a proto
+    // shim, or a PATH wrapper that resolves back into proto, would). proto
+    // must detect its own re-entry and error rather than recurse forever.
+    // On a correct build this errors after a single re-entry; only a broken
+    // guard would spin until the sandbox timeout.
+    #[cfg(unix)]
     #[test]
     fn errors_instead_of_looping_when_fallback_reenters_proto() {
+        use std::os::unix::fs::PermissionsExt;
+
         let sandbox = create_empty_proto_sandbox();
+
+        sandbox.create_file(
+            "globals/loopy",
+            format!(
+                "#!/bin/sh\nexec '{}' run loopy\n",
+                env!("CARGO_BIN_EXE_proto")
+            ),
+        );
+
+        let globals_dir = sandbox.path().join("globals");
+
+        fs::set_permissions(globals_dir.join("loopy"), fs::Permissions::from_mode(0o755)).unwrap();
+
+        // Minimal PATH so only our fake `loopy` is discoverable.
+        let path_env = env::join_paths([globals_dir, "/usr/bin".into(), "/bin".into()]).unwrap();
 
         let assert = sandbox
             .run_bin(|cmd| {
-                cmd.arg("run").arg("git");
-                cmd.env("PROTO_INTERNAL_RUN_FALLBACK", "git");
+                cmd.arg("run").arg("loopy");
+                cmd.env("PATH", &path_env);
             })
             .failure();
 
-        assert.stderr(predicate::str::contains("recursive execution loop"));
+        assert.stderr(predicate::str::contains("would loop indefinitely"));
     }
 
     #[test]
@@ -54,6 +78,31 @@ mod run {
             .failure();
 
         assert.stdout(predicate::str::contains("usage: git"));
+    }
+
+    // A fallback guard inherited from an unrelated ancestor process (a
+    // different PID) must not abort the current invocation. This is the leak
+    // that broke nested npm tooling. https://github.com/moonrepo/proto/issues/1086
+    #[test]
+    fn fallback_guard_ignores_other_processes() {
+        let sandbox = create_empty_proto_sandbox();
+
+        // The test runner's PID is guaranteed to differ from the spawned
+        // proto process's PID, so this entry stands in for a leaked guard
+        // set by some earlier, unrelated fallback.
+        let foreign_pid = std::process::id();
+
+        let assert = sandbox
+            .run_bin(|cmd| {
+                cmd.arg("run").arg("git");
+                cmd.env("PROTO_INTERNAL_RUN_FALLBACK", format!("git:{foreign_pid}"));
+            })
+            // Falls through to the global `git`; no args is exit 1.
+            .failure();
+
+        assert
+            .stdout(predicate::str::contains("usage: git"))
+            .stderr(predicate::str::contains("would loop indefinitely").not());
     }
 
     #[test]

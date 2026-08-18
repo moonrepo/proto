@@ -49,6 +49,9 @@
 
 #### 🐞 Fixes
 
+- Fixed an issue where the internal fallback loop guard (`PROTO_INTERNAL_RUN_FALLBACK`) would leak into child processes and abort unrelated, nested invocations of the same tool (like npm scripts that spawn `node`) with a false `fallback_loop` error. The guard is now scoped to the process that performed the fallback, so only a genuine same-process re-entry is treated as a loop.
+  - Proto now also skips any directory on `PATH` that contains a shims `registry.json`, so a foreign proto store (from a mismatched `PROTO_HOME`) is never selected as the global fallback and can't trigger a loop.
+  - Reworded the `fallback_loop` error to describe the actual cause instead of incorrectly claiming the resolved binary is a proto shim.
 - Fixed an issue where `proto uninstall` would fail when `PROTO_ENV` is set and an environment scoped `.prototools.<env>` config exists, as it would attempt to unpin the version from an invalid path.
 - Fixed `proto install <tool>` not respecting the `detect-strategy` setting. It resolved a version by scanning the working directory for the tool's own version file before consulting `.prototools`, unlike `proto run`, `proto status` and a bare `proto install`, which all honour the setting. A repo pinning `go = "1.26.7"` with `detect-strategy = "prefer-prototools"` beside a `go.work` would install whatever the `go` directive's range resolved to, and `proto run go` would then fail with `missing_tool`. As a consequence, `install` now also detects ecosystem files by traversing the config file chain rather than only the working directory, and honours `PROTO_<TOOL>_VERSION`.
 - Fixed virtual path conversion producing a path with a trailing separator when the path being converted is a virtual/real prefix itself (`Path::join("")` appends a separator). This surfaced in moon as `$env.PWD contains trailing slashes` errors from nushell when plugin commands ran at the workspace root.
