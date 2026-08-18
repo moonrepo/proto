@@ -15,6 +15,12 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Fixed virtual path conversion producing a path with a trailing separator when the path being converted is a virtual/real prefix itself (`Path::join("")` appends a separator). This surfaced in moon as `$env.PWD contains trailing slashes` errors from nushell when plugin commands ran at the workspace root.
+
 ## 0.60.2
 
 #### 🚀 Updates

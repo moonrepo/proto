@@ -126,6 +126,75 @@ fn converts_the_prefixes_themselves() {
     );
 }
 
+// `PathBuf` equality ignores trailing separators, so these must compare
+// the raw string form to catch a `join("")` on the stripped prefix.
+// https://github.com/moonrepo/moon/issues/2676
+#[cfg(not(windows))]
+#[test]
+fn converts_the_prefixes_themselves_without_trailing_separators() {
+    let paths = vec![(PathBuf::from("/Users/warp"), PathBuf::from("/userhome"))];
+
+    assert_eq!(
+        convert_to_virtual_path("/Users/warp", &paths)
+            .unwrap()
+            .to_string_lossy(),
+        "/userhome"
+    );
+
+    assert_eq!(
+        convert_to_real_path("/userhome", &paths)
+            .unwrap()
+            .to_string_lossy(),
+        "/Users/warp"
+    );
+
+    assert_eq!(
+        convert_to_real_native_path("/userhome", &paths).to_string_lossy(),
+        "/Users/warp"
+    );
+
+    // Also when the input itself has a trailing separator
+    assert_eq!(
+        convert_to_real_path("/userhome/", &paths)
+            .unwrap()
+            .to_string_lossy(),
+        "/Users/warp"
+    );
+}
+
+#[cfg(windows)]
+#[test]
+fn converts_the_prefixes_themselves_without_trailing_separators() {
+    let paths = vec![(PathBuf::from("C:\\Users\\warp"), PathBuf::from("/userhome"))];
+
+    assert_eq!(
+        convert_to_virtual_path("C:\\Users\\warp", &paths)
+            .unwrap()
+            .to_string_lossy(),
+        "/userhome"
+    );
+
+    assert_eq!(
+        convert_to_real_path("/userhome", &paths)
+            .unwrap()
+            .to_string_lossy(),
+        "C:\\Users\\warp"
+    );
+
+    assert_eq!(
+        convert_to_real_native_path("/userhome", &paths).to_string_lossy(),
+        "C:\\Users\\warp"
+    );
+
+    // Also when the input itself has a trailing separator
+    assert_eq!(
+        convert_to_real_path("/userhome/", &paths)
+            .unwrap()
+            .to_string_lossy(),
+        "C:\\Users\\warp"
+    );
+}
+
 // Entries are matched in order, which is why lists should be pre-sorted
 // with `sort_paths_list` so that the longest prefix wins.
 #[test]

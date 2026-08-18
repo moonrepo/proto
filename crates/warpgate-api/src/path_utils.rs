@@ -34,6 +34,17 @@ pub fn sort_paths_list(paths_list: &mut [(PathBuf, PathBuf)]) {
     paths_list.sort_by(|a, d| d.0.cmp(&a.0).then(d.1.cmp(&a.1)));
 }
 
+// When the path being converted is the prefix itself, the stripped
+// relative path is empty, and `Path::join("")` would append a trailing
+// separator, so return the base prefix untouched instead.
+fn join_rel_path(base: &Path, rel_path: &Path) -> PathBuf {
+    if rel_path.as_os_str().is_empty() {
+        base.to_owned()
+    } else {
+        base.join(rel_path)
+    }
+}
+
 /// Convert the provided real host path to a virtual guest path.
 /// If the host path does not match any of the provided virtual paths,
 /// it will return `None`.
@@ -47,7 +58,7 @@ pub fn convert_to_virtual_path(
         let virtual_path = if path.starts_with(guest_path) {
             path.to_owned()
         } else if let Ok(rel_path) = path.strip_prefix(host_path) {
-            guest_path.join(rel_path)
+            join_rel_path(guest_path, rel_path)
         } else {
             continue;
         };
@@ -71,7 +82,7 @@ pub fn convert_to_real_path(
         let real_path = if path.starts_with(host_path) {
             path.to_owned()
         } else if let Ok(rel_path) = path.strip_prefix(guest_path) {
-            host_path.join(rel_path)
+            join_rel_path(host_path, rel_path)
         } else {
             continue;
         };
@@ -96,7 +107,7 @@ pub fn convert_to_real_native_path(
         let real_path = if path.starts_with(host_path) {
             path.to_owned()
         } else if let Ok(rel_path) = path.strip_prefix(guest_path) {
-            host_path.join(rel_path)
+            join_rel_path(host_path, rel_path)
         } else {
             continue;
         };
