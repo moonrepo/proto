@@ -1025,4 +1025,148 @@ version = "1.0.0"
             );
         }
     }
+
+    mod frozen {
+        use super::*;
+
+        fn create_record(spec: &str, version: &str) -> String {
+            format!(
+                r#"
+[[tools.protostar]]
+os = "{}"
+arch = "{}"
+spec = "{spec}"
+version = "{version}"
+"#,
+                SystemOS::default(),
+                SystemArch::default()
+            )
+        }
+
+        #[test]
+        fn installs_from_locked_record_without_modifying_lockfile() {
+            let sandbox = create_proto_sandbox("lockfile");
+            sandbox.create_file(".protolock", create_record("5.0.0", "5.0.0"));
+
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("protostar")
+                        .arg("5.0.0")
+                        .arg("--frozen-lockfile");
+                })
+                .success();
+
+            assert.stdout(predicate::str::contains(
+                "protostar 5.0.0 has been installed",
+            ));
+
+            // The lockfile is authoritative and read-only, so no checksum
+            // was written back for the installed version
+            let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
+            let records = lockfile.tools.get("protostar").unwrap();
+
+            assert_eq!(records.len(), 1);
+            assert_record!(records[0], "5.0.0");
+            assert!(records[0].checksum.is_none());
+        }
+
+        #[test]
+        fn inherits_locked_version_from_range() {
+            let sandbox = create_proto_sandbox("lockfile");
+            sandbox.create_file(".protolock", create_record("^5.10", "5.10.10"));
+
+            // 5.10.15 is the latest, but the frozen record pins 5.10.10
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("protostar")
+                        .arg("^5.10")
+                        .arg("--frozen-lockfile");
+                })
+                .success();
+
+            assert.stdout(predicate::str::contains(
+                "protostar 5.10.10 has been installed",
+            ));
+        }
+
+        #[test]
+        fn errors_when_record_is_missing() {
+            let sandbox = create_proto_sandbox("lockfile");
+
+            // The lockfile is enabled but has no record for the tool
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("protostar")
+                        .arg("5.0.0")
+                        .arg("--frozen-lockfile");
+                })
+                .failure();
+
+            assert.stderr(predicate::str::contains("Lockfile is frozen"));
+
+            // Nothing was written to the lockfile
+            assert!(!sandbox.path().join(".protolock").exists());
+        }
+
+        #[test]
+        fn errors_when_requested_version_isnt_locked() {
+            let sandbox = create_proto_sandbox("lockfile");
+            sandbox.create_file(".protolock", create_record("5.0.0", "5.0.0"));
+
+            // The lockfile only has 5.0.0, so installing 5.10.0 would
+            // require adding a new record
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("protostar")
+                        .arg("5.10.0")
+                        .arg("--frozen-lockfile");
+                })
+                .failure();
+
+            assert.stderr(predicate::str::contains("Lockfile is frozen"));
+
+            // And the existing record was left untouched
+            let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
+            let records = lockfile.tools.get("protostar").unwrap();
+
+            assert_eq!(records.len(), 1);
+            assert_record!(records[0], "5.0.0");
+        }
+
+        #[test]
+        fn errors_when_combined_with_update_lockfile() {
+            let sandbox = create_proto_sandbox("lockfile");
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("protostar")
+                        .arg("5.0.0")
+                        .arg("--frozen-lockfile")
+                        .arg("--update-lockfile");
+                })
+                .failure()
+                .stderr(predicate::str::contains("cannot be used with"));
+        }
+
+        #[test]
+        fn errors_when_combined_with_pin() {
+            let sandbox = create_proto_sandbox("lockfile");
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("protostar")
+                        .arg("5.0.0")
+                        .arg("--frozen-lockfile")
+                        .arg("--pin");
+                })
+                .failure()
+                .stderr(predicate::str::contains("cannot be used with"));
+        }
+    }
 }

@@ -33,6 +33,9 @@
     - Signature files may contain multiple binary signatures, multiple signatures in one armored block, or multiple concatenated armored blocks. Verification succeeds when any signature matches a trusted key.
     - GPG verification streams the artifact from disk in a blocking worker and records only the verified signer fingerprint and artifact SHA256 in lockfiles, instead of the armored public keyring.
 - **Lockfiles**
+  - Added a `--frozen-lockfile` flag to `proto install` (and a `PROTO_FROZEN_LOCKFILE` environment variable) that treats the lockfile as read-only. Versions are resolved from existing lockfile records, and the lockfile is never created, updated, or pruned.
+    - If a tool being installed has no matching record, the install fails instead of resolving a fresh version, which is useful for reproducible installs in CI.
+    - This flag cannot be combined with `--update-lockfile` or `--pin`.
   - Updated `proto pin` and `proto unpin` to always keep the lockfile of the modified config in sync, even when another config (like an environment config) takes precedence for the tool.
   - Updated `proto install --pin` to track the record of the installed version in the lockfile of the pinned config, even when another config (like an environment config) takes precedence for the tool.
   - Updated `proto uninstall` to remove records for the uninstalled version from all applicable lockfiles, as the version may be pinned in multiple configs (each of which is unpinned). When uninstalling all versions, the tool is removed from all applicable lockfiles.
@@ -56,6 +59,7 @@
 - Fixed `proto install <tool>` not respecting the `detect-strategy` setting. It resolved a version by scanning the working directory for the tool's own version file before consulting `.prototools`, unlike `proto run`, `proto status` and a bare `proto install`, which all honour the setting. A repo pinning `go = "1.26.7"` with `detect-strategy = "prefer-prototools"` beside a `go.work` would install whatever the `go` directive's range resolved to, and `proto run go` would then fail with `missing_tool`. As a consequence, `install` now also detects ecosystem files by traversing the config file chain rather than only the working directory, and honours `PROTO_<TOOL>_VERSION`.
 - Fixed virtual path conversion producing a path with a trailing separator when the path being converted is a virtual/real prefix itself (`Path::join("")` appends a separator). This surfaced in moon as `$env.PWD contains trailing slashes` errors from nushell when plugin commands ran at the workspace root.
 - Fixed concurrent commands that write to a `.prototools` file erasing each other's changes. The config was read under a shared lock, the lock released, then an exclusive lock acquired to write, so 2 processes could both read the same content and the last writer would erase the entries added by the first. Running `proto install <tool> --pin` in parallel (or `pin`, `unpin`, `alias`, `unalias`, `uninstall`, `plugin add`, `plugin remove`) would silently drop tools from the config, surfacing much later as `proto run` failing to detect a version for a tool that had just installed successfully.
+- Fixed an issue where an install that failed very early (before any progress output) could hang when not running in a TTY, as the non-TTY progress monitor could miss the exit signal.
 
 ## 0.60.2
 
