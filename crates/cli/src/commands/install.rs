@@ -6,6 +6,7 @@ use crate::utils::tool_record::ToolRecord;
 use crate::workflows::{InstallOutcome, InstallWorkflowManager, InstallWorkflowParams};
 use clap::Args;
 use proto_core::flow::detect::Detector;
+use proto_core::flow::lock::Locker;
 use proto_core::{
     ConfigMode, Id, PinLocation, Tool, ToolContext, ToolSpec, reporter::NoticeOutput,
 };
@@ -212,6 +213,11 @@ pub async fn install_one(
 
     let outcome = result?;
     let tool = workflow.tool;
+
+    // Reconcile lockfiles by removing orphaned records
+    if !args.internal {
+        Locker::prune_orphaned_records(&session.env)?;
+    }
 
     if args.internal || args.quiet {
         session.console.err.flush()?;
@@ -428,6 +434,11 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> SessionResult 
     }
 
     workflow_manager.stop_rendering().await?;
+
+    // Reconcile lockfiles by removing orphaned records
+    if !args.internal {
+        Locker::prune_orphaned_records(&session.env)?;
+    }
 
     let installed_count = installed.len();
     let failed_count = failed.len();

@@ -1,5 +1,5 @@
-use proto_core::ProtoLock;
 use proto_core::test_utils::*;
+use proto_core::{ProtoLock, UnresolvedVersionSpec};
 use std::fs;
 use std::path::Path;
 use system_env::{SystemArch, SystemOS};
@@ -69,6 +69,121 @@ mod uninstall_lockfile {
         let records = lockfile.tools.get("protostar").unwrap();
 
         assert_eq!(records.len(), 2);
+    }
+
+    fn create_prune_sandbox() -> ProtoSandbox {
+        let sandbox = create_empty_proto_sandbox();
+
+        sandbox.create_file(
+            ".prototools",
+            r#"
+protostar = "1"
+protoform = "2.1"
+
+[settings]
+unstable-lockfile = true
+builtin-backends = false
+builtin-tools = false
+"#,
+        );
+
+        // Install first, so that the uninstall has something to remove
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install").arg("protostar").arg("5.10.0");
+            })
+            .success();
+
+        // Then reseed the lockfile with stale records, as the install
+        // flow itself will have already pruned orphans
+        sandbox.create_file(
+            ".protolock",
+            format!(
+                r#"
+[[tools.protoform]]
+os = "{os}"
+arch = "{arch}"
+spec = "3.0.0"
+version = "3.0.0"
+
+[[tools.moonstone]]
+os = "{os}"
+arch = "{arch}"
+spec = "5.0.0"
+version = "5.0.0"
+
+[[tools.protostar]]
+os = "{os}"
+arch = "{arch}"
+spec = "1"
+version = "1.10.15"
+
+[[tools.protostar]]
+os = "{os}"
+arch = "{arch}"
+spec = "5.10.0"
+version = "5.10.0"
+"#,
+                os = SystemOS::default(),
+                arch = SystemArch::default()
+            ),
+        );
+
+        sandbox
+    }
+
+    #[test]
+    fn prunes_orphaned_records() {
+        let sandbox = create_prune_sandbox();
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("uninstall")
+                    .arg("protostar")
+                    .arg("5.10.0")
+                    .arg("--yes");
+            })
+            .success();
+
+        let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
+
+        // The configured spec was kept, while the uninstalled and
+        // stale specs were removed
+        let protostar = lockfile.tools.get("protostar").unwrap();
+
+        assert_eq!(protostar.len(), 1);
+        assert_eq!(
+            protostar[0].spec.as_ref().unwrap(),
+            &UnresolvedVersionSpec::parse("1").unwrap()
+        );
+
+        // Stale records for other configured tools are also pruned
+        assert!(!lockfile.tools.contains_key("protoform"));
+
+        // Unconfigured tools are ad-hoc installs and are kept
+        assert_eq!(lockfile.tools.get("moonstone").unwrap().len(), 1);
+    }
+
+    #[test]
+    fn prunes_orphaned_records_when_uninstalling_all() {
+        let sandbox = create_prune_sandbox();
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("uninstall").arg("protostar").arg("--yes");
+            })
+            .success();
+
+        let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
+
+        // All records for the uninstalled tool were removed
+        assert!(!lockfile.tools.contains_key("protostar"));
+
+        // Stale records for other configured tools are also pruned
+        assert!(!lockfile.tools.contains_key("protoform"));
+
+        // Unconfigured tools are ad-hoc installs and are kept
+        assert_eq!(lockfile.tools.get("moonstone").unwrap().len(), 1);
     }
 
     #[test]
