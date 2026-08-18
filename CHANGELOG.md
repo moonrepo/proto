@@ -49,6 +49,9 @@
 
 #### 🐞 Fixes
 
+- Fixed an issue where the internal fallback loop guard (`PROTO_INTERNAL_RUN_FALLBACK`) would leak into child processes and abort unrelated, nested invocations of the same tool (like npm scripts that spawn `node`) with a false `fallback_loop` error. The guard is now scoped to the process that performed the fallback, so only a genuine same-process re-entry is treated as a loop.
+  - Proto now also skips any directory on `PATH` that contains a shims `registry.json`, so a foreign proto store (from a mismatched `PROTO_HOME`) is never selected as the global fallback and can't trigger a loop.
+  - Reworded the `fallback_loop` error to describe the actual cause instead of incorrectly claiming the resolved binary is a proto shim.
 - Fixed an issue where `proto uninstall` would fail when `PROTO_ENV` is set and an environment scoped `.prototools.<env>` config exists, as it would attempt to unpin the version from an invalid path.
 
 ## 0.60.2
