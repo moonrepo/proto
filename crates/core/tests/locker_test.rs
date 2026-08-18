@@ -1416,8 +1416,6 @@ mod locker {
 
     mod prune_orphaned_records {
         use super::*;
-        use proto_core::flow::lock::prune_orphaned_records;
-        use std::collections::BTreeMap;
 
         fn create_env_in_sandbox(sandbox_path: &Path) -> ProtoEnvironment {
             create_env_in_sandbox_with_mode(sandbox_path, None)
@@ -1454,18 +1452,6 @@ mod locker {
             lock.save().unwrap();
         }
 
-        fn installing(entries: &[(&str, &str)]) -> BTreeMap<ToolContext, UnresolvedVersionSpec> {
-            entries
-                .iter()
-                .map(|(context, spec)| {
-                    (
-                        ToolContext::parse(context).unwrap(),
-                        UnresolvedVersionSpec::parse(spec).unwrap(),
-                    )
-                })
-                .collect()
-        }
-
         fn get_specs(lock: &ProtoLock, id: &str) -> Vec<String> {
             lock.tools
                 .get(id)
@@ -1491,7 +1477,7 @@ mod locker {
             );
 
             let proto = create_env_in_sandbox(sandbox.path());
-            let pruned = prune_orphaned_records(&proto, &BTreeMap::default()).unwrap();
+            let pruned = Locker::prune_orphaned_records(&proto).unwrap();
 
             assert_eq!(pruned, 1);
 
@@ -1504,54 +1490,13 @@ mod locker {
         }
 
         #[test]
-        fn keeps_records_for_specs_being_installed() {
-            let sandbox = create_empty_sandbox();
-            sandbox.create_file(
-                ".prototools",
-                "node = \"20\"\n\n[settings]\nlockfile = true",
-            );
-            seed_lockfile(sandbox.path(), &[("node", "21")]);
-
-            let proto = create_env_in_sandbox(sandbox.path());
-            let pruned = prune_orphaned_records(&proto, &installing(&[("node", "21")])).unwrap();
-
-            assert_eq!(pruned, 0);
-            assert_eq!(
-                get_specs(&ProtoLock::load_from(sandbox.path()).unwrap(), "node"),
-                vec!["~21"]
-            );
-        }
-
-        #[test]
-        fn installing_specs_dont_verify_unconfigured_tools() {
-            let sandbox = create_empty_sandbox();
-            sandbox.create_file(
-                ".prototools",
-                "node = \"20\"\n\n[settings]\nlockfile = true",
-            );
-            seed_lockfile(sandbox.path(), &[("bun", "1.0.0"), ("bun", "1.1.0")]);
-
-            let proto = create_env_in_sandbox(sandbox.path());
-
-            // Installing an ad-hoc tool must not cause its other
-            // ad-hoc records to be treated as orphans
-            let pruned = prune_orphaned_records(&proto, &installing(&[("bun", "1.1.0")])).unwrap();
-
-            assert_eq!(pruned, 0);
-            assert_eq!(
-                get_specs(&ProtoLock::load_from(sandbox.path()).unwrap(), "bun").len(),
-                2
-            );
-        }
-
-        #[test]
         fn does_nothing_when_no_versions_configured() {
             let sandbox = create_empty_sandbox();
             sandbox.create_file(".prototools", "[settings]\nlockfile = true");
             seed_lockfile(sandbox.path(), &[("node", "20"), ("node", "18")]);
 
             let proto = create_env_in_sandbox(sandbox.path());
-            let pruned = prune_orphaned_records(&proto, &BTreeMap::default()).unwrap();
+            let pruned = Locker::prune_orphaned_records(&proto).unwrap();
 
             assert_eq!(pruned, 0);
             assert_eq!(
@@ -1567,7 +1512,7 @@ mod locker {
             seed_lockfile(sandbox.path(), &[("node", "18")]);
 
             let proto = create_env_in_sandbox(sandbox.path());
-            let pruned = prune_orphaned_records(&proto, &BTreeMap::default()).unwrap();
+            let pruned = Locker::prune_orphaned_records(&proto).unwrap();
 
             assert_eq!(pruned, 0);
         }
@@ -1582,7 +1527,7 @@ mod locker {
             seed_lockfile(sandbox.path(), &[("node", "18")]);
 
             let proto = create_env_in_sandbox(sandbox.path());
-            let pruned = prune_orphaned_records(&proto, &BTreeMap::default()).unwrap();
+            let pruned = Locker::prune_orphaned_records(&proto).unwrap();
 
             assert_eq!(pruned, 1);
             assert!(!sandbox.path().join(".protolock").exists());
@@ -1608,7 +1553,7 @@ mod locker {
             let mut proto = create_env_in_sandbox(sandbox.path());
             proto.working_dir = sandbox.path().join("nested");
 
-            let pruned = prune_orphaned_records(&proto, &BTreeMap::default()).unwrap();
+            let pruned = Locker::prune_orphaned_records(&proto).unwrap();
 
             assert_eq!(pruned, 2);
             assert_eq!(
@@ -1640,7 +1585,7 @@ mod locker {
             );
 
             let proto = create_env_in_sandbox_with_mode(sandbox.path(), Some("dev"));
-            let pruned = prune_orphaned_records(&proto, &BTreeMap::default()).unwrap();
+            let pruned = Locker::prune_orphaned_records(&proto).unwrap();
 
             assert_eq!(pruned, 2);
 
@@ -1672,7 +1617,7 @@ mod locker {
             seed_lockfile_at(&sandbox.path().join(".protolock.dev"), &[("node", "21")]);
 
             let proto = create_env_in_sandbox(sandbox.path());
-            let pruned = prune_orphaned_records(&proto, &BTreeMap::default()).unwrap();
+            let pruned = Locker::prune_orphaned_records(&proto).unwrap();
 
             // Only the active configs are loaded, and lockfiles of inactive
             // environments are never touched by any flow
@@ -1696,7 +1641,7 @@ mod locker {
             seed_lockfile(&sandbox.path().join(".proto"), &[("node", "18")]);
 
             let proto = create_env_in_sandbox(sandbox.path());
-            let pruned = prune_orphaned_records(&proto, &BTreeMap::default()).unwrap();
+            let pruned = Locker::prune_orphaned_records(&proto).unwrap();
 
             assert_eq!(pruned, 0);
         }

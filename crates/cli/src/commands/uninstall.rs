@@ -4,13 +4,12 @@ use crate::telemetry::{Metric, track_usage};
 use crate::utils::tool_record::ToolRecord;
 use clap::Args;
 use iocraft::element;
-use proto_core::flow::lock::{Locker, prune_orphaned_records};
+use proto_core::flow::lock::Locker;
 use proto_core::flow::manage::Manager;
 use proto_core::flow::resolve::Resolver;
 use proto_core::{ProtoConfig, ProtoConfigError, Tool, ToolContext, ToolSpec};
 use starbase_console::ui::*;
 use starbase_utils::fs;
-use std::collections::BTreeMap;
 use tracing::{debug, instrument};
 
 #[derive(Args, Clone, Debug)]
@@ -88,7 +87,10 @@ async fn try_uninstall_all(tool: &mut ToolRecord) -> miette::Result<()> {
     fs::remove_dir_all(tool.get_inventory_dir())?;
     fs::remove_dir_all(tool.get_temp_dir())?;
 
-    // Remove from all lockfiles, as the tool is unpinned from all configs
+    // Remove from all lockfiles, as the tool is unpinned from all configs.
+    // Orphan pruning can't cover this, as an unpinned tool is indistinguishable
+    // from an ad-hoc install, and records for other operating systems and
+    // architectures are never iterated by the uninstall above
     for file in tool.proto.load_file_manager()?.get_config_files() {
         if file.locked {
             Locker::for_config(tool, &file.path).remove_from_lockfile()?;
@@ -137,9 +139,6 @@ async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> SessionRes
         return Ok(None);
     }
 
-    // Reconcile lockfiles by removing orphaned records
-    prune_orphaned_records(&session.env, &BTreeMap::default())?;
-
     debug!("Uninstalling all {} versions", tool.get_name());
 
     if args.quiet {
@@ -159,6 +158,9 @@ async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> SessionRes
 
         result?;
     }
+
+    // Reconcile lockfiles by removing orphaned records
+    Locker::prune_orphaned_records(&session.env)?;
 
     unpin_version(&session, &args)?;
     track_uninstall(&tool, None).await?;
@@ -230,9 +232,6 @@ async fn uninstall_one(
         return Ok(None);
     }
 
-    // Reconcile lockfiles by removing orphaned records
-    prune_orphaned_records(&session.env, &BTreeMap::default())?;
-
     debug!("Uninstalling {} with version {}", tool.get_name(), spec);
 
     if args.quiet {
@@ -256,6 +255,9 @@ async fn uninstall_one(
 
         result?;
     }
+
+    // Reconcile lockfiles by removing orphaned records
+    Locker::prune_orphaned_records(&session.env)?;
 
     unpin_version(&session, &args)?;
     track_uninstall(&tool, Some(&spec)).await?;

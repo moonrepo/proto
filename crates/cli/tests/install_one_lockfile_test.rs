@@ -854,7 +854,7 @@ version = "5.10.0"
         }
 
         #[test]
-        fn keeps_record_for_spec_being_installed() {
+        fn prunes_record_for_unpinned_explicit_version() {
             let sandbox = create_prune_sandbox();
 
             sandbox
@@ -866,9 +866,32 @@ version = "5.10.0"
             let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
             let protostar = lockfile.tools.get("protostar").unwrap();
 
-            // The record for the installed spec was kept and updated,
-            // while other stale specs were pruned
-            assert_eq!(record_specs(protostar), parsed_specs(&["1", "5.10.0"]));
+            // Pruning runs after the install against the config as it stands,
+            // and the config still only defines "1". The record just written
+            // for 5.10.0 would never be resolved from, so it goes too
+            assert_eq!(record_specs(protostar), parsed_specs(&["1"]));
+        }
+
+        #[test]
+        fn keeps_record_for_explicit_version_when_pinned() {
+            let sandbox = create_prune_sandbox();
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("protostar")
+                        .arg("5.10.0")
+                        .arg("--pin");
+                })
+                .success();
+
+            let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
+            let protostar = lockfile.tools.get("protostar").unwrap();
+
+            // Pinning rewrites the config before pruning reloads it, so the
+            // record for the installed spec is configured and kept, while the
+            // spec it replaced is now orphaned and pruned
+            assert_eq!(record_specs(protostar), parsed_specs(&["5.10.0"]));
 
             let installed = protostar
                 .iter()

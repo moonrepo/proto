@@ -2,9 +2,8 @@ pub use super::lock_error::ProtoLockError;
 use crate::ProtoEnvironment;
 use crate::lockfile::{LockRecord, ProtoLock};
 use crate::tool::Tool;
-use crate::tool_context::ToolContext;
 use crate::tool_spec::ToolSpec;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::sync::{RwLockReadGuard, RwLockWriteGuard};
 use tracing::{debug, instrument};
@@ -37,74 +36,6 @@ use version_spec::{UnresolvedVersionSpec, VersionSpec};
 //      [x] resolve version from lockfile
 // [x] status
 //      [x] add locked label to table
-
-/// Remove orphaned records from every lockfile that has been loaded. A record
-/// is orphaned when its tool has a version defined in the config that owns the
-/// lockfile, but the record's spec no longer matches any of that config's
-/// specs, which is typically caused by a config being modified outside of
-/// proto. Records for tools that the owning config does not define are ad-hoc
-/// installs, and are never pruned.
-///
-/// Specs that are currently being installed can be provided, so that records
-/// the running command depends on are never pruned.
-///
-/// This should only be triggered from explicit install and uninstall flows,
-/// as all other flows should not modify the lockfile.
-///
-/// Returns the number of records that were removed.
-#[instrument(skip(proto))]
-pub fn prune_orphaned_records(
-    proto: &ProtoEnvironment,
-    installing: &BTreeMap<ToolContext, UnresolvedVersionSpec>,
-) -> Result<usize, ProtoLockError> {
-    let manager = proto.load_file_manager()?;
-    let mut pruned = 0;
-
-    for file in manager.get_config_files() {
-        if !file.locked {
-            continue;
-        }
-
-        let mut config_specs = file.get_config_specs();
-
-        // If nothing is configured, then every record is an ad-hoc install
-        if config_specs.is_empty() {
-            continue;
-        }
-
-        // Treat specs that are currently being installed as if they were
-        // configured, but only when this lockfile owns the tool's records,
-        // otherwise ad-hoc tools would become verifiable in a lockfile that
-        // doesn't own them, and their other records would be pruned
-        for (context, spec) in installing {
-            if let Some(specs) = config_specs.get_mut(context)
-                && manager
-                    .get_locked_config(context)
-                    .is_some_and(|owner| owner.path == file.path)
-            {
-                specs.insert(spec);
-            }
-        }
-
-        let Some(mut lock) = manager.get_lock_mut(&file.path)? else {
-            continue;
-        };
-
-        let count = lock.prune_orphaned_records(&config_specs);
-
-        if count > 0 {
-            debug!(
-                file = ?lock.path,
-                "Pruned {count} orphaned record(s) from lock file",
-            );
-
-            lock.save()?;
-            pruned += count;
-        }
-    }
-
-    Ok(pruned)
-}
 
 /// Manages records in a lockfile.
 pub struct Locker<'tool> {
@@ -531,5 +462,59 @@ impl<'tool> Locker<'tool> {
         }
 
         Ok(())
+    }
+
+    /// Remove orphaned records from every lockfile that has been loaded. A record
+    /// is orphaned when its tool has a version defined in the config that owns the
+    /// lockfile, but the record's spec no longer matches any of that config's
+    /// specs, which is typically caused by a config being modified outside of
+    /// proto. Records for tools that the owning config does not define are ad-hoc
+    /// installs, and are never pruned.
+    ///
+    /// Specs that are currently being installed can be provided, so that records
+    /// the running command depends on are never pruned.
+    ///
+    /// This should only be triggered from explicit install and uninstall flows,
+    /// as all other flows should not modify the lockfile.
+    ///
+    /// Returns the number of records that were removed.
+    #[instrument(skip(proto))]
+    pub fn prune_orphaned_records(proto: &ProtoEnvironment) -> Result<usize, ProtoLockError> {
+        // Reload the file manager state as config files have been modified by
+        // an install or uninstall, and we need to re-load them to get the latest specs
+        let proto = proto.reload();
+        let manager = proto.load_file_manager()?;
+        let mut pruned = 0;
+
+        for file in manager.get_config_files() {
+            if !file.locked {
+                continue;
+            }
+
+            let config_specs = file.get_config_specs();
+
+            // If nothing is configured, then every record is an ad-hoc install
+            if config_specs.is_empty() {
+                continue;
+            }
+
+            let Some(mut lock) = manager.get_lock_mut(&file.path)? else {
+                continue;
+            };
+
+            let count = lock.prune_orphaned_records(&config_specs);
+
+            if count > 0 {
+                debug!(
+                    file = ?lock.path,
+                    "Pruned {count} orphaned record(s) from lock file",
+                );
+
+                lock.save()?;
+                pruned += count;
+            }
+        }
+
+        Ok(pruned)
     }
 }

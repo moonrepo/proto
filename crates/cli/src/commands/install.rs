@@ -6,7 +6,7 @@ use crate::utils::tool_record::ToolRecord;
 use crate::workflows::{InstallOutcome, InstallWorkflowManager, InstallWorkflowParams};
 use clap::Args;
 use proto_core::flow::detect::Detector;
-use proto_core::flow::lock::prune_orphaned_records;
+use proto_core::flow::lock::Locker;
 use proto_core::{
     ConfigMode, Id, PinLocation, Tool, ToolContext, ToolSpec, reporter::NoticeOutput,
 };
@@ -172,13 +172,6 @@ pub async fn install_one(
         let config = session.load_config_with_mode(ConfigMode::UpwardsGlobal)?;
 
         enforce_requirements(&tool, &config.versions)?;
-
-        // Reconcile lockfiles by removing orphaned records, but keep any
-        // record for the spec that is currently being installed
-        prune_orphaned_records(
-            &session.env,
-            &BTreeMap::from_iter([(context.clone(), spec.req.clone())]),
-        )?;
     }
 
     // Create our workflow and setup the progress reporter
@@ -220,6 +213,11 @@ pub async fn install_one(
 
     let outcome = result?;
     let tool = workflow.tool;
+
+    // Reconcile lockfiles by removing orphaned records
+    if !args.internal {
+        Locker::prune_orphaned_records(&session.env)?;
+    }
 
     if args.internal || args.quiet {
         session.console.err.flush()?;
@@ -305,18 +303,6 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> SessionResult 
         })?;
 
         return Ok(Some(1));
-    }
-
-    // Reconcile lockfiles by removing orphaned records, but keep any
-    // records for the specs that are currently being installed
-    if !args.internal {
-        prune_orphaned_records(
-            &session.env,
-            &versions
-                .iter()
-                .map(|(context, spec)| (context.to_owned(), spec.req.to_owned()))
-                .collect(),
-        )?;
     }
 
     // Then install each tool in parallel!
@@ -448,6 +434,11 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> SessionResult 
     }
 
     workflow_manager.stop_rendering().await?;
+
+    // Reconcile lockfiles by removing orphaned records
+    if !args.internal {
+        Locker::prune_orphaned_records(&session.env)?;
+    }
 
     let installed_count = installed.len();
     let failed_count = failed.len();
