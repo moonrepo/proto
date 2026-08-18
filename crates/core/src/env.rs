@@ -243,6 +243,22 @@ impl ProtoEnvironment {
             Ok(manager)
         })
     }
+
+    pub fn reload(&self) -> Self {
+        Self {
+            config_mode: self.config_mode,
+            env_mode: self.env_mode.clone(),
+            home_dir: self.home_dir.clone(),
+            otel_enabled: self.otel_enabled,
+            store: self.store.clone(),
+            test_only: self.test_only,
+            working_dir: self.working_dir.clone(),
+            os: self.os,
+            arch: self.arch,
+            file_manager: Arc::new(OnceCell::new()),
+            plugin_loader: Arc::new(OnceCell::new()),
+        }
+    }
 }
 
 impl AsRef<ProtoEnvironment> for ProtoEnvironment {

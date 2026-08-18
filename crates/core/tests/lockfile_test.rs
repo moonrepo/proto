@@ -329,4 +329,185 @@ mod lockfile {
             assert!(lock2.path.ends_with(".protolock"));
         }
     }
+
+    mod prune_orphaned_records {
+        use super::*;
+        use proto_core::ToolContext;
+        use std::collections::{BTreeMap, BTreeSet};
+
+        type OwnedSpecs = BTreeMap<ToolContext, BTreeSet<UnresolvedVersionSpec>>;
+        type BorrowedSpecs<'a> = BTreeMap<&'a ToolContext, BTreeSet<&'a UnresolvedVersionSpec>>;
+
+        fn record_with(spec: Option<&str>, backend: Option<&str>) -> LockRecord {
+            LockRecord {
+                spec: spec.map(|spec| UnresolvedVersionSpec::parse(spec).unwrap()),
+                backend: backend.map(Id::raw),
+                os: Some(SystemOS::default()),
+                arch: Some(SystemArch::default()),
+                ..Default::default()
+            }
+        }
+
+        fn config_specs(entries: &[(&str, &[&str])]) -> OwnedSpecs {
+            entries
+                .iter()
+                .map(|(context, specs)| {
+                    (
+                        ToolContext::parse(context).unwrap(),
+                        specs
+                            .iter()
+                            .map(|spec| UnresolvedVersionSpec::parse(spec).unwrap())
+                            .collect(),
+                    )
+                })
+                .collect()
+        }
+
+        fn borrow_specs(specs: &OwnedSpecs) -> BorrowedSpecs<'_> {
+            specs
+                .iter()
+                .map(|(context, specs)| (context, specs.iter().collect()))
+                .collect()
+        }
+
+        #[test]
+        fn prunes_records_not_matching_configured_specs() {
+            let mut lock = ProtoLock::default();
+            lock.tools.insert(
+                Id::raw("node"),
+                vec![record_with(Some("20"), None), record_with(Some("18"), None)],
+            );
+
+            let specs = config_specs(&[("node", &["20"])]);
+            let pruned = lock.prune_orphaned_records(&borrow_specs(&specs));
+
+            assert_eq!(pruned, 1);
+
+            let records = lock.tools.get("node").unwrap();
+
+            assert_eq!(records.len(), 1);
+            assert_eq!(
+                records[0].spec.as_ref().unwrap(),
+                &UnresolvedVersionSpec::parse("20").unwrap()
+            );
+        }
+
+        #[test]
+        fn keeps_records_for_unconfigured_tools() {
+            let mut lock = ProtoLock::default();
+            lock.tools.insert(
+                Id::raw("bun"),
+                vec![
+                    record_with(Some("1.0.0"), None),
+                    record_with(Some("1.1.0"), None),
+                ],
+            );
+
+            let specs = config_specs(&[("node", &["20"])]);
+            let pruned = lock.prune_orphaned_records(&borrow_specs(&specs));
+
+            assert_eq!(pruned, 0);
+            assert_eq!(lock.tools.get("bun").unwrap().len(), 2);
+        }
+
+        #[test]
+        fn keeps_records_without_a_spec() {
+            let mut lock = ProtoLock::default();
+            lock.tools
+                .insert(Id::raw("node"), vec![record_with(None, None)]);
+
+            let specs = config_specs(&[("node", &["20"])]);
+            let pruned = lock.prune_orphaned_records(&borrow_specs(&specs));
+
+            assert_eq!(pruned, 0);
+            assert_eq!(lock.tools.get("node").unwrap().len(), 1);
+        }
+
+        #[test]
+        fn keeps_records_with_a_different_backend() {
+            let mut lock = ProtoLock::default();
+            lock.tools.insert(
+                Id::raw("node"),
+                vec![
+                    // Configured with a backend, so the backendless
+                    // record is an ad-hoc install
+                    record_with(Some("18"), None),
+                    record_with(Some("18"), Some("asdf")),
+                ],
+            );
+
+            let specs = config_specs(&[("asdf:node", &["20"])]);
+            let pruned = lock.prune_orphaned_records(&borrow_specs(&specs));
+
+            assert_eq!(pruned, 1);
+
+            let records = lock.tools.get("node").unwrap();
+
+            assert_eq!(records.len(), 1);
+            assert_eq!(records[0].backend, None);
+        }
+
+        #[test]
+        fn prunes_across_os_and_arch() {
+            let mut lock = ProtoLock::default();
+            lock.tools.insert(
+                Id::raw("node"),
+                vec![
+                    LockRecord {
+                        spec: Some(UnresolvedVersionSpec::parse("18").unwrap()),
+                        os: Some(SystemOS::Linux),
+                        arch: Some(SystemArch::Arm64),
+                        ..Default::default()
+                    },
+                    LockRecord {
+                        spec: Some(UnresolvedVersionSpec::parse("18").unwrap()),
+                        os: Some(SystemOS::Windows),
+                        arch: Some(SystemArch::X64),
+                        ..Default::default()
+                    },
+                    LockRecord {
+                        spec: Some(UnresolvedVersionSpec::parse("20").unwrap()),
+                        os: Some(SystemOS::Linux),
+                        arch: Some(SystemArch::Arm64),
+                        ..Default::default()
+                    },
+                ],
+            );
+
+            let specs = config_specs(&[("node", &["20"])]);
+            let pruned = lock.prune_orphaned_records(&borrow_specs(&specs));
+
+            assert_eq!(pruned, 2);
+            assert_eq!(lock.tools.get("node").unwrap().len(), 1);
+        }
+
+        #[test]
+        fn removes_tool_when_all_records_are_pruned() {
+            let mut lock = ProtoLock::default();
+            lock.tools
+                .insert(Id::raw("node"), vec![record_with(Some("18"), None)]);
+            lock.tools
+                .insert(Id::raw("bun"), vec![record_with(Some("1.0.0"), None)]);
+
+            let specs = config_specs(&[("node", &["20"])]);
+            let pruned = lock.prune_orphaned_records(&borrow_specs(&specs));
+
+            assert_eq!(pruned, 1);
+            assert!(!lock.tools.contains_key("node"));
+            assert!(lock.tools.contains_key("bun"));
+        }
+
+        #[test]
+        fn returns_zero_when_nothing_is_orphaned() {
+            let mut lock = ProtoLock::default();
+            lock.tools
+                .insert(Id::raw("node"), vec![record_with(Some("20"), None)]);
+
+            let specs = config_specs(&[("node", &["20", "18"])]);
+            let pruned = lock.prune_orphaned_records(&borrow_specs(&specs));
+
+            assert_eq!(pruned, 0);
+            assert_eq!(lock.tools.get("node").unwrap().len(), 1);
+        }
+    }
 }

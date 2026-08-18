@@ -4,13 +4,12 @@ use crate::helpers::fetch_latest_version;
 use crate::session::{ProtoSession, SessionResult};
 use clap::Args;
 use iocraft::prelude::{FlexDirection, View, element};
-use proto_core::{Id, ToolContext, UnresolvedVersionSpec};
+use proto_core::{Id, ToolContext};
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 use starbase_console::ui::*;
 use starbase_shell::ShellType;
 use starbase_utils::envx;
-use std::collections::{BTreeMap, BTreeSet};
 use std::env;
 use std::path::PathBuf;
 use tracing::instrument;
@@ -308,15 +307,10 @@ fn gather_lockfile_warnings(session: &ProtoSession) -> Result<Vec<Issue>, ProtoC
         };
 
         // Gather specs defined in the config that owns the lockfile, so
-        // that we can detect lockfile records that no longer match it
-        let mut config_specs: BTreeMap<&ToolContext, BTreeSet<&UnresolvedVersionSpec>> =
-            BTreeMap::default();
-
-        if let Some(versions) = &file.config.versions {
-            for (context, spec) in versions {
-                config_specs.entry(context).or_default().insert(&spec.req);
-            }
-        }
+        // that we can detect lockfile records that no longer match it.
+        // This is the same set that install/uninstall prune against, so
+        // that what is reported here is what those flows remove
+        let config_specs = file.get_config_specs();
 
         for (id, records) in &lock.tools {
             let mut seen: FxHashMap<String, usize> = FxHashMap::default();
@@ -354,7 +348,7 @@ fn gather_lockfile_warnings(session: &ProtoSession) -> Result<Vec<Issue>, ProtoC
                     ))
                     .or_insert(0) += 1;
 
-                // Only tools defined in a sibling config can be verified,
+                // Only tools defined in the owning config can be verified,
                 // as records may also exist for ad-hoc installs
                 let config_context = config_specs
                     .iter()
@@ -370,7 +364,7 @@ fn gather_lockfile_warnings(session: &ProtoSession) -> Result<Vec<Issue>, ProtoC
                             lock.path.display(),
                         ),
                         resolution: Some(
-                            "Remove the record from the lockfile, or configure the version again"
+                            "Run <shell>proto install</shell> to prune the record, or configure the version again"
                                 .into(),
                         ),
                         comment: Some("The record is stale and will never be used".into()),
