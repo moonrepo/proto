@@ -37,7 +37,7 @@ proto_core = { version = "0.60.4", path = "../core", features = [
     "clap",
     "otel",
 ] }
-proto_pdk_api = { version = "0.33.0", path = "../pdk-api" }
+proto_pdk_api = { version = "0.33.1", path = "../pdk-api" }
 proto_shim = { version = "0.8.3", path = "../shim" }
 system_env = { version = "0.10.1", path = "../system-env" }
 ai_env = { workspace = true }
