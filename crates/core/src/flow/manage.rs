@@ -102,6 +102,7 @@ impl<'tool> Manager<'tool> {
             Ok(Some(mut record)) => {
                 record.version = Some(version.clone());
                 record.spec = Some(spec.req.clone());
+                record.metadata = self.tool.metadata.lock_options.metadata.clone();
                 record
             }
             // Return an existing lock record if already installed

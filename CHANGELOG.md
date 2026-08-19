@@ -50,6 +50,7 @@
     - Added `download` and `download_from_url` functions, and a `download_file!` macro, to the PDK.
   - Added a `method` field to the `send_request` host function input (`SendRequestInput`), which supports `GET` (default) and `POST`.
   - Added a `SendRequestInput::post()` constructor for creating `POST` requests.
+  - Added a `ToolLockOptions.metadata` field, which allows plugins to include additional metadata in lockfile records for the installed tool.
 
 #### 🐞 Fixes
 
