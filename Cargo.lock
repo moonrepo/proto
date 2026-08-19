@@ -4282,7 +4282,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.34.1"
+version = "0.35.0"
 dependencies = [
  "extism-pdk",
  "proto_pdk",
@@ -4294,7 +4294,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.33.2"
+version = "0.34.0"
 dependencies = [
  "derive_setters",
  "proto_pdk_api",
