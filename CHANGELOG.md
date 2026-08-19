@@ -27,6 +27,7 @@
 
 #### 🚀 Updates
 
+- Increased the plugin cache duration from 30 days to 180 days (6 months) because of GitHub's unreliability.
 - **Checksums**
   - Added support for verifying prebuilt downloads with GPG detached signatures (`.sig` and `.asc`) provided through `checksum_url`, using the plugin-provided `checksum_public_key`.
     - Public keyrings may contain multiple certificates in a single armored block or multiple concatenated armored blocks.

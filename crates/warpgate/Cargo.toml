@@ -48,7 +48,7 @@ tracing = { workspace = true }
 url = { workspace = true }
 
 # Enabling certs for extism!
-ureq = { version = "3.3.0", features = ["rustls", "platform-verifier"] }
+ureq = { version = "3.4.0", features = ["rustls", "platform-verifier"] }
 
 [dev-dependencies]
 starbase_sandbox = { workspace = true }
