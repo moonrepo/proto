@@ -91,6 +91,71 @@ mod install_one {
     }
 
     #[test]
+    fn prefers_prototools_over_ecosystem_file() {
+        let sandbox = create_empty_proto_sandbox();
+        sandbox.create_file(
+            ".prototools",
+            "protostar = \"1.2.3\"\n\n[settings]\ndetect-strategy = \"prefer-prototools\"\n",
+        );
+        sandbox.create_file(".protostarrc", "^1.2.3");
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install").arg("protostar");
+            })
+            .success();
+
+        assert!(sandbox.path().join(".proto/tools/protostar/1.2.3").exists());
+        assert!(
+            !sandbox
+                .path()
+                .join(".proto/tools/protostar/1.10.15")
+                .exists()
+        );
+    }
+
+    #[test]
+    fn only_prototools_ignores_ecosystem_file() {
+        let sandbox = create_empty_proto_sandbox();
+        sandbox.create_file(
+            ".prototools",
+            "protostar = \"1.2.3\"\n\n[settings]\ndetect-strategy = \"only-prototools\"\n",
+        );
+        sandbox.create_file(".protostarrc", "^1.2.3");
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install").arg("protostar");
+            })
+            .success();
+
+        assert!(sandbox.path().join(".proto/tools/protostar/1.2.3").exists());
+        assert!(
+            !sandbox
+                .path()
+                .join(".proto/tools/protostar/1.10.15")
+                .exists()
+        );
+    }
+
+    #[test]
+    fn detects_ecosystem_file_from_parent_dir() {
+        let sandbox = create_empty_proto_sandbox();
+        sandbox.create_file(".protostarrc", "1.2.3");
+        sandbox.create_file("nested/.gitkeep", "");
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install")
+                    .arg("protostar")
+                    .current_dir(sandbox.path().join("nested"));
+            })
+            .success();
+
+        assert!(sandbox.path().join(".proto/tools/protostar/1.2.3").exists());
+    }
+
+    #[test]
     fn installs_latest_if_no_version() {
         let sandbox = create_empty_proto_sandbox();
 
