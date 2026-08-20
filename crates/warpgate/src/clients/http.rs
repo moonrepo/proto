@@ -22,6 +22,7 @@ use tracing::{debug, instrument, trace, warn};
 static ENV_VAR: LazyLock<Regex> = LazyLock::new(|| Regex::new("\\$\\{([A-Z0-9_]+)\\}").unwrap());
 
 /// A downloader that uses our internal HTTP(S) client.
+#[derive(Clone, Debug)]
 pub struct HttpDownloader {
     client: HttpClient,
     headers: FxHashMap<String, String>,
@@ -59,7 +60,7 @@ impl Downloader for HttpDownloader {
 // https://github.com/TrueLayer/reqwest-middleware/issues/203
 
 /// An HTTP(S) client with middleware that wraps [`reqwest::Client`].
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct HttpClient {
     client: Client,
     middleware: ClientWithMiddleware,
@@ -87,7 +88,7 @@ impl HttpClient {
     }
 
     /// Return the inner [`reqwest::Client`].
-    pub fn to_inner(&self) -> &Client {
+    pub fn as_inner(&self) -> &Client {
         &self.client
     }
 
@@ -153,19 +154,11 @@ pub struct HttpOptions {
     pub root_cert: Option<PathBuf>,
 }
 
-/// Create an HTTP(S) client that'll be used for downloading files.
-pub fn create_http_client() -> Result<HttpClient, WarpgateHttpClientError> {
-    create_http_client_with_options(&HttpOptions::default())
-}
-
-/// Create an HTTP(S) client with the provided options, that'll be
-/// used for downloading files.
-#[instrument(skip(options))]
-pub fn create_http_client_with_options(
+/// Build a [`reqwest::ClientBuilder`] with the provided options.
+#[instrument]
+pub fn build_http_client(
     options: &HttpOptions,
-) -> Result<HttpClient, WarpgateHttpClientError> {
-    debug!("Creating HTTP client");
-
+) -> Result<reqwest::ClientBuilder, WarpgateHttpClientError> {
     let mut client_builder = reqwest::Client::builder()
         .user_agent(format!("warpgate@{}", env!("CARGO_PKG_VERSION")))
         .use_rustls_tls();
@@ -256,15 +249,16 @@ pub fn create_http_client_with_options(
         }
     }
 
-    let client = client_builder
-        .build()
-        .map_err(|error| WarpgateHttpClientError::Client {
-            error: Box::new(error),
-        })?;
+    Ok(client_builder)
+}
 
-    trace!("Applying middleware to client");
-
-    let mut middleware_builder = ClientBuilder::new(client.clone());
+/// Build a [`reqwest_middleware::ClientBuilder`] with the provided options.
+#[instrument]
+pub fn build_http_middleware(
+    client: Client,
+    options: &HttpOptions,
+) -> Result<ClientBuilder, WarpgateHttpClientError> {
+    let mut middleware_builder = ClientBuilder::new(client);
 
     trace!("Adding retry support");
 
@@ -312,7 +306,32 @@ pub fn create_http_client_with_options(
         }));
     }
 
-    let middleware = middleware_builder.build();
+    Ok(middleware_builder)
+}
+
+/// Create an HTTP(S) client that'll be used for downloading files.
+pub fn create_http_client() -> Result<HttpClient, WarpgateHttpClientError> {
+    create_http_client_with_options(&HttpOptions::default())
+}
+
+/// Create an HTTP(S) client with the provided options, that'll be
+/// used for downloading files.
+#[instrument]
+pub fn create_http_client_with_options(
+    options: &HttpOptions,
+) -> Result<HttpClient, WarpgateHttpClientError> {
+    debug!("Creating HTTP client");
+
+    let client =
+        build_http_client(options)?
+            .build()
+            .map_err(|error| WarpgateHttpClientError::Client {
+                error: Box::new(error),
+            })?;
+
+    trace!("Applying middleware to client");
+
+    let middleware = build_http_middleware(client.clone(), options)?.build();
 
     debug!("Created HTTP client");
 

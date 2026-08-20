@@ -476,6 +476,27 @@ mod plugins {
             // Doesn't create shims
         }
 
+        #[cfg(any(target_os = "linux", target_os = "macos"))]
+        #[test]
+        fn supports_swift() {
+            let sandbox = create_empty_proto_sandbox();
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("swift");
+                })
+                .success();
+
+            create_shim_command(sandbox.path(), "swift")
+                .arg("--version")
+                .assert()
+                .success();
+
+            assert_snapshot!(
+                fs::read_to_string(sandbox.path().join(".proto/shims/registry.json")).unwrap()
+            );
+        }
+
         #[test]
         fn supports_toml_schema() {
             let sandbox = create_empty_proto_sandbox_with_tools("toml");

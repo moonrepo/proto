@@ -187,6 +187,8 @@ export interface ToolLockOptions {
 	 * when matching against records in the lockfile.
 	 */
 	ignoreOsArch?: boolean;
+	/** Additional metadata to include in lockfile records for this tool. */
+	metadata?: Record<string, string>;
 	/** Do not record the install in the lockfile. */
 	noRecord?: boolean;
 }

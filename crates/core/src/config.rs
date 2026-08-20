@@ -243,7 +243,7 @@ impl ProtoConfig {
         if !tools.contains_key("ruby") && is_tool_allowed("ruby") {
             tools.insert(
                 Id::raw("ruby"),
-                find_debug_locator_with_fallback("ruby_tool", "0.2.9"),
+                find_debug_locator_with_fallback("ruby_tool", "0.2.10"),
             );
         }
 
@@ -251,6 +251,13 @@ impl ProtoConfig {
             tools.insert(
                 Id::raw("rust"),
                 find_debug_locator_with_fallback("rust_tool", "0.13.12"),
+            );
+        }
+
+        if !tools.contains_key("swift") && is_tool_allowed("swift") {
+            tools.insert(
+                Id::raw("swift"),
+                find_debug_locator_with_fallback("swift_tool", "0.1.0"),
             );
         }
 

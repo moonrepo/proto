@@ -1,6 +1,7 @@
 use crate::id::Id;
 use crate::tool_context::ToolContext;
 use proto_pdk_api::{Checksum, ToolLockOptions};
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use starbase_utils::fs;
 use starbase_utils::toml::{self, TomlError};
@@ -37,6 +38,10 @@ pub struct LockRecord {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source: Option<String>,
+
+    /// Additional metadata to include in lockfile records for this tool
+    #[serde(skip_serializing_if = "FxHashMap::is_empty")]
+    pub metadata: FxHashMap<String, String>,
 }
 
 impl LockRecord {
