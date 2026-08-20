@@ -27,6 +27,7 @@
 
 #### 🚀 Updates
 
+- Added unstable Swift support: `proto install swift`.
 - Increased the plugin cache duration from 30 days to 180 days (6 months) because of GitHub's unreliability.
 - **Checksums**
   - Added support for verifying prebuilt downloads with GPG detached signatures (`.sig` and `.asc`) provided through `checksum_url`, using the plugin-provided `checksum_public_key`.
@@ -51,6 +52,11 @@
   - Added a `method` field to the `send_request` host function input (`SendRequestInput`), which supports `GET` (default) and `POST`.
   - Added a `SendRequestInput::post()` constructor for creating `POST` requests.
   - Added a `ToolLockOptions.metadata` field, which allows plugins to include additional metadata in lockfile records for the installed tool.
+
+#### 🛠️ Tools
+
+- **Ruby**
+  - Fixed build from source returning a prebuilt archive.
 
 #### 🐞 Fixes
 
