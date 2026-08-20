@@ -4236,7 +4236,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.61.1"
+version = "0.61.2"
 dependencies = [
  "ai_env",
  "clap",
@@ -4282,7 +4282,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.35.0"
+version = "0.35.1"
 dependencies = [
  "extism-pdk",
  "proto_pdk",
@@ -4294,7 +4294,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.34.0"
+version = "0.34.1"
 dependencies = [
  "derive_setters",
  "proto_pdk_api",
@@ -4310,7 +4310,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.49.2"
+version = "0.49.3"
 dependencies = [
  "extism",
  "proto_core",
