@@ -6741,7 +6741,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.35.3"
+version = "0.36.0"
 dependencies = [
  "async-trait",
  "compact_str 0.10.0",
@@ -6777,7 +6777,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_api"
-version = "0.18.3"
+version = "0.19.0"
 dependencies = [
  "anyhow",
  "derive_setters",
@@ -6792,7 +6792,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_pdk"
-version = "0.17.1"
+version = "0.18.0"
 dependencies = [
  "extism-pdk",
  "serde",

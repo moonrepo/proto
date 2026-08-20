@@ -1,6 +1,6 @@
 [package]
 name = "warpgate"
-version = "0.35.3"
+version = "0.36.0"
 edition = "2024"
 license = "MIT"
 description = "Download, resolve, and manage Extism WASM plugins."
@@ -9,7 +9,7 @@ rust-version = "1.91.0"
 
 [dependencies]
 system_env = { version = "0.10.1", path = "../system-env" }
-warpgate_api = { version = "0.18.3", path = "../warpgate-api" }
+warpgate_api = { version = "0.19.0", path = "../warpgate-api" }
 async-trait = { workspace = true }
 compact_str = { workspace = true }
 docker_credential = { workspace = true }
