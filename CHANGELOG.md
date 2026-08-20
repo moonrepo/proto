@@ -59,6 +59,7 @@
   - Reworded the `fallback_loop` error to describe the actual cause instead of incorrectly claiming the resolved binary is a proto shim.
 - Fixed an issue where `proto uninstall` would fail when `PROTO_ENV` is set and an environment scoped `.prototools.<env>` config exists, as it would attempt to unpin the version from an invalid path.
 - Fixed an issue where an install that failed very early (before any progress output) could hang when not running in a TTY, as the non-TTY progress monitor could miss the exit signal.
+- Fixed an issue where versions with a pre-release or build identifier that begins with a hyphen (like `1.0.6--canary.9.0c3f3b7.0`) would fail to parse, even though they are valid semver. Such versions can appear in `yarn.lock` files transitively through published npm packages.
 
 ## 0.60.2
 

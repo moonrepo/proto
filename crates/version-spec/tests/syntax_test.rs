@@ -79,6 +79,10 @@ mod syntax {
                 ("1.2.3-rc.1.2", "rc.1.2"),
                 ("1.2.3-beta-2", "beta-2"),
                 ("1.2.3-un_stable", "un_stable"),
+                // A pre-release identifier may start with a hyphen; semver
+                // allows "[0-9A-Za-z-]+", including a leading "-" (issue #1093)
+                ("1.2.3--canary", "-canary"),
+                ("1.2.3--canary.9.0c3f3b7.0", "-canary.9.0c3f3b7.0"),
             ] {
                 assert_eq!(
                     parse_semver(input).unwrap(),
@@ -95,11 +99,50 @@ mod syntax {
         }
 
         #[test]
+        fn parses_pre_with_leading_hyphen() {
+            // https://github.com/moonrepo/proto/issues/1093
+            // "1.0.6--canary.9.0c3f3b7.0" is published on npm as
+            // @storybook/react-docgen-typescript-plugin, and reaches
+            // ordinary yarn.lock files transitively.
+            let version = parse_semver("1.0.6--canary.9.0c3f3b7.0").unwrap();
+
+            assert_eq!(
+                version,
+                Version {
+                    major: 1,
+                    minor: 0,
+                    patch: 6,
+                    prerelease: Some("-canary.9.0c3f3b7.0".into()),
+                    ..Default::default()
+                }
+            );
+
+            // The leading hyphen round-trips back to the original string
+            assert_eq!(version.to_string(), "1.0.6--canary.9.0c3f3b7.0");
+
+            // The same pre-release is still recognized behind a scope, so the
+            // scope lookahead is not confused by the doubled hyphen
+            assert_eq!(
+                parse_semver("foo-1.0.6--canary.9.0c3f3b7.0").unwrap(),
+                Version {
+                    scope: Some("foo".into()),
+                    major: 1,
+                    minor: 0,
+                    patch: 6,
+                    prerelease: Some("-canary.9.0c3f3b7.0".into()),
+                    ..Default::default()
+                }
+            );
+        }
+
+        #[test]
         fn parses_build() {
             for (input, build) in [
                 ("1.2.3+build", "build"),
                 ("1.2.3+build.123", "build.123"),
                 ("1.2.3+exp.sha.5114f85", "exp.sha.5114f85"),
+                // A build identifier may also start with a hyphen (issue #1093)
+                ("1.2.3+-build", "-build"),
             ] {
                 assert_eq!(
                     parse_semver(input).unwrap(),

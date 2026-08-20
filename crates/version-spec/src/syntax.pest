@@ -6,14 +6,16 @@ id = _{ ASCII_ALPHANUMERIC | "-" | "_" | "." }
 // It is attempted last, so that a scope like "v8-1.2.3" takes priority
 v_prefix = _{ "v" | "V" }
 
-pre        =  { ASCII_ALPHANUMERIC ~ id* }
+// A pre-release or build identifier is "[0-9A-Za-z-]+", so the first
+// character may be a "-", for example the "-canary" in "1.0.6--canary.9"
+pre        =  { (ASCII_ALPHANUMERIC | "-") ~ id* }
 pre_anchor = _{ "-" ~ pre }
 
 // A calver pre-release must start with a letter, so that invalid
 // month/day numbers are not parsed as pre-releases
 pre_anchor_fixed = _{ "-" ~ &ASCII_ALPHA ~ pre }
 
-build        =  { ASCII_ALPHANUMERIC ~ id* }
+build        =  { (ASCII_ALPHANUMERIC | "-") ~ id* }
 build_anchor = _{ "+" ~ build }
 
 // Separators consume their own surrounding spaces, as a preceding greedy
