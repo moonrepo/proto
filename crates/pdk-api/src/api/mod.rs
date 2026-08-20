@@ -318,6 +318,10 @@ api_struct!(
         #[serde(skip_serializing_if = "is_false")]
         pub ignore_os_arch: bool,
 
+        /// Additional metadata to include in lockfile records for this tool.
+        #[serde(skip_serializing_if = "FxHashMap::is_empty")]
+        pub metadata: FxHashMap<String, String>,
+
         /// Do not record the install in the lockfile.
         #[serde(skip_serializing_if = "is_false")]
         pub no_record: bool,

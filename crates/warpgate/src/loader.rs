@@ -89,7 +89,7 @@ impl PluginLoader {
         trace!(cache_dir = ?plugins_dir, "Creating plugin loader");
 
         Self {
-            cache_duration: Duration::from_secs(86400 * 30), // 30 days
+            cache_duration: Duration::from_secs(86400 * 180), // 180 days (6 months)
             data_loader: OnceCell::new(),
             extensions: vec!["wasm".into()],
             file_loader: OnceCell::new(),

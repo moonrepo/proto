@@ -187,6 +187,29 @@
       ]
     },
     {
+      "id": "nub",
+      "locator": "github://moonrepo/plugins/node_depman_tool",
+      "format": "wasm",
+      "name": "nub",
+      "description": "A fast, all-in-one Node.js toolkit and package manager.",
+      "author": "moonrepo",
+      "homepageUrl": "https://nubjs.com/",
+      "repositoryUrl": "https://github.com/moonrepo/plugins",
+      "bins": [
+        "nub",
+        "nubx"
+      ],
+      "detectionSources": [
+        {
+          "file": "package.json",
+          "label": "volta, engines, packageManager"
+        }
+      ],
+      "globalsDirs": [
+        "~/.proto/tools/node/globals/bin"
+      ]
+    },
+    {
       "id": "pnpm",
       "locator": "github://moonrepo/plugins/node_depman_tool",
       "format": "wasm",
@@ -299,6 +322,32 @@
         "$CARGO_INSTALL_ROOT/bin",
         "$CARGO_HOME/bin",
         "~/.cargo/bin"
+      ]
+    },
+    {
+      "id": "swift",
+      "locator": "github://moonrepo/plugins/swift_tool",
+      "format": "wasm",
+      "name": "Swift",
+      "description": "Swift is a general-purpose programming language built with a focus on safety, performance, and modern software design.",
+      "author": "moonrepo",
+      "homepageUrl": "https://www.swift.org/",
+      "repositoryUrl": "https://github.com/moonrepo/plugins",
+      "devicon": "swift",
+      "bins": [
+        "swift",
+        "swiftc",
+        "sourcekit-lsp"
+      ],
+      "detectionSources": [
+        {
+          "file": ".swift-version",
+          "url": "https://github.com/kylef/swiftenv"
+        },
+        {
+          "file": "Package.swift",
+          "url": "https://www.swift.org/documentation/package-manager/"
+        }
       ]
     },
     {

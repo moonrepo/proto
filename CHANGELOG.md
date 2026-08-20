@@ -27,6 +27,8 @@
 
 #### 🚀 Updates
 
+- Added unstable Swift support: `proto install swift`.
+- Increased the plugin cache duration from 30 days to 180 days (6 months) because of GitHub's unreliability.
 - **Checksums**
   - Added support for verifying prebuilt downloads with GPG detached signatures (`.sig` and `.asc`) provided through `checksum_url`, using the plugin-provided `checksum_public_key`.
     - Public keyrings may contain multiple certificates in a single armored block or multiple concatenated armored blocks.
@@ -49,6 +51,12 @@
     - Added `download` and `download_from_url` functions, and a `download_file!` macro, to the PDK.
   - Added a `method` field to the `send_request` host function input (`SendRequestInput`), which supports `GET` (default) and `POST`.
   - Added a `SendRequestInput::post()` constructor for creating `POST` requests.
+  - Added a `ToolLockOptions.metadata` field, which allows plugins to include additional metadata in lockfile records for the installed tool.
+
+#### 🛠️ Tools
+
+- **Ruby**
+  - Fixed build from source returning a prebuilt archive.
 
 #### 🐞 Fixes
 
@@ -60,6 +68,12 @@
 - Fixed virtual path conversion producing a path with a trailing separator when the path being converted is a virtual/real prefix itself (`Path::join("")` appends a separator). This surfaced in moon as `$env.PWD contains trailing slashes` errors from nushell when plugin commands ran at the workspace root.
 - Fixed concurrent commands that write to a `.prototools` file erasing each other's changes. The config was read under a shared lock, the lock released, then an exclusive lock acquired to write, so 2 processes could both read the same content and the last writer would erase the entries added by the first. Running `proto install <tool> --pin` in parallel (or `pin`, `unpin`, `alias`, `unalias`, `uninstall`, `plugin add`, `plugin remove`) would silently drop tools from the config, surfacing much later as `proto run` failing to detect a version for a tool that had just installed successfully.
 - Fixed an issue where an install that failed very early (before any progress output) could hang when not running in a TTY, as the non-TTY progress monitor could miss the exit signal.
+- Fixed an issue where versions with a pre-release or build identifier that begins with a hyphen (like `1.0.6--canary.9.0c3f3b7.0`) would fail to parse, even though they are valid semver. Such versions can appear in `yarn.lock` files transitively through published npm packages.
+
+#### ⚙️ Internal
+
+- Updated Rust to v1.98.0.
+- Updated dependencies.
 
 ## 0.60.2
 
