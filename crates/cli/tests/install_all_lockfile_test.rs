@@ -320,7 +320,7 @@ version = "4.5.15"
         );
     }
 
-    mod frozen {
+    mod immutable {
         use super::*;
 
         fn create_sandbox() -> ProtoSandbox {
@@ -379,7 +379,7 @@ version = "{version}"
 
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install").arg("--frozen-lockfile");
+                    cmd.arg("install").arg("--immutable-lockfile");
                 })
                 .success();
 
@@ -398,7 +398,7 @@ version = "{version}"
         }
 
         #[test]
-        fn doesnt_prune_orphans_when_frozen() {
+        fn doesnt_prune_orphans_when_immutable() {
             let sandbox = create_sandbox();
             sandbox.create_file(
                 ".protolock",
@@ -413,7 +413,7 @@ version = "{version}"
 
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install").arg("--frozen-lockfile");
+                    cmd.arg("install").arg("--immutable-lockfile");
                 })
                 .success();
 
@@ -433,7 +433,7 @@ version = "{version}"
 
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install").arg("--frozen-lockfile");
+                    cmd.arg("install").arg("--immutable-lockfile");
                 })
                 .failure();
 

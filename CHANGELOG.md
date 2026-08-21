@@ -35,7 +35,7 @@
     - Signature files may contain multiple binary signatures, multiple signatures in one armored block, or multiple concatenated armored blocks. Verification succeeds when any signature matches a trusted key.
     - GPG verification streams the artifact from disk in a blocking worker and records only the verified signer fingerprint and artifact SHA256 in lockfiles, instead of the armored public keyring.
 - **Lockfiles**
-  - Added a `--frozen-lockfile` flag to `proto install` (and a `PROTO_FROZEN_LOCKFILE` environment variable) that treats the lockfile as read-only. Versions are resolved from existing lockfile records, and the lockfile is never created, updated, or pruned.
+  - Added an `--immutable-lockfile` flag to `proto install` (and a `PROTO_IMMUTABLE_LOCKFILE` environment variable) that treats the lockfile as read-only. Versions are resolved from existing lockfile records, and the lockfile is never created, updated, or pruned.
     - If a tool being installed has no matching record, the install fails instead of resolving a fresh version, which is useful for reproducible installs in CI.
     - This flag cannot be combined with `--update-lockfile` or `--pin`.
   - Updated `proto pin` and `proto unpin` to always keep the lockfile of the modified config in sync, even when another config (like an environment config) takes precedence for the tool.
