@@ -84,7 +84,7 @@ impl<'tool> Installer<'tool> {
         &self,
         options: InstallOptions,
     ) -> Result<Option<LockRecord>, ProtoInstallError> {
-        if self.tool.is_installed(self.spec) && !options.force {
+        if self.tool.is_installed_while_locked(self.spec) && !options.force {
             debug!(
                 tool = self.tool.context.as_str(),
                 "Tool already installed, continuing"
@@ -641,10 +641,10 @@ impl<'tool> Installer<'tool> {
             "generate_checksum",
             generate_checksum(download_file, checksum_file, checksum_public_key),
         )?;
-        let verified;
 
         // Allow plugin to provide their own checksum verification method
-        if self
+
+        let verified = if self
             .tool
             .plugin
             .has_func(PluginFunction::VerifyChecksum)
@@ -667,16 +667,16 @@ impl<'tool> Installer<'tool> {
                     .await,
             )?;
 
-            verified = output.verified;
+            output.verified
         }
         // Otherwise attempt to verify it ourselves
         else {
-            verified = proto.create_metric().record_tool_install_step(
+            proto.create_metric().record_tool_install_step(
                 &self.tool.context,
                 "verify_checksum",
                 verify_checksum(download_file, checksum_file, &checksum),
-            )?;
-        }
+            )?
+        };
 
         if verified {
             debug!(
