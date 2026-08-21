@@ -30,6 +30,7 @@ export interface HostLogInput {
 	/**
 	 * Target where the log should be written to.
 	 *
+	 * @default 'trace'
 	 * @type {'stderr' | 'stdout' | 'error' | 'warn' | 'debug' | 'trace'}
 	 */
 	target?: HostLogTarget;
@@ -67,7 +68,7 @@ export interface ExecCommandInput {
 	 */
 	paths?: string[];
 	/** Mark the command as executable before executing. */
-	setExecutable?: boolean;
+	set_executable?: boolean;
 	/** Set the shell to execute the command with, for example "bash". */
 	shell?: string | null;
 	/** Stream the output instead of capturing it. */
@@ -79,7 +80,7 @@ export interface ExecCommandOutput {
 	/** The command (without arguments) that was executed. */
 	command?: string;
 	/** The exit code returned from the command. */
-	exitCode?: number;
+	exit_code?: number;
 	/** The standard error output returned from the command. */
 	stderr?: string;
 	/** The standard output returned from the command. */
@@ -99,10 +100,11 @@ export interface HostEnvironment {
 	/** Whether the plugin is running in a CI environment. */
 	ci: boolean;
 	/** Virtual path to the home directory of the current user. */
-	homeDir: VirtualPath;
+	home_dir: VirtualPath;
 	/**
 	 * The libc implementation of the host system.
 	 *
+	 * @default 'unknown'
 	 * @type {'gnu' | 'musl' | 'unknown'}
 	 */
 	libc: SystemLibc;
@@ -132,15 +134,15 @@ export type Version = string;
  */
 export interface PluginContext {
 	/** The version of proto (the core crate) calling plugin functions. */
-	protoVersion?: Version | null;
+	proto_version?: Version | null;
 	/** Virtual path to the tool's temporary directory. */
-	tempDir: VirtualPath;
+	temp_dir: VirtualPath;
 	/** Virtual path to the tool's installation directory. */
-	toolDir: VirtualPath;
+	tool_dir: VirtualPath;
 	/** Current version. Will be a "latest" alias if not resolved. */
 	version: VersionSpec;
 	/** Virtual path to the current working directory. */
-	workingDir: VirtualPath;
+	working_dir: VirtualPath;
 }
 
 /**
@@ -149,11 +151,11 @@ export interface PluginContext {
  */
 export interface PluginUnresolvedContext {
 	/** The version of proto (the core crate) calling plugin functions. */
-	protoVersion?: Version | null;
+	proto_version?: Version | null;
 	/** Virtual path to the tool's temporary directory. */
-	tempDir: VirtualPath;
+	temp_dir: VirtualPath;
 	/** Virtual path to the current working directory. */
-	workingDir: VirtualPath;
+	working_dir: VirtualPath;
 }
 
 /** Supported types of plugins. */
@@ -165,19 +167,19 @@ export interface ToolInventoryOptions {
 	 * Override the tool inventory directory path (where all versions are installed).
 	 * This is an advanced feature and should only be used when absolutely necessary.
 	 */
-	overrideDir?: VirtualPath | null;
+	override_dir?: VirtualPath | null;
 	/**
 	 * Override the name of the tool inventory directory. If you want to override the
 	 * entire path, use `override_dir` instead.
 	 */
-	overrideDirName?: string | null;
+	override_dir_name?: string | null;
 	/**
 	 * When the inventory is backend managed, scope the inventory directory name
 	 * with the backend as a prefix.
 	 */
-	scopedBackendDir?: boolean;
+	scoped_backend_dir?: boolean;
 	/** Suffix to append to all versions when labeling directories. */
-	versionSuffix?: string | null;
+	version_suffix?: string | null;
 }
 
 /** Options related to lockfile integration. */
@@ -186,11 +188,11 @@ export interface ToolLockOptions {
 	 * Ignore operating system and architecture values
 	 * when matching against records in the lockfile.
 	 */
-	ignoreOsArch?: boolean;
+	ignore_os_arch?: boolean;
 	/** Additional metadata to include in lockfile records for this tool. */
 	metadata?: Record<string, string>;
 	/** Do not record the install in the lockfile. */
-	noRecord?: boolean;
+	no_record?: boolean;
 }
 
 export type Id = string;
@@ -211,11 +213,12 @@ export interface RegisterToolOutput {
 	/**
 	 * Default strategy to use when installing a tool.
 	 *
+	 * @default 'download-prebuilt'
 	 * @type {'build-from-source' | 'download-prebuilt'}
 	 */
-	defaultInstallStrategy?: InstallStrategy;
+	default_install_strategy?: InstallStrategy;
 	/** Default alias or version to use as a fallback. */
-	defaultVersion?: UnresolvedVersionSpec | null;
+	default_version?: UnresolvedVersionSpec | null;
 	/**
 	 * List of deprecation messages that will be displayed to users
 	 * of this plugin.
@@ -224,25 +227,26 @@ export interface RegisterToolOutput {
 	/** Controls aspects of the tool inventory. */
 	inventory?: ToolInventoryOptions;
 	/** Controls aspects of the tool inventory. */
-	inventoryOptions?: ToolInventoryOptions;
+	inventory_options?: ToolInventoryOptions;
 	/** Options for integrating with a lockfile. */
-	lockOptions?: ToolLockOptions;
+	lock_options?: ToolLockOptions;
 	/** Minimum version of proto required to execute this plugin. */
-	minimumProtoVersion?: Version | null;
+	minimum_proto_version?: Version | null;
 	/** Human readable name of the tool. */
 	name: string;
 	/** Version of the plugin. */
-	pluginVersion?: Version | null;
+	plugin_version?: Version | null;
 	/** Other plugins that this plugin requires. */
 	requires?: string[];
 	/**
 	 * Names of commands that will self-upgrade the tool,
 	 * and should be blocked from happening.
 	 */
-	selfUpgradeCommands?: string[];
+	self_upgrade_commands?: string[];
 	/**
 	 * Type of the tool.
 	 *
+	 * @default 'language'
 	 * @type {'command-line' | 'language' | 'dependency-manager' | 'version-manager'}
 	 */
 	type: PluginType;
@@ -264,7 +268,7 @@ export interface RegisterBackendInput {
 	id: Id;
 }
 
-/** Source code is contained in an archive. */
+/** Downloaded from an archive. */
 export interface ArchiveSource {
 	/** A path prefix within the archive to remove. */
 	prefix?: string | null;
@@ -273,7 +277,7 @@ export interface ArchiveSource {
 	url: string;
 }
 
-/** Source code is located in a Git repository. */
+/** Cloned from a Git repository. */
 export interface GitSource {
 	/** The branch/commit/tag to checkout. */
 	reference?: string | null;
@@ -292,7 +296,7 @@ export interface RegisterBackendOutput {
 	 * Unique identifier for this backend. Will be used as the folder name
 	 * when utilizing builders (via `source`).
 	 */
-	backendId: Id;
+	backend_id: Id;
 	/**
 	 * List of executables, relative from the backend directory,
 	 * that will be executed in the context of proto.
@@ -344,7 +348,7 @@ export interface NativeInstallInput {
 	/** Whether to force install or not. */
 	force: boolean;
 	/** Virtual directory to install to. */
-	installDir: VirtualPath;
+	install_dir: VirtualPath;
 }
 
 export type Checksum = string;
@@ -358,7 +362,7 @@ export interface NativeInstallOutput {
 	/** Whether the install was successful. */
 	installed: boolean;
 	/** Whether to skip the install process or not. */
-	skipInstall?: boolean;
+	skip_install?: boolean;
 }
 
 /** Input passed to the `native_uninstall` function. */
@@ -366,7 +370,7 @@ export interface NativeUninstallInput {
 	/** Current tool context. */
 	context: PluginContext;
 	/** Virtual directory to uninstall from. */
-	uninstallDir: VirtualPath;
+	uninstall_dir: VirtualPath;
 }
 
 /** Output returned by the `native_uninstall` function. */
@@ -374,7 +378,7 @@ export interface NativeUninstallOutput {
 	/** Error message if the uninstall failed. */
 	error?: string | null;
 	/** Whether to skip the uninstall process or not. */
-	skipUninstall?: boolean;
+	skip_uninstall?: boolean;
 	/** Whether the install was successful. */
 	uninstalled: boolean;
 }
@@ -384,7 +388,7 @@ export interface DownloadPrebuiltInput {
 	/** Current tool context. */
 	context: PluginContext;
 	/** Virtual directory to install to. */
-	installDir: VirtualPath;
+	install_dir: VirtualPath;
 }
 
 /** Output returned by the `download_prebuilt` function. */
@@ -393,40 +397,40 @@ export interface DownloadPrebuiltOutput {
 	 * Name of the direct folder within the archive that contains the tool,
 	 * and will be removed when unpacking the archive.
 	 */
-	archivePrefix?: string | null;
+	archive_prefix?: string | null;
 	/** The checksum hash itself. */
 	checksum?: Checksum | null;
 	/**
 	 * File name of the checksum to download. If not provided,
 	 * will attempt to extract it from the URL.
 	 */
-	checksumName?: string | null;
+	checksum_name?: string | null;
 	/** Public key to use for checksum verification. */
-	checksumPublicKey?: string | null;
+	checksum_public_key?: string | null;
 	/**
 	 * A secure URL to download the checksum file for verification.
 	 * If the tool does not support checksum verification, this setting can be omitted.
 	 */
-	checksumUrl?: string | null;
+	checksum_url?: string | null;
 	/**
 	 * File name of the archive to download. If not provided,
 	 * will attempt to extract it from the URL.
 	 */
-	downloadName?: string | null;
+	download_name?: string | null;
 	/** A secure URL to download the tool/archive. */
-	downloadUrl: string;
+	download_url: string;
 	/**
 	 * A map of HTTP headers to include in all requests
 	 * during the download phase.
 	 */
-	httpHeaders?: Record<string, string>;
+	http_headers?: Record<string, string>;
 	/**
 	 * A script file, relative from the install directory, to execute after
 	 * the prebuilt has been installed.
 	 */
-	postScript?: string | null;
+	post_script?: string | null;
 	/** A list of arguments to pass to the script file when executing it. */
-	postScriptArgs?: string[];
+	post_script_args?: string[];
 }
 
 /** Input passed to the `unpack_archive` function. */
@@ -434,15 +438,15 @@ export interface UnpackArchiveInput {
 	/** Current tool context. */
 	context: PluginContext;
 	/** Virtual path to the downloaded file. */
-	inputFile: VirtualPath;
+	input_file: VirtualPath;
 	/** Virtual directory to unpack the archive into, or copy the executable to. */
-	outputDir: VirtualPath;
+	output_dir: VirtualPath;
 }
 
 /** Output returned by the `verify_checksum` function. */
 export interface VerifyChecksumInput {
 	/** Virtual path to the checksum file. */
-	checksumFile: VirtualPath;
+	checksum_file: VirtualPath;
 	/** Current tool context. */
 	context: PluginContext;
 	/**
@@ -450,9 +454,9 @@ export interface VerifyChecksumInput {
 	 * is derived from the checksum file's extension, otherwise
 	 * it defaults to SHA256.
 	 */
-	downloadChecksum?: Checksum | null;
+	download_checksum?: Checksum | null;
 	/** Virtual path to the downloaded file. */
-	downloadFile: VirtualPath;
+	download_file: VirtualPath;
 }
 
 /** Output returned by the `verify_checksum` function. */
@@ -466,7 +470,7 @@ export interface LocateExecutablesInput {
 	/** Current tool context. */
 	context: PluginContext;
 	/** Virtual directory the tool was installed to. */
-	installDir: VirtualPath;
+	install_dir: VirtualPath;
 }
 
 export type StringOrVec = string | string[];
@@ -477,36 +481,36 @@ export interface ExecutableConfig {
 	 * The executable path to use for symlinking instead of `exe_path`.
 	 * This should only be used when `exe_path` is a non-standard executable.
 	 */
-	exeLinkPath?: string | null;
+	exe_link_path?: string | null;
 	/**
 	 * The file to execute, relative from the tool directory.
 	 * Does *not* support virtual paths.
 	 */
-	exePath?: string | null;
+	exe_path?: string | null;
 	/** Do not symlink a binary in `~/.proto/bin`. */
-	noBin?: boolean;
+	no_bin?: boolean;
 	/** Do not generate a shim in `~/.proto/shims`. */
-	noShim?: boolean;
+	no_shim?: boolean;
 	/**
 	 * List of arguments to append to the parent executable, but prepend before
 	 * all other arguments.
 	 */
-	parentExeArgs?: string[];
+	parent_exe_args?: string[];
 	/** The parent executable name required to execute the local executable path. */
-	parentExeName?: string | null;
+	parent_exe_name?: string | null;
 	/** Whether this is the primary executable or not. */
 	primary?: boolean;
 	/** Custom args to append to user-provided args within the generated shim. */
-	shimAfterArgs?: StringOrVec | null;
+	shim_after_args?: StringOrVec | null;
 	/** Custom args to prepend to user-provided args within the generated shim. */
-	shimBeforeArgs?: StringOrVec | null;
+	shim_before_args?: StringOrVec | null;
 	/** Custom environment variables to set when executing the shim. */
-	shimEnvVars?: Record<string, string> | null;
+	shim_env_vars?: Record<string, string> | null;
 	/**
 	 * Update the file permissions to executable. This only exists as these
 	 * values cannot be changed from within WASM.
 	 */
-	updatePerms?: boolean;
+	update_perms?: boolean;
 }
 
 /** Output returned by the `locate_executables` function. */
@@ -521,17 +525,17 @@ export interface LocateExecutablesOutput {
 	 * pre-installed executables can be located. This directory path
 	 * will be used during `proto activate`, but not for bins/shims.
 	 */
-	exesDirs?: string[];
+	exes_dirs?: string[];
 	/**
 	 * List of directory paths to find the globals installation directory.
 	 * Each path supports environment variable expansion.
 	 */
-	globalsLookupDirs?: string[];
+	globals_lookup_dirs?: string[];
 	/**
 	 * A string that all global executables are prefixed with, and will be removed
 	 * when listing and filtering available globals.
 	 */
-	globalsPrefix?: string | null;
+	globals_prefix?: string | null;
 }
 
 /** Input passed to the `load_versions` function. */
@@ -582,7 +586,7 @@ export interface SyncManifestInput {
 /** Output returned by the `sync_manifest` function. */
 export interface SyncManifestOutput {
 	/** Whether to skip the syncing process or not. */
-	skipSync?: boolean;
+	skip_sync?: boolean;
 	/**
 	 * List of versions that are currently installed. Will replace
 	 * what is currently in the manifest.
@@ -595,7 +599,7 @@ export interface SyncShellProfileInput {
 	/** Current tool context. */
 	context: PluginContext;
 	/** Arguments passed after `--` that was directly passed to the tool's executable. */
-	passthroughArgs: string[];
+	passthrough_args: string[];
 }
 
 /** Output returned by the `sync_shell_profile` function. */
@@ -604,13 +608,13 @@ export interface SyncShellProfileOutput {
 	 * An environment variable to check for in the shell profile.
 	 * If the variable exists, injecting path and exports will be avoided.
 	 */
-	checkVar: string;
+	check_var: string;
 	/** A mapping of environment variables that will be injected as exports. */
-	exportVars?: Record<string, string> | null;
+	export_vars?: Record<string, string> | null;
 	/** A list of paths to prepend to the `PATH` environment variable. */
-	extendPath?: string[] | null;
+	extend_path?: string[] | null;
 	/** Whether to skip the syncing process or not. */
-	skipSync?: boolean;
+	skip_sync?: boolean;
 }
 
 /**
@@ -623,7 +627,7 @@ export interface InstallHook {
 	/** Whether the install was forced or not. */
 	forced: boolean;
 	/** Arguments passed after `--` that was directly passed to the tool's executable. */
-	passthroughArgs: string[];
+	passthrough_args: string[];
 	/** Whether the resolved version was pinned. */
 	pinned: boolean;
 	/** Hide install output. */
@@ -638,11 +642,11 @@ export interface RunHook {
 	/** Current tool context. */
 	context: PluginContext;
 	/** Path to the global packages directory for the tool, if found. */
-	globalsDir: VirtualPath | null;
+	globals_dir: VirtualPath | null;
 	/** A prefix applied to the file names of globally installed packages. */
-	globalsPrefix: string | null;
+	globals_prefix: string | null;
 	/** Arguments passed after `--` that was directly passed to the tool's executable. */
-	passthroughArgs: string[];
+	passthrough_args: string[];
 }
 
 /** Output returned from the `pre_run` hook. */
@@ -663,7 +667,7 @@ export interface BuildInstructionsInput {
 	/** Current tool context. */
 	context: PluginContext;
 	/** Virtual directory to install to. */
-	installDir: VirtualPath;
+	install_dir: VirtualPath;
 }
 
 export type BuildInstruction = {
@@ -737,10 +741,8 @@ export type BuildRequirement = {
 	requirement: Requirement;
 	type: 'git-version';
 } | {
-	requirement: 'xcode-command-line-tools';
 	type: 'xcode-command-line-tools';
 } | {
-	requirement: 'windows-developer-mode';
 	type: 'windows-developer-mode';
 };
 
@@ -755,7 +757,7 @@ export type SystemDependency = string | Record<SystemPackageManager, string> | s
 	 * The name of the executable (without ext) that this
 	 * dependency installs, and can be found when searching `PATH`.
 	 */
-	exeName?: string | null;
+	exe_name?: string | null;
 	/** Only install with this package manager. */
 	manager?: SystemPackageManager | null;
 	/** Only install on this operating system. */
@@ -767,12 +769,12 @@ export type SystemDependency = string | Record<SystemPackageManager, string> | s
 /** Output returned by the `build_instructions` function. */
 export interface BuildInstructionsOutput {
 	/** Link to the documentation/help. */
-	helpUrl?: string | null;
+	help_url?: string | null;
 	/**
 	 * A map of HTTP headers to include in all requests
 	 * during the download phase.
 	 */
-	httpHeaders?: Record<string, string>;
+	http_headers?: Record<string, string>;
 	/**
 	 * List of instructions to execute to build the tool, after system
 	 * dependencies have been installed.
@@ -789,5 +791,5 @@ export interface BuildInstructionsOutput {
 	 * List of system dependencies that are required for building from source.
 	 * If a dependency does not exist, it will be installed.
 	 */
-	systemDependencies?: SystemDependency[];
+	system_dependencies?: SystemDependency[];
 }

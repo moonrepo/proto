@@ -816,9 +816,9 @@ dependencies = [
 
 [[package]]
 name = "compact_str"
-version = "0.8.2"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7fd622ebbb56a5b2ccb651b32b911cdeb2a9b4b11776b2473bf26a26a286244e"
+checksum = "9dfdd1c2274d9aa354115b09dc9a901d6c5576818cdf70d14cae2bdb47df00ab"
 dependencies = [
  "castaway",
  "cfg-if",
@@ -1305,6 +1305,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "darling"
+version = "0.24.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed17f5901b6630b993ca003def43f2f8ef4014fc13b047b57aad617ff32bc2ec"
+dependencies = [
+ "darling_core 0.24.1",
+ "darling_macro 0.24.1",
+]
+
+[[package]]
 name = "darling_core"
 version = "0.20.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1346,6 +1356,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "darling_core"
+version = "0.24.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6837e2cf7485aaae18f86181d2f0e9a7ed297a025e220aeabf63fdebd3a2ddff"
+dependencies = [
+ "ident_case",
+ "proc-macro2",
+ "quote",
+ "strsim",
+ "syn 3.0.3",
+]
+
+[[package]]
 name = "darling_macro"
 version = "0.20.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1376,6 +1399,17 @@ dependencies = [
  "darling_core 0.23.0",
  "quote",
  "syn 2.0.119",
+]
+
+[[package]]
+name = "darling_macro"
+version = "0.24.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2ac7135c3ef02b2f7833bbeb1be5ba7f966dcde8a87c6b87f65a778d71a02785"
+dependencies = [
+ "darling_core 0.24.1",
+ "quote",
+ "syn 3.0.3",
 ]
 
 [[package]]
@@ -2088,11 +2122,11 @@ dependencies = [
 
 [[package]]
 name = "garde"
-version = "0.22.1"
+version = "0.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a74b56a4039a46e8c91cc9d84e8a7df4e1f8b24239ca57d1304b3263cb599b9"
+checksum = "5d7f479d28d1daedf23970890723b8774d120aa627abcb33c1d7c93d0965e6c3"
 dependencies = [
- "compact_str 0.8.2",
+ "compact_str 0.9.1",
  "garde_derive",
  "once_cell",
  "regex",
@@ -2101,9 +2135,9 @@ dependencies = [
 
 [[package]]
 name = "garde_derive"
-version = "0.22.1"
+version = "0.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7224c08ec489e2840af29ed882b47f7f6ac8f4ce15c275d9fc0d6d1b94578ae6"
+checksum = "7b0252cacdca8e6f30a900e6d436fbf294e23f674b9288ca4a5bd35976bef87c"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2945,9 +2979,9 @@ dependencies = [
 
 [[package]]
 name = "jwalk"
-version = "0.8.1"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2735847566356cd2179a2a38264839308f7079fa96e6bd5a42d740460e003c56"
+checksum = "5e610b2b1eaea9e0e062c47e319d20a2e0f929e7aabf24d58514354de967bfbd"
 dependencies = [
  "crossbeam",
  "rayon",
@@ -4201,7 +4235,7 @@ dependencies = [
  "rmcp",
  "rust_json",
  "rustc-hash",
- "schemars 1.2.2",
+ "schemars",
  "serde",
  "serde_json",
  "shared_child",
@@ -4810,7 +4844,7 @@ dependencies = [
  "pastey",
  "pin-project-lite",
  "rmcp-macros",
- "schemars 1.2.2",
+ "schemars",
  "serde",
  "serde_json",
  "thiserror 2.0.20",
@@ -5069,17 +5103,6 @@ dependencies = [
 
 [[package]]
 name = "schemars"
-version = "0.8.22"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3fbf2ae1b8bc8e02df939598064d22402220cd5bbcca1c76f7d6a310974d5615"
-dependencies = [
- "dyn-clone",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "schemars"
 version = "1.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "687274d293b6cdc6e73e0fee520bf2049650090d7164f87672d212a3c530cf4a"
@@ -5106,18 +5129,18 @@ dependencies = [
 
 [[package]]
 name = "schematic"
-version = "0.19.7"
+version = "0.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c81261f36caa45c87762df18f5e9a834376686b35742e65fe5ed1c7093e1d3e"
+checksum = "7ffcead13ddcac7ab632163feec662ebf3c7d2932fc51c44cd1d82a7ee7743be"
 dependencies = [
- "convert_case 0.10.0",
+ "convert_case 0.11.0",
  "garde",
  "indexmap",
  "json-strip-comments",
  "markdown",
  "miette 7.6.0",
  "regex",
- "schemars 0.8.22",
+ "schemars",
  "schematic_macros",
  "schematic_types",
  "serde",
@@ -5131,23 +5154,35 @@ dependencies = [
 ]
 
 [[package]]
-name = "schematic_macros"
-version = "0.19.4"
+name = "schematic_core"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22ef30d52d6ce2b34b0dbedf49efaaec437c93aada037e575e9831d95de8f82a"
+checksum = "9562e93bbcdfda8b2818596e0f4c76eca2a2647b556a056802c8a2a2b9b24dd5"
 dependencies = [
- "convert_case 0.10.0",
- "darling 0.23.0",
+ "convert_case 0.11.0",
+ "darling 0.24.1",
  "proc-macro2",
  "quote",
- "syn 2.0.119",
+ "syn 3.0.3",
+]
+
+[[package]]
+name = "schematic_macros"
+version = "0.20.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ea057c3e0d6bc5a9cfe0853abcc75c708c37a48107cf823904e878798bb31f3b"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "schematic_core",
+ "syn 3.0.3",
 ]
 
 [[package]]
 name = "schematic_types"
-version = "0.11.5"
+version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aec5d2af995a99a7a347ff2cb4644abb95c9eb0d09f6472d48e5b1cd05326e8f"
+checksum = "99cdf6f8ec40eac7865e385831cdf154e2e1da1a4d0ad0aa675c3b75e8d3a1d4"
 dependencies = [
  "indexmap",
  "regex",
@@ -5732,9 +5767,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_id"
-version = "0.3.5"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1456f5cb4c60dee1114697fd9257b007b38af0a780ab60f48a9f6cc0a400b97d"
+checksum = "ef7785e941528856cab3a8e330df2970a9ac40cf6194a7e640c5ccc9345f0379"
 dependencies = [
  "compact_str 0.10.0",
  "miette 7.6.0",
@@ -5787,9 +5822,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_utils"
-version = "0.14.2"
+version = "0.14.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "879e06a90157702a315c6859585349cd9c5219f2bdf0288e0ac85a3bb5c9234c"
+checksum = "dc4fa3bb440faaea7ef237edd14e81e40875c872fbee854eae6a6765b29cce4a"
 dependencies = [
  "async-trait",
  "base64 0.23.1",
@@ -5811,6 +5846,7 @@ dependencies = [
  "tracing",
  "url",
  "wax",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
