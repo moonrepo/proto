@@ -19,6 +19,8 @@ use std::collections::BTreeMap;
 use std::env;
 use std::ffi::OsStr;
 use std::fmt::Debug;
+use std::fs::{File, OpenOptions};
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 use toml_edit::DocumentMut;
@@ -500,11 +502,23 @@ impl ProtoConfig {
         op: F,
     ) -> Result<PathBuf, ProtoConfigError> {
         let path = Self::resolve_path(dir);
-        let config = if path.exists() {
-            fs::read_file_with_lock(&path)?
-        } else {
-            String::new()
-        };
+
+        // A config file is shared by every tool, while the commands that mutate it
+        // (`install --pin`, `pin`, `unpin`, `alias`, `uninstall`, and so on) may run
+        // concurrently across processes. Read, modify, and write within a single
+        // exclusive lock, otherwise both processes read the same content and the
+        // last writer erases every entry the first one added.
+        let mut lock = fs::FileLock::with_file(path.clone(), open_config_for_update(&path)?)?;
+
+        let mut config = String::new();
+
+        lock.file
+            .read_to_string(&mut config)
+            .map_err(|error| FsError::Read {
+                path: path.clone(),
+                error: Box::new(error),
+            })?;
+
         let mut document =
             config
                 .parse::<DocumentMut>()
@@ -515,7 +529,20 @@ impl ProtoConfig {
 
         op(&mut document);
 
-        Self::save_to(path, document.to_string())
+        // Readers acquire a shared lock, so they block until we release ours and
+        // never observe the truncated file
+        fs::truncate_file_handle(&path, &mut lock.file)?;
+
+        trace!(file = ?path, "Writing file");
+
+        lock.file
+            .write_all(document.to_string().as_bytes())
+            .map_err(|error| FsError::Write {
+                path: path.clone(),
+                error: Box::new(error),
+            })?;
+
+        Ok(path)
     }
 
     pub fn get_plugin(&self, context: &ToolContext, ty: PluginType) -> Option<&PluginLocator> {
@@ -678,6 +705,25 @@ impl ProtoConfig {
             path.join(PROTO_CONFIG_NAME)
         }
     }
+}
+
+// Open a handle that can both read and write, unlike `fs::create_file_if_missing`,
+// so that the same handle holding the lock can also read the current content
+fn open_config_for_update(path: &Path) -> Result<File, FsError> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+
+    OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(path)
+        .map_err(|error| FsError::Create {
+            path: path.to_path_buf(),
+            error: Box::new(error),
+        })
 }
 
 #[derive(Clone, Debug, Default)]
