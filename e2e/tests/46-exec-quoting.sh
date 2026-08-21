@@ -12,5 +12,7 @@ trap 'rm -rf "$work"' EXIT
 echo 'node = "24"' > "$work/.prototools"
 cd "$work"
 
-out=$(proto run node -- -e "console.log('hello world with literal \$dollar')" 2>&1)
-assert_contains "$out" 'hello world with literal $dollar'
+run_probe proto run node -- -e "console.log('hello world with literal \$dollar')"
+echo_probe
+assert_probe_ok
+assert_contains "$RUN_ALL" 'hello world with literal $dollar'

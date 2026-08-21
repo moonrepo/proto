@@ -23,9 +23,23 @@ cat > "$work/package.json" <<'EOF'
 EOF
 cd "$work"
 
-direct=$(npm --version 2>&1 | tr -d '\r')
-one_level=$(npm run -s inner 2>&1 | tr -d '\r')
-two_level=$(npm run -s outer 2>&1 | tr -d '\r')
+# Git Bash on Windows leaves CRs in the output
+strip_cr() { printf '%s' "$1" | tr -d '\r'; }
+
+run_probe npm --version
+echo_probe direct
+assert_probe_ok
+direct=$(strip_cr "$RUN_OUT")
+
+run_probe npm run -s inner
+echo_probe one_level
+assert_probe_ok
+one_level=$(strip_cr "$RUN_OUT")
+
+run_probe npm run -s outer
+echo_probe two_level
+assert_probe_ok
+two_level=$(strip_cr "$RUN_OUT")
 
 # Anchor against every invocation resolving the bundled npm
 assert_contains "$direct" "11.13"

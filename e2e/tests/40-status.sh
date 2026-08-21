@@ -4,7 +4,9 @@ set -euo pipefail
 source "$(dirname "$0")/../lib/env.sh"
 source "$(dirname "$0")/../lib/assert.sh"
 
-out=$(proto status 2>&1)
+run_probe proto status
+echo_probe
+assert_probe_ok
 
 # At minimum the node install (10-install-node) must show up
-assert_contains "$out" "node"
+assert_contains "$RUN_ALL" "node"

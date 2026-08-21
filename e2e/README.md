@@ -21,9 +21,39 @@ bash ./e2e/run.sh install
 bash ./e2e/run.sh node
 ```
 
-Per-test stdout/stderr is captured under `e2e/.logs/<name>.log`. The shared `PROTO_HOME` lives at `e2e/.proto-home` and is wiped at the start of each run.
+Per-test stdout/stderr is captured under `e2e/.logs/<name>.log`. The shared `PROTO_HOME` lives at `e2e/.proto-home`, so a run never touches your own `~/.proto` — the suite installs 20+ tools into the store, uninstalls one, and runs `proto clean` over it.
 
-Override the binary location with `PROTO_BIN_DIR=/some/dir bash ./e2e/run.sh` if you want to test a binary other than `target/release/proto`.
+State is kept between runs (`bootstrap.sh` puts the binary under test into the store, so the harness can't wipe it). To start clean:
+
+```bash
+rm -rf e2e/.proto-home && ./e2e/bootstrap.sh
+```
+
+## Env knobs
+
+| Variable              | Effect                                                                                  |
+| --------------------- | --------------------------------------------------------------------------------------- |
+| `E2E_SERIAL=1`        | Never run a `# group:` in parallel. First thing to try when a failure smells like a race |
+| `E2E_TAIL=200`        | How many lines of a failing test's log to print inline (default 40)                      |
+| `E2E_KEEP_SCRATCH=1`  | Keep the shared work dir instead of deleting it on exit, and print its path              |
+| `E2E_USE_REAL_HOME=1` | Use `~/.proto` as the store instead of `e2e/.proto-home`                                 |
+
+## Debugging a failure
+
+A failing test prints, in order: the `ASSERT FAIL` / `COMMAND FAILED` lines from its log, the tail of the log, and the path to a post-mortem file. The post-mortem (`e2e/.logs/<name>.postmortem.txt`) captures the state the test left behind — the shared `.prototools`, the shim registry, the shims directory, and `proto status` — none of which is visible in the test's own log. CI uploads both as the `e2e-logs-<os>` artifact.
+
+Helpers never swallow a command's output. Use `run_probe` for anything whose exit code you want to assert on:
+
+```bash
+run_probe proto bin node
+echo_probe path                       # exit=, path=, stderr= into the log
+
+if [[ $RUN_RC -ne 0 ]]; then
+  fail "proto bin node exited $RUN_RC"
+fi
+```
+
+A bare `out=$(cmd)` aborts the test under `set -e` before anything can be printed, which is how a failing shim once produced a log that just stopped mid-sentence.
 
 ## Layout
 
@@ -67,7 +97,7 @@ source "$(dirname "$0")/../lib/assert.sh"
 
 - **`# requires:`** — if any named test FAILED or was SKIPPED, this test is also SKIPPED. Used for tool dependencies (`npm` requires `node`).
 - **`# os:`** — allow-list of OSes. Default = all 3. Used for `30-asdf-backend` (`linux,macos`) since the asdf backend doesn't run on Windows.
-- **`# group:`** — consecutive tests sharing this value run as background jobs in parallel. The harness waits for the whole group to finish before moving on to the next test. Used to fan out the install phase: `10–18` share `install-base`, `20–23` share `install-deps`. Members of the same group must be independent of each other — `# requires:` should only point to tests in earlier groups or earlier sequential tests, not peers in the same group (peer status isn't recorded until the batch completes).
+- **`# group:`** — consecutive tests sharing this value run as background jobs in parallel. The harness waits for the whole group to finish before moving on to the next test. Used to fan out the install phase: `10–18` share `tools`, `20–25` share `tools-secondary`, `30–32` share `backends`. Members of the same group must be independent of each other — `# requires:` should only point to tests in earlier groups or earlier sequential tests, not peers in the same group (peer status isn't recorded until the batch completes).
 
 ## Adding a test
 

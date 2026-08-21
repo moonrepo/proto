@@ -10,6 +10,11 @@
 # Usage:
 #   ./e2e/run.sh             # run all tests
 #   ./e2e/run.sh install     # only tests whose name contains "install"
+#
+# Env knobs:
+#   E2E_SERIAL=1        # never run a group in parallel, one test at a time
+#   E2E_TAIL=200        # lines of a failing test's log to print inline
+#   E2E_KEEP_SCRATCH=1  # keep the shared work dir for post-mortem poking
 set -euo pipefail
 
 source "$(dirname "$0")/lib/env.sh"
@@ -24,6 +29,25 @@ if ! command -v proto >/dev/null 2>&1 || ! proto --version >/dev/null 2>&1; then
   exit 1
 fi
 
+# State is intentionally kept between runs: bootstrap.sh puts the binary under
+# test into the store, so wiping it here would delete what we are testing. To
+# start from scratch, remove the store and re-bootstrap:
+#   rm -rf e2e/.proto-home && ./e2e/bootstrap.sh
+
+# Neutral cwd for tests that don't need a specific work dir. Lives outside
+# the repo so the repo's own .prototools doesn't get picked up as ancestry.
+E2E_SCRATCH="$(mktemp -d)"
+export E2E_SCRATCH
+
+if [[ -z "${E2E_KEEP_SCRATCH:-}" ]]; then
+  trap 'rm -rf "$E2E_SCRATCH"' EXIT
+fi
+
+E2E_TAIL="${E2E_TAIL:-40}"
+
+# Stale post-mortems from an earlier run would be read as belonging to this one
+rm -f "$E2E_LOGS"/*.postmortem.txt
+
 echo "Using proto at: $(command -v proto)"
 echo "With version: $(proto --version)"
 echo ""
@@ -32,18 +56,9 @@ echo "PROTO_HOME: $PROTO_HOME"
 echo "E2E_DIR:    $E2E_DIR"
 echo "E2E_LOGS:   $E2E_LOGS"
 echo "REPO_ROOT:  $REPO_ROOT"
+echo "SCRATCH:    $E2E_SCRATCH"
 echo "PATH:       $PATH"
 echo ""
-
-# Wipe state from any previous run
-# rm -rf "$_PROTO_HOME_POSIX" "$E2E_LOGS"
-# mkdir -p "$_PROTO_HOME_POSIX" "$E2E_LOGS"
-
-# Neutral cwd for tests that don't need a specific work dir. Lives outside
-# the repo so the repo's own .prototools doesn't get picked up as ancestry.
-E2E_SCRATCH="$(mktemp -d)"
-trap 'rm -rf "$E2E_SCRATCH"' EXIT
-export E2E_SCRATCH
 
 filter="${1:-}"
 
@@ -125,6 +140,50 @@ should_skip() {
   echo ""
 }
 
+# Dump the state a failing test left behind, while it still exists. The shared
+# config and the shim registry are behind most cross-test failures, and neither
+# shows up in the test's own log.
+write_postmortem() {
+  local name="$1"
+  local file="$E2E_LOGS/$name.postmortem.txt"
+
+  {
+    echo "===== $name post-mortem ====="
+    echo ""
+    echo "--- $E2E_SCRATCH/.prototools"
+    cat "$E2E_SCRATCH/.prototools" 2>/dev/null || echo "(missing)"
+    echo ""
+    echo "--- $_PROTO_HOME_POSIX/shims/registry.json"
+    cat "$_PROTO_HOME_POSIX/shims/registry.json" 2>/dev/null || echo "(missing)"
+    echo ""
+    echo "--- shims dir"
+    ls -l "$_PROTO_HOME_POSIX/shims" 2>/dev/null || echo "(missing)"
+    echo ""
+    echo "--- proto status"
+    (cd "$E2E_SCRATCH" && proto status 2>&1) || true
+  } >"$file"
+
+  echo "$file"
+}
+
+# Lead with what actually died, then the tail, then where to find the state.
+# A bare tail buries the cause under whatever trace logging came after it.
+report_failure() {
+  local name="$1" log="$2" indent="${3:-}"
+  local cause
+  cause=$(grep -nE "ASSERT FAIL|COMMAND FAILED|FATAL" "$log" 2>/dev/null | tail -5 || true)
+
+  if [[ -n "$cause" ]]; then
+    echo "${indent}----- cause $name -----"
+    echo "$cause" | sed "s/^/${indent}/"
+  fi
+
+  echo "${indent}----- tail $name (last $E2E_TAIL lines) -----"
+  tail -"$E2E_TAIL" "$log" 2>/dev/null | sed "s/^/${indent}/" || true
+  echo "${indent}----- end -----"
+  echo "${indent}post-mortem: $(write_postmortem "$name")"
+}
+
 run_one() {
   local file="$1"
   local name; name=$(basename "$file" .sh)
@@ -148,9 +207,7 @@ run_one() {
   else
     record "$name" "FAIL" "exit=$rc"
     printf "[FAIL] %-32s  %ds exit=%d  log=%s\n" "$name" "$dur" "$rc" "$log"
-    echo "----- tail $name -----"
-    tail -40 "$log" || true
-    echo "----- end -----"
+    report_failure "$name" "$log"
   fi
 }
 
@@ -200,9 +257,7 @@ run_batch() {
     else
       record "$name" "FAIL" "exit=$rc"
       printf "  [FAIL] %-30s  %ds exit=%d  log=%s\n" "$name" "$dur" "$rc" "$log"
-      echo "  ----- tail $name -----"
-      tail -40 "$log" 2>/dev/null | sed 's/^/  /' || true
-      echo "  ----- end -----"
+      report_failure "$name" "$log" "  "
     fi
   done
 }
@@ -226,6 +281,13 @@ flush_batch() {
 
 for f in "${tests[@]}"; do
   group=$(parse_directive "$f" "group" || true)
+
+  # Every test becomes its own batch, so nothing runs concurrently. Use this to
+  # tell a real failure apart from one test interfering with its group peers.
+  if [[ -n "${E2E_SERIAL:-}" ]]; then
+    group=""
+  fi
+
   if [[ -n "$group" && "$group" == "$batch_group" ]]; then
     batch+=("$f")
   else
@@ -235,6 +297,52 @@ for f in "${tests[@]}"; do
   fi
 done
 flush_batch
+
+# The GitHub Actions run page showed nothing beyond "Process completed with exit
+# code 1" — not even which test failed. Annotations put the cause on the page,
+# and the step summary lists what failed or was skipped without downloading the
+# log artifact.
+write_ci_report() {
+  local i name status reason log cause
+
+  for ((i = 0; i < ${#test_names[@]}; i++)); do
+    if [[ "${test_status[$i]}" != "FAIL" ]]; then
+      continue
+    fi
+
+    name="${test_names[$i]}"
+    log="$E2E_LOGS/$name.log"
+    cause=$(grep -hE "ASSERT FAIL|COMMAND FAILED|FATAL" "$log" 2>/dev/null | head -1 || true)
+
+    echo "::error title=E2E ($E2E_OS) $name::${cause:-no assertion message, see $name.log}"
+  done
+
+  if [[ -z "${GITHUB_STEP_SUMMARY:-}" ]]; then
+    return 0
+  fi
+
+  {
+    echo "### E2E ($E2E_OS): $pass passed, $fail failed, $skip skipped"
+    echo ""
+
+    for ((i = 0; i < ${#test_names[@]}; i++)); do
+      name="${test_names[$i]}"
+      status="${test_status[$i]}"
+      reason="${test_reason[$i]}"
+
+      case "$status" in
+        FAIL)
+          log="$E2E_LOGS/$name.log"
+          cause=$(grep -hE "ASSERT FAIL|COMMAND FAILED|FATAL" "$log" 2>/dev/null | head -1 || true)
+          echo "- ❌ \`$name\` ($reason) — ${cause:-no assertion message}"
+          ;;
+        SKIP)
+          echo "- ⏭️ \`$name\` ($reason)"
+          ;;
+      esac
+    done
+  } >>"$GITHUB_STEP_SUMMARY"
+}
 
 # Summary
 pass=0; fail=0; skip=0
@@ -252,6 +360,10 @@ printf "  Passed:  %d\n" "$pass"
 printf "  Failed:  %d\n" "$fail"
 printf "  Skipped: %d\n" "$skip"
 printf "  Total:   %d\n" "${#test_names[@]}"
+
+if [[ -n "${GITHUB_ACTIONS:-}" ]]; then
+  write_ci_report
+fi
 
 echo ""
 echo "Log files:"

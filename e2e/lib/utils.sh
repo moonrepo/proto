@@ -48,36 +48,23 @@ test_bin() {
 
   echo "Verifying bin is executable..."
 
-  local bin="" bin_rc=0
-  bin=$(proto bin "$context")
-  bin_rc=$?
+  run_probe proto bin "$context"
+  echo_probe path
+  assert_probe_ok
 
-  echo "  exit=$bin_rc"
-  echo "  path=$bin"
-
-  if [[ $bin_rc -ne 0 ]]; then
-    fail "bin '$bin' exited $bin_rc"
-  fi
-
+  local bin="$RUN_OUT"
   assert_executable "$bin"
 
   echo "Verifying bin version..."
 
-  local ver="" bin_rc=0
-  ver=$("$bin" "$version_arg" 2>&1)
-  bin_rc=$?
-
-  echo "  exit=$bin_rc"
-  echo "  output=$ver"
-
-  if [[ $bin_rc -ne 0 ]]; then
-    fail "bin '$bin' exited $bin_rc"
-  fi
+  run_probe "$bin" "$version_arg"
+  echo_probe
+  assert_probe_ok
 
   # Ignore versions that contain a scope,
   # as the scope is typically not included in the outputs
   if [[ $version =~ ^[0-9] ]]; then
-    assert_contains "$ver" "$version"
+    assert_contains "$RUN_ALL" "$version"
   fi
 }
 
@@ -94,33 +81,22 @@ test_shim() {
 
   echo "Verifying shim is executable..."
 
-  local shim="" shim_rc=0
-  shim=$(command -v "$exe_name")
-  shim_rc=$?
+  run_probe command -v "$exe_name"
+  echo_probe path
 
-  echo "  exit=$shim_rc"
-  echo "  path=$shim"
-
-  if [[ $shim_rc -ne 0 ]]; then
-    fail "shim '$shim' exited $shim_rc"
+  if [[ $RUN_RC -ne 0 ]]; then
+    fail "no shim named '$exe_name' found on PATH"
   fi
 
+  local shim="$RUN_OUT"
   assert_executable "$shim"
 
   echo "Verifying shim version..."
 
-  local ver="" shim_rc=0
-  ver=$("$shim" "$version_arg" 2>&1)
-  shim_rc=$?
-
-  echo "  exit=$shim_rc"
-  echo "  output=$ver"
-
-  if [[ $shim_rc -ne 0 ]]; then
-    fail "shim '$shim' exited $shim_rc"
-  fi
-
-  assert_contains "$ver" "$version"
+  run_probe "$shim" "$version_arg"
+  echo_probe
+  assert_probe_ok
+  assert_contains "$RUN_ALL" "$version"
 
   unset PROTO_DEBUG_SHIM
 }
@@ -132,20 +108,13 @@ install_tool() {
 
   echo "Installing tool $tool $version..."
 
-  retry 3 proto install "$tool" "$version" --pin local --log trace
-  local exit_code=$?
-
-  if [[ $exit_code -ne 0 ]]; then
-    return $exit_code
-  fi
+  retry 3 proto install "$tool" "$version" --pin local --log trace || return $?
 
   test_bin "$tool" "$version" "$version_arg"
 
   if [[ "$tool" != "rust" && "$tool" != "jdk" && "$tool" != "jre" ]]; then
     test_shim "$tool" "$version" "$version_arg"
   fi
-
-  return $exit_code
 }
 
 install_backend() {
@@ -158,15 +127,8 @@ install_backend() {
 
   echo "Installing backend tool $context $version..."
 
-  retry 3 proto install "$context" "$version" --pin local --log trace
-  local exit_code=$?
-
-  if [[ $exit_code -ne 0 ]]; then
-    return $exit_code
-  fi
+  retry 3 proto install "$context" "$version" --pin local --log trace || return $?
 
   test_bin "$id" "$version" "$version_arg"
   test_shim "$id" "$version" "$version_arg"
-
-  return $exit_code
 }

@@ -12,8 +12,12 @@ trap 'rm -rf "$work"' EXIT
 echo 'node = "24"' > "$work/.prototools"
 cd "$work"
 
-ver=$(node --version 2>&1)
-assert_contains "$ver" "v24"
+run_probe node --version
+echo_probe
+assert_probe_ok
+assert_contains "$RUN_ALL" "v24"
 
-bin=$(which node 2>&1)
-assert_contains "$bin" "$_PROTO_HOME_POSIX/shims"
+run_probe which node
+echo_probe path
+assert_probe_ok
+assert_contains "$RUN_OUT" "$_PROTO_HOME_POSIX/shims"
