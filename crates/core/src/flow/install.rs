@@ -84,7 +84,7 @@ impl<'tool> Installer<'tool> {
         &self,
         options: InstallOptions,
     ) -> Result<Option<LockRecord>, ProtoInstallError> {
-        if self.tool.is_installed(self.spec) && !options.force {
+        if self.tool.is_installed_while_locked(self.spec) && !options.force {
             debug!(
                 tool = self.tool.context.as_str(),
                 "Tool already installed, continuing"

@@ -218,9 +218,24 @@ impl Tool {
 
     /// Return true if the tool has been installed. This *requires* the spec to
     /// have been resolved before hand.
+    ///
+    /// A version whose temp directory is locked is reported as not installed,
+    /// since another process is currently (re)installing it. Callers that hold
+    /// that install lock themselves must use [`Tool::is_installed_while_locked`]
+    /// instead, as the probe cannot tell their own lock apart from another
+    /// process's.
     pub fn is_installed(&self, spec: &ToolSpec) -> bool {
+        self.check_is_installed(spec, false)
+    }
+
+    /// Variant of [`Tool::is_installed`] for callers that hold the install lock
+    /// on the version's temp directory, which skips the lock probe.
+    pub fn is_installed_while_locked(&self, spec: &ToolSpec) -> bool {
+        self.check_is_installed(spec, true)
+    }
+
+    fn check_is_installed(&self, spec: &ToolSpec, holds_install_lock: bool) -> bool {
         let dir = self.get_product_dir(spec);
-        let lock_dir = self.get_version_temp_dir(spec);
 
         debug!(
             tool = self.context.as_str(),
@@ -231,7 +246,7 @@ impl Tool {
         let installed = spec.version.as_ref().is_some_and(|v| {
             !v.is_latest() && self.inventory.manifest.installed_versions.contains(v)
         }) && dir.exists()
-            && !fs::is_dir_locked(&lock_dir);
+            && (holds_install_lock || !fs::is_dir_locked(self.get_version_temp_dir(spec)));
 
         if installed {
             debug!(

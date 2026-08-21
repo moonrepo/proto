@@ -9,7 +9,7 @@ use crate::tool::Tool;
 use crate::tool_manifest::ToolManifestVersion;
 use crate::tool_spec::ToolSpec;
 use proto_pdk_api::{InstallStrategy, PluginFunction, SyncManifestInput, SyncManifestOutput};
-use starbase_utils::fs;
+use starbase_utils::fs::{self, FsError};
 use std::collections::{BTreeMap, BTreeSet};
 use tracing::{debug, instrument};
 
@@ -50,7 +50,26 @@ impl<'tool> Manager<'tool> {
         // install directory, because the latter needs to be clean for
         // "build from source", and the `.lock` file breaks that contract
         let temp_dir = self.tool.get_version_temp_dir(spec);
-        let mut install_lock = fs::lock_directory(&temp_dir)?;
+
+        // The temp directory is removed once an install finishes (below), and
+        // a process waiting on the lock responds by re-creating the `.lock`
+        // file. The re-creation can interleave with a directory removal (from
+        // the tail end of this method, or from `cleanup`), failing as
+        // `NotFound` or `InvalidArgument` (macOS) when the removal wins the
+        // open, or as `RequireDir` when it wins the directory probe, so retry
+        // until the lock file sticks.
+        let mut install_lock = loop {
+            match fs::lock_directory(&temp_dir) {
+                Ok(lock) => break lock,
+                Err(FsError::Create { error, .. })
+                    if matches!(
+                        error.kind(),
+                        std::io::ErrorKind::NotFound | std::io::ErrorKind::InvalidInput
+                    ) => {}
+                Err(FsError::RequireDir { .. }) => {}
+                Err(error) => return Err(error.into()),
+            }
+        };
 
         let result = async {
             match self.do_install(spec, options).await? {
@@ -70,11 +89,25 @@ impl<'tool> Manager<'tool> {
         }
         .await;
 
-        // Unlock and then remove the version-keyed temp directory. Removal must
-        // happen after unlocking, as some platforms (Windows) cannot delete a
-        // directory containing an open lock file.
+        // Clean up staged downloads while still holding the lock, but keep the
+        // directory and the `.lock` file itself: a process waiting on the lock
+        // responds to the file's removal (performed by unlock) by re-creating
+        // it, and deleting the directory out from under that re-creation is
+        // a race.
+        let _ = fs::remove_dir_all_except(&temp_dir, vec![fs::LOCK_FILE.into()]);
+
         install_lock.unlock()?;
-        let _ = fs::remove_dir_all(temp_dir);
+
+        // The handle must be closed before the directory can be removed, as
+        // Windows may keep the deleted `.lock` file's name alive until then
+        drop(install_lock);
+
+        // Then remove the directory itself, but only when empty and never
+        // recursively, as a waiting process may have already re-created the
+        // `.lock` file, which must not be deleted from under it. When the
+        // removal loses that race, the empty directory is left behind for
+        // `cleanup` to remove once it's no longer locked.
+        let _ = std::fs::remove_dir(&temp_dir);
 
         timer.record_tool_install(&self.tool.context, strategy, cache, result)
     }
@@ -86,7 +119,7 @@ impl<'tool> Manager<'tool> {
     ) -> Result<InstallOutcome, ProtoManageError> {
         let version = Resolver::resolve(self.tool, spec, false).await?;
 
-        if self.tool.is_installed(spec) && !options.force {
+        if self.tool.is_installed_while_locked(spec) && !options.force {
             return Ok(InstallOutcome::AlreadyInstalled);
         }
 
@@ -321,7 +354,7 @@ impl<'tool> Manager<'tool> {
     ) -> Result<bool, ProtoManageError> {
         self.tool.inventory.manifest.reload_from_disk()?;
 
-        if self.tool.is_installed(spec) && !options.force {
+        if self.tool.is_installed_while_locked(spec) && !options.force {
             debug!(
                 tool = self.tool.context.as_str(),
                 "Tool was installed by another process while waiting on the install lock, continuing"
