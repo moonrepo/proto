@@ -1,3 +1,10 @@
+// Unix only: byte-range locks on Windows are mandatory rather than advisory, so
+// the lock this test holds makes the lock-free config reads in
+// `ProtoFileManager::load` fail with a lock violation instead of queueing behind
+// it, and every spawned process dies during startup before it reaches the pin.
+// The race itself is not platform specific.
+#![cfg(not(windows))]
+
 use proto_core::test_utils::*;
 use starbase_sandbox::create_command_with_name;
 use starbase_utils::fs;
