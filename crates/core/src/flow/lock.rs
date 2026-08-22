@@ -14,17 +14,17 @@ use version_spec::{UnresolvedVersionSpec, VersionSpec};
 //      [x] validate lock record
 //      [x] create lockfile if it does not exist
 //      [x] error if spec/req is not found in lockfile
-//      [x] frozen lockfiles
+//      [x] immutable lockfiles
 //      [x] orphan pruning
 // [x] install one
 //      [x] resolve version from lockfile
 //      [x] validate lock record
-//      [x] frozen lockfiles
+//      [x] immutable lockfiles
 //      [x] orphan pruning
 // [x] install one version
 //      [x] don't resolve version from lockfile
 //      [x] validate lock record
-//      [x] frozen lockfiles
+//      [x] immutable lockfiles
 //      [x] orphan pruning
 // [x] uninstall
 //      [x] remove from lockfile

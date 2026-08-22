@@ -27,11 +27,11 @@ pub struct ToolSpec {
     /// Update the lockfile when applicable?
     pub update_lockfile: bool,
 
-    /// Treat the lockfile as frozen (read-only)? When enabled, the version
+    /// Treat the lockfile as immutable (read-only)? When enabled, the version
     /// must resolve from an existing lockfile record, and the lockfile is
     /// never created or modified. If a matching record does not exist, an
     /// error is raised instead of resolving a fresh version.
-    pub frozen: bool,
+    pub immutable: bool,
 }
 
 impl ToolSpec {
@@ -90,7 +90,7 @@ impl Default for ToolSpec {
             resolve_from_lockfile: true,
             resolve_from_manifest: true,
             update_lockfile: true,
-            frozen: false,
+            immutable: false,
         }
     }
 }

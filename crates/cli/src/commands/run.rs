@@ -446,7 +446,7 @@ pub async fn run(session: ProtoSession, mut args: RunArgs) -> SessionResult {
                         resolve_from_manifest: false,
                         resolve_from_lockfile: false,
                         update_lockfile: false,
-                        frozen: false,
+                        immutable: false,
                     }),
                     ..Default::default()
                 },

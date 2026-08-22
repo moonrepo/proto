@@ -50,12 +50,12 @@ pub struct InstallArgs {
 
     #[arg(
         long,
-        env = "PROTO_FROZEN_LOCKFILE",
+        env = "PROTO_IMMUTABLE_LOCKFILE",
         group = "lockfile-mode",
         conflicts_with = "pin",
         help = "Error if the lockfile is missing a record or would be modified"
     )]
-    pub frozen_lockfile: bool,
+    pub immutable_lockfile: bool,
 
     #[arg(long, help = "Pin the resolved version to .prototools")]
     pub pin: Option<Option<PinLocation>>,
@@ -171,8 +171,8 @@ pub async fn install_one(
 
     // Don't resolve the version from a lockfile
     spec.resolve_from_lockfile = !args.update_lockfile;
-    spec.update_lockfile = !args.internal && !args.frozen_lockfile;
-    spec.frozen = args.frozen_lockfile;
+    spec.update_lockfile = !args.internal && !args.immutable_lockfile;
+    spec.immutable = args.immutable_lockfile;
 
     // Load config including global versions,
     // so that our requirements can be satisfied
@@ -222,9 +222,9 @@ pub async fn install_one(
     let outcome = result?;
     let tool = workflow.tool;
 
-    // Reconcile lockfiles by removing orphaned records, unless frozen, as
+    // Reconcile lockfiles by removing orphaned records, unless immutable, as
     // pruning would modify the lockfile
-    if !args.internal && !args.frozen_lockfile {
+    if !args.internal && !args.immutable_lockfile {
         Locker::prune_orphaned_records(&session.env)?;
     }
 
@@ -333,8 +333,8 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> SessionResult 
 
         let mut spec = version.clone();
         spec.resolve_from_lockfile = !args.update_lockfile;
-        spec.update_lockfile = !args.internal && !args.frozen_lockfile;
-        spec.frozen = args.frozen_lockfile;
+        spec.update_lockfile = !args.internal && !args.immutable_lockfile;
+        spec.immutable = args.immutable_lockfile;
 
         let tool_context = tool.context.clone();
         let topo_graph = topo_graph.clone();
@@ -445,9 +445,9 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> SessionResult 
 
     workflow_manager.stop_rendering().await?;
 
-    // Reconcile lockfiles by removing orphaned records, unless frozen, as
+    // Reconcile lockfiles by removing orphaned records, unless immutable, as
     // pruning would modify the lockfile
-    if !args.internal && !args.frozen_lockfile {
+    if !args.internal && !args.immutable_lockfile {
         Locker::prune_orphaned_records(&session.env)?;
     }
 

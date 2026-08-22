@@ -12,6 +12,7 @@ use starbase_utils::envx;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
+use std::time::Duration;
 
 fn create_empty_proto_sandbox_with_tools(ext: &str) -> ProtoSandbox {
     let sandbox = create_empty_proto_sandbox();
@@ -483,7 +484,12 @@ mod plugins {
 
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install").arg("swift");
+                    // The Swift archive is ~1GB; downloading, verifying, and
+                    // unpacking it can exceed the default sandbox timeout.
+                    // Keep this below nextest's 480s terminate threshold.
+                    cmd.arg("install")
+                        .arg("swift")
+                        .timeout(Duration::from_mins(7));
                 })
                 .success();
 

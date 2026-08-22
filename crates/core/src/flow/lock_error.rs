@@ -46,15 +46,15 @@ pub enum ProtoLockError {
     },
 
     #[diagnostic(
-        code(proto::install::frozen_lockfile),
-        help = "Run `proto install` without `--frozen-lockfile` to populate the lockfile, then commit the changes."
+        code(proto::install::immutable_lockfile),
+        help = "Run `proto install` without `--immutable-lockfile` to populate the lockfile, then commit the changes."
     )]
     #[error(
-        "Lockfile is frozen, but is missing a record for {} {}. The lockfile is either not enabled or out of date.",
+        "Lockfile is immutable, but is missing a record for {} {}. The lockfile is either not enabled or out of date.",
         .tool.style(Style::Id),
         .spec.style(Style::Hash),
     )]
-    FrozenMissingRecord { tool: String, spec: String },
+    ImmutableMissingRecord { tool: String, spec: String },
 
     #[diagnostic(code(proto::install::mismatched_arch))]
     #[error(
