@@ -145,12 +145,12 @@ impl<'tool> Resolver<'tool> {
                 spec.version_locked = Some(record);
                 candidate = version.to_unresolved_spec();
             }
-            // When frozen, the lockfile is authoritative and must already
+            // When immutable, the lockfile is authoritative and must already
             // contain a record for the requested specification. Resolving a
             // fresh version would require writing to the lockfile, so error
             // instead of silently falling through to remote resolution
-            else if spec.frozen {
-                return Err(ProtoLockError::FrozenMissingRecord {
+            else if spec.immutable {
+                return Err(ProtoLockError::ImmutableMissingRecord {
                     tool: self.tool.get_name().to_owned(),
                     spec: spec.req.to_string(),
                 }

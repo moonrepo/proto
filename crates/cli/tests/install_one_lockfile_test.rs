@@ -1026,7 +1026,7 @@ version = "1.0.0"
         }
     }
 
-    mod frozen {
+    mod immutable {
         use super::*;
 
         fn create_record(spec: &str, version: &str) -> String {
@@ -1053,7 +1053,7 @@ version = "{version}"
                     cmd.arg("install")
                         .arg("protostar")
                         .arg("5.0.0")
-                        .arg("--frozen-lockfile");
+                        .arg("--immutable-lockfile");
                 })
                 .success();
 
@@ -1076,13 +1076,13 @@ version = "{version}"
             let sandbox = create_proto_sandbox("lockfile");
             sandbox.create_file(".protolock", create_record("^5.10", "5.10.10"));
 
-            // 5.10.15 is the latest, but the frozen record pins 5.10.10
+            // 5.10.15 is the latest, but the immutable record pins 5.10.10
             let assert = sandbox
                 .run_bin(|cmd| {
                     cmd.arg("install")
                         .arg("protostar")
                         .arg("^5.10")
-                        .arg("--frozen-lockfile");
+                        .arg("--immutable-lockfile");
                 })
                 .success();
 
@@ -1101,11 +1101,11 @@ version = "{version}"
                     cmd.arg("install")
                         .arg("protostar")
                         .arg("5.0.0")
-                        .arg("--frozen-lockfile");
+                        .arg("--immutable-lockfile");
                 })
                 .failure();
 
-            assert.stderr(predicate::str::contains("Lockfile is frozen"));
+            assert.stderr(predicate::str::contains("Lockfile is immutable"));
 
             // Nothing was written to the lockfile
             assert!(!sandbox.path().join(".protolock").exists());
@@ -1123,11 +1123,11 @@ version = "{version}"
                     cmd.arg("install")
                         .arg("protostar")
                         .arg("5.10.0")
-                        .arg("--frozen-lockfile");
+                        .arg("--immutable-lockfile");
                 })
                 .failure();
 
-            assert.stderr(predicate::str::contains("Lockfile is frozen"));
+            assert.stderr(predicate::str::contains("Lockfile is immutable"));
 
             // And the existing record was left untouched
             let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
@@ -1146,7 +1146,7 @@ version = "{version}"
                     cmd.arg("install")
                         .arg("protostar")
                         .arg("5.0.0")
-                        .arg("--frozen-lockfile")
+                        .arg("--immutable-lockfile")
                         .arg("--update-lockfile");
                 })
                 .failure()
@@ -1162,7 +1162,7 @@ version = "{version}"
                     cmd.arg("install")
                         .arg("protostar")
                         .arg("5.0.0")
-                        .arg("--frozen-lockfile")
+                        .arg("--immutable-lockfile")
                         .arg("--pin");
                 })
                 .failure()
