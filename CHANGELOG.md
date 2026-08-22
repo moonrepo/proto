@@ -6,13 +6,16 @@
 - [Deno](https://github.com/moonrepo/plugins/blob/master/tools/deno/CHANGELOG.md)
 - [Go](https://github.com/moonrepo/plugins/blob/master/tools/go/CHANGELOG.md)
 - [moon](https://github.com/moonrepo/plugins/blob/master/tools/moon/CHANGELOG.md)
+- [Java](https://github.com/moonrepo/plugins/blob/master/tools/java/CHANGELOG.md)
 - [Node](https://github.com/moonrepo/plugins/blob/master/tools/node/CHANGELOG.md)
 - [npm, pnpm, yarn](https://github.com/moonrepo/plugins/blob/master/tools/node-depman/CHANGELOG.md)
+- [Nub](https://github.com/moonrepo/plugins/blob/master/tools/node-depman/CHANGELOG.md)
 - [Poetry](https://github.com/moonrepo/plugins/blob/master/tools/python-poetry/CHANGELOG.md)
 - [Python](https://github.com/moonrepo/plugins/blob/master/tools/python/CHANGELOG.md)
 - [uv](https://github.com/moonrepo/plugins/blob/master/tools/python-uv/CHANGELOG.md)
 - [Ruby](https://github.com/moonrepo/plugins/blob/master/tools/ruby/CHANGELOG.md)
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
+- [Swift](https://github.com/moonrepo/plugins/blob/master/tools/swift/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
 ## 0.61.0
