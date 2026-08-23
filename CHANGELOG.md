@@ -29,6 +29,10 @@
   - Fixed the Windows support check, which would exclude future major versions,
     like v2.0.
 
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.61.0
 
 #### 💥 Breaking

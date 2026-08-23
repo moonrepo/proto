@@ -509,7 +509,7 @@ file = ".env"
             sandbox.create_file(
                 ".env",
                 r#"
-.KEY={invalid}
+.KEY{$invalid}
 "#,
             );
             sandbox.create_file(

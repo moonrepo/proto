@@ -3,6 +3,7 @@ use crate::get_builtin_registry;
 use crate::helpers::{ENV_VAR_SUB, fast_map_clone};
 use crate::tool_context::ToolContext;
 use crate::tool_spec::ToolSpec;
+use dotenv::{EnvLoader, EnvSequence};
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
 use schematic::{
@@ -669,25 +670,16 @@ impl ProtoConfig {
     ) -> Result<IndexMap<String, EnvVar>, ProtoConfigError> {
         let mut vars = IndexMap::default();
 
-        let map_error = |error: dotenvy::Error, path: &Path| -> ProtoConfigError {
-            match error {
-                dotenvy::Error::Io(inner) => ProtoConfigError::Fs(Box::new(FsError::Read {
-                    path: path.to_path_buf(),
-                    error: Box::new(inner),
-                })),
-                other => ProtoConfigError::FailedParseEnvFile {
-                    path: path.to_path_buf(),
-                    error: Box::new(other),
-                },
-            }
-        };
+        let loaded = EnvLoader::with_paths(paths)
+            .sequence(EnvSequence::InputOnly)
+            .substitution(true)
+            .load()
+            .map_err(|error| ProtoConfigError::FailedParseEnvFile {
+                error: Box::new(error),
+            })?;
 
-        for path in paths {
-            for item in dotenvy::from_path_iter(path).map_err(|error| map_error(error, path))? {
-                let (key, value) = item.map_err(|error| map_error(error, path))?;
-
-                vars.insert(key, EnvVar::Value(value));
-            }
+        for (key, value) in loaded {
+            vars.insert(key, EnvVar::Value(value));
         }
 
         Ok(vars)
