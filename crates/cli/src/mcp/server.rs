@@ -362,15 +362,15 @@ impl ServerHandler for ProtoMcp {
             }
         };
 
-        Ok(ReadResourceResult::new(vec![
-            ResourceContents::TextResourceContents {
+        Ok(
+            ReadResourceResult::new(vec![ResourceContents::TextResourceContents {
                 uri,
                 text,
                 mime_type: Some("application/json".into()),
                 meta: None,
-            },
-        ])
-        .into())
+            }])
+            .into(),
+        )
     }
 }
 
