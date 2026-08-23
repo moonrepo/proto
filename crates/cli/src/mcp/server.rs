@@ -41,15 +41,11 @@ pub struct ProtoMcp {
 
 impl ProtoMcp {
     pub fn list_all_resources(&self) -> ListResourcesResult {
-        ListResourcesResult {
-            resources: vec![
-                Resource::new("proto://config", "Configuration"),
-                Resource::new("proto://env", "Environment"),
-                Resource::new("proto://tools", "Installed tools"),
-            ],
-            next_cursor: None,
-            meta: None,
-        }
+        ListResourcesResult::with_all_items(vec![
+            Resource::new("proto://config", "Configuration"),
+            Resource::new("proto://env", "Environment"),
+            Resource::new("proto://tools", "Installed tools"),
+        ])
     }
 
     fn parse_context(&self, value: &str) -> Result<ToolContext, McpError> {
@@ -311,16 +307,28 @@ impl ServerHandler for ProtoMcp {
     async fn list_resources(
         &self,
         _request: Option<PaginatedRequestParams>,
-        _context: RequestContext<RoleServer>,
+        context: RequestContext<RoleServer>,
     ) -> Result<ListResourcesResult, McpError> {
-        Ok(self.list_all_resources())
+        let mut result = self.list_all_resources();
+
+        // The resource list is static, so mirror the cache hints that the tool
+        // router emits, but only for peers that negotiated a protocol version
+        // that supports them (SEP-2549)
+        if context
+            .protocol_version()
+            .is_some_and(|version| version >= ProtocolVersion::V_2026_07_28)
+        {
+            result = result.with_ttl_ms(0).with_cache_scope(CacheScope::Public);
+        }
+
+        Ok(result)
     }
 
     async fn read_resource(
         &self,
         ReadResourceRequestParams { uri, .. }: ReadResourceRequestParams,
         _: RequestContext<RoleServer>,
-    ) -> Result<ReadResourceResult, McpError> {
+    ) -> Result<ReadResourceResponse, McpError> {
         let text = match uri.as_str() {
             "proto://config" => {
                 let resource = self
@@ -354,14 +362,15 @@ impl ServerHandler for ProtoMcp {
             }
         };
 
-        Ok(ReadResourceResult::new(vec![
-            ResourceContents::TextResourceContents {
+        Ok(
+            ReadResourceResult::new(vec![ResourceContents::TextResourceContents {
                 uri,
                 text,
                 mime_type: Some("application/json".into()),
                 meta: None,
-            },
-        ]))
+            }])
+            .into(),
+        )
     }
 }
 

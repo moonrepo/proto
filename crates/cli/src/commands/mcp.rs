@@ -3,7 +3,7 @@ use crate::session::{ProtoSession, SessionResult};
 use clap::Args;
 use iocraft::prelude::element;
 use miette::IntoDiagnostic;
-use rmcp::model::InitializeResult;
+use rmcp::model::{InitializeResult, ProtocolVersion};
 use rmcp::{ServerHandler, ServiceExt, transport::stdio};
 use serde::Serialize;
 use starbase_console::ui::*;
@@ -21,6 +21,7 @@ pub struct McpArgs {
 #[derive(Serialize)]
 pub struct McpOutput {
     info: InitializeResult,
+    protocol_versions: Vec<ProtocolVersion>,
     tools: Vec<rmcp::model::Tool>,
     resources: Vec<rmcp::model::Resource>,
 }
@@ -44,6 +45,11 @@ pub async fn mcp(session: ProtoSession, args: McpArgs) -> SessionResult {
 
     let info = server.get_info();
 
+    // The version in `info` is only what we fall back to when a client requests
+    // a version we don't support, so report everything we can negotiate to
+    let mut protocol_versions = server.supported_protocol_versions().into_owned();
+    protocol_versions.sort_by(|a, d| a.as_str().cmp(d.as_str()));
+
     let mut tools = server.tool_router.list_all();
     tools.sort_by(|a, d| a.name.cmp(&d.name));
 
@@ -53,12 +59,25 @@ pub async fn mcp(session: ProtoSession, args: McpArgs) -> SessionResult {
     if session.is_json_format() {
         console.write_json_for_format(McpOutput {
             info,
+            protocol_versions,
             tools,
             resources,
         })?;
 
         return Ok(None);
     }
+
+    let protocol_versions = protocol_versions
+        .iter()
+        .map(|version| {
+            if *version == info.protocol_version {
+                format!("<hash>{version}</hash> <mutedlight>(default)</mutedlight>")
+            } else {
+                format!("<hash>{version}</hash>")
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(", ");
 
     console.render(element! {
         Container {
@@ -83,11 +102,10 @@ pub async fn mcp(session: ProtoSession, args: McpArgs) -> SessionResult {
                     }.into_any()
                 )
                 Entry(
-                    name: "Protocol version",
+                    name: "Protocol versions",
                     value: element! {
                         StyledText(
-                            content: info.protocol_version.to_string(),
-                            style: Style::Hash
+                            content: protocol_versions,
                         )
                     }.into_any()
                 )

@@ -42,7 +42,7 @@ reqwest-middleware = { version = "0.5.2", default-features = false, features = [
     "charset",
     "http2",
 ] }
-rmcp = { version = "2.2.0", default-features = false, features = [
+rmcp = { version = "3.1.4", default-features = false, features = [
     "base64",
     "macros",
 ] }
