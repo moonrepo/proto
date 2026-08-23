@@ -48,7 +48,7 @@ cd_env = { workspace = true }
 ci_env = { workspace = true }
 clap = { workspace = true, features = ["derive", "env"] }
 clap_complete = { workspace = true }
-clap_complete_nushell = "4.6.1"
+clap_complete_nushell = "4.6.2"
 dirs = { workspace = true }
 futures = { workspace = true }
 indexmap = { workspace = true }
@@ -85,7 +85,7 @@ wasi-common = "~43.0.2"
 wiggle = "~43.0.2"
 
 # Overrides
-liblzma = { version = "0.4.7", features = ["static"] }
+liblzma = { version = "0.4.8", features = ["static"] }
 
 [dev-dependencies]
 proto_core = { path = "../core", features = ["test"] }

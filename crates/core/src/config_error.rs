@@ -24,14 +24,10 @@ pub enum ProtoConfigError {
     FailedLockfileLock,
 
     #[diagnostic(code(proto::config::env_parse_failed))]
-    #[error(
-        "Failed to parse .env file {}.",
-        .path.style(Style::Path),
-    )]
+    #[error("Failed to parse .env file.")]
     FailedParseEnvFile {
-        path: PathBuf,
         #[source]
-        error: Box<dotenvy::Error>,
+        error: Box<dotenv::Error>,
     },
 
     #[diagnostic(code(proto::config::failed_update))]
