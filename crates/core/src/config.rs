@@ -171,7 +171,7 @@ impl ProtoConfig {
         if !tools.contains_key("bun") && is_tool_allowed("bun") {
             tools.insert(
                 Id::raw("bun"),
-                find_debug_locator_with_fallback("bun_tool", "0.16.10"),
+                find_debug_locator_with_fallback("bun_tool", "0.16.11"),
             );
         }
 

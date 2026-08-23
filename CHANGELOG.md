@@ -18,6 +18,17 @@
 - [Swift](https://github.com/moonrepo/plugins/blob/master/tools/swift/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🛠️ Tools
+
+- **Bun**
+  - Added support for Windows arm64, which Bun added in v1.3.10.
+  - Added support for musl based Linux, which Bun added in v1.1.35. Older versions
+    will now error instead of installing a glibc build that can't run.
+  - Fixed the Windows support check, which would exclude future major versions,
+    like v2.0.
+
 ## 0.61.0
 
 #### 💥 Breaking
