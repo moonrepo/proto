@@ -86,4 +86,4 @@ toml_edit = "0.25"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", default-features = false }
 url = "2.5.8"
-uuid = { version = "1.24.0", features = ["v4"] }
+uuid = { version = "1.25.0", features = ["v4"] }
