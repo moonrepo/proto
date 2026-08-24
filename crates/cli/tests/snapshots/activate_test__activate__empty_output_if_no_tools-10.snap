@@ -2,33 +2,45 @@
 source: crates/cli/tests/activate_test.rs
 expression: "get_activate_output(&assert, &sandbox)"
 ---
-
-using namespace System;
-using namespace System.Management.Automation;
-
-$origPath = [Environment]::GetEnvironmentVariable('PATH')
-[Environment]::SetEnvironmentVariable('__ORIG_PATH', "$origPath");
-
 function _proto_activate_hook {
+  $previousExitCode = $global:LASTEXITCODE;
   $exports = proto activate pwsh --export;
   if ($exports) {
     $exports | Out-String | Invoke-Expression;
   }
+  $global:LASTEXITCODE = $previousExitCode;
 }
 
-$hook = [EventHandler[LocationChangedEventArgs]] {
-  param([object] $source, [LocationChangedEventArgs] $changedArgs)
-  end {
-    _proto_activate_hook
+function _proto_deactivate_hook {
+  $exports = proto deactivate pwsh --export;
+  if ($exports) {
+    $exports | Out-String | Invoke-Expression;
   }
-};
 
-$currentAction = $ExecutionContext.SessionState.InvokeCommand.LocationChangedAction;
+  if (Get-Variable -Name '_proto_activate_hook_handler' -Scope Global -ErrorAction Ignore) {
+    $ExecutionContext.SessionState.InvokeCommand.LocationChangedAction = [System.Delegate]::Remove(
+      $ExecutionContext.SessionState.InvokeCommand.LocationChangedAction,
+      $global:_proto_activate_hook_handler
+    );
+    Remove-Variable -Name '_proto_activate_hook_handler' -Scope Global;
+  }
 
-if ($currentAction) {
-  $ExecutionContext.SessionState.InvokeCommand.LocationChangedAction = [Delegate]::Combine($currentAction, $hook);
-} else {
-  $ExecutionContext.SessionState.InvokeCommand.LocationChangedAction = $hook;
+  Remove-Item -LiteralPath 'function:_proto_activate_hook' -ErrorAction Ignore;
+  Remove-Item -LiteralPath 'function:_proto_deactivate_hook' -ErrorAction Ignore;
+}
+
+if (-not (Get-Variable -Name '_proto_activate_hook_handler' -Scope Global -ErrorAction Ignore)) {
+  $global:_proto_activate_hook_handler = [System.EventHandler[System.Management.Automation.LocationChangedEventArgs]] {
+    param([object] $source, [System.Management.Automation.LocationChangedEventArgs] $changedArgs)
+    end {
+      _proto_activate_hook
+    }
+  };
+
+  $ExecutionContext.SessionState.InvokeCommand.LocationChangedAction = [System.Delegate]::Combine(
+    $ExecutionContext.SessionState.InvokeCommand.LocationChangedAction,
+    $global:_proto_activate_hook_handler
+  );
 };
 
 _proto_activate_hook

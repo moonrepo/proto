@@ -2,7 +2,23 @@
 source: crates/cli/tests/activate_test.rs
 expression: "get_activate_output(&assert, &sandbox)"
 ---
-Error: shell::no_hook_support
+def _proto_activate_hook(olddir=None, newdir=None, **kwargs):
+    output = $(proto activate xonsh --config-mode upwards-global --no-bin --no-shim --export)
+    if output:
+        execx(output)
 
-  × Your shell, xonsh, does not support "on change directory" hooks. Please
-  │ remove the command from your shell that is triggering this hook.
+def _proto_deactivate_hook():
+    global _proto_activate_hook, _proto_deactivate_hook
+    output = $(proto deactivate xonsh --config-mode upwards-global --no-bin --no-shim --export)
+    if output:
+        execx(output)
+    for handler in list(events.on_chdir):
+        if getattr(handler, '__name__', '') == '_proto_activate_hook':
+            events.on_chdir.discard(handler)
+    del _proto_activate_hook, _proto_deactivate_hook
+
+# Re-sourcing creates new function objects, so deduplicate by name
+if not any(getattr(handler, '__name__', '') == '_proto_activate_hook' for handler in events.on_chdir):
+    events.on_chdir(_proto_activate_hook)
+
+_proto_activate_hook()

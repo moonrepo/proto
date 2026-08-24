@@ -2,7 +2,25 @@
 source: crates/cli/tests/activate_test.rs
 expression: "get_activate_output(&assert, &sandbox)"
 ---
-Error: shell::no_hook_support
+_proto_activate_hook() {
+  _proto_activate_hook_output=$(proto activate ash --export)
+  if [ -n "$_proto_activate_hook_output" ]; then
+    eval "$_proto_activate_hook_output"
+  fi
+  unset _proto_activate_hook_output
+}
 
-  × Your shell, ash, does not support "on change directory" hooks. Please
-  │ remove the command from your shell that is triggering this hook.
+_proto_deactivate_hook() {
+  _proto_deactivate_hook_output=$(proto deactivate ash --export)
+  if [ -n "$_proto_deactivate_hook_output" ]; then
+    eval "$_proto_deactivate_hook_output"
+  fi
+  unset _proto_deactivate_hook_output
+  unset -f cd _proto_activate_hook _proto_deactivate_hook
+}
+
+cd() {
+  command cd "$@" || return $?
+  _proto_activate_hook
+  return 0
+}

@@ -2,17 +2,17 @@
 source: crates/cli/tests/activate_test.rs
 expression: "get_activate_output(&assert, &sandbox)"
 ---
-
-export def _proto_activate_hook [] {
-    let data = proto activate nu --config-mode upwards-global --reporter json | from json
-
-    $data | get --optional env | items { |k, v|
-        if $v == null {
-            if $k in $env {
-                hide-env $k
+export def --env _proto_activate_hook_apply [data] {
+    # This must be a `for` loop and not an `each`/`items` closure,
+    # as closures do not propagate environment changes, even when
+    # the command itself is `def --env`.
+    for pair in ($data | get --optional env | default {} | transpose key value) {
+        if $pair.value == null {
+            if $pair.key in $env {
+                hide-env $pair.key
             }
         } else {
-            load-env { ($k): $v }
+            load-env { ($pair.key): $pair.value }
         }
     }
 
@@ -28,14 +28,32 @@ export def _proto_activate_hook [] {
     }
 }
 
-export-env {
-    $env.__ORIG_PATH = $env.PATH
+export def --env _proto_activate_hook [] {
+    _proto_activate_hook_apply (proto activate nu --config-mode upwards-global --reporter json | from json)
+}
 
+export def --env _proto_deactivate_hook [] {
+    # Unregistering must happen even when the command fails, so the
+    # reversal is best-effort, consistent with the other shells.
+    _proto_activate_hook_apply (try { proto deactivate nu --config-mode upwards-global --reporter json | from json } catch { {} })
+
+    # Nu cannot undefine commands at runtime, so the functions remain
+    # defined, but the hook itself is unregistered.
+    $env.config = ($env.config | upsert hooks.env_change.PWD (
+        ($env.config | get --optional hooks.env_change.PWD) | default []
+            | where { |hook| $hook != { code: "_proto_activate_hook" } }
+    ))
+}
+
+export-env {
     $env.config = ($env.config | upsert hooks.env_change.PWD { |config|
         let list = ($config | get --optional hooks.env_change.PWD) | default []
+        let hook = { code: "_proto_activate_hook" }
 
-        $list | append { |before, after|
-            _proto_activate_hook
+        if $hook in $list {
+            $list
+        } else {
+            $list | append $hook
         }
     })
 }

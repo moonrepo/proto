@@ -2,7 +2,37 @@
 source: crates/cli/tests/activate_test.rs
 expression: "get_activate_output(&assert, &sandbox)"
 ---
-Error: shell::no_hook_support
+function _proto_activate_hook {
+  $previousExitCode = $global:LASTEXITCODE;
+  $exports = proto activate powershell --export;
+  if ($exports) {
+    $exports | Out-String | Invoke-Expression;
+  }
+  $global:LASTEXITCODE = $previousExitCode;
+}
 
-  × Your shell, powershell, does not support "on change directory" hooks.
-  │ Please remove the command from your shell that is triggering this hook.
+function _proto_deactivate_hook {
+  $exports = proto deactivate powershell --export;
+  if ($exports) {
+    $exports | Out-String | Invoke-Expression;
+  }
+
+  if (Get-Variable -Name '_proto_activate_hook_prompt' -Scope Global -ErrorAction Ignore) {
+    Set-Item -Path 'function:global:prompt' -Value $global:_proto_activate_hook_prompt;
+    Remove-Variable -Name '_proto_activate_hook_prompt' -Scope Global;
+  }
+
+  Remove-Item -LiteralPath 'function:_proto_activate_hook' -ErrorAction Ignore;
+  Remove-Item -LiteralPath 'function:_proto_deactivate_hook' -ErrorAction Ignore;
+}
+
+if (-not (Get-Variable -Name '_proto_activate_hook_prompt' -Scope Global -ErrorAction Ignore)) {
+  $global:_proto_activate_hook_prompt = $function:prompt;
+
+  function global:prompt {
+    _proto_activate_hook;
+    & $global:_proto_activate_hook_prompt;
+  }
+};
+
+_proto_activate_hook

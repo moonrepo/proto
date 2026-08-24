@@ -18,6 +18,12 @@
 - [Swift](https://github.com/moonrepo/plugins/blob/master/tools/swift/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added `proto activate` support for the following shells: `ash`, `dash`, `sh`, `powershell` (5.1+), `xonsh`
+
 ## 0.61.1
 
 #### 🛠️ Tools

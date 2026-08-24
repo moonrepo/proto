@@ -196,12 +196,21 @@ fn print_activation_hook(
         .console
         .out
         .write_line(shell_type.build().format_hook(Hook::OnChangeDir {
-            command,
-            function: "_proto_activate_hook".into(),
+            deactivate_command: command.replace("activate", "deactivate"),
+            deactivate_function: "_proto_deactivate_hook".into(),
+            activate_command: command,
+            activate_function: "_proto_activate_hook".into(),
         })?)?;
 
     if !args.no_init {
-        session.console.out.write_line("\n_proto_activate_hook")?;
+        // Parens are required for xonsh as it is Python-based
+        if shell_type == &ShellType::Xonsh {
+            session.console.out.write_line("\n_proto_activate_hook()")?;
+        }
+        // While others are shell scripts
+        else {
+            session.console.out.write_line("\n_proto_activate_hook")?;
+        }
     }
 
     Ok(())
