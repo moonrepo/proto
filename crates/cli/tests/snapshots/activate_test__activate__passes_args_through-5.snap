@@ -7,7 +7,7 @@ function _proto_activate_hook --on-variable PWD;
 end;
 
 function _proto_deactivate_hook;
-  proto deactivate fish --config-mode upwards-global --no-bin --no-shim --export | source
+  proto deactivate fish --export | source
   functions --erase _proto_activate_hook _proto_deactivate_hook
 end;
 

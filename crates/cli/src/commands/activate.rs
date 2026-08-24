@@ -11,10 +11,19 @@ use starbase_utils::envx::is_test;
 use std::env;
 use tracing::instrument;
 
+/// Environment variables that track what the previous activation applied,
+/// so that a follow-up activation (or `proto deactivate`) can reverse it.
+pub const ACTIVATED_ALIASES_KEY: &str = "_PROTO_ACTIVATED_ALIASES";
+pub const ACTIVATED_ENV_KEY: &str = "_PROTO_ACTIVATED_ENV";
+pub const ACTIVATED_PATH_KEY: &str = "_PROTO_ACTIVATED_PATH";
+
+/// The payload that both `proto activate` and `proto deactivate` print in
+/// structured mode. The shape is a contract with the nu hook, which cannot
+/// evaluate shell syntax, so both commands must serialize the same fields.
 #[derive(Serialize)]
-struct ActivateOutput {
-    env: IndexMap<String, Option<String>>,
-    path: Option<String>,
+pub struct ActivateOutput {
+    pub env: IndexMap<String, Option<String>>,
+    pub path: Option<String>,
 }
 
 #[derive(Args, Clone, Debug)]
@@ -166,40 +175,42 @@ fn print_activation_hook(
     shell_type: &ShellType,
     args: &ActivateArgs,
 ) -> miette::Result<()> {
-    let mut command = format!("proto activate {shell_type}");
+    let mut activate_command = format!("proto activate {shell_type}");
+    let mut deactivate_command = format!("proto deactivate {shell_type}");
 
+    // Deactivating reverses what was applied to the shell session, and
+    // never loads configuration or tools, so it inherits no other args.
     if let Some(mode) = &session.cli.config_mode {
-        command.push_str(" --config-mode ");
-        command.push_str(&mode.to_string());
+        activate_command.push_str(" --config-mode ");
+        activate_command.push_str(&mode.to_string());
     }
 
     if args.no_bin {
-        command.push_str(" --no-bin");
+        activate_command.push_str(" --no-bin");
     }
 
     if args.no_shim {
-        command.push_str(" --no-shim");
+        activate_command.push_str(" --no-shim");
     }
 
-    match shell_type {
+    let output_arg = match shell_type {
         // These operate on JSON
-        ShellType::Nu => {
-            command.push_str(" --reporter json");
-        }
+        ShellType::Nu => " --reporter json",
         // While these evaluate shell syntax
-        _ => {
-            command.push_str(" --export");
-        }
+        _ => " --export",
     };
+
+    activate_command.push_str(output_arg);
+    deactivate_command.push_str(output_arg);
 
     session
         .console
         .out
         .write_line(shell_type.build().format_hook(Hook::OnChangeDir {
-            deactivate_command: command.replace("activate", "deactivate"),
-            deactivate_function: "_proto_deactivate_hook".into(),
-            activate_command: command,
+            activate_command,
             activate_function: "_proto_activate_hook".into(),
+            deactivate_command,
+            deactivate_function: "_proto_deactivate_hook".into(),
         })?)?;
 
     if !args.no_init {
@@ -227,7 +238,7 @@ fn print_activation_exports(
     let mut output = vec![];
 
     // Remove previously set variables
-    if let Ok(env_to_remove) = env::var("_PROTO_ACTIVATED_ENV") {
+    if let Ok(env_to_remove) = env::var(ACTIVATED_ENV_KEY) {
         for key in env_to_remove.split(',') {
             if !workflow.env.contains_key(key) {
                 output.push(shell.format_env_unset(key));
@@ -235,7 +246,7 @@ fn print_activation_exports(
         }
     }
 
-    if let Ok(alias_to_remove) = env::var("_PROTO_ACTIVATED_ALIASES") {
+    if let Ok(alias_to_remove) = env::var(ACTIVATED_ALIASES_KEY) {
         for key in alias_to_remove.split(',') {
             if !aliases.contains_key(key) {
                 output.push(shell.format_alias_unset(key));
@@ -253,7 +264,7 @@ fn print_activation_exports(
     }
 
     if !env_being_set.is_empty() {
-        output.push(shell.format_env_set("_PROTO_ACTIVATED_ENV", &env_being_set.join(",")));
+        output.push(shell.format_env_set(ACTIVATED_ENV_KEY, &env_being_set.join(",")));
     }
 
     // Set/remove new aliases
@@ -264,7 +275,7 @@ fn print_activation_exports(
 
         output.push(
             shell.format_env_set(
-                "_PROTO_ACTIVATED_ALIASES",
+                ACTIVATED_ALIASES_KEY,
                 &aliases
                     .keys()
                     .map(|k| k.as_str())
@@ -278,7 +289,7 @@ fn print_activation_exports(
     if !workflow.paths.is_empty() {
         if let Some(activated_path) = workflow.join_activated_paths_for_shell(shell_type)? {
             output.push(shell.format_env_set(
-                "_PROTO_ACTIVATED_PATH",
+                ACTIVATED_PATH_KEY,
                 activated_path.to_string_lossy().as_ref(),
             ));
         }

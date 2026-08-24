@@ -9,7 +9,7 @@ def _proto_activate_hook(olddir=None, newdir=None, **kwargs):
 
 def _proto_deactivate_hook():
     global _proto_activate_hook, _proto_deactivate_hook
-    output = $(proto deactivate xonsh --config-mode upwards-global --no-bin --no-shim --export)
+    output = $(proto deactivate xonsh --export)
     if output:
         execx(output)
     for handler in list(events.on_chdir):

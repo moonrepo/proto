@@ -35,7 +35,7 @@ export def --env _proto_activate_hook [] {
 export def --env _proto_deactivate_hook [] {
     # Unregistering must happen even when the command fails, so the
     # reversal is best-effort, consistent with the other shells.
-    _proto_activate_hook_apply (try { proto deactivate nu --config-mode upwards-global --reporter json | from json } catch { {} })
+    _proto_activate_hook_apply (try { proto deactivate nu --reporter json | from json } catch { {} })
 
     # Nu cannot undefine commands at runtime, so the functions remain
     # defined, but the hook itself is unregistered.

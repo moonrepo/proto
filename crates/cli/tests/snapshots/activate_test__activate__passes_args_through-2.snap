@@ -16,7 +16,7 @@ _proto_activate_hook() {
 
 _proto_deactivate_hook() {
   local output;
-  output=$(proto deactivate bash --config-mode upwards-global --no-bin --no-shim --export)
+  output=$(proto deactivate bash --export)
   if [ -n "$output" ]; then
     eval "$output";
   fi

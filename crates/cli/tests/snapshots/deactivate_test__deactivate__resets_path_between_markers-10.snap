@@ -1,0 +1,28 @@
+---
+source: crates/cli/tests/deactivate_test.rs
+expression: "get_deactivate_output(&assert, &sandbox)"
+---
+if (Test-Path "env:PROTO_HOME") {
+  Remove-Item -LiteralPath "env:PROTO_HOME";
+}
+if (Test-Path "env:KEY1") {
+  Remove-Item -LiteralPath "env:KEY1";
+}
+if (Test-Path "env:KEY2") {
+  Remove-Item -LiteralPath "env:KEY2";
+}
+Remove-Alias -Name pn -Force;
+Remove-Alias -Name yn -Force;
+$env:PATH = @(
+  "/usr/bin"
+  "/bin"
+) -join [IO.PATH]::PathSeparator;
+if (Test-Path "env:_PROTO_ACTIVATED_ENV") {
+  Remove-Item -LiteralPath "env:_PROTO_ACTIVATED_ENV";
+}
+if (Test-Path "env:_PROTO_ACTIVATED_ALIASES") {
+  Remove-Item -LiteralPath "env:_PROTO_ACTIVATED_ALIASES";
+}
+if (Test-Path "env:_PROTO_ACTIVATED_PATH") {
+  Remove-Item -LiteralPath "env:_PROTO_ACTIVATED_PATH";
+}

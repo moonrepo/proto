@@ -1,0 +1,12 @@
+---
+source: crates/cli/tests/deactivate_test.rs
+expression: "get_deactivate_output(&assert, &sandbox)"
+---
+unset-env PROTO_HOME;
+unset-env KEY1;
+unset-env KEY2;
+del pn;
+del yn;
+unset-env _PROTO_ACTIVATED_ENV;
+unset-env _PROTO_ACTIVATED_ALIASES;
+unset-env _PROTO_ACTIVATED_PATH;

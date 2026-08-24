@@ -12,7 +12,7 @@ function _proto_activate_hook {
 }
 
 function _proto_deactivate_hook {
-  $exports = proto deactivate pwsh --config-mode upwards-global --no-bin --no-shim --export;
+  $exports = proto deactivate pwsh --export;
   if ($exports) {
     $exports | Out-String | Invoke-Expression;
   }

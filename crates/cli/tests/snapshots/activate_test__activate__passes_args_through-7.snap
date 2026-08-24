@@ -7,7 +7,7 @@ function _proto_activate_hook {
 }
 
 function _proto_deactivate_hook {
-  proto deactivate murex --config-mode upwards-global --no-bin --no-shim --export -> source
+  proto deactivate murex --export -> source
   !event onPrompt _proto_activate_hook
   !function _proto_activate_hook
   !function _proto_deactivate_hook

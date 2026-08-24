@@ -11,7 +11,7 @@ _proto_activate_hook() {
 }
 
 _proto_deactivate_hook() {
-  _proto_deactivate_hook_output=$(proto deactivate dash --config-mode upwards-global --no-bin --no-shim --export)
+  _proto_deactivate_hook_output=$(proto deactivate dash --export)
   if [ -n "$_proto_deactivate_hook_output" ]; then
     eval "$_proto_deactivate_hook_output"
   fi

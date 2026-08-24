@@ -7,7 +7,7 @@ fn _proto_activate_hook {|@_|
 }
 
 fn _proto_deactivate_hook {
-  eval (proto deactivate elvish --config-mode upwards-global --no-bin --no-shim --export | slurp)
+  eval (proto deactivate elvish --export | slurp)
   set after-chdir = [(each {|hook| if (not (and (has-key $hook def) (eq $hook[def] $_proto_activate_hook~[def]))) { put $hook } } $after-chdir)]
 }
 

@@ -22,6 +22,11 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use tracing::{instrument, trace};
 
+/// Fake marker paths that denote the boundary of the paths that an
+/// activation has injected into `PATH`.
+pub const ACTIVATE_START_MARKER: &str = "activate-start";
+pub const ACTIVATE_STOP_MARKER: &str = "activate-stop";
+
 #[derive(Debug, Default)]
 pub struct ExecCommandOptions {
     pub check_shell: bool,
@@ -281,8 +286,8 @@ impl<'app> ExecWorkflow<'app> {
     }
 
     pub fn reset_paths(&self, store_dir: &Path) -> Vec<PathBuf> {
-        let start_path = store_dir.join("activate-start");
-        let stop_path = store_dir.join("activate-stop");
+        let start_path = store_dir.join(ACTIVATE_START_MARKER);
+        let stop_path = store_dir.join(ACTIVATE_STOP_MARKER);
 
         // Create a new `PATH` list with our activated tools. Use fake
         // marker paths to indicate a boundary.
@@ -348,6 +353,31 @@ impl<'app> ExecWorkflow<'app> {
     }
 }
 
+/// Remove the paths that a previous activation injected into `PATH`, by
+/// dropping everything between the boundary markers, and the markers themselves.
+pub fn remove_activated_paths<I>(store_dir: &Path, paths: I) -> Vec<PathBuf>
+where
+    I: IntoIterator<Item = PathBuf>,
+{
+    let start_path = store_dir.join(ACTIVATE_START_MARKER);
+    let stop_path = store_dir.join(ACTIVATE_STOP_MARKER);
+
+    let mut in_activate = false;
+    let mut next_paths = vec![];
+
+    for path in paths {
+        if path == start_path {
+            in_activate = true;
+        } else if path == stop_path {
+            in_activate = false;
+        } else if !in_activate {
+            next_paths.push(path);
+        }
+    }
+
+    next_paths
+}
+
 fn convert_path(path: &Path, posix: bool) -> PathBuf {
     if posix {
         return windows_path_to_posix(path);
@@ -356,7 +386,7 @@ fn convert_path(path: &Path, posix: bool) -> PathBuf {
     path.into()
 }
 
-fn convert_paths_for_shell<'a, I>(paths: I, shell_type: &ShellType) -> Vec<PathBuf>
+pub fn convert_paths_for_shell<'a, I>(paths: I, shell_type: &ShellType) -> Vec<PathBuf>
 where
     I: IntoIterator<Item = &'a PathBuf>,
 {
@@ -368,7 +398,7 @@ where
         .collect()
 }
 
-fn join_paths_for_shell<'a, I>(paths: I, shell_type: &ShellType) -> miette::Result<OsString>
+pub fn join_paths_for_shell<'a, I>(paths: I, shell_type: &ShellType) -> miette::Result<OsString>
 where
     I: IntoIterator<Item = &'a PathBuf>,
 {
@@ -687,6 +717,61 @@ mod tests {
             wf.collect_item(make_item(vec![], vec![("KEY", "second")]));
 
             assert_eq!(wf.env.get("KEY"), Some(&Some("second".to_string())));
+        }
+
+        #[test]
+        fn removes_activated_paths_and_markers() {
+            let store = PathBuf::from("/store");
+            let paths = vec![
+                PathBuf::from("/store/activate-start"),
+                PathBuf::from("/store/shims"),
+                PathBuf::from("/store/bin"),
+                PathBuf::from("/store/activate-stop"),
+                PathBuf::from("/usr/bin"),
+                PathBuf::from("/bin"),
+            ];
+
+            assert_eq!(
+                remove_activated_paths(&store, paths),
+                vec![PathBuf::from("/usr/bin"), PathBuf::from("/bin")]
+            );
+        }
+
+        #[test]
+        fn removes_activated_paths_when_not_leading() {
+            let store = PathBuf::from("/store");
+            let paths = vec![
+                PathBuf::from("/usr/bin"),
+                PathBuf::from("/store/activate-start"),
+                PathBuf::from("/store/shims"),
+                PathBuf::from("/store/activate-stop"),
+                PathBuf::from("/bin"),
+            ];
+
+            assert_eq!(
+                remove_activated_paths(&store, paths),
+                vec![PathBuf::from("/usr/bin"), PathBuf::from("/bin")]
+            );
+        }
+
+        #[test]
+        fn keeps_paths_when_never_activated() {
+            let store = PathBuf::from("/store");
+            let paths = vec![PathBuf::from("/usr/bin"), PathBuf::from("/bin")];
+
+            assert_eq!(remove_activated_paths(&store, paths.clone()), paths);
+        }
+
+        #[test]
+        fn keeps_paths_from_another_store() {
+            let store = PathBuf::from("/store");
+            let paths = vec![
+                PathBuf::from("/other/activate-start"),
+                PathBuf::from("/other/shims"),
+                PathBuf::from("/other/activate-stop"),
+            ];
+
+            assert_eq!(remove_activated_paths(&store, paths.clone()), paths);
         }
 
         #[test]
