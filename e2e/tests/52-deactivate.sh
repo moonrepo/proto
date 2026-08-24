@@ -23,6 +23,7 @@ EOF
 
 cd "$work"
 
+path_before="$PATH"
 eval "$(proto activate bash)"
 
 # The activation must have applied everything we later assert on
@@ -43,6 +44,10 @@ assert_eq "${_PROTO_ACTIVATED_PATH:-<unset>}" "<unset>"
 assert_not_contains "$PATH" "activate-start"
 assert_not_contains "$PATH" "activate-stop"
 assert_not_contains "$(alias e2e-alias 2>&1)" "node --version"
+
+# Activation only injects between the markers, so dropping them restores
+# the exact list we started with, including any proto paths the profile set
+assert_eq "$PATH" "$path_before"
 
 # Both functions are removed, and the hook no longer runs on `cd`
 [[ -z "$(declare -F proto-activate)" ]] || fail "activation hook was not removed"

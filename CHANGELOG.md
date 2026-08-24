@@ -25,6 +25,7 @@
 - Added `proto activate` support for the following shells: `ash`, `dash`, `sh`, `powershell` (5.1+), `xonsh`
 - Added a new `proto deactivate` command, that turns off a previous activation for the current shell session, by unsetting environment variables, removing shell aliases, and removing the injected `PATH` entries.
   - The activation hook now also defines a `proto-deactivate` function, which runs the command and unregisters the hook itself. Prefer calling it over the command directly.
+- Updated `proto activate` to no longer remove `PATH` entries that were inherited from outside of the activation, even when the same directory is being activated. This keeps `~/.proto/shims` and `~/.proto/bin` on `PATH` after deactivating, when a shell profile had already added them.
 
 ## 0.61.1
 

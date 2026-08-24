@@ -286,6 +286,13 @@ impl<'app> ExecWorkflow<'app> {
     }
 
     pub fn reset_paths(&self, store_dir: &Path) -> Vec<PathBuf> {
+        self.reset_paths_from(store_dir, envx::paths())
+    }
+
+    fn reset_paths_from<I>(&self, store_dir: &Path, current_paths: I) -> Vec<PathBuf>
+    where
+        I: IntoIterator<Item = PathBuf>,
+    {
         let start_path = store_dir.join(ACTIVATE_START_MARKER);
         let stop_path = store_dir.join(ACTIVATE_STOP_MARKER);
 
@@ -298,11 +305,14 @@ impl<'app> ExecWorkflow<'app> {
 
         // `PATH` may have already been activated, so we need to remove
         // paths that proto has injected, otherwise this paths list
-        // will continue to grow and grow.
+        // will continue to grow and grow. Paths that were inherited from
+        // outside of the boundary are kept as-is, even when we've also
+        // activated them, so that deactivating can restore the original
+        // list by simply dropping everything within the boundary.
         let mut in_activate = false;
-        let mut dupe_paths: FxHashSet<PathBuf> = reset_paths.iter().cloned().collect();
+        let mut dupe_paths = FxHashSet::default();
 
-        for path in envx::paths() {
+        for path in current_paths {
             if path == start_path {
                 in_activate = true;
                 continue;
@@ -717,6 +727,74 @@ mod tests {
             wf.collect_item(make_item(vec![], vec![("KEY", "second")]));
 
             assert_eq!(wf.env.get("KEY"), Some(&Some("second".to_string())));
+        }
+
+        #[test]
+        fn reset_paths_keeps_inherited_paths_that_were_also_activated() {
+            let mut wf = make_workflow();
+            wf.paths.push_back(PathBuf::from("/store/shims"));
+            wf.paths.push_back(PathBuf::from("/store/bin"));
+
+            let store = PathBuf::from("/store");
+            let current = vec![
+                PathBuf::from("/store/shims"),
+                PathBuf::from("/store/bin"),
+                PathBuf::from("/usr/bin"),
+            ];
+
+            assert_eq!(
+                wf.reset_paths_from(&store, current),
+                vec![
+                    PathBuf::from("/store/activate-start"),
+                    PathBuf::from("/store/shims"),
+                    PathBuf::from("/store/bin"),
+                    PathBuf::from("/store/activate-stop"),
+                    // Inherited from the profile, so they must survive
+                    PathBuf::from("/store/shims"),
+                    PathBuf::from("/store/bin"),
+                    PathBuf::from("/usr/bin"),
+                ]
+            );
+        }
+
+        #[test]
+        fn reset_paths_is_stable_when_reactivating() {
+            let mut wf = make_workflow();
+            wf.paths.push_back(PathBuf::from("/store/shims"));
+
+            let store = PathBuf::from("/store");
+            let current = vec![PathBuf::from("/store/shims"), PathBuf::from("/usr/bin")];
+
+            let once = wf.reset_paths_from(&store, current);
+            let twice = wf.reset_paths_from(&store, once.clone());
+
+            assert_eq!(once, twice);
+        }
+
+        #[test]
+        fn deactivating_restores_the_paths_before_activating() {
+            let mut wf = make_workflow();
+            wf.paths.push_back(PathBuf::from("/store/shims"));
+            wf.paths.push_back(PathBuf::from("/store/bin"));
+            wf.paths
+                .push_back(PathBuf::from("/store/tools/node/1.2.3/bin"));
+
+            let store = PathBuf::from("/store");
+
+            for current in [
+                // A profile that puts proto on `PATH` itself
+                vec![
+                    PathBuf::from("/store/shims"),
+                    PathBuf::from("/store/bin"),
+                    PathBuf::from("/usr/bin"),
+                ],
+                // And one that relies on activation entirely
+                vec![PathBuf::from("/usr/bin"), PathBuf::from("/bin")],
+            ] {
+                let activated = wf.reset_paths_from(&store, current.clone());
+
+                assert_eq!(remove_activated_paths(&store, activated), current);
+            }
         }
 
         #[test]
