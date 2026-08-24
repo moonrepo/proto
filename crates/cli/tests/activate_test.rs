@@ -139,7 +139,7 @@ moonstone = "2.0.0"
                     .env_remove("PROTO_REPORTER");
             });
             assert.success().stdout(
-                predicate::str::contains("_proto_activate_hook")
+                predicate::str::contains("proto-activate")
                     .and(predicate::str::contains("{\"type\":").not())
                     .and(predicate::str::contains("Detected an AI agent").not()),
             );

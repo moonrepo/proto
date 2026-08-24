@@ -2,16 +2,16 @@
 source: crates/cli/tests/activate_test.rs
 expression: "get_activate_output(&assert, &sandbox)"
 ---
-fn _proto_activate_hook {|@_|
+fn proto-activate {|@_|
   eval (proto activate elvish --config-mode upwards-global --no-bin --no-shim --export | slurp)
 }
 
-fn _proto_deactivate_hook {
+fn proto-deactivate {
   eval (proto deactivate elvish --export | slurp)
-  set after-chdir = [(each {|hook| if (not (and (has-key $hook def) (eq $hook[def] $_proto_activate_hook~[def]))) { put $hook } } $after-chdir)]
+  set after-chdir = [(each {|hook| if (not (and (has-key $hook def) (eq $hook[def] $proto-activate~[def]))) { put $hook } } $after-chdir)]
 }
 
-set after-chdir = [(each {|hook| if (not (and (has-key $hook def) (eq $hook[def] $_proto_activate_hook~[def]))) { put $hook } } $after-chdir)]
-set @after-chdir = $@after-chdir $_proto_activate_hook~
+set after-chdir = [(each {|hook| if (not (and (has-key $hook def) (eq $hook[def] $proto-activate~[def]))) { put $hook } } $after-chdir)]
+set @after-chdir = $@after-chdir $proto-activate~
 
-_proto_activate_hook
+proto-activate

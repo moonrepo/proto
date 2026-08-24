@@ -2,27 +2,27 @@
 source: crates/cli/tests/activate_test.rs
 expression: "get_activate_output(&assert, &sandbox)"
 ---
-_proto_activate_hook() {
-  _proto_activate_hook_output=$(proto activate ash --config-mode upwards-global --no-bin --no-shim --export)
-  if [ -n "$_proto_activate_hook_output" ]; then
-    eval "$_proto_activate_hook_output"
+proto-activate() {
+  proto-activate_output=$(proto activate ash --config-mode upwards-global --no-bin --no-shim --export)
+  if [ -n "$proto-activate_output" ]; then
+    eval "$proto-activate_output"
   fi
-  unset _proto_activate_hook_output
+  unset proto-activate_output
 }
 
-_proto_deactivate_hook() {
-  _proto_deactivate_hook_output=$(proto deactivate ash --export)
-  if [ -n "$_proto_deactivate_hook_output" ]; then
-    eval "$_proto_deactivate_hook_output"
+proto-deactivate() {
+  proto-deactivate_output=$(proto deactivate ash --export)
+  if [ -n "$proto-deactivate_output" ]; then
+    eval "$proto-deactivate_output"
   fi
-  unset _proto_deactivate_hook_output
-  unset -f cd _proto_activate_hook _proto_deactivate_hook
+  unset proto-deactivate_output
+  unset -f cd proto-activate proto-deactivate
 }
 
 cd() {
   command cd "$@" || return $?
-  _proto_activate_hook
+  proto-activate
   return 0
 }
 
-_proto_activate_hook
+proto-activate

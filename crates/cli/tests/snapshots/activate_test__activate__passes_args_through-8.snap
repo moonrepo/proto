@@ -2,7 +2,7 @@
 source: crates/cli/tests/activate_test.rs
 expression: "get_activate_output(&assert, &sandbox)"
 ---
-export def --env _proto_activate_hook_apply [data] {
+export def --env proto-activate_apply [data] {
     # This must be a `for` loop and not an `each`/`items` closure,
     # as closures do not propagate environment changes, even when
     # the command itself is `def --env`.
@@ -28,27 +28,27 @@ export def --env _proto_activate_hook_apply [data] {
     }
 }
 
-export def --env _proto_activate_hook [] {
-    _proto_activate_hook_apply (proto activate nu --config-mode upwards-global --no-bin --no-shim --reporter json | from json)
+export def --env proto-activate [] {
+    proto-activate_apply (proto activate nu --config-mode upwards-global --no-bin --no-shim --reporter json | from json)
 }
 
-export def --env _proto_deactivate_hook [] {
+export def --env proto-deactivate [] {
     # Unregistering must happen even when the command fails, so the
     # reversal is best-effort, consistent with the other shells.
-    _proto_activate_hook_apply (try { proto deactivate nu --reporter json | from json } catch { {} })
+    proto-activate_apply (try { proto deactivate nu --reporter json | from json } catch { {} })
 
     # Nu cannot undefine commands at runtime, so the functions remain
     # defined, but the hook itself is unregistered.
     $env.config = ($env.config | upsert hooks.env_change.PWD (
         ($env.config | get --optional hooks.env_change.PWD) | default []
-            | where { |hook| $hook != { code: "_proto_activate_hook" } }
+            | where { |hook| $hook != { code: "proto-activate" } }
     ))
 }
 
 export-env {
     $env.config = ($env.config | upsert hooks.env_change.PWD { |config|
         let list = ($config | get --optional hooks.env_change.PWD) | default []
-        let hook = { code: "_proto_activate_hook" }
+        let hook = { code: "proto-activate" }
 
         if $hook in $list {
             $list
@@ -58,4 +58,4 @@ export-env {
     })
 }
 
-_proto_activate_hook
+proto-activate

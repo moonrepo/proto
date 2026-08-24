@@ -2,21 +2,21 @@
 source: crates/cli/tests/activate_test.rs
 expression: "get_activate_output(&assert, &sandbox)"
 ---
-def _proto_activate_hook(olddir=None, newdir=None, **kwargs):
+def proto-activate(olddir=None, newdir=None, **kwargs):
     output = $(proto activate xonsh --export)
     if output:
         execx(output)
 
-def _proto_deactivate_hook():
-    global _proto_activate_hook, _proto_deactivate_hook
+def proto-deactivate():
+    global proto-activate, proto-deactivate
     output = $(proto deactivate xonsh --export)
     if output:
         execx(output)
     for handler in list(events.on_chdir):
-        if getattr(handler, '__name__', '') == '_proto_activate_hook':
+        if getattr(handler, '__name__', '') == 'proto-activate':
             events.on_chdir.discard(handler)
-    del _proto_activate_hook, _proto_deactivate_hook
+    del proto-activate, proto-deactivate
 
 # Re-sourcing creates new function objects, so deduplicate by name
-if not any(getattr(handler, '__name__', '') == '_proto_activate_hook' for handler in events.on_chdir):
-    events.on_chdir(_proto_activate_hook)
+if not any(getattr(handler, '__name__', '') == 'proto-activate' for handler in events.on_chdir):
+    events.on_chdir(proto-activate)
