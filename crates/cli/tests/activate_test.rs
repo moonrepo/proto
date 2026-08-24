@@ -58,6 +58,81 @@ mod activate {
         assert_snapshot!(get_activate_output(&assert, &sandbox));
     }
 
+    mod nu {
+        use super::*;
+
+        #[test]
+        fn hook_omits_the_init_call() {
+            let sandbox = create_empty_proto_sandbox();
+
+            // Nu modules can only contain definitions, so a trailing call
+            // would make the module fail to parse when it's used
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("activate").arg("nu");
+            });
+            let stdout = assert.stdout();
+
+            assert.success();
+            assert!(!stdout.trim_end().ends_with("proto_activate"));
+
+            // While other shells still initialize
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("activate").arg("bash");
+            });
+            let stdout = assert.stdout();
+
+            assert.success();
+            assert!(stdout.trim_end().ends_with("proto_activate"));
+        }
+
+        #[test]
+        fn tracks_the_activation_so_it_can_be_reversed() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[env]
+KEY1 = "value1"
+"#,
+            );
+
+            // Nu cannot evaluate our shell syntax, so the tracking variables
+            // must ride along in the structured payload instead
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("activate").arg("nu").arg("--reporter").arg("json");
+            });
+            let stdout = assert.stdout();
+            assert.success();
+            let output: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+            let env = output.get("env").unwrap();
+
+            assert_eq!(env.get("KEY1").unwrap(), "value1");
+            assert_eq!(env.get("_PROTO_ACTIVATED_ENV").unwrap(), "KEY1");
+            assert!(env.get("_PROTO_ACTIVATED_PATH").unwrap().is_string());
+        }
+
+        #[test]
+        fn stops_tracking_when_nothing_is_activated() {
+            let sandbox = create_empty_proto_sandbox();
+
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("activate")
+                    .arg("nu")
+                    .arg("--reporter")
+                    .arg("json")
+                    // A previous directory set this variable
+                    .env("_PROTO_ACTIVATED_ENV", "KEY1");
+            });
+            let stdout = assert.stdout();
+            assert.success();
+            let output: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+            let env = output.get("env").unwrap();
+
+            assert!(env.get("KEY1").unwrap().is_null());
+            assert!(env.get("_PROTO_ACTIVATED_ENV").unwrap().is_null());
+        }
+    }
+
     #[test]
     fn supports_one_tool() {
         let sandbox = create_empty_proto_sandbox();
@@ -139,7 +214,7 @@ moonstone = "2.0.0"
                     .env_remove("PROTO_REPORTER");
             });
             assert.success().stdout(
-                predicate::str::contains("proto-activate")
+                predicate::str::contains("proto_activate")
                     .and(predicate::str::contains("{\"type\":").not())
                     .and(predicate::str::contains("Detected an AI agent").not()),
             );
@@ -178,7 +253,8 @@ moonstone = "2.0.0"
             let output: serde_json::Value = serde_json::from_str(&stdout).unwrap();
 
             assert!(output.get("env").is_some());
-            assert!(output.get("path").is_some());
+            // Nu models `PATH` as a list, so it must not be pre-joined
+            assert!(output.get("paths").is_some_and(|paths| paths.is_array()));
         }
 
         #[test]

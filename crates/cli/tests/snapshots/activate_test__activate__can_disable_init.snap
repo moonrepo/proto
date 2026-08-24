@@ -2,25 +2,25 @@
 source: crates/cli/tests/activate_test.rs
 expression: "get_activate_output(&assert, &sandbox)"
 ---
-proto-activate() {
-  proto-activate_output=$(proto activate ash --export)
-  if [ -n "$proto-activate_output" ]; then
-    eval "$proto-activate_output"
+proto_activate() {
+  proto_activate_output=$(proto activate ash --export)
+  if [ -n "$proto_activate_output" ]; then
+    eval "$proto_activate_output"
   fi
-  unset proto-activate_output
+  unset proto_activate_output
 }
 
-proto-deactivate() {
-  proto-deactivate_output=$(proto deactivate ash --export)
-  if [ -n "$proto-deactivate_output" ]; then
-    eval "$proto-deactivate_output"
+proto_deactivate() {
+  proto_deactivate_output=$(proto deactivate ash --export)
+  if [ -n "$proto_deactivate_output" ]; then
+    eval "$proto_deactivate_output"
   fi
-  unset proto-deactivate_output
-  unset -f cd proto-activate proto-deactivate
+  unset proto_deactivate_output
+  unset -f cd proto_activate proto_deactivate
 }
 
 cd() {
   command cd "$@" || return $?
-  proto-activate
+  proto_activate
   return 0
 }

@@ -2,7 +2,7 @@
 source: crates/cli/tests/activate_test.rs
 expression: "get_activate_output(&assert, &sandbox)"
 ---
-proto-activate() {
+proto_activate() {
   local output
   trap '' SIGINT
   output=$(proto activate zsh --config-mode upwards-global --no-bin --no-shim --export)
@@ -12,19 +12,19 @@ proto-activate() {
   trap - SIGINT
 }
 
-proto-deactivate() {
+proto_deactivate() {
   local output
   output=$(proto deactivate zsh --export)
   if [ -n "$output" ]; then
     eval "$output";
   fi
-  chpwd_functions=(${chpwd_functions:#proto-activate})
-  unfunction proto-activate proto-deactivate 2>/dev/null
+  chpwd_functions=(${chpwd_functions:#proto_activate})
+  unfunction proto_activate proto_deactivate 2>/dev/null
 }
 
 typeset -ag chpwd_functions
-if (( ! ${chpwd_functions[(I)proto-activate]} )); then
-  chpwd_functions=(proto-activate $chpwd_functions)
+if (( ! ${chpwd_functions[(I)proto_activate]} )); then
+  chpwd_functions=(proto_activate $chpwd_functions)
 fi
 
-proto-activate
+proto_activate

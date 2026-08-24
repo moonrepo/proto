@@ -2,17 +2,17 @@
 source: crates/cli/tests/activate_test.rs
 expression: "get_activate_output(&assert, &sandbox)"
 ---
-function proto-activate {
+function proto_activate {
   proto activate murex --export -> source
 }
 
-function proto-deactivate {
+function proto_deactivate {
   proto deactivate murex --export -> source
-  !event onPrompt proto-activate
-  !function proto-activate
-  !function proto-deactivate
+  !event onPrompt proto_activate
+  !function proto_activate
+  !function proto_deactivate
 }
 
-event onPrompt proto-activate=before {
-  proto-activate
+event onPrompt proto_activate=before {
+  proto_activate
 }

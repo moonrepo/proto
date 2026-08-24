@@ -9,6 +9,7 @@ use serde::Serialize;
 use starbase_shell::{Hook, ShellType};
 use starbase_utils::envx::is_test;
 use std::env;
+use std::path::PathBuf;
 use tracing::instrument;
 
 /// Environment variables that track what the previous activation applied,
@@ -20,10 +21,13 @@ pub const ACTIVATED_PATH_KEY: &str = "_PROTO_ACTIVATED_PATH";
 /// The payload that both `proto activate` and `proto deactivate` print in
 /// structured mode. The shape is a contract with the nu hook, which cannot
 /// evaluate shell syntax, so both commands must serialize the same fields.
+///
+/// `PATH` is a list and not a pre-joined string, as nu models it as a list,
+/// and would otherwise lose its path semantics.
 #[derive(Serialize)]
 pub struct ActivateOutput {
     pub env: IndexMap<String, Option<String>>,
-    pub path: Option<String>,
+    pub paths: Vec<String>,
 }
 
 #[derive(Args, Clone, Debug)]
@@ -160,11 +164,8 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> SessionResul
     }
 
     session.console.write_json_for_format(ActivateOutput {
-        path: workflow
-            .reset_and_join_paths_for_shell(&session.env.store.dir, &shell_type)?
-            .into_string()
-            .ok(),
-        env: workflow.env,
+        env: create_activation_env(&workflow, &shell_type)?,
+        paths: stringify_paths(workflow.reset_paths_for_shell(&session.env.store.dir, &shell_type)),
     })?;
 
     Ok(None)
@@ -208,23 +209,95 @@ fn print_activation_hook(
         .out
         .write_line(shell_type.build().format_hook(Hook::OnChangeDir {
             activate_command,
-            activate_function: "proto-activate".into(),
+            activate_function: "proto_activate".into(),
             deactivate_command,
-            deactivate_function: "proto-deactivate".into(),
+            deactivate_function: "proto_deactivate".into(),
         })?)?;
 
     if !args.no_init {
-        // Parens are required for xonsh as it is Python-based
-        if shell_type == &ShellType::Xonsh {
-            session.console.out.write_line("\nproto-activate()")?;
-        }
-        // While others are shell scripts
-        else {
-            session.console.out.write_line("\nproto-activate")?;
-        }
+        match shell_type {
+            // Nu modules can only contain definitions, so a call here would
+            // make the module fail to parse. Its `export-env` block registers
+            // the hook, and it can be called manually after the module is used.
+            ShellType::Nu => {}
+            // Parens are required for xonsh as it is Python-based
+            ShellType::Xonsh => {
+                session.console.out.write_line("\nproto_activate()")?;
+            }
+            // While others are shell scripts
+            _ => {
+                session.console.out.write_line("\nproto_activate")?;
+            }
+        };
     }
 
     Ok(())
+}
+
+/// Create the environment variables to apply for an activation, which includes
+/// the variables to remove from a previous activation, and the variables that
+/// track what is being applied, so that it can all be reversed later.
+///
+/// Shell aliases are not included, as they are not environment variables, and
+/// can only be applied by shells that evaluate our syntax.
+fn create_activation_env(
+    workflow: &ExecWorkflow,
+    shell_type: &ShellType,
+) -> miette::Result<IndexMap<String, Option<String>>> {
+    let mut env = IndexMap::default();
+
+    // Remove previously set variables
+    if let Ok(env_to_remove) = env::var(ACTIVATED_ENV_KEY) {
+        for key in env_to_remove.split(',') {
+            if !key.is_empty() && !workflow.env.contains_key(key) {
+                env.insert(key.to_owned(), None);
+            }
+        }
+    }
+
+    // Set/remove new variables
+    let mut env_being_set = vec![];
+
+    for (key, value) in &workflow.env {
+        if value.is_some() {
+            env_being_set.push(key.as_str());
+        }
+
+        env.insert(key.to_owned(), value.to_owned());
+    }
+
+    // Track what we've applied, so that it can be reversed
+    track_activation(
+        &mut env,
+        ACTIVATED_ENV_KEY,
+        (!env_being_set.is_empty()).then(|| env_being_set.join(",")),
+    );
+
+    track_activation(
+        &mut env,
+        ACTIVATED_PATH_KEY,
+        workflow
+            .join_activated_paths_for_shell(shell_type)?
+            .map(|path| path.to_string_lossy().to_string()),
+    );
+
+    Ok(env)
+}
+
+/// Record what an activation applied, or stop tracking it when there's nothing
+/// left to apply. Variables that were never tracked are left alone, so that we
+/// don't emit noise (or errors in strict shells) for a fresh session.
+fn track_activation(env: &mut IndexMap<String, Option<String>>, key: &str, value: Option<String>) {
+    if value.is_some() || env::var(key).is_ok() {
+        env.insert(key.to_owned(), value);
+    }
+}
+
+fn stringify_paths(paths: Vec<PathBuf>) -> Vec<String> {
+    paths
+        .into_iter()
+        .map(|path| path.to_string_lossy().to_string())
+        .collect()
 }
 
 fn print_activation_exports(
@@ -234,37 +307,20 @@ fn print_activation_exports(
 ) -> miette::Result<()> {
     let shell = shell_type.build();
     let aliases = &session.load_config()?.shell.aliases;
-    let mut env_being_set = vec![];
     let mut output = vec![];
 
-    // Remove previously set variables
-    if let Ok(env_to_remove) = env::var(ACTIVATED_ENV_KEY) {
-        for key in env_to_remove.split(',') {
-            if !workflow.env.contains_key(key) {
-                output.push(shell.format_env_unset(key));
-            }
-        }
+    // Set/remove variables
+    for (key, value) in create_activation_env(&workflow, shell_type)? {
+        output.push(shell.format_env(&key, value.as_deref()));
     }
 
+    // Remove previously set aliases
     if let Ok(alias_to_remove) = env::var(ACTIVATED_ALIASES_KEY) {
         for key in alias_to_remove.split(',') {
-            if !aliases.contains_key(key) {
+            if !key.is_empty() && !aliases.contains_key(key) {
                 output.push(shell.format_alias_unset(key));
             }
         }
-    }
-
-    // Set/remove new variables
-    for (key, value) in &workflow.env {
-        if value.is_some() {
-            env_being_set.push(key.to_owned());
-        }
-
-        output.push(shell.format_env(key, value.as_deref()));
-    }
-
-    if !env_being_set.is_empty() {
-        output.push(shell.format_env_set(ACTIVATED_ENV_KEY, &env_being_set.join(",")));
     }
 
     // Set/remove new aliases
@@ -272,33 +328,30 @@ fn print_activation_exports(
         for (alias, command) in aliases {
             output.push(shell.format_alias_set(alias, command));
         }
+    }
 
-        output.push(
-            shell.format_env_set(
-                ACTIVATED_ALIASES_KEY,
-                &aliases
-                    .keys()
-                    .map(|k| k.as_str())
-                    .collect::<Vec<_>>()
-                    .join(","),
-            ),
-        );
+    let mut alias_tracking = IndexMap::default();
+
+    track_activation(
+        &mut alias_tracking,
+        ACTIVATED_ALIASES_KEY,
+        (!aliases.is_empty()).then(|| {
+            aliases
+                .keys()
+                .map(|key| key.as_str())
+                .collect::<Vec<_>>()
+                .join(",")
+        }),
+    );
+
+    for (key, value) in alias_tracking {
+        output.push(shell.format_env(&key, value.as_deref()));
     }
 
     // Set new `PATH`
     if !workflow.paths.is_empty() {
-        if let Some(activated_path) = workflow.join_activated_paths_for_shell(shell_type)? {
-            output.push(shell.format_env_set(
-                ACTIVATED_PATH_KEY,
-                activated_path.to_string_lossy().as_ref(),
-            ));
-        }
-
-        let paths = workflow
-            .reset_paths_for_shell(&session.env.store.dir, shell_type)
-            .into_iter()
-            .map(|path| path.to_string_lossy().to_string())
-            .collect::<Vec<_>>();
+        let paths =
+            stringify_paths(workflow.reset_paths_for_shell(&session.env.store.dir, shell_type));
 
         if !paths.is_empty() && !is_test() {
             output.push(shell.format_path_set(&paths));

@@ -11,5 +11,8 @@ expression: "get_deactivate_output(&assert, &sandbox)"
     "_PROTO_ACTIVATED_ALIASES": null,
     "_PROTO_ACTIVATED_PATH": null
   },
-  "path": "/usr/bin:/bin"
+  "paths": [
+    "/usr/bin",
+    "/bin"
+  ]
 }

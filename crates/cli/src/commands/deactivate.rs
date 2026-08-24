@@ -3,7 +3,7 @@ use crate::commands::activate::{
     ACTIVATED_ALIASES_KEY, ACTIVATED_ENV_KEY, ACTIVATED_PATH_KEY, ActivateOutput,
 };
 use crate::session::{ProtoSession, SessionResult};
-use crate::workflows::{convert_paths_for_shell, join_paths_for_shell, remove_activated_paths};
+use crate::workflows::{convert_paths_for_shell, remove_activated_paths};
 use clap::Args;
 use indexmap::IndexMap;
 use starbase_shell::ShellType;
@@ -51,13 +51,14 @@ pub async fn deactivate(session: ProtoSession, args: DeactivateArgs) -> SessionR
             }
 
             session.console.write_json_for_format(ActivateOutput {
-                path: match next_paths {
-                    Some(paths) => join_paths_for_shell(paths.iter(), &shell_type)?
-                        .into_string()
-                        .ok(),
-                    None => None,
-                },
                 env,
+                paths: match next_paths {
+                    Some(paths) => convert_paths_for_shell(paths.iter(), &shell_type)
+                        .into_iter()
+                        .map(|path| path.to_string_lossy().to_string())
+                        .collect(),
+                    None => vec![],
+                },
             })?;
         }
         StdoutOwner::ShellCode => {

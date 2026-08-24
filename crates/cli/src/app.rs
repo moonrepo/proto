@@ -317,7 +317,7 @@ pub enum Commands {
     #[command(
         name = "deactivate",
         about = "Deactivate proto for the current shell session by reverting a previous activation.",
-        long_about = "Deactivate proto for the current shell session by unsetting environment variables, removing shell aliases, and restoring PATH.\n\nThis reverses what `proto activate` applied. Prefer calling the `proto-deactivate` shell function, as it also unregisters the activation hook.\nLearn more: https://moonrepo.dev/docs/proto/workflows"
+        long_about = "Deactivate proto for the current shell session by unsetting environment variables, removing shell aliases, and restoring PATH.\n\nThis reverses what `proto activate` applied. Prefer calling the `proto_deactivate` shell function, as it also unregisters the activation hook.\nLearn more: https://moonrepo.dev/docs/proto/workflows"
     )]
     Deactivate(DeactivateArgs),
 

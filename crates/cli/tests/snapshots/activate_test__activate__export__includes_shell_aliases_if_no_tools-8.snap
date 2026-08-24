@@ -4,7 +4,7 @@ expression: "get_activate_output(&assert, &sandbox)"
 ---
 
 hide-env PROTO_VERSION
+$env._PROTO_ACTIVATED_PATH = '<WORKSPACE>/.proto/shims:<WORKSPACE>/.proto/bin'
 alias .. = cd ..
 alias gs = git status
 $env._PROTO_ACTIVATED_ALIASES = '..,gs'
-$env._PROTO_ACTIVATED_PATH = '<WORKSPACE>/.proto/shims:<WORKSPACE>/.proto/bin'

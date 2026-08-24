@@ -2,7 +2,7 @@
 source: crates/cli/tests/activate_test.rs
 expression: "get_activate_output(&assert, &sandbox)"
 ---
-function proto-activate {
+function proto_activate {
   $previousExitCode = $global:LASTEXITCODE;
   $exports = proto activate powershell --export;
   if ($exports) {
@@ -11,26 +11,26 @@ function proto-activate {
   $global:LASTEXITCODE = $previousExitCode;
 }
 
-function proto-deactivate {
+function proto_deactivate {
   $exports = proto deactivate powershell --export;
   if ($exports) {
     $exports | Out-String | Invoke-Expression;
   }
 
-  if (Get-Variable -Name 'proto-activate_prompt' -Scope Global -ErrorAction Ignore) {
-    Set-Item -Path 'function:global:prompt' -Value $global:proto-activate_prompt;
-    Remove-Variable -Name 'proto-activate_prompt' -Scope Global;
+  if (Get-Variable -Name 'proto_activate_prompt' -Scope Global -ErrorAction Ignore) {
+    Set-Item -Path 'function:global:prompt' -Value $global:proto_activate_prompt;
+    Remove-Variable -Name 'proto_activate_prompt' -Scope Global;
   }
 
-  Remove-Item -LiteralPath 'function:proto-activate' -ErrorAction Ignore;
-  Remove-Item -LiteralPath 'function:proto-deactivate' -ErrorAction Ignore;
+  Remove-Item -LiteralPath 'function:proto_activate' -ErrorAction Ignore;
+  Remove-Item -LiteralPath 'function:proto_deactivate' -ErrorAction Ignore;
 }
 
-if (-not (Get-Variable -Name 'proto-activate_prompt' -Scope Global -ErrorAction Ignore)) {
-  $global:proto-activate_prompt = $function:prompt;
+if (-not (Get-Variable -Name 'proto_activate_prompt' -Scope Global -ErrorAction Ignore)) {
+  $global:proto_activate_prompt = $function:prompt;
 
   function global:prompt {
-    proto-activate;
-    & $global:proto-activate_prompt;
+    proto_activate;
+    & $global:proto_activate_prompt;
   }
 };

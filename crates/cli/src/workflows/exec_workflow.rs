@@ -334,14 +334,6 @@ impl<'app> ExecWorkflow<'app> {
         convert_paths_for_shell(self.reset_paths(store_dir).iter(), shell_type)
     }
 
-    pub fn reset_and_join_paths_for_shell(
-        &self,
-        store_dir: &Path,
-        shell_type: &ShellType,
-    ) -> miette::Result<OsString> {
-        join_paths_for_shell(self.reset_paths(store_dir).iter(), shell_type)
-    }
-
     pub fn requires_shell(&self, shell: &BoxedShell, args: &[String], raw: bool) -> bool {
         // If a Windows script, we must execute the command through PowerShell
         if let Some(exe) = args.first().map(|exe| exe.trim_end_matches(['"', '\'']))
@@ -408,7 +400,7 @@ where
         .collect()
 }
 
-pub fn join_paths_for_shell<'a, I>(paths: I, shell_type: &ShellType) -> miette::Result<OsString>
+fn join_paths_for_shell<'a, I>(paths: I, shell_type: &ShellType) -> miette::Result<OsString>
 where
     I: IntoIterator<Item = &'a PathBuf>,
 {
