@@ -5,6 +5,6 @@ expression: "get_activate_output(&assert, &sandbox)"
 
 unset-env PROTO_VERSION;
 set-env _PROTO_ACTIVATED_PATH '<WORKSPACE>/.proto/shims:<WORKSPACE>/.proto/bin';
-fn .. { cd .. }
-fn gs { git status }
+try { edit:add-vars [&'..~'={|@_| cd .. $@_ }] } catch _ { }
+try { edit:add-vars [&'gs~'={|@_| git status $@_ }] } catch _ { }
 set-env _PROTO_ACTIVATED_ALIASES '..,gs';

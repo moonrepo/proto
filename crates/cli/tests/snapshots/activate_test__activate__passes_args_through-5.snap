@@ -2,7 +2,7 @@
 source: crates/cli/tests/activate_test.rs
 expression: "get_activate_output(&assert, &sandbox)"
 ---
-function proto_activate --on-variable PWD;
+function proto_activate --on-variable PWD --on-event fish_prompt;
   proto activate fish --config-mode upwards-global --no-bin --no-shim --export | source
 end;
 

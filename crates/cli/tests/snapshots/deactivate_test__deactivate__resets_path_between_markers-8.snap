@@ -2,15 +2,15 @@
 source: crates/cli/tests/deactivate_test.rs
 expression: "get_deactivate_output(&assert, &sandbox)"
 ---
-hide-env PROTO_HOME
-hide-env KEY1
-hide-env KEY2
+hide-env --ignore-errors PROTO_HOME
+hide-env --ignore-errors KEY1
+hide-env --ignore-errors KEY2
 hide pn
 hide yn
 $env.PATH = ([]
   | prepend "/bin"
   | prepend "/usr/bin"
   | uniq)
-hide-env _PROTO_ACTIVATED_ENV
-hide-env _PROTO_ACTIVATED_ALIASES
-hide-env _PROTO_ACTIVATED_PATH
+hide-env --ignore-errors _PROTO_ACTIVATED_ENV
+hide-env --ignore-errors _PROTO_ACTIVATED_ALIASES
+hide-env --ignore-errors _PROTO_ACTIVATED_PATH

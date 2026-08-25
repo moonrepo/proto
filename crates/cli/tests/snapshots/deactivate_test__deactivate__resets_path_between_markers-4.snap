@@ -5,8 +5,8 @@ expression: "get_deactivate_output(&assert, &sandbox)"
 unset-env PROTO_HOME;
 unset-env KEY1;
 unset-env KEY2;
-del pn;
-del yn;
+try { edit:del-vars ['pn~'] } catch _ { }
+try { edit:del-vars ['yn~'] } catch _ { }
 set paths = ['/usr/bin' '/bin'];
 unset-env _PROTO_ACTIVATED_ENV;
 unset-env _PROTO_ACTIVATED_ALIASES;

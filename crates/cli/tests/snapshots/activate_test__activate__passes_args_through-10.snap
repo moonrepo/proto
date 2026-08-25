@@ -25,6 +25,11 @@ function proto_deactivate {
     Remove-Variable -Name 'proto_activate_handler' -Scope Global;
   }
 
+  if (Get-Variable -Name 'proto_activate_prompt' -Scope Global -ErrorAction Ignore) {
+    Set-Item -Path 'function:global:prompt' -Value $global:proto_activate_prompt;
+    Remove-Variable -Name 'proto_activate_prompt' -Scope Global;
+  }
+
   Remove-Item -LiteralPath 'function:proto_activate' -ErrorAction Ignore;
   Remove-Item -LiteralPath 'function:proto_deactivate' -ErrorAction Ignore;
 }
@@ -41,6 +46,15 @@ if (-not (Get-Variable -Name 'proto_activate_handler' -Scope Global -ErrorAction
     $ExecutionContext.SessionState.InvokeCommand.LocationChangedAction,
     $global:proto_activate_handler
   );
+};
+
+if (-not (Get-Variable -Name 'proto_activate_prompt' -Scope Global -ErrorAction Ignore)) {
+  $global:proto_activate_prompt = $function:prompt;
+
+  function global:prompt {
+    proto_activate;
+    & $global:proto_activate_prompt;
+  }
 };
 
 proto_activate

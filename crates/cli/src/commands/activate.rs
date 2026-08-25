@@ -6,7 +6,7 @@ use indexmap::IndexMap;
 use proto_core::{Id, PROTO_PLUGIN_KEY, ToolContext, UnresolvedVersionSpec};
 use rustc_hash::FxHashMap;
 use serde::Serialize;
-use starbase_shell::{Hook, ShellType};
+use starbase_shell::{Hook, ShellType, Statement};
 use starbase_utils::envx::is_test;
 use std::env;
 use std::path::PathBuf;
@@ -194,20 +194,13 @@ fn print_activation_hook(
         activate_command.push_str(" --no-shim");
     }
 
-    let output_arg = match shell_type {
-        // These operate on JSON
-        ShellType::Nu => " --reporter json",
-        // While these evaluate shell syntax
-        _ => " --export",
-    };
-
-    activate_command.push_str(output_arg);
-    deactivate_command.push_str(output_arg);
+    activate_command.push_str(" --export");
+    deactivate_command.push_str(" --export");
 
     session
         .console
         .out
-        .write_line(shell_type.build().format_hook(Hook::OnChangeDir {
+        .write_line(shell_type.build().format_hook(Hook::OnContextChange {
             activate_command,
             activate_function: "proto_activate".into(),
             deactivate_command,
@@ -216,9 +209,9 @@ fn print_activation_hook(
 
     if !args.no_init {
         match shell_type {
-            // Nu modules can only contain definitions, so a call here would
-            // make the module fail to parse. Its `export-env` block registers
-            // the hook, and it can be called manually after the module is used.
+            // Nu applies every statement through a hook, so a call here would
+            // only stage the file, while making the module fail to parse when
+            // it's used. Its prompt trigger handles the initial activation.
             ShellType::Nu => {}
             // Parens are required for xonsh as it is Python-based
             ShellType::Xonsh => {
@@ -318,7 +311,10 @@ fn print_activation_exports(
     if let Ok(alias_to_remove) = env::var(ACTIVATED_ALIASES_KEY) {
         for key in alias_to_remove.split(',') {
             if !key.is_empty() && !aliases.contains_key(key) {
-                output.push(shell.format_alias_unset(key));
+                output.push(shell.format(Statement::UnsetAlias {
+                    name: key,
+                    hook: true,
+                }));
             }
         }
     }
@@ -326,7 +322,11 @@ fn print_activation_exports(
     // Set/remove new aliases
     if !aliases.is_empty() {
         for (alias, command) in aliases {
-            output.push(shell.format_alias_set(alias, command));
+            output.push(shell.format(Statement::SetAlias {
+                name: alias.as_str(),
+                value: command.as_str(),
+                hook: true,
+            }));
         }
     }
 

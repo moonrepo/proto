@@ -6,10 +6,32 @@ fn proto_activate {|@_|
   eval (proto activate elvish --export | slurp)
 }
 
-fn proto_deactivate {
-  eval (proto deactivate elvish --export | slurp)
-  set after-chdir = [(each {|hook| if (not (and (has-key $hook def) (eq $hook[def] $proto_activate~[def]))) { put $hook } } $after-chdir)]
+# Re-sourcing creates a new function object every time, so a registered handler
+# is matched by its body rather than by identity
+fn proto_activate_others {|handlers|
+  each {|handler| if (not (and (has-key $handler def) (eq $handler[def] $proto_activate~[def]))) { put $handler } } $handlers
 }
 
-set after-chdir = [(each {|hook| if (not (and (has-key $hook def) (eq $hook[def] $proto_activate~[def]))) { put $hook } } $after-chdir)]
-set @after-chdir = $@after-chdir $proto_activate~
+fn proto_deactivate {
+  eval (proto deactivate elvish --export | slurp)
+  set @after-chdir = (proto_activate_others $after-chdir)
+  try {
+    eval &ns=(ns [&others~=$proto_activate_others~]) 'set @edit:before-readline = (others $edit:before-readline)'
+    edit:del-vars ['proto_activate~' 'proto_deactivate~']
+  } catch _ {
+    # Nothing was registered or exported when non-interactive
+  }
+}
+
+set @after-chdir = (proto_activate_others $after-chdir) $proto_activate~
+
+# The prompt trigger and the exported names both live in the `edit:` module,
+# which only exists in an interactive session. Referencing it directly is a
+# compilation error, which `try` cannot catch, so the registration is compiled
+# at runtime by `eval`
+try {
+  eval &ns=(ns [&others~=$proto_activate_others~ &activate~=$proto_activate~]) 'set @edit:before-readline = (others $edit:before-readline) $activate~'
+  edit:add-vars [&'proto_activate~'=$proto_activate~ &'proto_deactivate~'=$proto_deactivate~]
+} catch _ {
+  # The `edit:` module only exists in an interactive session
+}

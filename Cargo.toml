@@ -71,7 +71,7 @@ starbase_args = { version = "0.1.13" }
 starbase_console = { version = "0.6.34", features = ["miette", "ui"] }
 starbase_id = { version = "0.4.0", features = ["miette", "schematic"] }
 starbase_sandbox = { version = "0.12.0" }
-starbase_shell = { version = "0.13.0", features = ["miette"] }
+starbase_shell = { path = "../starbase/crates/shell", features = ["miette"] }
 starbase_styles = { version = "0.6.9" }
 starbase_utils = { version = "0.14.3", default-features = false, features = [
     "fs-lock",

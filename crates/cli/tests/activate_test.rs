@@ -65,8 +65,9 @@ mod activate {
         fn hook_omits_the_init_call() {
             let sandbox = create_empty_proto_sandbox();
 
-            // Nu modules can only contain definitions, so a trailing call
-            // would make the module fail to parse when it's used
+            // Nu applies every statement through a hook, so a trailing call
+            // would only stage the file, while making the module fail to
+            // parse when it's used
             let assert = sandbox.run_bin(|cmd| {
                 cmd.arg("activate").arg("nu");
             });
@@ -84,6 +85,10 @@ mod activate {
             assert.success();
             assert!(stdout.trim_end().ends_with("proto_activate"));
         }
+    }
+
+    mod structured {
+        use super::*;
 
         #[test]
         fn tracks_the_activation_so_it_can_be_reversed() {
@@ -96,8 +101,8 @@ KEY1 = "value1"
 "#,
             );
 
-            // Nu cannot evaluate our shell syntax, so the tracking variables
-            // must ride along in the structured payload instead
+            // The tracking variables are part of the payload, so that a
+            // consumer can reverse an activation the same way the shells do
             let assert = sandbox.run_bin(|cmd| {
                 cmd.arg("activate").arg("nu").arg("--reporter").arg("json");
             });
@@ -288,7 +293,7 @@ moonstone = "2.0.0"
         }
 
         #[test]
-        fn nu_hook_requests_explicit_json() {
+        fn nu_hook_stages_shell_syntax() {
             let sandbox = create_empty_proto_sandbox();
 
             let assert = sandbox.run_bin(|cmd| {
@@ -298,23 +303,22 @@ moonstone = "2.0.0"
                     .env_remove("PROTO_REPORTER");
             });
             assert.success().stdout(
-                predicate::str::contains("proto activate nu --reporter json")
+                predicate::str::contains("proto activate nu --export")
                     .and(predicate::str::contains("\"type\":").not()),
             );
 
-            // The nested call the hook makes must parse as plain JSON
+            // The nested call the hook makes is staged to a file and sourced,
+            // so it must be nu syntax and not a reporter payload
             let assert = sandbox.run_bin(|cmd| {
                 cmd.arg("activate")
                     .arg("nu")
-                    .arg("--reporter")
-                    .arg("json")
+                    .arg("--export")
                     .env("CODEX_CI", "1");
             });
-            let stdout = assert.stdout();
-            assert.success();
-            let output: serde_json::Value = serde_json::from_str(&stdout).unwrap();
-
-            assert!(output.get("env").is_some());
+            assert.success().stdout(
+                predicate::str::contains("$env._PROTO_ACTIVATED_PATH")
+                    .and(predicate::str::contains("\"type\":").not()),
+            );
         }
 
         #[test]

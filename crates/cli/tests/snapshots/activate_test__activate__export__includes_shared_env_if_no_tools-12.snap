@@ -3,6 +3,6 @@ source: crates/cli/tests/activate_test.rs
 expression: "get_activate_output(&assert, &sandbox)"
 ---
 $KEY = f"value"
-del $PROTO_VERSION
+${...}.pop("PROTO_VERSION", None)
 $_PROTO_ACTIVATED_ENV = f"KEY"
 $_PROTO_ACTIVATED_PATH = f"<WORKSPACE>/.proto/shims:<WORKSPACE>/.proto/bin"

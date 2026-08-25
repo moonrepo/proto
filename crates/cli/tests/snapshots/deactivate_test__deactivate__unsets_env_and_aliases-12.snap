@@ -2,11 +2,11 @@
 source: crates/cli/tests/deactivate_test.rs
 expression: "get_deactivate_output(&assert, &sandbox)"
 ---
-del $PROTO_HOME
-del $KEY1
-del $KEY2
-del aliases["pn"]
-del aliases["yn"]
-del $_PROTO_ACTIVATED_ENV
-del $_PROTO_ACTIVATED_ALIASES
-del $_PROTO_ACTIVATED_PATH
+${...}.pop("PROTO_HOME", None)
+${...}.pop("KEY1", None)
+${...}.pop("KEY2", None)
+aliases.pop("pn", None)
+aliases.pop("yn", None)
+${...}.pop("_PROTO_ACTIVATED_ENV", None)
+${...}.pop("_PROTO_ACTIVATED_ALIASES", None)
+${...}.pop("_PROTO_ACTIVATED_PATH", None)

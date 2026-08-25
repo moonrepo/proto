@@ -2,8 +2,8 @@
 source: crates/cli/tests/activate_test.rs
 expression: "get_activate_output(&assert, &sandbox)"
 ---
-del $PROTO_VERSION
+${...}.pop("PROTO_VERSION", None)
 $_PROTO_ACTIVATED_PATH = f"<WORKSPACE>/.proto/shims:<WORKSPACE>/.proto/bin"
-aliases[".."] = 'cd ..'
-aliases["gs"] = 'git status'
+aliases[".."] = f"cd .."
+aliases["gs"] = f"git status"
 $_PROTO_ACTIVATED_ALIASES = f"..,gs"

@@ -2,58 +2,64 @@
 source: crates/cli/tests/activate_test.rs
 expression: "get_activate_output(&assert, &sandbox)"
 ---
-export def --env proto_activate_apply [data] {
-    # This must be a `for` loop and not an `each`/`items` closure,
-    # as closures do not propagate environment changes, even when
-    # the command itself is `def --env`.
-    for pair in ($data | get --optional env | default {} | transpose key value) {
-        if $pair.value == null {
-            if $pair.key in $env {
-                hide-env $pair.key
-            }
-        } else {
-            load-env { ($pair.key): $pair.value }
-        }
-    }
-
-    let path_list = $data | get --optional paths | default []
-    let path_string = $data | get --optional path | default ''
-
-    if ($path_list | is-not-empty) {
-        $env.PATH = $path_list
-    }
-
-    if ($path_string | is-not-empty) {
-        $env.PATH = $path_string
-    }
-}
-
 export def --env proto_activate [] {
-    proto_activate_apply (proto activate nu --config-mode upwards-global --reporter json | from json)
+    # Staged for the `source` entry that runs next. A failing command stages
+    # nothing rather than aborting the prompt, and its stderr is left alone.
+    let file = $"($nu.temp-dir)/proto_activate-($nu.pid).nu"
+
+    try { proto activate nu --config-mode upwards-global --export | save --force $file } catch { "" | save --force $file }
 }
 
 export def --env proto_deactivate [] {
-    # Unregistering must happen even when the command fails, so the
-    # reversal is best-effort, consistent with the other shells.
-    proto_activate_apply (try { proto deactivate nu --reporter json | from json } catch { {} })
+    # The statements are shell syntax and no command can evaluate them, so the
+    # reversal is staged the same way, and lands on the next trigger rather
+    # than immediately. Its last act is to unregister the `source` entry.
+    let file = $"($nu.temp-dir)/proto_activate-($nu.pid).nu"
 
-    # Nu cannot undefine commands at runtime, so the functions remain
-    # defined, but the hook itself is unregistered.
+    try { proto deactivate nu --export | save --force $file } catch { "" | save --force $file }
+
+    ["" '$env.config = ($env.config | upsert hooks.env_change.PWD ((($env.config | get --optional hooks.env_change.PWD) | default []) | where { |it| not (($it | describe | str starts-with "record") and (($it | get --optional code | default "") | str starts-with "# proto_activate source")) }))
+$env.config = ($env.config | upsert hooks.pre_prompt ((($env.config | get --optional hooks.pre_prompt) | default []) | where { |it| not (($it | describe | str starts-with "record") and (($it | get --optional code | default "") | str starts-with "# proto_activate source")) }))'] | str join (char newline) | save --append $file
+
+    # The writer entry goes now, so that it cannot overwrite the staged
+    # teardown before the `source` entry has applied it.
+
     $env.config = ($env.config | upsert hooks.env_change.PWD (
         ($env.config | get --optional hooks.env_change.PWD) | default []
+            | where { |hook| $hook != { code: "proto_activate" } }
+    ))
+
+    $env.config = ($env.config | upsert hooks.pre_prompt (
+        ($env.config | get --optional hooks.pre_prompt) | default []
             | where { |hook| $hook != { code: "proto_activate" } }
     ))
 }
 
 export-env {
-    $env.config = ($env.config | upsert hooks.env_change.PWD { |config|
-        let list = ($config | get --optional hooks.env_change.PWD) | default []
-        let hook = { code: "proto_activate" }
+    # The `source` entry parses this file before running it, so it must exist
+    # ahead of the first trigger. It removes it again once applied, so this
+    # only has to cover the window before the first one.
+    let file = $"($nu.temp-dir)/proto_activate-($nu.pid).nu"
 
-        if $hook in $list {
-            $list
-        } else {
-            $list | append $hook
+    if not ($file | path exists) { "" | save --force $file }
+
+    let entries = [
+        { code: "proto_activate" }
+        { code: '# proto_activate source
+const proto_activate_file = $"($nu.temp-dir)/proto_activate-($nu.pid).nu"
+source $proto_activate_file
+rm --force --permanent $proto_activate_file' }
+    ]
+
+    $env.config = ($env.config | upsert hooks.env_change.PWD { |config|
+        $entries | reduce --fold (($config | get --optional hooks.env_change.PWD) | default []) { |entry, acc|
+            if $entry in $acc { $acc } else { $acc | append $entry }
+        }
+    })
+
+    $env.config = ($env.config | upsert hooks.pre_prompt { |config|
+        $entries | reduce --fold (($config | get --optional hooks.pre_prompt) | default []) { |entry, acc|
+            if $entry in $acc { $acc } else { $acc | append $entry }
         }
     })
 }

@@ -6,7 +6,7 @@ use crate::session::{ProtoSession, SessionResult};
 use crate::workflows::{convert_paths_for_shell, remove_activated_paths};
 use clap::Args;
 use indexmap::IndexMap;
-use starbase_shell::ShellType;
+use starbase_shell::{ShellType, Statement};
 use starbase_utils::envx;
 use std::env;
 use std::path::PathBuf;
@@ -96,7 +96,10 @@ fn print_deactivation_exports(
     }
 
     for name in alias_names {
-        output.push(shell.format_alias_unset(&name));
+        output.push(shell.format(Statement::UnsetAlias {
+            name: name.as_str(),
+            hook: true,
+        }));
     }
 
     // Reset `PATH` to what it was before activating

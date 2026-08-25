@@ -117,7 +117,7 @@ mod deactivate {
     fn supports_json_exports() {
         let sandbox = create_empty_proto_sandbox();
 
-        // Only nushell supports JSON!
+        // Nu no longer consumes this, but it stays available for tooling
         let assert = sandbox.run_bin(|cmd| {
             cmd.arg("deactivate")
                 .arg("nu")
@@ -151,7 +151,7 @@ mod deactivate {
         }
 
         #[test]
-        fn nu_hook_requests_explicit_json() {
+        fn nu_hook_stages_shell_syntax() {
             let sandbox = create_empty_proto_sandbox();
 
             let assert = sandbox.run_bin(|cmd| {
@@ -160,24 +160,23 @@ mod deactivate {
                     .env("CODEX_CI", "1")
                     .env_remove("PROTO_REPORTER");
             });
-            assert.success().stdout(predicate::str::contains(
-                "proto deactivate nu --reporter json",
-            ));
+            assert
+                .success()
+                .stdout(predicate::str::contains("proto deactivate nu --export"));
 
-            // The nested call the hook makes must parse as plain JSON
+            // The nested call the hook makes is staged to a file and sourced,
+            // so it must be nu syntax and not a reporter payload
             let assert = sandbox.run_bin(|cmd| {
                 cmd.arg("deactivate")
                     .arg("nu")
-                    .arg("--reporter")
-                    .arg("json")
+                    .arg("--export")
                     .env("CODEX_CI", "1");
                 activated(cmd, &sandbox);
             });
-            let stdout = assert.stdout();
-            assert.success();
-            let output: serde_json::Value = serde_json::from_str(&stdout).unwrap();
-
-            assert!(output.get("env").is_some());
+            assert.success().stdout(
+                predicate::str::contains("hide-env --ignore-errors _PROTO_ACTIVATED_ENV")
+                    .and(predicate::str::contains("\"type\":").not()),
+            );
         }
     }
 

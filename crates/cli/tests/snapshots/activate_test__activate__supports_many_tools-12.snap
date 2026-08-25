@@ -8,17 +8,25 @@ def proto_activate(olddir=None, newdir=None, **kwargs):
         execx(output)
 
 def proto_deactivate():
-    global proto_activate, proto_deactivate
     output = $(proto deactivate xonsh --export)
     if output:
         execx(output)
-    for handler in list(events.on_chdir):
-        if getattr(handler, '__name__', '') == 'proto_activate':
-            events.on_chdir.discard(handler)
-    del proto_activate, proto_deactivate
+    for event in (events.on_chdir, events.on_pre_prompt):
+        for handler in list(event):
+            if getattr(handler, '__name__', '') == 'proto_activate':
+                event.discard(handler)
+    __xonsh__.ctx.pop('proto_activate', None)
+    __xonsh__.ctx.pop('proto_deactivate', None)
 
 # Re-sourcing creates new function objects, so deduplicate by name
 if not any(getattr(handler, '__name__', '') == 'proto_activate' for handler in events.on_chdir):
     events.on_chdir(proto_activate)
+
+if not any(getattr(handler, '__name__', '') == 'proto_activate' for handler in events.on_pre_prompt):
+    events.on_pre_prompt(proto_activate)
+
+# execx() does not evaluate into the shell namespace, so export both functions
+__xonsh__.ctx['proto_activate'] = proto_activate
+__xonsh__.ctx['proto_deactivate'] = proto_deactivate
 
 proto_activate()

@@ -20,19 +20,32 @@
 
 ## Unreleased
 
+#### 💥 Breaking
+
+- Renamed the functions that the `proto activate` hook defines, from `_proto_activate_hook` and `_proto_deactivate_hook`, to `proto_activate` and `proto_deactivate`.
+- Updated `proto activate nu` to no longer append a `proto_activate` call. Nushell applies every statement through a hook, so the call would only stage them, while making the module fail to parse when it's used. Its prompt trigger handles the initial activation.
+- Updated the JSON output of `proto activate` to return `PATH` as a `paths` list, instead of a pre-joined `path` string. Nushell models `PATH` as a list, and would otherwise lose its path semantics.
+
 #### 🚀 Updates
 
 - Added `proto activate` support for the following shells: `ash`, `dash`, `sh`, `powershell` (5.1+), `xonsh`
 - Added a new `proto deactivate` command, that turns off a previous activation for the current shell session, by unsetting environment variables, removing shell aliases, and removing the injected `PATH` entries.
   - The activation hook now also defines a `proto_deactivate` function, which runs the command and unregisters the hook itself. Prefer calling it over the command directly.
+  - In Nushell, the teardown is staged like every other statement, so it applies on the trigger that follows the call, instead of immediately.
+- Updated `proto activate` workflows to also trigger on prompt changes, so that configuration changes in the current directory are reflected.
+  - Applied to the following shells: `elvish`, `fish`, `nu`, `pwsh`, `xonsh`, `zsh`
+  - If you notice any performance regression, please report it to us!
 - Updated `proto activate` to no longer remove `PATH` entries that were inherited from outside of the activation, even when the same directory is being activated. This keeps `~/.proto/shims` and `~/.proto/bin` on `PATH` after deactivating, when a shell profile had already added them.
-- Updated the JSON output of `proto activate` (and Nushell's hook) to return `PATH` as a `paths` list, instead of a pre-joined `path` string. Nushell models `PATH` as a list, and would otherwise lose its path semantics.
-- **Breaking:** Updated `proto activate nu` to no longer append a `proto_activate` call. Nushell modules can only contain definitions, so the call made the module fail to parse with `use`. The module's `export-env` block registers the hook, and `proto_activate` can be called manually after `use`, if you want to activate immediately.
+- Updated `proto activate nu` to apply our shell syntax like every other shell, instead of a JSON payload. Nushell has no runtime `eval`, so its hook stages the statements in a file and applies them with `source`. The JSON output remains available for tooling.
 
 #### 🐞 Fixes
 
-- Fixed an issue where Nushell would not unset a previous directory's `[env]` variables when changing directories, as the activation was not tracking what it applied. This also allows `proto deactivate` to reverse an activation in Nushell.
-  - Shell aliases still aren't supported in Nushell, as `alias` is parse-time only, and cannot be defined by the hook at runtime.
+- Fixed `[shell.aliases]` not being applied in Nushell and Elvish.
+  - Nushell can only define an alias when code is parsed, which its previous hook had no way to reach.
+  - Elvish evaluates our statements in a restricted namespace, so a defined alias was discarded as soon as it returned. Aliases now also receive arguments, but are only available in an interactive session.
+- Fixed Elvish activation breaking for the rest of the session after leaving a directory that configured `[shell.aliases]`, as removing the alias failed to compile, which aborted every other statement alongside it.
+- Fixed `[env]` variables failing to apply in Murex and PowerShell, as the values were not quoted, and both shells parse the right side of an assignment as an expression.
+- Fixed Nushell not unsetting a previous directory's `[env]` variables when changing directories, as the activation was not tracking what it applied.
 
 ## 0.61.1
 
