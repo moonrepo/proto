@@ -7,24 +7,21 @@ def proto_activate(olddir=None, newdir=None, **kwargs):
     if output:
         execx(output)
 
-def proto_deactivate():
+# execx() does not evaluate into the shell namespace, so the function is
+# exported for the session, and for the registration, to be able to reach it
+__xonsh__.ctx['proto_activate'] = proto_activate
+def proto_deactivate(olddir=None, newdir=None, **kwargs):
     output = $(proto deactivate xonsh --export)
     if output:
         execx(output)
-    for event in (events.on_chdir, events.on_pre_prompt):
-        for handler in list(event):
-            if getattr(handler, '__name__', '') == 'proto_activate':
-                event.discard(handler)
-    __xonsh__.ctx.pop('proto_activate', None)
-    __xonsh__.ctx.pop('proto_deactivate', None)
 
-# Re-sourcing creates new function objects, so deduplicate by name
+# execx() does not evaluate into the shell namespace, so the function is
+# exported for the session, and for the registration, to be able to reach it
+__xonsh__.ctx['proto_deactivate'] = proto_deactivate
+# The function may have been defined by a separate `execx()`, whose namespace
+# is not the shell's, so it is taken from where the definition exported it
 if not any(getattr(handler, '__name__', '') == 'proto_activate' for handler in events.on_chdir):
-    events.on_chdir(proto_activate)
+    events.on_chdir(__xonsh__.ctx['proto_activate'])
 
 if not any(getattr(handler, '__name__', '') == 'proto_activate' for handler in events.on_pre_prompt):
-    events.on_pre_prompt(proto_activate)
-
-# execx() does not evaluate into the shell namespace, so export both functions
-__xonsh__.ctx['proto_activate'] = proto_activate
-__xonsh__.ctx['proto_deactivate'] = proto_deactivate
+    events.on_pre_prompt(__xonsh__.ctx['proto_activate'])

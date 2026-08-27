@@ -2,11 +2,14 @@
 source: crates/cli/tests/activate_test.rs
 expression: "get_activate_output(&assert, &sandbox)"
 ---
-function proto_activate --on-variable PWD --on-event fish_prompt;
+function proto_activate;
   proto activate fish --export | source
 end;
-
 function proto_deactivate;
   proto deactivate fish --export | source
-  functions --erase proto_activate proto_deactivate
+end;
+# An event handler is part of a function definition, so the trigger calls the
+# function rather than being attached to it
+function proto_activate_on_context --on-variable PWD --on-event fish_prompt;
+  proto_activate
 end;

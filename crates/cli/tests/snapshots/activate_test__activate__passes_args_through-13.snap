@@ -11,18 +11,15 @@ proto_activate() {
   fi
   trap - SIGINT
 }
-
 proto_deactivate() {
   local output
+  trap '' SIGINT
   output=$(proto deactivate zsh --export)
   if [ -n "$output" ]; then
     eval "$output";
   fi
-  chpwd_functions=(${chpwd_functions:#proto_activate})
-  precmd_functions=(${precmd_functions:#proto_activate})
-  unfunction proto_activate proto_deactivate 2>/dev/null
+  trap - SIGINT
 }
-
 typeset -ag chpwd_functions
 if (( ! ${chpwd_functions[(I)proto_activate]} )); then
   chpwd_functions=(proto_activate $chpwd_functions)

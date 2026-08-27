@@ -6,7 +6,7 @@ use crate::session::{ProtoSession, SessionResult};
 use crate::workflows::{convert_paths_for_shell, remove_activated_paths};
 use clap::Args;
 use indexmap::IndexMap;
-use starbase_shell::{ShellType, Statement};
+use starbase_shell::{Hook, ShellType, Statement};
 use starbase_utils::envx;
 use std::env;
 use std::path::PathBuf;
@@ -89,6 +89,19 @@ fn print_deactivation_exports(
 ) -> miette::Result<()> {
     let shell = shell_type.build();
     let mut output = vec![];
+
+    // Unregister hook handlers
+    output.push(shell.format_hook(Hook::UnregisterHandlers {
+        function: "proto_activate".into(),
+    })?);
+
+    // Unregister the activate/deactivate functions. This output is evaluated
+    // by the deactivate function itself, so the statements must use the hook
+    // form: elvish's plain `del` is a compilation error there, which aborts
+    // every other statement alongside it.
+    for name in ["proto_activate", "proto_deactivate"] {
+        output.push(shell.format(Statement::UnsetFunction { name, hook: true }));
+    }
 
     // Remove the variables and aliases that were set
     for key in env_keys {

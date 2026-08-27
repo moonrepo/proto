@@ -1,6 +1,6 @@
 ---
 source: crates/cli/tests/activate_test.rs
-assertion_line: 489
+assertion_line: 488
 expression: "get_activate_output(&assert, &sandbox)"
 ---
 

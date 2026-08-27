@@ -10,27 +10,21 @@ function proto_activate {
   }
   $global:LASTEXITCODE = $previousExitCode;
 }
-
 function proto_deactivate {
+  $previousExitCode = $global:LASTEXITCODE;
   $exports = proto deactivate powershell --export;
   if ($exports) {
     $exports | Out-String | Invoke-Expression;
   }
-
-  if (Get-Variable -Name 'proto_activate_prompt' -Scope Global -ErrorAction Ignore) {
-    Set-Item -Path 'function:global:prompt' -Value $global:proto_activate_prompt;
-    Remove-Variable -Name 'proto_activate_prompt' -Scope Global;
-  }
-
-  Remove-Item -LiteralPath 'function:proto_activate' -ErrorAction Ignore;
-  Remove-Item -LiteralPath 'function:proto_deactivate' -ErrorAction Ignore;
+  $global:LASTEXITCODE = $previousExitCode;
 }
-
-if (-not (Get-Variable -Name 'proto_activate_prompt' -Scope Global -ErrorAction Ignore)) {
-  $global:proto_activate_prompt = $function:prompt;
+# Windows PowerShell has no change-dir trigger, since `LocationChangedAction`
+# requires PowerShell 6+, so the global prompt is wrapped instead
+if (-not (Get-Variable -Name 'proto_activate_on_prompt' -Scope Global -ErrorAction Ignore)) {
+  $global:proto_activate_on_prompt = $function:prompt;
 
   function global:prompt {
     proto_activate;
-    & $global:proto_activate_prompt;
+    & $global:proto_activate_on_prompt;
   }
 };

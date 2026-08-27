@@ -197,23 +197,36 @@ fn print_activation_hook(
     activate_command.push_str(" --export");
     deactivate_command.push_str(" --export");
 
+    let shell = shell_type.build();
+
     session
         .console
         .out
-        .write_line(shell_type.build().format_hook(Hook::OnContextChange {
-            activate_command,
-            activate_function: "proto_activate".into(),
-            deactivate_command,
-            deactivate_function: "proto_deactivate".into(),
+        .write_line(shell.format_hook(Hook::Activate {
+            command: activate_command,
+            function: "proto_activate".into(),
+        })?)?;
+
+    session
+        .console
+        .out
+        .write_line(shell.format_hook(Hook::Deactivate {
+            command: deactivate_command,
+            function: "proto_deactivate".into(),
+        })?)?;
+
+    session
+        .console
+        .out
+        .write_line(shell.format_hook(Hook::RegisterHandlers {
+            function: "proto_activate".into(),
         })?)?;
 
     if !args.no_init {
         match shell_type {
-            // Nu applies every statement through a hook, so a call here would
-            // only stage the file, while making the module fail to parse when
-            // it's used. Its prompt trigger handles the initial activation.
-            ShellType::Nu => {}
-            // Parens are required for xonsh as it is Python-based
+            // Parens are required for xonsh as it is Python-based. In nu the
+            // call stages the activation, which its first prompt applies, so
+            // the output must be consumed with `source` rather than `use`.
             ShellType::Xonsh => {
                 session.console.out.write_line("\nproto_activate()")?;
             }

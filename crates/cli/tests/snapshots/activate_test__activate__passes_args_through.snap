@@ -9,16 +9,15 @@ proto_activate() {
   fi
   unset proto_activate_output
 }
-
 proto_deactivate() {
   proto_deactivate_output=$(proto deactivate ash --export)
   if [ -n "$proto_deactivate_output" ]; then
     eval "$proto_deactivate_output"
   fi
   unset proto_deactivate_output
-  unset -f cd proto_activate proto_deactivate
 }
-
+# POSIX shells have no change-dir or prompt hook, so `cd` is shadowed. This
+# clobbers any other `cd` wrapper, as there is no way to chain functions
 cd() {
   command cd "$@" || return $?
   proto_activate

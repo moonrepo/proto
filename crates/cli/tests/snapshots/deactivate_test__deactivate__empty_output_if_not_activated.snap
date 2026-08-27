@@ -1,4 +1,0 @@
----
-source: crates/cli/tests/deactivate_test.rs
-expression: "get_deactivate_output(&assert, &sandbox)"
----

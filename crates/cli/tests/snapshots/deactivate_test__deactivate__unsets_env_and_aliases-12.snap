@@ -2,6 +2,16 @@
 source: crates/cli/tests/deactivate_test.rs
 expression: "get_deactivate_output(&assert, &sandbox)"
 ---
+# A comprehension rather than a loop, so that the names it walks do not outlive
+# it in the shell's namespace
+[
+    event.discard(handler)
+    for event in (events.on_chdir, events.on_pre_prompt)
+    for handler in list(event)
+    if getattr(handler, '__name__', '') == 'proto_activate'
+]
+__xonsh__.ctx.pop('proto_activate', None)
+__xonsh__.ctx.pop('proto_deactivate', None)
 ${...}.pop("PROTO_HOME", None)
 ${...}.pop("KEY1", None)
 ${...}.pop("KEY2", None)

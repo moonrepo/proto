@@ -5,15 +5,10 @@ expression: "get_activate_output(&assert, &sandbox)"
 function proto_activate {
   proto activate murex --export -> source
 }
-
 function proto_deactivate {
   proto deactivate murex --export -> source
-  !event onPrompt proto_activate
-  !function proto_activate
-  !function proto_deactivate
 }
-
-event onPrompt proto_activate=before {
+event onPrompt proto_activate_on_prompt=before {
   proto_activate
 }
 

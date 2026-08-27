@@ -54,6 +54,9 @@ assert_eq "$PATH" "$path_before"
 [[ -z "$(declare -F proto_deactivate)" ]] || fail "deactivation hook was not removed"
 assert_not_contains "${PROMPT_COMMAND:-}" "proto_activate"
 
-# Deactivating without an activation is a no-op, not an error
+# Deactivating without an activation still prints the hook teardown, which
+# must be harmlessly evaluable even though nothing was registered or applied
 out=$(proto deactivate bash --export)
-assert_eq "$out" ""
+assert_contains "$out" "unset -f proto_activate"
+assert_not_contains "$out" "unset MY_VAR"
+eval "$out"

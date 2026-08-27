@@ -62,28 +62,27 @@ mod activate {
         use super::*;
 
         #[test]
-        fn hook_omits_the_init_call() {
+        fn hook_appends_the_init_call() {
             let sandbox = create_empty_proto_sandbox();
 
-            // Nu applies every statement through a hook, so a trailing call
-            // would only stage the file, while making the module fail to
-            // parse when it's used
+            // The call stages the activation, which the first prompt applies,
+            // so the output must be consumed with `source` rather than `use`
             let assert = sandbox.run_bin(|cmd| {
                 cmd.arg("activate").arg("nu");
             });
             let stdout = assert.stdout();
 
             assert.success();
-            assert!(!stdout.trim_end().ends_with("proto_activate"));
+            assert!(stdout.trim_end().ends_with("proto_activate"));
 
-            // While other shells still initialize
+            // And `use` consumers can still opt out
             let assert = sandbox.run_bin(|cmd| {
-                cmd.arg("activate").arg("bash");
+                cmd.arg("activate").arg("nu").arg("--no-init");
             });
             let stdout = assert.stdout();
 
             assert.success();
-            assert!(stdout.trim_end().ends_with("proto_activate"));
+            assert!(!stdout.trim_end().ends_with("proto_activate"));
         }
     }
 

@@ -2,3 +2,6 @@
 source: crates/cli/tests/deactivate_test.rs
 expression: "get_deactivate_output(&assert, &sandbox)"
 ---
+!event onPrompt proto_activate_on_prompt
+!function proto_activate;
+!function proto_deactivate;

@@ -36,9 +36,11 @@ mod deactivate {
     }
 
     #[test]
-    fn empty_output_if_not_activated() {
+    fn teardown_only_if_not_activated() {
         let sandbox = create_empty_proto_sandbox();
 
+        // The hook teardown is always printed, so that deactivating fully
+        // unregisters even when nothing is currently applied
         for shell in ShellType::variants() {
             let assert = sandbox.run_bin(|cmd| {
                 cmd.arg("deactivate").arg(shell.to_string());

@@ -2,6 +2,10 @@
 source: crates/cli/tests/deactivate_test.rs
 expression: "get_deactivate_output(&assert, &sandbox)"
 ---
+# Erasing the wrapper unbinds both events with it
+functions --erase proto_activate_on_context;
+functions --erase proto_activate;
+functions --erase proto_deactivate;
 set -ge PROTO_HOME;
 set -ge KEY1;
 set -ge KEY2;

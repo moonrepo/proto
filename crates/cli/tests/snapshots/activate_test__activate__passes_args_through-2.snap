@@ -13,31 +13,17 @@ proto_activate() {
   trap - SIGINT;
   return $previous_exit_status;
 };
-
 proto_deactivate() {
+  local previous_exit_status=$?;
   local output;
+  trap '' SIGINT;
   output=$(proto deactivate bash --export)
   if [ -n "$output" ]; then
     eval "$output";
   fi
-  if [[ "$(declare -p PROMPT_COMMAND 2>&1)" == "declare -a"* ]]; then
-    local filtered=();
-    local entry;
-    for entry in "${PROMPT_COMMAND[@]}"; do
-      if [[ "$entry" != "proto_activate" ]]; then
-        filtered+=("$entry");
-      fi
-    done
-    PROMPT_COMMAND=("${filtered[@]}");
-  else
-    PROMPT_COMMAND=";${PROMPT_COMMAND:-};";
-    PROMPT_COMMAND="${PROMPT_COMMAND//;proto_activate;/;}";
-    PROMPT_COMMAND="${PROMPT_COMMAND#;}";
-    PROMPT_COMMAND="${PROMPT_COMMAND%;}";
-  fi
-  unset -f proto_activate proto_deactivate;
+  trap - SIGINT;
+  return $previous_exit_status;
 };
-
 if [[ "$(declare -p PROMPT_COMMAND 2>&1)" == "declare -a"* ]]; then
   if [[ " ${PROMPT_COMMAND[*]:-} " != *" proto_activate "* ]]; then
     PROMPT_COMMAND=(proto_activate "${PROMPT_COMMAND[@]}")
