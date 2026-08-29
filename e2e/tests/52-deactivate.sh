@@ -47,7 +47,8 @@ assert_not_contains "$(alias e2e-alias 2>&1)" "node --version"
 
 # Activation only injects between the markers, so dropping them restores
 # the exact list we started with, including any proto paths the profile set
-assert_eq "$PATH" "$path_before"
+# and any duplicates the environment already had
+assert_path_eq "$PATH" "$path_before"
 
 # Both functions are removed, and the hook no longer runs on `cd`
 [[ -z "$(declare -F proto_activate)" ]] || fail "activation hook was not removed"
@@ -67,4 +68,4 @@ assert_eq "${E2E_DEACTIVATE_VAR:-}" "set-by-proto"
 assert_contains "$(alias e2e-alias 2>&1)" "node --version"
 proto_deactivate
 assert_eq "${E2E_DEACTIVATE_VAR:-<unset>}" "<unset>"
-assert_eq "$PATH" "$path_before"
+assert_path_eq "$PATH" "$path_before"
