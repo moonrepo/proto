@@ -43,7 +43,7 @@ mod deactivate {
         // unregisters even when nothing is currently applied
         for shell in ShellType::variants() {
             let assert = sandbox.run_bin(|cmd| {
-                cmd.arg("deactivate").arg(shell.to_string());
+                cmd.arg("deactivate").arg(shell.to_string()).arg("--export");
                 cmd.env("PATH", "/usr/bin:/bin");
             });
 
@@ -97,25 +97,6 @@ mod deactivate {
     }
 
     #[test]
-    fn export_matches_the_default_output() {
-        let sandbox = create_empty_proto_sandbox();
-
-        let with_flag = sandbox.run_bin(|cmd| {
-            cmd.arg("deactivate").arg("zsh").arg("--export");
-            activated(cmd, &sandbox);
-            activated_path(cmd, &sandbox);
-        });
-
-        let without_flag = sandbox.run_bin(|cmd| {
-            cmd.arg("deactivate").arg("zsh");
-            activated(cmd, &sandbox);
-            activated_path(cmd, &sandbox);
-        });
-
-        assert_eq!(with_flag.output(), without_flag.output());
-    }
-
-    #[test]
     fn supports_json_exports() {
         let sandbox = create_empty_proto_sandbox();
 
@@ -142,6 +123,7 @@ mod deactivate {
             let assert = sandbox.run_bin(|cmd| {
                 cmd.arg("deactivate")
                     .arg("zsh")
+                    .arg("--export")
                     .env("CODEX_CI", "1")
                     .env_remove("PROTO_REPORTER");
                 activated(cmd, &sandbox);

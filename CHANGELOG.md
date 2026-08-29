@@ -23,20 +23,27 @@
 #### 💥 Breaking
 
 - Renamed the functions that the `proto activate` hook defines, from `_proto_activate_hook` and `_proto_deactivate_hook`, to `proto_activate` and `proto_deactivate`.
-- Updated `proto activate nu` to no longer append a `proto_activate` call. Nushell applies every statement through a hook, so the call would only stage them, while making the module fail to parse when it's used. Its prompt trigger handles the initial activation.
+- Updated the generated Nushell code to be consumed with `source` instead of `use`, as the appended `proto_activate` call stages the initial activation, which the first prompt applies. If you saved the output to a file, regenerate it and update your `config.nu`:
+
+  ```nushell
+  proto activate nu | save --force ($nu.default-config-dir | path join "proto-hook.nu")
+  # In config.nu, replace `use proto-hook.nu` with:
+  source proto-hook.nu
+  ```
+
 - Updated the JSON output of `proto activate` to return `PATH` as a `paths` list, instead of a pre-joined `path` string. Nushell models `PATH` as a list, and would otherwise lose its path semantics.
 
 #### 🚀 Updates
 
 - Added `proto activate` support for the following shells: `ash`, `dash`, `sh`, `powershell` (5.1+), `xonsh`
 - Added a new `proto deactivate` command, that turns off a previous activation for the current shell session, by unsetting environment variables, removing shell aliases, and removing the injected `PATH` entries.
-  - The activation hook now also defines a `proto_deactivate` function, which runs the command and unregisters the hook itself. Prefer calling it over the command directly.
+  - The activation hook now also defines a `proto_deactivate` function, which runs the command, unregisters the hook, and removes both functions. Re-activate by evaluating `proto activate` again.
   - In Nushell, the teardown is staged like every other statement, so it applies on the trigger that follows the call, instead of immediately.
 - Updated `proto activate` workflows to also trigger on prompt changes, so that configuration changes in the current directory are reflected.
   - Applied to the following shells: `elvish`, `fish`, `nu`, `pwsh`, `xonsh`, `zsh`
   - If you notice any performance regression, please report it to us!
 - Updated `proto activate` to no longer remove `PATH` entries that were inherited from outside of the activation, even when the same directory is being activated. This keeps `~/.proto/shims` and `~/.proto/bin` on `PATH` after deactivating, when a shell profile had already added them.
-- Updated `proto activate nu` to apply our shell syntax like every other shell, instead of a JSON payload. Nushell has no runtime `eval`, so its hook stages the statements in a file and applies them with `source`. The JSON output remains available for tooling.
+- Updated `proto activate nu` to apply our shell syntax like every other shell, instead of a JSON payload. Nushell has no runtime `eval`, so its hook stages the statements in a file and applies them with `source`, which delays each application to the next prompt. The JSON output remains available for tooling.
 
 #### 🐞 Fixes
 

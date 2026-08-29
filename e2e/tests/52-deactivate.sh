@@ -60,3 +60,11 @@ out=$(proto deactivate bash --export)
 assert_contains "$out" "unset -f proto_activate"
 assert_not_contains "$out" "unset MY_VAR"
 eval "$out"
+
+# Re-activating after a deactivation restores the full workflow
+eval "$(proto activate bash)"
+assert_eq "${E2E_DEACTIVATE_VAR:-}" "set-by-proto"
+assert_contains "$(alias e2e-alias 2>&1)" "node --version"
+proto_deactivate
+assert_eq "${E2E_DEACTIVATE_VAR:-<unset>}" "<unset>"
+assert_eq "$PATH" "$path_before"

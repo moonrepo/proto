@@ -3,7 +3,7 @@ source: crates/cli/tests/deactivate_test.rs
 expression: "get_deactivate_output(&assert, &sandbox)"
 ---
 if (Get-Variable -Name 'proto_activate_on_prompt' -Scope Global -ErrorAction Ignore) {
-  Set-Item -Path 'function:global:prompt' -Value $global:proto_activate_prompt;
+  Set-Item -Path 'function:global:prompt' -Value $global:proto_activate_on_prompt;
   Remove-Variable -Name 'proto_activate_on_prompt' -Scope Global;
 }
 Remove-Item -LiteralPath 'function:proto_activate' -ErrorAction Ignore;

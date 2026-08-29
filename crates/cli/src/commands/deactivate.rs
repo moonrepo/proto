@@ -6,6 +6,7 @@ use crate::session::{ProtoSession, SessionResult};
 use crate::workflows::{convert_paths_for_shell, remove_activated_paths};
 use clap::Args;
 use indexmap::IndexMap;
+use starbase_console::ui::*;
 use starbase_shell::{Hook, ShellType, Statement};
 use starbase_utils::envx;
 use std::env;
@@ -62,14 +63,30 @@ pub async fn deactivate(session: ProtoSession, args: DeactivateArgs) -> SessionR
             })?;
         }
         StdoutOwner::ShellCode => {
-            print_deactivation_exports(
-                &session,
-                &shell_type,
-                env_keys,
-                alias_names,
-                tracking_keys,
-                next_paths,
-            )?;
+            if args.export {
+                print_deactivation_exports(
+                    &session,
+                    &shell_type,
+                    env_keys,
+                    alias_names,
+                    tracking_keys,
+                    next_paths,
+                )?;
+            } else {
+                let is_activated = env::var(ACTIVATED_PATH_KEY).is_ok();
+
+                if is_activated {
+                    session.console.notice(
+                        Variant::Info,
+                        "Run <shell>proto_deactivate</shell> in this terminal session to deactivate proto.",
+                    )?;
+                } else {
+                    session.console.notice(
+                        Variant::Caution,
+                        format!("No activation workflow detected for shell <id>{}</id>. Learn more: <url>https://moonrepo.dev/docs/proto/workflows#shell-activation</url>", shell_type),
+                    )?;
+                }
+            }
         }
         StdoutOwner::CompletionCode | StdoutOwner::McpStdio => {
             unreachable!("deactivate resolved to an unrelated stdout owner")
