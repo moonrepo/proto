@@ -11,7 +11,7 @@ use proto_pdk_api::{
     ActivateEnvironmentInput, ActivateEnvironmentOutput, HookFunction, PluginFunction, RunHook,
     RunHookResult,
 };
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashMap;
 use starbase_args::parse as parse_args;
 use starbase_shell::{BoxedShell, ShellType, join_args};
 use starbase_utils::envx;
@@ -306,25 +306,20 @@ impl<'app> ExecWorkflow<'app> {
         // `PATH` may have already been activated, so we need to remove
         // paths that proto has injected, otherwise this paths list
         // will continue to grow and grow. Paths that were inherited from
-        // outside of the boundary are kept as-is, even when we've also
-        // activated them, so that deactivating can restore the original
-        // list by simply dropping everything within the boundary.
+        // outside of the boundary are kept exactly as they were — including
+        // pre-existing duplicates, which resolution ignores anyway — so that
+        // deactivating restores the original list by simply dropping
+        // everything within the boundary.
         let mut in_activate = false;
-        let mut dupe_paths = FxHashSet::default();
 
         for path in current_paths {
             if path == start_path {
                 in_activate = true;
-                continue;
             } else if path == stop_path {
                 in_activate = false;
-                continue;
-            } else if in_activate || dupe_paths.contains(&path) {
-                continue;
+            } else if !in_activate {
+                reset_paths.push(path);
             }
-
-            reset_paths.push(path.clone());
-            dupe_paths.insert(path);
         }
 
         reset_paths
@@ -782,6 +777,16 @@ mod tests {
                 ],
                 // And one that relies on activation entirely
                 vec![PathBuf::from("/usr/bin"), PathBuf::from("/bin")],
+                // CI runners carry pre-existing duplicates, which must
+                // survive the round trip untouched
+                vec![
+                    PathBuf::from("/store/shims"),
+                    PathBuf::from("/store/bin"),
+                    PathBuf::from("/store/shims"),
+                    PathBuf::from("/usr/bin"),
+                    PathBuf::from("/bin"),
+                    PathBuf::from("/usr/bin"),
+                ],
             ] {
                 let activated = wf.reset_paths_from(&store, current.clone());
 
