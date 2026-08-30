@@ -1,0 +1,15 @@
+---
+source: crates/cli/tests/deactivate_test.rs
+expression: "get_deactivate_output(&assert, &sandbox)"
+---
+!event onPrompt proto_activate_on_prompt
+!function proto_activate;
+!function proto_deactivate;
+unset PROTO_HOME;
+unset KEY1;
+unset KEY2;
+!alias pn;
+!alias yn;
+unset _PROTO_ACTIVATED_ENV;
+unset _PROTO_ACTIVATED_ALIASES;
+unset _PROTO_ACTIVATED_PATH;

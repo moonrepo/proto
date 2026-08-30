@@ -1,0 +1,30 @@
+---
+source: crates/cli/tests/deactivate_test.rs
+expression: "get_deactivate_output(&assert, &sandbox)"
+---
+use str
+
+# Handlers are matched by the name comment their definition carries, rather
+# than by the function itself, which is out of reach here: this may be
+# evaluated inside the deactivate function, whose `eval` runs in a namespace
+# that cannot see the session's definitions
+set @after-chdir = (each {|handler| if (not (and (has-key $handler def) (str:contains $handler[def] "# proto_activate\n"))) { put $handler } } $after-chdir)
+
+# The `edit:` module only exists in an interactive session, and referencing it
+# directly is a compilation error, which `try` cannot catch
+try {
+  eval 'use str
+set @edit:before-readline = (each {|handler| if (not (and (has-key $handler def) (str:contains $handler[def] "# proto_activate\n"))) { put $handler } } $edit:before-readline)'
+} catch _ {
+  # Nothing was registered when non-interactive
+}
+try { edit:del-vars ['proto_activate~'] } catch _ { }
+try { edit:del-vars ['proto_deactivate~'] } catch _ { }
+unset-env PROTO_HOME;
+unset-env KEY1;
+unset-env KEY2;
+try { edit:del-vars ['pn~'] } catch _ { }
+try { edit:del-vars ['yn~'] } catch _ { }
+unset-env _PROTO_ACTIVATED_ENV;
+unset-env _PROTO_ACTIVATED_ALIASES;
+unset-env _PROTO_ACTIVATED_PATH;

@@ -2,33 +2,50 @@
 source: crates/cli/tests/activate_test.rs
 expression: "get_activate_output(&assert, &sandbox)"
 ---
-
-using namespace System;
-using namespace System.Management.Automation;
-
-$origPath = [Environment]::GetEnvironmentVariable('PATH')
-[Environment]::SetEnvironmentVariable('__ORIG_PATH', "$origPath");
-
-function _proto_activate_hook {
+function proto_activate {
+  $previousExitCode = $global:LASTEXITCODE;
   $exports = proto activate pwsh --config-mode upwards-global --no-bin --no-shim --export;
   if ($exports) {
     $exports | Out-String | Invoke-Expression;
   }
+  $global:LASTEXITCODE = $previousExitCode;
 }
+function proto_deactivate {
+  $previousExitCode = $global:LASTEXITCODE;
+  $exports = proto deactivate pwsh --export;
+  if ($exports) {
+    $exports | Out-String | Invoke-Expression;
+  }
+  $global:LASTEXITCODE = $previousExitCode;
+}
+if (-not (Get-Variable -Name 'proto_activate_on_chdir' -Scope Global -ErrorAction Ignore)) {
+  $global:proto_activate_on_chdir = [System.EventHandler[System.Management.Automation.LocationChangedEventArgs]] {
+    param([object] $source, [System.Management.Automation.LocationChangedEventArgs] $changedArgs)
+    end {
+      proto_activate
+    }
+  };
 
-$hook = [EventHandler[LocationChangedEventArgs]] {
-  param([object] $source, [LocationChangedEventArgs] $changedArgs)
-  end {
-    _proto_activate_hook
+  $ExecutionContext.SessionState.InvokeCommand.LocationChangedAction = [System.Delegate]::Combine(
+    $ExecutionContext.SessionState.InvokeCommand.LocationChangedAction,
+    $global:proto_activate_on_chdir
+  );
+};
+
+if (-not (Get-Variable -Name 'proto_activate_on_prompt' -Scope Global -ErrorAction Ignore)) {
+  $global:proto_activate_on_prompt = $function:prompt;
+
+  # A session started without a prompt (`-File`, `-Command`) has nothing to
+  # save: fall back to the engine's default, so the wrapper never invokes
+  # `$null` and unregistering always restores a callable prompt
+  if ($null -eq $global:proto_activate_on_prompt) {
+    $global:proto_activate_on_prompt = { "PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) " };
+  }
+
+  function global:prompt {
+    proto_activate;
+    & $global:proto_activate_on_prompt;
   }
 };
 
-$currentAction = $ExecutionContext.SessionState.InvokeCommand.LocationChangedAction;
-
-if ($currentAction) {
-  $ExecutionContext.SessionState.InvokeCommand.LocationChangedAction = [Delegate]::Combine($currentAction, $hook);
-} else {
-  $ExecutionContext.SessionState.InvokeCommand.LocationChangedAction = $hook;
-};
-
-_proto_activate_hook
+proto_activate

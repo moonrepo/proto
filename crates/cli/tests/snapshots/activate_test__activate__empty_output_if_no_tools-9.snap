@@ -2,7 +2,38 @@
 source: crates/cli/tests/activate_test.rs
 expression: "get_activate_output(&assert, &sandbox)"
 ---
-Error: shell::no_hook_support
+function proto_activate {
+  $previousExitCode = $global:LASTEXITCODE;
+  $exports = proto activate powershell --export;
+  if ($exports) {
+    $exports | Out-String | Invoke-Expression;
+  }
+  $global:LASTEXITCODE = $previousExitCode;
+}
+function proto_deactivate {
+  $previousExitCode = $global:LASTEXITCODE;
+  $exports = proto deactivate powershell --export;
+  if ($exports) {
+    $exports | Out-String | Invoke-Expression;
+  }
+  $global:LASTEXITCODE = $previousExitCode;
+}
+# Windows PowerShell has no change-dir trigger, since `LocationChangedAction`
+# requires PowerShell 6+, so the global prompt is wrapped instead
+if (-not (Get-Variable -Name 'proto_activate_on_prompt' -Scope Global -ErrorAction Ignore)) {
+  $global:proto_activate_on_prompt = $function:prompt;
 
-  × Your shell, powershell, does not support "on change directory" hooks.
-  │ Please remove the command from your shell that is triggering this hook.
+  # A session started without a prompt (`-File`, `-Command`) has nothing to
+  # save: fall back to the engine's default, so the wrapper never invokes
+  # `$null` and unregistering always restores a callable prompt
+  if ($null -eq $global:proto_activate_on_prompt) {
+    $global:proto_activate_on_prompt = { "PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) " };
+  }
+
+  function global:prompt {
+    proto_activate;
+    & $global:proto_activate_on_prompt;
+  }
+};
+
+proto_activate

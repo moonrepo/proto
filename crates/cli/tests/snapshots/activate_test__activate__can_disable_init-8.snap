@@ -2,40 +2,70 @@
 source: crates/cli/tests/activate_test.rs
 expression: "get_activate_output(&assert, &sandbox)"
 ---
+export def --env proto_activate [] {
+    # Nushell has no runtime `eval`, but `source` parses and runs a file in the
+    # scope that invoked it, which is enough to apply a statement list. Only a
+    # hook entry defined as a string is parsed that way, so the statements are
+    # written out and a one shot entry is staged to apply them, which it does
+    # before the next prompt and then removes itself.
+    #
+    # `source` requires a parse time constant path (a runtime path fails with
+    # `nu::shell::not_a_constant`), so the name is baked into the staged entry.
+    # It is keyed by pid, so concurrent sessions cannot read each other's
+    # statements, and by function, so two tools cannot clobber each other.
+    let file = $"($nu.temp-dir)/proto_activate-($nu.pid).nu"
 
-export def _proto_activate_hook [] {
-    let data = proto activate nu --reporter json | from json
+    # A failing command stages nothing rather than aborting the prompt, and its
+    # stderr is left alone
+    try { proto activate nu --export | save --force $file } catch { "" | save --force $file }
 
-    $data | get --optional env | items { |k, v|
-        if $v == null {
-            if $k in $env {
-                hide-env $k
-            }
-        } else {
-            load-env { ($k): $v }
-        }
-    }
+    let entries = ((($env.config | get --optional hooks.pre_prompt) | default [])
+        | where { |it| not (($it | describe | str starts-with "record") and (($it | get --optional code | default "") | str starts-with "# proto_activate apply")) })
 
-    let path_list = $data | get --optional paths | default []
-    let path_string = $data | get --optional path | default ''
-
-    if ($path_list | is-not-empty) {
-        $env.PATH = $path_list
-    }
-
-    if ($path_string | is-not-empty) {
-        $env.PATH = $path_string
-    }
+    $env.config = ($env.config | upsert hooks.pre_prompt ($entries | append { code: '# proto_activate apply
+const proto_activate_file = $"($nu.temp-dir)/proto_activate-($nu.pid).nu"
+source $proto_activate_file
+rm --force --permanent $proto_activate_file
+$env.config = ($env.config | upsert hooks.pre_prompt ((($env.config | get --optional hooks.pre_prompt) | default []) | where { |it| not (($it | describe | str starts-with "record") and (($it | get --optional code | default "") | str starts-with "# proto_activate apply")) }))' }))
 }
+export def --env proto_deactivate [] {
+    # Nushell has no runtime `eval`, but `source` parses and runs a file in the
+    # scope that invoked it, which is enough to apply a statement list. Only a
+    # hook entry defined as a string is parsed that way, so the statements are
+    # written out and a one shot entry is staged to apply them, which it does
+    # before the next prompt and then removes itself.
+    #
+    # `source` requires a parse time constant path (a runtime path fails with
+    # `nu::shell::not_a_constant`), so the name is baked into the staged entry.
+    # It is keyed by pid, so concurrent sessions cannot read each other's
+    # statements, and by function, so two tools cannot clobber each other.
+    let file = $"($nu.temp-dir)/proto_deactivate-($nu.pid).nu"
 
+    # A failing command stages nothing rather than aborting the prompt, and its
+    # stderr is left alone
+    try { proto deactivate nu --export | save --force $file } catch { "" | save --force $file }
+
+    let entries = ((($env.config | get --optional hooks.pre_prompt) | default [])
+        | where { |it| not (($it | describe | str starts-with "record") and (($it | get --optional code | default "") | str starts-with "# proto_deactivate apply")) })
+
+    $env.config = ($env.config | upsert hooks.pre_prompt ($entries | append { code: '# proto_deactivate apply
+const proto_deactivate_file = $"($nu.temp-dir)/proto_deactivate-($nu.pid).nu"
+source $proto_deactivate_file
+rm --force --permanent $proto_deactivate_file
+$env.config = ($env.config | upsert hooks.pre_prompt ((($env.config | get --optional hooks.pre_prompt) | default []) | where { |it| not (($it | describe | str starts-with "record") and (($it | get --optional code | default "") | str starts-with "# proto_deactivate apply")) }))' }))
+}
 export-env {
-    $env.__ORIG_PATH = $env.PATH
+    let entry = { code: "proto_activate" }
 
     $env.config = ($env.config | upsert hooks.env_change.PWD { |config|
         let list = ($config | get --optional hooks.env_change.PWD) | default []
 
-        $list | append { |before, after|
-            _proto_activate_hook
-        }
+        if $entry in $list { $list } else { $list | append $entry }
+    })
+
+    $env.config = ($env.config | upsert hooks.pre_prompt { |config|
+        let list = ($config | get --optional hooks.pre_prompt) | default []
+
+        if $entry in $list { $list } else { $list | append $entry }
     })
 }

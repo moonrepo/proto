@@ -1,0 +1,42 @@
+---
+source: crates/cli/tests/deactivate_test.rs
+expression: "get_deactivate_output(&assert, &sandbox)"
+---
+if (Get-Variable -Name 'proto_activate_on_chdir' -Scope Global -ErrorAction Ignore) {
+  $ExecutionContext.SessionState.InvokeCommand.LocationChangedAction = [System.Delegate]::Remove(
+    $ExecutionContext.SessionState.InvokeCommand.LocationChangedAction,
+    $global:proto_activate_on_chdir
+  );
+  Remove-Variable -Name 'proto_activate_on_chdir' -Scope Global;
+}
+
+if (Get-Variable -Name 'proto_activate_on_prompt' -Scope Global -ErrorAction Ignore) {
+  Set-Item -Path 'function:global:prompt' -Value $global:proto_activate_on_prompt;
+  Remove-Variable -Name 'proto_activate_on_prompt' -Scope Global;
+}
+Remove-Item -LiteralPath 'function:proto_activate' -ErrorAction Ignore;
+Remove-Item -LiteralPath 'function:proto_deactivate' -ErrorAction Ignore;
+if (Test-Path "env:PROTO_HOME") {
+  Remove-Item -LiteralPath "env:PROTO_HOME";
+}
+if (Test-Path "env:KEY1") {
+  Remove-Item -LiteralPath "env:KEY1";
+}
+if (Test-Path "env:KEY2") {
+  Remove-Item -LiteralPath "env:KEY2";
+}
+Remove-Alias -Name pn -Force;
+Remove-Alias -Name yn -Force;
+$env:PATH = @(
+  "/usr/bin"
+  "/bin"
+) -join [IO.PATH]::PathSeparator;
+if (Test-Path "env:_PROTO_ACTIVATED_ENV") {
+  Remove-Item -LiteralPath "env:_PROTO_ACTIVATED_ENV";
+}
+if (Test-Path "env:_PROTO_ACTIVATED_ALIASES") {
+  Remove-Item -LiteralPath "env:_PROTO_ACTIVATED_ALIASES";
+}
+if (Test-Path "env:_PROTO_ACTIVATED_PATH") {
+  Remove-Item -LiteralPath "env:_PROTO_ACTIVATED_PATH";
+}

@@ -58,6 +58,7 @@ fn should_check_for_new_version(cli: &CLI) -> bool {
         Commands::Activate(_)
             | Commands::Bin(_)
             | Commands::Clean(_)
+            | Commands::Deactivate(_)
             | Commands::Exec(_)
             | Commands::Run(_)
             | Commands::Setup(_)
@@ -448,5 +449,11 @@ mod tests {
 
         let exec = CLI::try_parse_from(["proto", "exec", "--", "node"]).unwrap();
         assert!(!should_check_for_new_version(&exec));
+
+        // The nu hook requests JSON, which is reporter owned, but the
+        // output is still evaluated by the shell
+        let deactivate =
+            CLI::try_parse_from(["proto", "deactivate", "nu", "--reporter", "json"]).unwrap();
+        assert!(!should_check_for_new_version(&deactivate));
     }
 }
