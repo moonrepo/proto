@@ -1,0 +1,29 @@
+---
+source: crates/cli/tests/deactivate_test.rs
+expression: "get_deactivate_output(&assert, &sandbox)"
+---
+if [[ "$(declare -p PROMPT_COMMAND 2>&1)" == "declare -a"* ]]; then
+  proto_activate_filtered=();
+  for proto_activate_entry in "${PROMPT_COMMAND[@]}"; do
+    if [[ "$proto_activate_entry" != "proto_activate" ]]; then
+      proto_activate_filtered+=("$proto_activate_entry");
+    fi
+  done
+  PROMPT_COMMAND=("${proto_activate_filtered[@]}");
+  unset proto_activate_filtered proto_activate_entry;
+else
+  PROMPT_COMMAND=";${PROMPT_COMMAND:-};";
+  PROMPT_COMMAND="${PROMPT_COMMAND//;proto_activate;/;}";
+  PROMPT_COMMAND="${PROMPT_COMMAND#;}";
+  PROMPT_COMMAND="${PROMPT_COMMAND%;}";
+fi
+unset -f proto_activate;
+unset -f proto_deactivate;
+unset PROTO_HOME;
+unset KEY1;
+unset KEY2;
+unalias pn;
+unalias yn;
+unset _PROTO_ACTIVATED_ENV;
+unset _PROTO_ACTIVATED_ALIASES;
+unset _PROTO_ACTIVATED_PATH;

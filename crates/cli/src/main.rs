@@ -94,6 +94,7 @@ async fn async_main() -> MainResult {
                 Commands::Bin(args) => commands::bin(session, args).await,
                 Commands::Clean(args) => commands::clean(session, args).await,
                 Commands::Completions(args) => commands::completions(session, args).await,
+                Commands::Deactivate(args) => commands::deactivate(session, args).await,
                 Commands::Debug { command } => match command {
                     DebugCommands::Config(args) => commands::debug::config(session, args).await,
                     DebugCommands::Env(args) => commands::debug::env(session, args).await,

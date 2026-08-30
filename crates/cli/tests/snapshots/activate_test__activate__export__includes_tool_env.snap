@@ -2,7 +2,6 @@
 source: crates/cli/tests/activate_test.rs
 expression: "get_activate_output(&assert, &sandbox)"
 ---
-
 export KEY1=value1;
 export KEY2=value2;
 unset PROTO_VERSION;

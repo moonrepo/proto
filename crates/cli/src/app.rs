@@ -1,7 +1,8 @@
 use crate::commands::{
-    ActivateArgs, AliasArgs, BinArgs, CleanArgs, CompletionsArgs, DiagnoseArgs, ExecArgs,
-    InstallArgs, McpArgs, MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs, SetupArgs,
-    ShellArgs, StatusArgs, UnaliasArgs, UninstallArgs, UnpinArgs, UpgradeArgs, VersionsArgs,
+    ActivateArgs, AliasArgs, BinArgs, CleanArgs, CompletionsArgs, DeactivateArgs, DiagnoseArgs,
+    ExecArgs, InstallArgs, McpArgs, MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs,
+    SetupArgs, ShellArgs, StatusArgs, UnaliasArgs, UninstallArgs, UnpinArgs, UpgradeArgs,
+    VersionsArgs,
     debug::{DebugConfigArgs, DebugEnvArgs},
     plugin::{PluginAddArgs, PluginInfoArgs, PluginListArgs, PluginRemoveArgs, PluginSearchArgs},
 };
@@ -219,8 +220,9 @@ impl App {
 
     pub fn stdout_owner(&self) -> StdoutOwner {
         match &self.command {
-            Commands::Activate(args) => {
-                if self.is_reporter_explicit() && self.reporter_format().is_json() && !args.export {
+            Commands::Activate(ActivateArgs { export, .. })
+            | Commands::Deactivate(DeactivateArgs { export, .. }) => {
+                if self.is_reporter_explicit() && self.reporter_format().is_json() && !export {
                     StdoutOwner::Reporter
                 } else {
                     StdoutOwner::ShellCode
@@ -315,6 +317,13 @@ pub enum Commands {
         about = "Generate command completions for your current shell."
     )]
     Completions(CompletionsArgs),
+
+    #[command(
+        name = "deactivate",
+        about = "Deactivate proto for the current shell session by reverting a previous activation.",
+        long_about = "Deactivate proto for the current shell session by unsetting environment variables, removing shell aliases, and restoring PATH.\n\nThis reverses what `proto activate` applied. Prefer calling the `proto_deactivate` shell function, as it also unregisters the activation hook.\nLearn more: https://moonrepo.dev/docs/proto/workflows"
+    )]
+    Deactivate(DeactivateArgs),
 
     #[command(name = "debug", about = "Debug the current proto environment.")]
     Debug {
