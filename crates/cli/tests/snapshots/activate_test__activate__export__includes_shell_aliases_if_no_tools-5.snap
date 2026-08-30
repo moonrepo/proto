@@ -4,7 +4,7 @@ expression: "get_activate_output(&assert, &sandbox)"
 ---
 
 set -ge PROTO_VERSION;
+set -gx _PROTO_ACTIVATED_PATH <WORKSPACE>/.proto/shims:<WORKSPACE>/.proto/bin;
 alias .. cd' ..';
 alias gs git' status';
 set -gx _PROTO_ACTIVATED_ALIASES ..,gs;
-set -gx _PROTO_ACTIVATED_PATH <WORKSPACE>/.proto/shims:<WORKSPACE>/.proto/bin;

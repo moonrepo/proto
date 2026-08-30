@@ -11,7 +11,7 @@ use proto_pdk_api::{
     ActivateEnvironmentInput, ActivateEnvironmentOutput, HookFunction, PluginFunction, RunHook,
     RunHookResult,
 };
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashMap;
 use starbase_args::parse as parse_args;
 use starbase_shell::{BoxedShell, ShellType, join_args};
 use starbase_utils::envx;
@@ -21,6 +21,11 @@ use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use tracing::{instrument, trace};
+
+/// Fake marker paths that denote the boundary of the paths that an
+/// activation has injected into `PATH`.
+pub const ACTIVATE_START_MARKER: &str = "activate-start";
+pub const ACTIVATE_STOP_MARKER: &str = "activate-stop";
 
 #[derive(Debug, Default)]
 pub struct ExecCommandOptions {
@@ -281,8 +286,15 @@ impl<'app> ExecWorkflow<'app> {
     }
 
     pub fn reset_paths(&self, store_dir: &Path) -> Vec<PathBuf> {
-        let start_path = store_dir.join("activate-start");
-        let stop_path = store_dir.join("activate-stop");
+        self.reset_paths_from(store_dir, envx::paths())
+    }
+
+    fn reset_paths_from<I>(&self, store_dir: &Path, current_paths: I) -> Vec<PathBuf>
+    where
+        I: IntoIterator<Item = PathBuf>,
+    {
+        let start_path = store_dir.join(ACTIVATE_START_MARKER);
+        let stop_path = store_dir.join(ACTIVATE_STOP_MARKER);
 
         // Create a new `PATH` list with our activated tools. Use fake
         // marker paths to indicate a boundary.
@@ -293,23 +305,21 @@ impl<'app> ExecWorkflow<'app> {
 
         // `PATH` may have already been activated, so we need to remove
         // paths that proto has injected, otherwise this paths list
-        // will continue to grow and grow.
+        // will continue to grow and grow. Paths that were inherited from
+        // outside of the boundary are kept exactly as they were — including
+        // pre-existing duplicates, which resolution ignores anyway — so that
+        // deactivating restores the original list by simply dropping
+        // everything within the boundary.
         let mut in_activate = false;
-        let mut dupe_paths: FxHashSet<PathBuf> = reset_paths.iter().cloned().collect();
 
-        for path in envx::paths() {
+        for path in current_paths {
             if path == start_path {
                 in_activate = true;
-                continue;
             } else if path == stop_path {
                 in_activate = false;
-                continue;
-            } else if in_activate || dupe_paths.contains(&path) {
-                continue;
+            } else if !in_activate {
+                reset_paths.push(path);
             }
-
-            reset_paths.push(path.clone());
-            dupe_paths.insert(path);
         }
 
         reset_paths
@@ -317,14 +327,6 @@ impl<'app> ExecWorkflow<'app> {
 
     pub fn reset_paths_for_shell(&self, store_dir: &Path, shell_type: &ShellType) -> Vec<PathBuf> {
         convert_paths_for_shell(self.reset_paths(store_dir).iter(), shell_type)
-    }
-
-    pub fn reset_and_join_paths_for_shell(
-        &self,
-        store_dir: &Path,
-        shell_type: &ShellType,
-    ) -> miette::Result<OsString> {
-        join_paths_for_shell(self.reset_paths(store_dir).iter(), shell_type)
     }
 
     pub fn requires_shell(&self, shell: &BoxedShell, args: &[String], raw: bool) -> bool {
@@ -348,6 +350,31 @@ impl<'app> ExecWorkflow<'app> {
     }
 }
 
+/// Remove the paths that a previous activation injected into `PATH`, by
+/// dropping everything between the boundary markers, and the markers themselves.
+pub fn remove_activated_paths<I>(store_dir: &Path, paths: I) -> Vec<PathBuf>
+where
+    I: IntoIterator<Item = PathBuf>,
+{
+    let start_path = store_dir.join(ACTIVATE_START_MARKER);
+    let stop_path = store_dir.join(ACTIVATE_STOP_MARKER);
+
+    let mut in_activate = false;
+    let mut next_paths = vec![];
+
+    for path in paths {
+        if path == start_path {
+            in_activate = true;
+        } else if path == stop_path {
+            in_activate = false;
+        } else if !in_activate {
+            next_paths.push(path);
+        }
+    }
+
+    next_paths
+}
+
 fn convert_path(path: &Path, posix: bool) -> PathBuf {
     if posix {
         return windows_path_to_posix(path);
@@ -356,7 +383,7 @@ fn convert_path(path: &Path, posix: bool) -> PathBuf {
     path.into()
 }
 
-fn convert_paths_for_shell<'a, I>(paths: I, shell_type: &ShellType) -> Vec<PathBuf>
+pub fn convert_paths_for_shell<'a, I>(paths: I, shell_type: &ShellType) -> Vec<PathBuf>
 where
     I: IntoIterator<Item = &'a PathBuf>,
 {
@@ -687,6 +714,139 @@ mod tests {
             wf.collect_item(make_item(vec![], vec![("KEY", "second")]));
 
             assert_eq!(wf.env.get("KEY"), Some(&Some("second".to_string())));
+        }
+
+        #[test]
+        fn reset_paths_keeps_inherited_paths_that_were_also_activated() {
+            let mut wf = make_workflow();
+            wf.paths.push_back(PathBuf::from("/store/shims"));
+            wf.paths.push_back(PathBuf::from("/store/bin"));
+
+            let store = PathBuf::from("/store");
+            let current = vec![
+                PathBuf::from("/store/shims"),
+                PathBuf::from("/store/bin"),
+                PathBuf::from("/usr/bin"),
+            ];
+
+            assert_eq!(
+                wf.reset_paths_from(&store, current),
+                vec![
+                    PathBuf::from("/store/activate-start"),
+                    PathBuf::from("/store/shims"),
+                    PathBuf::from("/store/bin"),
+                    PathBuf::from("/store/activate-stop"),
+                    // Inherited from the profile, so they must survive
+                    PathBuf::from("/store/shims"),
+                    PathBuf::from("/store/bin"),
+                    PathBuf::from("/usr/bin"),
+                ]
+            );
+        }
+
+        #[test]
+        fn reset_paths_is_stable_when_reactivating() {
+            let mut wf = make_workflow();
+            wf.paths.push_back(PathBuf::from("/store/shims"));
+
+            let store = PathBuf::from("/store");
+            let current = vec![PathBuf::from("/store/shims"), PathBuf::from("/usr/bin")];
+
+            let once = wf.reset_paths_from(&store, current);
+            let twice = wf.reset_paths_from(&store, once.clone());
+
+            assert_eq!(once, twice);
+        }
+
+        #[test]
+        fn deactivating_restores_the_paths_before_activating() {
+            let mut wf = make_workflow();
+            wf.paths.push_back(PathBuf::from("/store/shims"));
+            wf.paths.push_back(PathBuf::from("/store/bin"));
+            wf.paths
+                .push_back(PathBuf::from("/store/tools/node/1.2.3/bin"));
+
+            let store = PathBuf::from("/store");
+
+            for current in [
+                // A profile that puts proto on `PATH` itself
+                vec![
+                    PathBuf::from("/store/shims"),
+                    PathBuf::from("/store/bin"),
+                    PathBuf::from("/usr/bin"),
+                ],
+                // And one that relies on activation entirely
+                vec![PathBuf::from("/usr/bin"), PathBuf::from("/bin")],
+                // CI runners carry pre-existing duplicates, which must
+                // survive the round trip untouched
+                vec![
+                    PathBuf::from("/store/shims"),
+                    PathBuf::from("/store/bin"),
+                    PathBuf::from("/store/shims"),
+                    PathBuf::from("/usr/bin"),
+                    PathBuf::from("/bin"),
+                    PathBuf::from("/usr/bin"),
+                ],
+            ] {
+                let activated = wf.reset_paths_from(&store, current.clone());
+
+                assert_eq!(remove_activated_paths(&store, activated), current);
+            }
+        }
+
+        #[test]
+        fn removes_activated_paths_and_markers() {
+            let store = PathBuf::from("/store");
+            let paths = vec![
+                PathBuf::from("/store/activate-start"),
+                PathBuf::from("/store/shims"),
+                PathBuf::from("/store/bin"),
+                PathBuf::from("/store/activate-stop"),
+                PathBuf::from("/usr/bin"),
+                PathBuf::from("/bin"),
+            ];
+
+            assert_eq!(
+                remove_activated_paths(&store, paths),
+                vec![PathBuf::from("/usr/bin"), PathBuf::from("/bin")]
+            );
+        }
+
+        #[test]
+        fn removes_activated_paths_when_not_leading() {
+            let store = PathBuf::from("/store");
+            let paths = vec![
+                PathBuf::from("/usr/bin"),
+                PathBuf::from("/store/activate-start"),
+                PathBuf::from("/store/shims"),
+                PathBuf::from("/store/activate-stop"),
+                PathBuf::from("/bin"),
+            ];
+
+            assert_eq!(
+                remove_activated_paths(&store, paths),
+                vec![PathBuf::from("/usr/bin"), PathBuf::from("/bin")]
+            );
+        }
+
+        #[test]
+        fn keeps_paths_when_never_activated() {
+            let store = PathBuf::from("/store");
+            let paths = vec![PathBuf::from("/usr/bin"), PathBuf::from("/bin")];
+
+            assert_eq!(remove_activated_paths(&store, paths.clone()), paths);
+        }
+
+        #[test]
+        fn keeps_paths_from_another_store() {
+            let store = PathBuf::from("/store");
+            let paths = vec![
+                PathBuf::from("/other/activate-start"),
+                PathBuf::from("/other/shims"),
+                PathBuf::from("/other/activate-stop"),
+            ];
+
+            assert_eq!(remove_activated_paths(&store, paths.clone()), paths);
         }
 
         #[test]

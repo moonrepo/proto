@@ -1,0 +1,8 @@
+---
+source: crates/cli/tests/deactivate_test.rs
+expression: "get_deactivate_output(&assert, &sandbox)"
+---
+# Dropping the shadow restores the builtin, which is all a POSIX shell has
+unset -f cd
+unset -f proto_activate
+unset -f proto_deactivate

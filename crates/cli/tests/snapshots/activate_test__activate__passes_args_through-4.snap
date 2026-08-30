@@ -2,15 +2,45 @@
 source: crates/cli/tests/activate_test.rs
 expression: "get_activate_output(&assert, &sandbox)"
 ---
-
-set-env __ORIG_PATH $E:PATH
-
-fn _proto_activate_hook {
-  eval (proto activate elvish --config-mode upwards-global --no-bin --no-shim --export);
+fn proto_activate {|@_|
+  # proto_activate
+  eval (proto activate elvish --config-mode upwards-global --no-bin --no-shim --export | slurp)
 }
 
-set @edit:before-readline = $@edit:before-readline {
-  _proto_activate_hook
+# Consumers `eval` this code, which runs in a namespace that is thrown away, so
+# the function is exported for the session to be able to call it
+try {
+  edit:add-vars [&'proto_activate~'=$proto_activate~]
+} catch _ {
+  # The `edit:` module only exists in an interactive session
+}
+fn proto_deactivate {|@_|
+  # proto_deactivate
+  eval (proto deactivate elvish --export | slurp)
 }
 
-_proto_activate_hook
+# Consumers `eval` this code, which runs in a namespace that is thrown away, so
+# the function is exported for the session to be able to call it
+try {
+  edit:add-vars [&'proto_deactivate~'=$proto_deactivate~]
+} catch _ {
+  # The `edit:` module only exists in an interactive session
+}
+# Re-sourcing creates a new function object every time, so a registered handler
+# is matched by its body rather than by identity
+fn proto_activate_on_chdir {|handlers|
+  each {|handler| if (not (and (has-key $handler def) (eq $handler[def] $proto_activate~[def]))) { put $handler } } $handlers
+}
+
+set @after-chdir = (proto_activate_on_chdir $after-chdir) $proto_activate~
+
+# The prompt trigger lives in the `edit:` module, which only exists in an
+# interactive session. Referencing it directly is a compilation error, which
+# `try` cannot catch, so the registration is compiled at runtime by `eval`
+try {
+  eval &ns=(ns [&others~=$proto_activate_on_chdir~ &activate~=$proto_activate~]) 'set @edit:before-readline = (others $edit:before-readline) $activate~'
+} catch _ {
+  # The `edit:` module only exists in an interactive session
+}
+
+proto_activate
