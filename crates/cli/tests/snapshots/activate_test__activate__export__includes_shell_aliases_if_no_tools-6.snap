@@ -4,7 +4,7 @@ expression: "get_activate_output(&assert, &sandbox)"
 ---
 
 drop PROTO_VERSION
+export _PROTO_ACTIVATED_PATH='<WORKSPACE>/.proto/shims:<WORKSPACE>/.proto/bin'
 alias '..' = 'cd ..'
 alias gs = 'git status'
 export _PROTO_ACTIVATED_ALIASES='..,gs'
-export _PROTO_ACTIVATED_PATH='<WORKSPACE>/.proto/shims:<WORKSPACE>/.proto/bin'

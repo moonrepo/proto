@@ -18,6 +18,33 @@ assert_neq() {
   [[ "$1" != "$2" ]] || fail "expected value to differ from '$2'"
 }
 
+# Compare two PATH lists, ignoring how Git Bash spells each entry.
+#
+# MSYS rewrites PATH at the native-process boundary, expanding its mount
+# aliases: `/mingw64/bin` becomes `/c/Program Files/Git/mingw64/bin`, `/cmd`
+# becomes `/c/Program Files/Git/cmd`, and both `/bin` and `/usr/bin` collapse
+# onto `/c/Program Files/Git/usr/bin`. proto only ever receives the expanded
+# form, and the mapping is many-to-one, so no amount of care on its side can
+# spell the aliases back. Round-trip both lists through the same expansion so
+# only the spelling is normalized: the comparison still demands the same
+# entries, in the same order, with duplicates intact.
+assert_path_eq() {
+  assert_eq "$(canonicalize_path_list "$1")" "$(canonicalize_path_list "$2")"
+}
+
+# `cygpath -p` converts a whole list in one pass, so this stays two processes
+# per list rather than two per entry. Round-tripping (rather than just
+# expanding the left side) also keeps the result independent of whether
+# cygpath spells drives as `/c/...` or `/cygdrive/c/...`.
+canonicalize_path_list() {
+  if [[ "${E2E_OS:-}" != "windows" ]]; then
+    printf '%s' "$1"
+    return
+  fi
+
+  cygpath -u -p "$(cygpath -w -p "$1")"
+}
+
 assert_contains() {
   [[ "$1" == *"$2"* ]] || fail "expected substring '$2' in: $1"
 }

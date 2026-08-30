@@ -1,0 +1,18 @@
+---
+source: crates/cli/tests/deactivate_test.rs
+expression: "get_deactivate_output(&assert, &sandbox)"
+---
+{
+  "env": {
+    "PROTO_HOME": null,
+    "KEY1": null,
+    "KEY2": null,
+    "_PROTO_ACTIVATED_ENV": null,
+    "_PROTO_ACTIVATED_ALIASES": null,
+    "_PROTO_ACTIVATED_PATH": null
+  },
+  "paths": [
+    "/usr/bin",
+    "/bin"
+  ]
+}

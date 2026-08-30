@@ -1,0 +1,8 @@
+---
+source: crates/cli/tests/deactivate_test.rs
+expression: "get_deactivate_output(&assert, &sandbox)"
+---
+chpwd_functions=(${chpwd_functions:#proto_activate})
+precmd_functions=(${precmd_functions:#proto_activate})
+unset -f proto_activate;
+unset -f proto_deactivate;

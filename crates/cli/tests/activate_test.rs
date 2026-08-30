@@ -58,6 +58,85 @@ mod activate {
         assert_snapshot!(get_activate_output(&assert, &sandbox));
     }
 
+    mod nu {
+        use super::*;
+
+        #[test]
+        fn hook_appends_the_init_call() {
+            let sandbox = create_empty_proto_sandbox();
+
+            // The call stages the activation, which the first prompt applies,
+            // so the output must be consumed with `source` rather than `use`
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("activate").arg("nu");
+            });
+            let stdout = assert.stdout();
+
+            assert.success();
+            assert!(stdout.trim_end().ends_with("proto_activate"));
+
+            // And `use` consumers can still opt out
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("activate").arg("nu").arg("--no-init");
+            });
+            let stdout = assert.stdout();
+
+            assert.success();
+            assert!(!stdout.trim_end().ends_with("proto_activate"));
+        }
+    }
+
+    mod structured {
+        use super::*;
+
+        #[test]
+        fn tracks_the_activation_so_it_can_be_reversed() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[env]
+KEY1 = "value1"
+"#,
+            );
+
+            // The tracking variables are part of the payload, so that a
+            // consumer can reverse an activation the same way the shells do
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("activate").arg("nu").arg("--reporter").arg("json");
+            });
+            let stdout = assert.stdout();
+            assert.success();
+            let output: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+            let env = output.get("env").unwrap();
+
+            assert_eq!(env.get("KEY1").unwrap(), "value1");
+            assert_eq!(env.get("_PROTO_ACTIVATED_ENV").unwrap(), "KEY1");
+            assert!(env.get("_PROTO_ACTIVATED_PATH").unwrap().is_string());
+        }
+
+        #[test]
+        fn stops_tracking_when_nothing_is_activated() {
+            let sandbox = create_empty_proto_sandbox();
+
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("activate")
+                    .arg("nu")
+                    .arg("--reporter")
+                    .arg("json")
+                    // A previous directory set this variable
+                    .env("_PROTO_ACTIVATED_ENV", "KEY1");
+            });
+            let stdout = assert.stdout();
+            assert.success();
+            let output: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+            let env = output.get("env").unwrap();
+
+            assert!(env.get("KEY1").unwrap().is_null());
+            assert!(env.get("_PROTO_ACTIVATED_ENV").unwrap().is_null());
+        }
+    }
+
     #[test]
     fn supports_one_tool() {
         let sandbox = create_empty_proto_sandbox();
@@ -139,7 +218,7 @@ moonstone = "2.0.0"
                     .env_remove("PROTO_REPORTER");
             });
             assert.success().stdout(
-                predicate::str::contains("_proto_activate_hook")
+                predicate::str::contains("proto_activate")
                     .and(predicate::str::contains("{\"type\":").not())
                     .and(predicate::str::contains("Detected an AI agent").not()),
             );
@@ -178,7 +257,8 @@ moonstone = "2.0.0"
             let output: serde_json::Value = serde_json::from_str(&stdout).unwrap();
 
             assert!(output.get("env").is_some());
-            assert!(output.get("path").is_some());
+            // Nu models `PATH` as a list, so it must not be pre-joined
+            assert!(output.get("paths").is_some_and(|paths| paths.is_array()));
         }
 
         #[test]
@@ -212,7 +292,7 @@ moonstone = "2.0.0"
         }
 
         #[test]
-        fn nu_hook_requests_explicit_json() {
+        fn nu_hook_stages_shell_syntax() {
             let sandbox = create_empty_proto_sandbox();
 
             let assert = sandbox.run_bin(|cmd| {
@@ -222,23 +302,22 @@ moonstone = "2.0.0"
                     .env_remove("PROTO_REPORTER");
             });
             assert.success().stdout(
-                predicate::str::contains("proto activate nu --reporter json")
+                predicate::str::contains("proto activate nu --export")
                     .and(predicate::str::contains("\"type\":").not()),
             );
 
-            // The nested call the hook makes must parse as plain JSON
+            // The nested call the hook makes is staged to a file and sourced,
+            // so it must be nu syntax and not a reporter payload
             let assert = sandbox.run_bin(|cmd| {
                 cmd.arg("activate")
                     .arg("nu")
-                    .arg("--reporter")
-                    .arg("json")
+                    .arg("--export")
                     .env("CODEX_CI", "1");
             });
-            let stdout = assert.stdout();
-            assert.success();
-            let output: serde_json::Value = serde_json::from_str(&stdout).unwrap();
-
-            assert!(output.get("env").is_some());
+            assert.success().stdout(
+                predicate::str::contains("$env._PROTO_ACTIVATED_PATH")
+                    .and(predicate::str::contains("\"type\":").not()),
+            );
         }
 
         #[test]
