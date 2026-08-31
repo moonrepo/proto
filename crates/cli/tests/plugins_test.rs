@@ -514,7 +514,7 @@ mod plugins {
                 .success();
 
             create_shim_command(sandbox.path(), "zig")
-                .arg("--version")
+                .arg("version")
                 .assert()
                 .success();
 

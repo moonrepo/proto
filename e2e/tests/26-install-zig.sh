@@ -3,5 +3,5 @@
 set -euo pipefail
 source "$(dirname "$0")/../lib/utils.sh"
 
-install_tool zig 0.16
+install_tool zig 0.16 version
 install_tool zls 0.16
