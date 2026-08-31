@@ -264,6 +264,20 @@ impl ProtoConfig {
             );
         }
 
+        if !tools.contains_key("zig") && is_tool_allowed("zig") {
+            tools.insert(
+                Id::raw("zig"),
+                find_debug_locator_with_fallback("zig_tool", "0.1.0"),
+            );
+        }
+
+        if !tools.contains_key("zls") && is_tool_allowed("zls") {
+            tools.insert(
+                Id::raw("zls"),
+                find_debug_locator_with_fallback("zig_ls_tool", "0.1.0"),
+            );
+        }
+
         if !tools.contains_key(SCHEMA_PLUGIN_KEY) {
             tools.insert(Id::raw(SCHEMA_PLUGIN_KEY), schema_locator);
         }
