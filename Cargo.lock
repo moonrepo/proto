@@ -4218,12 +4218,13 @@ dependencies = [
  "starbase",
  "starbase_args",
  "starbase_console",
+ "starbase_process",
  "starbase_sandbox",
  "starbase_shell",
  "starbase_styles",
  "starbase_utils",
  "sysinfo",
- "system_env",
+ "system_env 0.10.2",
  "thiserror 2.0.20",
  "tokio",
  "tracing",
@@ -4274,11 +4275,12 @@ dependencies = [
  "shell-words",
  "starbase_archive",
  "starbase_console",
+ "starbase_process",
  "starbase_sandbox",
  "starbase_shell",
  "starbase_styles",
  "starbase_utils",
- "system_env",
+ "system_env 0.10.2",
  "thiserror 2.0.20",
  "tokio",
  "toml_edit",
@@ -4311,7 +4313,7 @@ dependencies = [
  "schematic",
  "serde",
  "serde_json",
- "system_env",
+ "system_env 0.10.2",
  "thiserror 2.0.20",
  "version_spec",
  "warpgate_api",
@@ -5756,6 +5758,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "starbase_process"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2627bfa32a262f1604610a9a49d2c8449c655db9ddbe1a7dfb9487bec1705802"
+dependencies = [
+ "bytes",
+ "libc",
+ "miette 7.6.0",
+ "rustc-hash",
+ "scc",
+ "serde",
+ "starbase_console",
+ "starbase_shell",
+ "starbase_styles",
+ "system_env 0.10.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "thiserror 2.0.20",
+ "tokio",
+ "tracing",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
 name = "starbase_sandbox"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5960,6 +5984,19 @@ version = "0.10.2"
 dependencies = [
  "regex",
  "schematic",
+ "serde",
+ "serde_json",
+ "shell-words",
+ "thiserror 2.0.20",
+]
+
+[[package]]
+name = "system_env"
+version = "0.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c9d155ee35a35b6e6e27d610b999419604ade18616e5ba3044700f090b7afa50"
+dependencies = [
+ "regex",
  "serde",
  "serde_json",
  "shell-words",
@@ -6774,11 +6811,13 @@ dependencies = [
  "serde",
  "serde_json",
  "starbase_archive",
+ "starbase_console",
+ "starbase_process",
  "starbase_sandbox",
  "starbase_shell",
  "starbase_styles",
  "starbase_utils",
- "system_env",
+ "system_env 0.10.2",
  "thiserror 2.0.20",
  "tokio",
  "tracing",
@@ -6798,7 +6837,7 @@ dependencies = [
  "serde",
  "serde_json",
  "starbase_id",
- "system_env",
+ "system_env 0.10.2",
  "thiserror 2.0.20",
 ]
 

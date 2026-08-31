@@ -33,6 +33,8 @@ scc = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 starbase_archive = { workspace = true }
+starbase_console = { workspace = true }
+starbase_process = { workspace = true }
 starbase_shell = { workspace = true }
 starbase_styles = { workspace = true }
 starbase_utils = { workspace = true, features = [

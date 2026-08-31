@@ -1,12 +1,14 @@
-use rustc_hash::FxHashMap;
-use starbase_styles::{Style, Stylize, color};
+use crate::reporter::ProtoReporter;
+use starbase_process::{Arg, Command, ProcessError, output_to_string};
+use starbase_styles::{Style, Stylize};
 use starbase_utils::fs::FsError;
+use std::ffi::OsStr;
 use std::io;
 use std::path::PathBuf;
-use std::process::{Output, Stdio};
 use thiserror::Error;
-use tokio::process::Command;
-use tracing::trace;
+
+/// A command that renders through proto's console reporter.
+pub type ProtoCommand = Command<ProtoReporter>;
 
 #[derive(Error, Debug, miette::Diagnostic)]
 pub enum ProtoProcessError {
@@ -50,115 +52,132 @@ pub struct ProcessResult {
     pub working_dir: Option<PathBuf>,
 }
 
-async fn spawn_command(command: &mut Command) -> std::io::Result<Output> {
-    let child = command.spawn()?;
-    let output = child.wait_with_output().await?;
-
-    Ok(output)
+/// Create a command that executes `bin` directly, without wrapping it in a
+/// shell, mirroring how the standard library spawns a process.
+pub fn new_command<T: AsRef<OsStr>>(bin: T) -> ProtoCommand {
+    let mut command = ProtoCommand::new(bin);
+    command.no_shell();
+    configure_command(&mut command);
+    command
 }
 
-pub async fn exec_command(command: &mut Command) -> Result<ProcessResult, ProtoProcessError> {
-    let inner = command.as_std();
-    let command_line = format!(
-        "{} {}",
-        inner.get_program().to_string_lossy(),
-        shell_words::join(
-            inner
-                .get_args()
-                .map(|arg| arg.to_string_lossy())
-                .collect::<Vec<_>>()
-        )
-    );
+/// Create a command that executes a full command line, which always requires
+/// a shell, instead of a single executable.
+pub fn new_script_command<T: AsRef<OsStr>>(script: T) -> ProtoCommand {
+    let mut command = ProtoCommand::new_script(script);
+    configure_command(&mut command);
+    command
+}
 
-    trace!(
-        cwd = ?inner.get_current_dir(),
-        env = ?inner.get_envs()
-            .filter_map(|(key, val)| val.map(|v| (key, v.to_string_lossy())))
-            .collect::<FxHashMap<_, _>>(),
-        "Running command {}", color::shell(&command_line)
-    );
+/// Create a command that executes `bin` through the detected shell, so that
+/// the executable and its arguments are quoted and resolved by the shell.
+pub fn new_shell_command<T: AsRef<OsStr>>(bin: T) -> ProtoCommand {
+    let mut command = ProtoCommand::new(bin);
+    configure_command(&mut command);
+    command
+}
 
-    let working_dir = inner.get_current_dir().map(PathBuf::from);
-    let output =
-        spawn_command(command)
-            .await
-            .map_err(|error| ProtoProcessError::FailedCommand {
-                command: command_line.clone(),
-                error: Box::new(error),
-            })?;
+fn configure_command(command: &mut ProtoCommand) {
+    // proto inspects the exit code itself and decides what to do with it
+    // through `handle_exec`, so a non-zero exit must come back as a result
+    // and not as an error
+    command.set_error_on_nonzero(false);
 
-    let stderr = String::from_utf8(output.stderr).unwrap_or_default();
-    let stdout = String::from_utf8(output.stdout).unwrap_or_default();
-    let code = output.status.code().unwrap_or(-1);
+    // Avoid logging the entire environment, which is mostly noise and may
+    // contain secrets inherited from the parent process
+    command.debug.env_key_prefixes = vec!["PROTO_".into()];
+}
 
-    trace!(
-        code,
-        stderr = if stderr.len() > 250 {
-            "<truncated>"
-        } else {
-            &stderr
-        },
-        stdout = if stdout.len() > 250 {
-            "<truncated>"
-        } else {
-            &stdout
-        },
-        "Ran command {}",
-        color::shell(&command_line)
-    );
+async fn exec(
+    command: &mut ProtoCommand,
+    capture: bool,
+) -> Result<ProcessResult, ProtoProcessError> {
+    let command_line = command.get_command_line(false, false);
+    let working_dir = command.cwd.as_ref().map(PathBuf::from);
+
+    // `starbase_process` logs the command line, environment, and duration,
+    // and registers the child so that it's shut down with proto
+    let output = if capture {
+        command.exec_capture_output().await
+    } else {
+        command.exec_stream_output().await
+    }
+    .map_err(|error| to_failed_command(command_line.clone(), error))?;
 
     Ok(ProcessResult {
         command: command_line,
-        stderr,
-        stdout,
-        exit_code: code,
+        exit_code: output.code().unwrap_or(-1),
+        stderr: output_to_string(&output.stderr),
+        stdout: output_to_string(&output.stdout),
         working_dir,
     })
 }
 
-pub async fn exec_command_piped(command: &mut Command) -> Result<ProcessResult, ProtoProcessError> {
-    exec_command(command.stderr(Stdio::piped()).stdout(Stdio::piped())).await
+fn to_failed_command(command: String, report: miette::Report) -> ProtoProcessError {
+    // Every failure that can surface here wraps the underlying IO error, so
+    // unwrap it to keep the shape of our own error unchanged
+    let error = match report.downcast::<ProcessError>() {
+        Ok(
+            ProcessError::Capture { error, .. }
+            | ProcessError::Stream { error, .. }
+            | ProcessError::StreamCapture { error, .. }
+            | ProcessError::WriteInput { error, .. },
+        ) => error,
+        Ok(error) => Box::new(io::Error::other(error.to_string())),
+        Err(report) => Box::new(io::Error::other(report.to_string())),
+    };
+
+    ProtoProcessError::FailedCommand { command, error }
 }
 
+/// Execute the command, inheriting stdout and stderr, so that its output
+/// streams straight to the terminal and nothing is captured.
+pub async fn exec_command(command: &mut ProtoCommand) -> Result<ProcessResult, ProtoProcessError> {
+    exec(command, false).await
+}
+
+/// Execute the command, capturing stdout and stderr instead of streaming them.
+pub async fn exec_command_piped(
+    command: &mut ProtoCommand,
+) -> Result<ProcessResult, ProtoProcessError> {
+    exec(command, true).await
+}
+
+/// Execute the command through an elevated program, like `sudo`. See
+/// [`exec_command`].
 pub async fn exec_command_with_privileges(
-    command: &mut Command,
+    command: &mut ProtoCommand,
     elevated_program: Option<&str>,
 ) -> Result<ProcessResult, ProtoProcessError> {
-    match elevated_program {
-        Some(program) => {
-            let inner = command.as_std();
+    elevate_command(command, elevated_program);
 
-            let mut sudo_command = Command::new(program);
-            sudo_command.arg(inner.get_program());
-            sudo_command.args(inner.get_args());
-
-            for (key, value) in inner.get_envs() {
-                if let Some(value) = value {
-                    sudo_command.env(key, value);
-                } else {
-                    sudo_command.env_remove(key);
-                }
-            }
-
-            if let Some(dir) = inner.get_current_dir() {
-                sudo_command.current_dir(dir);
-            }
-
-            exec_command(&mut sudo_command).await
-        }
-        None => exec_command(command).await,
-    }
+    exec_command(command).await
 }
 
+/// Execute the command through an elevated program, like `sudo`. See
+/// [`exec_command_piped`].
 pub async fn exec_command_with_privileges_piped(
-    command: &mut Command,
+    command: &mut ProtoCommand,
     elevated_program: Option<&str>,
 ) -> Result<ProcessResult, ProtoProcessError> {
-    exec_command_with_privileges(
-        command.stderr(Stdio::piped()).stdout(Stdio::piped()),
-        elevated_program,
-    )
-    .await
+    elevate_command(command, elevated_program);
+
+    exec_command_piped(command).await
+}
+
+// Push the executable down into the first argument and run the elevated
+// program in its place, so that the environment, working directory, and
+// remaining arguments carry over as-is. Only binaries are elevated, never
+// scripts, so the executable is always a single program name.
+fn elevate_command(command: &mut ProtoCommand, elevated_program: Option<&str>) {
+    let Some(program) = elevated_program else {
+        return;
+    };
+
+    let exe = command.exe.as_os_str().to_os_string();
+
+    command.args.push_front(Arg::from(exe));
+    command.set_bin(program);
 }
 
 pub fn handle_exec(result: ProcessResult) -> Result<ProcessResult, ProtoProcessError> {

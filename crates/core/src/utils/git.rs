@@ -1,13 +1,14 @@
-use super::process::{ProtoProcessError, exec_command_piped, handle_exec};
+use super::process::{
+    ProtoCommand, ProtoProcessError, exec_command_piped, handle_exec, new_command,
+};
 use crate::helpers::now;
 use proto_pdk_api::GitSource;
 use starbase_utils::fs;
 use std::path::Path;
 use std::time::SystemTime;
-use tokio::process::Command;
 
-pub fn new_clone(git: &GitSource, cwd: &Path) -> Command {
-    let mut cmd = Command::new("git");
+pub fn new_clone(git: &GitSource, cwd: &Path) -> ProtoCommand {
+    let mut cmd = new_command("git");
     cmd.args(if git.submodules {
         vec!["clone", "--recurse-submodules"]
     } else {
@@ -16,19 +17,19 @@ pub fn new_clone(git: &GitSource, cwd: &Path) -> Command {
     .args(["--depth", "1"])
     .arg(&git.url)
     .arg(".")
-    .current_dir(cwd);
+    .cwd(cwd);
     cmd
 }
 
-pub fn new_checkout(reference: &str, cwd: &Path) -> Command {
-    let mut cmd = Command::new("git");
-    cmd.arg("checkout").arg(reference).current_dir(cwd);
+pub fn new_checkout(reference: &str, cwd: &Path) -> ProtoCommand {
+    let mut cmd = new_command("git");
+    cmd.arg("checkout").arg(reference).cwd(cwd);
     cmd
 }
 
-pub fn new_pull(cwd: &Path) -> Command {
-    let mut cmd = Command::new("git");
-    cmd.args(["pull", "--ff", "--prune"]).current_dir(cwd);
+pub fn new_pull(cwd: &Path) -> ProtoCommand {
+    let mut cmd = new_command("git");
+    cmd.args(["pull", "--ff", "--prune"]).cwd(cwd);
     cmd
 }
 

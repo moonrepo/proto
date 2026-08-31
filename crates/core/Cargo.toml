@@ -52,6 +52,7 @@ serde_json = { workspace = true }
 shell-words = { workspace = true }
 starbase_archive = { workspace = true }
 starbase_console = { workspace = true, features = ["serde", "ui"] }
+starbase_process = { workspace = true }
 starbase_sandbox = { workspace = true, optional = true }
 starbase_shell = { workspace = true }
 starbase_styles = { workspace = true }

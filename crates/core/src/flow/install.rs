@@ -12,14 +12,12 @@ use crate::utils::log::LogWriter;
 use crate::utils::{archive, process};
 use proto_pdk_api::*;
 use starbase_archive::get_compression_extensions;
-use starbase_shell::{ShellType, join_exe_args};
 use starbase_styles::color;
 use starbase_utils::net::DownloadOptions;
 use starbase_utils::{fs, net, path};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use system_env::System;
-use tokio::process::Command;
 use tracing::{debug, instrument, warn};
 use warpgate::extract_file_name_from_url;
 
@@ -539,14 +537,11 @@ impl<'tool> Installer<'tool> {
                     "Executing post-install script",
                 );
 
-                let shell = ShellType::detect_with_fallback().build();
-                let mut command = Command::from(shell.create_wrapped_command_with(join_exe_args(
-                    &shell,
-                    &abs_script,
-                    &output.post_script_args,
-                    false,
-                )));
-                command.current_dir(&self.product_dir);
+                // Run through a shell, as the script may not be directly
+                // executable on its own
+                let mut command = process::new_shell_command(&abs_script);
+                command.args(&output.post_script_args);
+                command.cwd(&self.product_dir);
 
                 proto.create_metric().record_tool_install_step(
                     &self.tool.context,

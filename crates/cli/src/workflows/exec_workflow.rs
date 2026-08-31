@@ -6,6 +6,7 @@ use miette::IntoDiagnostic;
 use proto_core::flow::locate::Locator;
 use proto_core::flow::manage::ProtoManageError;
 use proto_core::flow::resolve::Resolver;
+use proto_core::utils::process::{self, ProtoCommand};
 use proto_core::{ProtoConfig, ProtoConfigEnvOptions, ToolContext, ToolSpec};
 use proto_pdk_api::{
     ActivateEnvironmentInput, ActivateEnvironmentOutput, HookFunction, PluginFunction, RunHook,
@@ -19,7 +20,6 @@ use std::collections::VecDeque;
 use std::env;
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use tracing::{instrument, trace};
 
 /// Fake marker paths that denote the boundary of the paths that an
@@ -189,31 +189,35 @@ impl<'app> ExecWorkflow<'app> {
         mut args: Vec<String>,
         shell_type: Option<ShellType>,
         options: ExecCommandOptions,
-    ) -> miette::Result<Command> {
+    ) -> miette::Result<ProtoCommand> {
         if let Some(shell_type) = shell_type {
-            return self.create_command_with_shell(shell_type.build(), args, options.raw_args);
+            return self.create_command_with_shell(shell_type, args, options.raw_args);
         }
 
         // We unfortunately need a shell to determine if the args must run in a shell!
         if options.check_shell {
-            let shell = ShellType::detect_with_fallback().build();
+            let shell_type = ShellType::detect_with_fallback();
 
-            if self.requires_shell(&shell, &args, options.raw_args) {
-                return self.create_command_with_shell(shell, args, options.raw_args);
+            if self.requires_shell(&shell_type.build(), &args, options.raw_args) {
+                return self.create_command_with_shell(shell_type, args, options.raw_args);
             }
         }
 
         self.create_command_without_shell(args.remove(0), args)
     }
 
-    pub fn create_command_without_shell<E, I, A>(self, exe: E, args: I) -> miette::Result<Command>
+    pub fn create_command_without_shell<E, I, A>(
+        self,
+        exe: E,
+        args: I,
+    ) -> miette::Result<ProtoCommand>
     where
         E: AsRef<OsStr>,
         I: IntoIterator<Item = A>,
         A: AsRef<OsStr>,
     {
-        let mut command = Command::new(exe);
-        command.args(args);
+        let mut command = process::new_command(exe);
+        command.args(args.into_iter().map(|arg| arg.as_ref().to_os_string()));
 
         if !self.multiple && !self.args.is_empty() {
             command.args(&self.args);
@@ -226,37 +230,37 @@ impl<'app> ExecWorkflow<'app> {
 
     pub fn create_command_with_shell<I, A>(
         self,
-        shell: BoxedShell,
+        shell_type: ShellType,
         args: I,
         raw: bool,
-    ) -> miette::Result<Command>
+    ) -> miette::Result<ProtoCommand>
     where
         I: IntoIterator<Item = A>,
         A: AsRef<OsStr>,
     {
+        // The args are joined into a single command line up front, so the
+        // command is a script for the shell to run, not a lone executable
         let mut command =
-            shell.create_wrapped_command_with(self.create_command_line(&shell, args, raw));
+            process::new_script_command(self.create_command_line(&shell_type.build(), args, raw));
+        command.set_shell(shell_type);
 
         self.apply_to_command(&mut command)?;
 
         Ok(command)
     }
 
-    pub fn apply_to_command(self, command: &mut Command) -> miette::Result<()> {
+    pub fn apply_to_command(self, command: &mut ProtoCommand) -> miette::Result<()> {
         if let Some(path) = self.join_paths()? {
             command.env("PATH", path);
         }
 
         for (key, value) in self.env {
-            match value {
-                Some(value) => command.env(key, value),
-                None => command.env_remove(key),
-            };
+            command.env_opt(key, value);
         }
 
         trace!(
-            exe = ?command.get_program().to_string_lossy(),
-            args = ?command.get_args().map(|arg| arg.to_string_lossy()).collect::<Vec<_>>(),
+            exe = command.get_bin_name(),
+            args = ?command.get_args_list(),
             "Created command to execute",
         );
 

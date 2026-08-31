@@ -4,13 +4,15 @@
 use crate::clients::{HttpClient, WarpgateHttpClientError};
 use crate::plugin_error::WarpgatePluginError;
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
-use starbase_shell::{ShellType, join_exe_args};
+use starbase_console::EmptyReporter;
+use starbase_process::{Command, Env};
+use starbase_shell::ShellType;
 use starbase_styles::{apply_style_tags, color};
 use starbase_utils::net::{self, DownloadOptions};
 use starbase_utils::{envx, fs};
 use std::env;
 use std::path::PathBuf;
-use std::process::{Command, Stdio};
+use std::process::Stdio;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Instant;
@@ -200,29 +202,27 @@ fn exec_command(
     let shell_name = input.shell.or_else(|| env::var("PROTO_SHELL").ok());
 
     // Create and execute command
-    let mut command = match &shell_name {
+    let mut builder = Command::<EmptyReporter>::new(exe);
+    builder.args(&input.args);
+
+    match &shell_name {
         Some(shell_name) => {
-            let shell = ShellType::from_str(shell_name)?.build();
-            shell.create_wrapped_command_with(join_exe_args(&shell, exe, &input.args, false))
+            builder.set_shell(ShellType::from_str(shell_name)?);
         }
         None => {
-            let mut command = Command::new(exe);
-            command.args(&input.args);
-            command
+            builder.no_shell();
         }
     };
 
-    command.current_dir(&cwd);
+    builder.cwd(&cwd);
 
     for (key, value) in &input.env {
         if let Some(key) = key.strip_suffix('?') {
-            if env::var_os(key).is_none() {
-                command.env(key, value);
-            }
+            builder.env_with_behavior(key, Env::SetIfMissing(value.into()));
         } else if let Some(key) = key.strip_suffix('!') {
-            command.env_remove(key);
+            builder.env_remove(key);
         } else {
-            command.env(key, value);
+            builder.env(key, value);
         }
     }
 
@@ -238,8 +238,16 @@ fn exec_command(
         );
         paths.extend(env_paths);
 
-        command.env("PATH", env::join_paths(paths)?);
+        // Set `PATH` explicitly instead of through `prepend_paths`, so that
+        // it continues to take precedence over an inherited `PATH`
+        builder.env("PATH", env::join_paths(paths)?);
     }
+
+    // This host function is synchronous, and cannot await the crate's own
+    // execution methods, so build the command and spawn it ourselves
+    let mut command = builder
+        .create_sync_command()
+        .map_err(|error| Error::msg(error.to_string()))?;
 
     command.stdin(Stdio::null());
 

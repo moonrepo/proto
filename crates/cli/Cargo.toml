@@ -65,6 +65,7 @@ shell-words = { workspace = true }
 starbase = { workspace = true, features = ["otel"] }
 starbase_args = { workspace = true }
 starbase_console = { workspace = true }
+starbase_process = { workspace = true }
 starbase_shell = { workspace = true }
 starbase_styles = { workspace = true }
 starbase_utils = { workspace = true }

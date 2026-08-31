@@ -7,7 +7,7 @@ use crate::lockfile::LockRecord;
 use crate::reporter::ProtoConsole;
 use crate::tool::Tool;
 use crate::utils::log::LogWriter;
-use crate::utils::process::{self, ProcessResult, ProtoProcessError};
+use crate::utils::process::{self, ProcessResult, ProtoCommand, ProtoProcessError};
 use crate::utils::{archive, git};
 use iocraft::prelude::{FlexDirection, View, element};
 use proto_pdk_api::{
@@ -30,7 +30,6 @@ use system_env::{
     DependencyConfig, DependencyName, System, SystemPackageManager, find_command_on_path,
     is_command_on_path,
 };
-use tokio::process::Command;
 use tokio::sync::{Mutex, OwnedMutexGuard};
 use tracing::{debug, error, instrument};
 use version_spec::{MatchesVersion, Requirement, Version, VersionSpec};
@@ -265,7 +264,7 @@ impl<'tool> Builder<'tool> {
 
     pub async fn exec_command(
         &mut self,
-        command: &mut Command,
+        command: &mut ProtoCommand,
         piped: bool,
     ) -> Result<Arc<ProcessResult>, ProtoProcessError> {
         self.handle_process_result(if self.options.skip_ui || piped {
@@ -277,7 +276,7 @@ impl<'tool> Builder<'tool> {
 
     pub async fn exec_command_with_privileges(
         &mut self,
-        command: &mut Command,
+        command: &mut ProtoCommand,
         elevated_program: Option<&str>,
         piped: bool,
     ) -> Result<Arc<ProcessResult>, ProtoProcessError> {
@@ -457,7 +456,10 @@ impl Builder<'_> {
             self.render_checkpoint(format!("Checking <shell>{pm}</shell> installed packages"))?;
 
             let list_output = self
-                .exec_command(Command::new(list_args.remove(0)).args(list_args), true)
+                .exec_command(
+                    process::new_command(list_args.remove(0)).args(list_args),
+                    true,
+                )
                 .await?;
             let installed_packages = pm_config.list_parser.parse(&list_output.stdout);
             let mut skipped_packages = FxHashMap::default();
@@ -579,7 +581,7 @@ impl Builder<'_> {
             self.render_checkpoint("Updating package manager index")?;
 
             self.exec_command_with_privileges(
-                Command::new(index_args.remove(0)).args(index_args),
+                process::new_command(index_args.remove(0)).args(index_args),
                 elevated_command,
                 false,
             )
@@ -606,7 +608,7 @@ impl Builder<'_> {
             self.render_checkpoint(format!("Installing <shell>{pm}</shell> packages"))?;
 
             self.exec_command_with_privileges(
-                Command::new(install_args.remove(0)).args(install_args),
+                process::new_command(install_args.remove(0)).args(install_args),
                 elevated_command,
                 false,
             )
@@ -633,7 +635,7 @@ impl Builder<'_> {
         version_arg: &str,
     ) -> Result<Version, ProtoBuildError> {
         let output = self
-            .exec_command(Command::new(cmd).arg(version_arg), true)
+            .exec_command(process::new_command(cmd).arg(version_arg), true)
             .await?;
 
         let value = get_command_version_regex()
@@ -727,7 +729,7 @@ impl Builder<'_> {
 
                     let result = self
                         .exec_command(
-                            Command::new("git").args(["config", "--get", config_key]),
+                            process::new_command("git").args(["config", "--get", config_key]),
                             true,
                         )
                         .await?;
@@ -767,7 +769,10 @@ impl Builder<'_> {
                         debug!("Checking if Xcode command line tools are installed");
 
                         let result = self
-                            .exec_command(Command::new("xcode-select").arg("--version"), true)
+                            .exec_command(
+                                process::new_command("xcode-select").arg("--version"),
+                                true,
+                            )
                             .await;
 
                         if result.is_err() || result.is_ok_and(|out| out.stdout.is_empty()) {
@@ -1075,10 +1080,10 @@ impl Builder<'_> {
                     ))?;
 
                     self.exec_command(
-                        Command::new(exe)
+                        process::new_command(exe)
                             .args(&cmd.args)
                             .envs(&cmd.env)
-                            .current_dir(
+                            .cwd(
                                 cmd.cwd
                                     .as_deref()
                                     .map(|cwd| self.tool.to_real_path(cwd))
