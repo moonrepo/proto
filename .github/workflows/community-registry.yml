@@ -18,10 +18,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout proto
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Checkout community plugins
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: moonrepo/community-plugins
           path: community-plugins
@@ -40,14 +40,8 @@ jobs:
       - name: Validate registry
         run: cargo run -p proto_codegen
 
-      - name: Commit registry changes
-        run: |
-          if git diff --quiet -- registry/data/community.json; then
-            exit 0
-          fi
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add registry/data/community.json
-          git commit -m "chore: Update community plugins registry"
-          git push
+      - name: Commit and push changes
+        uses: EndBug/add-and-commit@v11
+        with:
+          add: registry/data/community.json
+          message: "chore: Update community plugins registry [skip ci]"
