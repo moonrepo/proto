@@ -4,4 +4,8 @@
 set -euo pipefail
 source "$(dirname "$0")/../lib/utils.sh"
 
-install_backend asdf:zig 0.16 version
+# Keep this on a tool proto does NOT ship as a built-in. Backend tools share the
+# inventory dir and shim name of their id (unless the backend opts into
+# `scoped_backend_dir`), so e.g. `asdf:zig` would collide with built-in `zig`
+# in the suite's shared PROTO_HOME.
+install_backend asdf:jq 1.7

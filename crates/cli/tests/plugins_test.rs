@@ -504,6 +504,46 @@ mod plugins {
         }
 
         #[test]
+        fn supports_zig() {
+            let sandbox = create_empty_proto_sandbox();
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("zig");
+                })
+                .success();
+
+            create_shim_command(sandbox.path(), "zig")
+                .arg("version")
+                .assert()
+                .success();
+
+            assert_snapshot!(
+                fs::read_to_string(sandbox.path().join(".proto/shims/registry.json")).unwrap()
+            );
+        }
+
+        #[test]
+        fn supports_zls() {
+            let sandbox = create_empty_proto_sandbox();
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("zls");
+                })
+                .success();
+
+            create_shim_command(sandbox.path(), "zls")
+                .arg("--version")
+                .assert()
+                .success();
+
+            assert_snapshot!(
+                fs::read_to_string(sandbox.path().join(".proto/shims/registry.json")).unwrap()
+            );
+        }
+
+        #[test]
         fn supports_toml_schema() {
             let sandbox = create_empty_proto_sandbox_with_tools("toml");
 
