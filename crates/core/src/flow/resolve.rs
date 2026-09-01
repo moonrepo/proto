@@ -247,6 +247,17 @@ impl<'tool> Resolver<'tool> {
         if version.is_none() {
             self.load_versions(&candidate).await?;
 
+            if let Some(alias) = self.is_scoped_req_an_alias(&candidate) {
+                debug!(
+                    tool = self.tool.context.as_str(),
+                    spec = candidate.to_string(),
+                    alias,
+                    "Resolved a requirement to an alias",
+                );
+
+                candidate = UnresolvedVersionSpec::Alias(alias.into());
+            }
+
             version = self
                 .resolve_version_from_list(&candidate, resolve_from_manifest)
                 .await;
@@ -270,6 +281,39 @@ impl<'tool> Resolver<'tool> {
             self.data.resolve(candidate)
         } else {
             self.data.resolve_without_manifest(candidate)
+        }
+    }
+
+    // Some requirements like `next-12` are actually aliases for a specific version,
+    // and should not be treated as a scoped requirement like `~next-12`.
+    fn is_scoped_req_an_alias(&self, candidate: &UnresolvedVersionSpec) -> Option<String> {
+        match candidate {
+            UnresolvedVersionSpec::Requirement(req) => {
+                let mut alias = String::new();
+
+                if let Some(scope) = &req.scope {
+                    alias.push_str(&scope);
+
+                    if let Some(major) = &req.major {
+                        alias.push_str(&format!("-{major}"));
+                    }
+
+                    if self.data.aliases.contains_key(&alias) {
+                        return Some(alias);
+                    }
+
+                    if let Some(minor) = &req.minor {
+                        alias.push_str(&format!(".{minor}"));
+                    }
+
+                    if self.data.aliases.contains_key(&alias) {
+                        return Some(alias);
+                    }
+                }
+
+                None
+            }
+            _ => None,
         }
     }
 }

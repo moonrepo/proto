@@ -37,6 +37,15 @@ async fn create_mocked_tool(root: &Path) -> Tool {
     .unwrap()
 }
 
+// Seed the remote versions cache for a scope, so that `load_versions` reads
+// from it instead of calling the plugin, which lets us control the alias map
+fn seed_remote_versions(tool: &Tool, scope: &str, contents: &str) {
+    let dir = &tool.inventory.dir;
+
+    std::fs::create_dir_all(dir).unwrap();
+    std::fs::write(dir.join(format!("remote-versions-{scope}.json")), contents).unwrap();
+}
+
 mod resolver {
     use super::*;
 
@@ -434,6 +443,230 @@ mod resolver {
                     .exists()
             );
             assert!(!tool.inventory.dir.join("remote-versions.json").exists());
+        }
+    }
+
+    mod scoped_requirement_as_alias {
+        use super::*;
+
+        #[test]
+        fn scoped_alias_names_parse_as_requirements() {
+            // If these ever parse as aliases, the resolver work around
+            // in `is_scoped_req_an_alias` is no longer necessary
+            for value in ["next-12", "next-12.3"] {
+                assert!(
+                    matches!(
+                        UnresolvedVersionSpec::parse(value).unwrap(),
+                        UnresolvedVersionSpec::Requirement(_)
+                    ),
+                    "expected {value} to parse as a requirement"
+                );
+            }
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn resolves_scope_and_major_as_an_alias() {
+            let sandbox = create_empty_sandbox();
+            let tool = create_mocked_tool(sandbox.path()).await;
+
+            // The version list has no "next" scoped versions, so this can only
+            // resolve by treating "next-12" as an alias
+            seed_remote_versions(
+                &tool,
+                "next",
+                r#"{
+                    "aliases": { "next-12": "1.2.3" },
+                    "versions": ["1.0.0", "1.2.3", "2.0.0"]
+                }"#,
+            );
+
+            let result = Resolver::new(&tool)
+                .resolve_version_candidate(
+                    &UnresolvedVersionSpec::parse("next-12").unwrap(),
+                    false,
+                    false,
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(result, VersionSpec::parse("1.2.3").unwrap());
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn resolves_scope_major_and_minor_as_an_alias() {
+            let sandbox = create_empty_sandbox();
+            let tool = create_mocked_tool(sandbox.path()).await;
+
+            seed_remote_versions(
+                &tool,
+                "next",
+                r#"{
+                    "aliases": { "next-12.3": "1.2.3" },
+                    "versions": ["1.0.0", "1.2.3", "2.0.0"]
+                }"#,
+            );
+
+            let result = Resolver::new(&tool)
+                .resolve_version_candidate(
+                    &UnresolvedVersionSpec::parse("next-12.3").unwrap(),
+                    false,
+                    false,
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(result, VersionSpec::parse("1.2.3").unwrap());
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn resolves_an_alias_that_points_to_another_alias() {
+            let sandbox = create_empty_sandbox();
+            let tool = create_mocked_tool(sandbox.path()).await;
+
+            seed_remote_versions(
+                &tool,
+                "next",
+                r#"{
+                    "aliases": { "next-12": "stable-ish", "stable-ish": "1.2.3" },
+                    "versions": ["1.0.0", "1.2.3", "2.0.0"]
+                }"#,
+            );
+
+            let result = Resolver::new(&tool)
+                .resolve_version_candidate(
+                    &UnresolvedVersionSpec::parse("next-12").unwrap(),
+                    false,
+                    false,
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(result, VersionSpec::parse("1.2.3").unwrap());
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn resolves_through_the_public_spec_entry_point() {
+            let sandbox = create_empty_sandbox();
+            let tool = create_mocked_tool(sandbox.path()).await;
+
+            seed_remote_versions(
+                &tool,
+                "next",
+                r#"{
+                    "aliases": { "next-12": "1.2.3" },
+                    "versions": ["1.0.0", "1.2.3", "2.0.0"]
+                }"#,
+            );
+
+            let mut spec = ToolSpec::parse("next-12").unwrap();
+
+            let result = Resolver::new(&tool)
+                .resolve_version(&mut spec, false)
+                .await
+                .unwrap();
+
+            assert_eq!(result, VersionSpec::parse("1.2.3").unwrap());
+            assert!(spec.is_resolved());
+            assert_eq!(
+                spec.get_resolved_version(),
+                VersionSpec::parse("1.2.3").unwrap()
+            );
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn still_resolves_scoped_requirements_when_no_alias_matches() {
+            let sandbox = create_empty_sandbox();
+            let tool = create_mocked_tool(sandbox.path()).await;
+
+            seed_remote_versions(
+                &tool,
+                "temurin",
+                r#"{
+                    "versions": ["temurin-5.0.0", "temurin-5.1.0", "temurin-6.0.0"]
+                }"#,
+            );
+
+            let result = Resolver::new(&tool)
+                .resolve_version_candidate(
+                    &UnresolvedVersionSpec::parse("temurin-5").unwrap(),
+                    false,
+                    false,
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(result, VersionSpec::parse("temurin-5.1.0").unwrap());
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn prefers_the_scoped_requirement_over_an_unrelated_alias() {
+            let sandbox = create_empty_sandbox();
+            let tool = create_mocked_tool(sandbox.path()).await;
+
+            // The alias is for a different major, so it must not be applied
+            seed_remote_versions(
+                &tool,
+                "temurin",
+                r#"{
+                    "aliases": { "temurin-6": "temurin-6.0.0" },
+                    "versions": ["temurin-5.0.0", "temurin-5.1.0", "temurin-6.0.0"]
+                }"#,
+            );
+
+            let result = Resolver::new(&tool)
+                .resolve_version_candidate(
+                    &UnresolvedVersionSpec::parse("temurin-5").unwrap(),
+                    false,
+                    false,
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(result, VersionSpec::parse("temurin-5.1.0").unwrap());
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn errors_when_no_alias_and_no_scoped_versions_match() {
+            let sandbox = create_empty_sandbox();
+            let tool = create_mocked_tool(sandbox.path()).await;
+
+            seed_remote_versions(
+                &tool,
+                "next",
+                r#"{
+                    "aliases": { "next-13": "1.2.3" },
+                    "versions": ["1.0.0", "1.2.3", "2.0.0"]
+                }"#,
+            );
+
+            let result = Resolver::new(&tool)
+                .resolve_version_candidate(
+                    &UnresolvedVersionSpec::parse("next-12").unwrap(),
+                    false,
+                    false,
+                )
+                .await;
+
+            assert!(result.is_err());
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn does_not_apply_to_unscoped_requirements() {
+            let sandbox = create_empty_sandbox();
+            let tool = create_mocked_tool(sandbox.path()).await;
+
+            // An unscoped requirement has no scope to build an alias from,
+            // so it resolves against the version list as usual
+            let result = Resolver::new(&tool)
+                .resolve_version_candidate(
+                    &UnresolvedVersionSpec::parse("5").unwrap(),
+                    false,
+                    false,
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(result, VersionSpec::parse("5.10.15").unwrap());
         }
     }
 }

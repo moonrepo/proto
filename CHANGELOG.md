@@ -23,6 +23,7 @@
 #### 🐞 Fixes
 
 - Fixed the NDJSON output banner being displayed for tool executions.
+- Fixed scoped version requirements, like `next-12`, not resolving to an alias of the same name, and instead being treated as a requirement, like `~next-12`.
 
 ## 0.61.1
 
