@@ -209,7 +209,7 @@ impl ProtoConfig {
         if !tools.contains_key("node") && is_tool_allowed("node") {
             tools.insert(
                 Id::raw("node"),
-                find_debug_locator_with_fallback("node_tool", "0.17.12"),
+                find_debug_locator_with_fallback("node_tool", "0.17.13"),
             );
         }
 

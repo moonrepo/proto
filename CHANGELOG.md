@@ -18,6 +18,21 @@
 - [Swift](https://github.com/moonrepo/plugins/blob/master/tools/swift/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Fixed the NDJSON output banner being displayed for tool executions.
+- Fixed scoped version requirements, like `next-12`, not resolving to an alias of the same name, and instead being treated as a requirement, like `~next-12`.
+- Fixed version resolving hard failing when a tool's available versions could not be loaded, typically from a transient network failure. We now fallback to the previously cached versions, even when they have expired, and log a warning.
+
+#### 🛠️ Tools
+
+- **Node**
+  - Added a `dist-url-unofficial` setting, for downloading [unofficial builds](https://github.com/nodejs/unofficial-builds), like musl.
+  - Added an `index-url` setting, for loading available versions from a mirror.
+  - Updated `dist-url` and `index-url` to support a `{channel}` token, which is replaced with `release`, or `nightly` for canary versions.
+
 ## 0.61.1
 
 #### 🛠️ Tools
