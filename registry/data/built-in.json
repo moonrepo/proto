@@ -395,6 +395,60 @@
       "globalsDirs": [
         "~/.proto/tools/node/globals/bin"
       ]
+    },
+    {
+      "id": "zig",
+      "locator": "github://moonrepo/plugins/zig_tool",
+      "format": "wasm",
+      "name": "Zig",
+      "description": "Zig is a general-purpose language and toolchain for maintaining robust, optimal, and reusable software.",
+      "author": "moonrepo",
+      "homepageUrl": "https://ziglang.org/",
+      "repositoryUrl": "https://github.com/moonrepo/plugins",
+      "devicon": "zig",
+      "bins": [
+        "zig"
+      ],
+      "detectionSources": [
+        {
+          "file": ".zig-version"
+        },
+        {
+          "file": ".zigversion"
+        },
+        {
+          "file": "build.zig.zon",
+          "label": "minimum_zig_version",
+          "url": "https://ziglang.org/documentation/master/#Zig-Build-System"
+        }
+      ]
+    },
+    {
+      "id": "zls",
+      "locator": "github://moonrepo/plugins/zig_ls_tool",
+      "format": "wasm",
+      "name": "ZLS",
+      "description": "ZLS is the Zig language server, providing completion, diagnostics, and more to editors.",
+      "author": "moonrepo",
+      "homepageUrl": "https://zigtools.org/zls/",
+      "repositoryUrl": "https://github.com/moonrepo/plugins",
+      "devicon": "zig",
+      "bins": [
+        "zls"
+      ],
+      "detectionSources": [
+        {
+          "file": ".zig-version"
+        },
+        {
+          "file": ".zigversion"
+        },
+        {
+          "file": "build.zig.zon",
+          "label": "minimum_zig_version",
+          "url": "https://ziglang.org/documentation/master/#Zig-Build-System"
+        }
+      ]
     }
   ]
 }
