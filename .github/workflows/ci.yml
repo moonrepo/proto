@@ -26,6 +26,7 @@ jobs:
       - uses: moonrepo/setup-rust@v1
         with:
           cache: false
+      - run: python3 -B -m unittest registry/tests/test_generate_community_registry.py
       - run: cargo run -p proto_codegen
   format:
     name: Format

@@ -1,0 +1,441 @@
+{
+  "$schema": "../schema.json",
+  "version": 1,
+  "plugins": [
+    {
+      "id": "act",
+      "locator": "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/act.toml",
+      "format": "toml",
+      "name": "act",
+      "description": "Run your GitHub Actions locally.",
+      "author": "moonrepo",
+      "repositoryUrl": "https://github.com/nektos/act",
+      "bins": [
+        "act"
+      ]
+    },
+    {
+      "id": "actionlint",
+      "locator": "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/actionlint.toml",
+      "format": "toml",
+      "name": "actionlint",
+      "description": "Static checker for GitHub Actions workflow files.",
+      "author": "moonrepo",
+      "repositoryUrl": "https://github.com/rhysd/actionlint",
+      "bins": [
+        "actionlint"
+      ]
+    },
+    {
+      "id": "atmos",
+      "locator": "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/atmos.toml",
+      "format": "toml",
+      "name": "atmos",
+      "description": "",
+      "author": "moonrepo",
+      "repositoryUrl": "https://github.com/cloudposse/atmos",
+      "bins": [
+        "atmos"
+      ]
+    },
+    {
+      "id": "bazel",
+      "locator": "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/bazel.toml",
+      "format": "toml",
+      "name": "Bazel",
+      "description": "A fast, scalable, multi-language and extensible build system.",
+      "author": "moonrepo",
+      "homepageUrl": "https://bazel.build/",
+      "repositoryUrl": "https://github.com/bazelbuild/bazel",
+      "bins": [
+        "bazel"
+      ],
+      "detectionSources": [
+        {
+          "file": ".bazelversion"
+        }
+      ]
+    },
+    {
+      "id": "biome",
+      "locator": "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/biome.toml",
+      "format": "toml",
+      "name": "Biome",
+      "description": "A performant toolchain for web projects, aiming to provide developer tools to maintain the health of said projects.",
+      "author": "moonrepo",
+      "homepageUrl": "https://biomejs.dev/",
+      "repositoryUrl": "https://github.com/biomejs/biome",
+      "bins": [
+        "biome"
+      ]
+    },
+    {
+      "id": "caddy",
+      "locator": "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/caddy.toml",
+      "format": "toml",
+      "name": "Caddy",
+      "description": "Fast and extensible multi-platform HTTP/1-2-3 web server with automatic HTTPS.",
+      "author": "moonrepo",
+      "homepageUrl": "https://caddyserver.com/",
+      "repositoryUrl": "https://github.com/caddyserver/caddy",
+      "bins": [
+        "caddy"
+      ]
+    },
+    {
+      "id": "cmake",
+      "locator": "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/cmake.toml",
+      "format": "toml",
+      "name": "CMake",
+      "description": "CMake is a cross-platform, open-source build system generator.",
+      "author": "moonrepo",
+      "homepageUrl": "https://cmake.org/",
+      "repositoryUrl": "https://github.com/Kitware/CMake",
+      "bins": [
+        "cmake",
+        "ccmake",
+        "cpack",
+        "ctest"
+      ]
+    },
+    {
+      "id": "cosign",
+      "locator": "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/cosign.toml",
+      "format": "toml",
+      "name": "Cosign",
+      "description": "Code signing and transparency for containers and binaries.",
+      "author": "moonrepo",
+      "repositoryUrl": "https://github.com/sigstore/cosign",
+      "bins": [
+        "cosign"
+      ]
+    },
+    {
+      "id": "dagger",
+      "locator": "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/dagger.toml",
+      "format": "toml",
+      "name": "Dagger",
+      "description": "Powerful, programmable open source CI/CD engine that runs your pipelines in containers.",
+      "author": "moonrepo",
+      "homepageUrl": "https://dagger.io/",
+      "repositoryUrl": "https://github.com/dagger/dagger",
+      "bins": [
+        "dagger"
+      ]
+    },
+    {
+      "id": "dprint",
+      "locator": "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/dprint.toml",
+      "format": "toml",
+      "name": "dprint",
+      "description": "A pluggable and configurable code formatting platform written in Rust.",
+      "author": "moonrepo",
+      "homepageUrl": "https://dprint.dev/",
+      "repositoryUrl": "https://github.com/dprint/dprint",
+      "bins": [
+        "dprint"
+      ]
+    },
+    {
+      "id": "flyctl",
+      "locator": "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/flyctl.toml",
+      "format": "toml",
+      "name": "flyctl",
+      "description": "A command-line interface for fly.io.",
+      "author": "moonrepo",
+      "repositoryUrl": "https://github.com/superfly/flyctl",
+      "bins": [
+        "flyctl",
+        "fly"
+      ]
+    },
+    {
+      "id": "gitleaks",
+      "locator": "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/gitleaks.toml",
+      "format": "toml",
+      "name": "Gitleaks",
+      "description": "A fast, light-weight, portable, and open-source secret scanner for Git repositories, files, and directories.",
+      "author": "moonrepo",
+      "homepageUrl": "https://gitleaks.io/",
+      "repositoryUrl": "https://github.com/gitleaks/gitleaks",
+      "bins": [
+        "gitleaks"
+      ]
+    },
+    {
+      "id": "grain",
+      "locator": "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/grain.toml",
+      "format": "toml",
+      "name": "Grain",
+      "description": "",
+      "author": "moonrepo",
+      "repositoryUrl": "https://github.com/grain-lang/grain",
+      "bins": [
+        "grain"
+      ]
+    },
+    {
+      "id": "gum",
+      "locator": "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/gum.toml",
+      "format": "toml",
+      "name": "Gum",
+      "description": "A tool for glamorous shell scripts.",
+      "author": "moonrepo",
+      "repositoryUrl": "https://github.com/charmbracelet/gum",
+      "bins": [
+        "gum"
+      ]
+    },
+    {
+      "id": "hurl",
+      "locator": "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/hurl.toml",
+      "format": "toml",
+      "name": "Hurl",
+      "description": "A command line tool that runs HTTP requests defined in a simple plain text format.",
+      "author": "moonrepo",
+      "homepageUrl": "https://hurl.dev/",
+      "repositoryUrl": "https://github.com/Orange-OpenSource/hurl",
+      "bins": [
+        "hurl",
+        "hurlfmt"
+      ]
+    },
+    {
+      "id": "hyperfine",
+      "locator": "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/hyperfine.toml",
+      "format": "toml",
+      "name": "hyperfine",
+      "description": "A command-line benchmarking tool.",
+      "author": "moonrepo",
+      "repositoryUrl": "https://github.com/sharkdp/hyperfine",
+      "bins": [
+        "hyperfine"
+      ]
+    },
+    {
+      "id": "infisical",
+      "locator": "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/infisical.toml",
+      "format": "toml",
+      "name": "Infisical",
+      "description": "The command-line interface for the open source secret management platform Infisical.",
+      "author": "moonrepo",
+      "homepageUrl": "https://infisical.com/",
+      "repositoryUrl": "https://github.com/Infisical/infisical",
+      "bins": [
+        "infisical"
+      ]
+    },
+    {
+      "id": "jira",
+      "locator": "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/jira.toml",
+      "format": "toml",
+      "name": "JiraCLI",
+      "description": "An interactive command line tool for Atlassian Jira.",
+      "author": "moonrepo",
+      "repositoryUrl": "https://github.com/ankitpokhrel/jira-cli",
+      "bins": [
+        "jira"
+      ]
+    },
+    {
+      "id": "just",
+      "locator": "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/just.toml",
+      "format": "toml",
+      "name": "just",
+      "description": "A handy way to save and run project-specific commands.",
+      "author": "moonrepo",
+      "repositoryUrl": "https://github.com/casey/just",
+      "bins": [
+        "just"
+      ]
+    },
+    {
+      "id": "mage",
+      "locator": "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/mage.toml",
+      "format": "toml",
+      "name": "Mage",
+      "description": "A make/rake-like build tool using Go.",
+      "author": "moonrepo",
+      "homepageUrl": "https://magefile.org/",
+      "repositoryUrl": "https://github.com/magefile/mage",
+      "bins": [
+        "mage"
+      ]
+    },
+    {
+      "id": "mkcert",
+      "locator": "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/mkcert.toml",
+      "format": "toml",
+      "name": "mkcert",
+      "description": "A simple zero-config tool to make locally trusted development certificates with any names you'd like.",
+      "author": "moonrepo",
+      "repositoryUrl": "https://github.com/FiloSottile/mkcert",
+      "bins": [
+        "mkcert"
+      ]
+    },
+    {
+      "id": "ninja",
+      "locator": "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/ninja.toml",
+      "format": "toml",
+      "name": "Ninja",
+      "description": "A small build system with a focus on speed.",
+      "author": "moonrepo",
+      "homepageUrl": "https://ninja-build.org/",
+      "repositoryUrl": "https://github.com/ninja-build/ninja",
+      "bins": [
+        "ninja"
+      ]
+    },
+    {
+      "id": "octopus",
+      "locator": "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/octopus.toml",
+      "format": "toml",
+      "name": "Octopus CLI",
+      "description": "Command line interface for Octopus Deploy.",
+      "author": "moonrepo",
+      "homepageUrl": "https://octopus.com/",
+      "repositoryUrl": "https://github.com/OctopusDeploy/cli",
+      "bins": [
+        "octopus"
+      ]
+    },
+    {
+      "id": "oxlint",
+      "locator": "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/oxlint.toml",
+      "format": "toml",
+      "name": "oxlint",
+      "description": "Oxlint is a JavaScript linter designed to catch erroneous or useless code without requiring any configurations by default.",
+      "author": "moonrepo",
+      "homepageUrl": "https://oxc-project.github.io/",
+      "repositoryUrl": "https://github.com/oxc-project/oxc",
+      "bins": [
+        "oxlint"
+      ]
+    },
+    {
+      "id": "pixi",
+      "locator": "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/pixi.toml",
+      "format": "toml",
+      "name": "pixi",
+      "description": "",
+      "author": "moonrepo",
+      "repositoryUrl": "https://github.com/prefix-dev/pixi",
+      "bins": [
+        "pixi"
+      ]
+    },
+    {
+      "id": "rattler-build",
+      "locator": "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/rattler-build.toml",
+      "format": "toml",
+      "name": "rattler-build",
+      "description": "A fast Conda package builder.",
+      "author": "moonrepo",
+      "homepageUrl": "https://prefix-dev.github.io/rattler-build/",
+      "repositoryUrl": "https://github.com/prefix-dev/rattler-build",
+      "bins": [
+        "rattler-build"
+      ]
+    },
+    {
+      "id": "ruff",
+      "locator": "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/ruff.toml",
+      "format": "toml",
+      "name": "Ruff",
+      "description": "An extremely fast Python linter and code formatter.",
+      "author": "moonrepo",
+      "homepageUrl": "https://docs.astral.sh/ruff/",
+      "repositoryUrl": "https://github.com/astral-sh/ruff",
+      "bins": [
+        "ruff"
+      ]
+    },
+    {
+      "id": "shellcheck",
+      "locator": "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/shellcheck.toml",
+      "format": "toml",
+      "name": "ShellCheck",
+      "description": "A static analysis tool for shell scripts.",
+      "author": "moonrepo",
+      "repositoryUrl": "https://github.com/koalaman/shellcheck",
+      "bins": [
+        "shellcheck"
+      ]
+    },
+    {
+      "id": "shfmt",
+      "locator": "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/shfmt.toml",
+      "format": "toml",
+      "name": "shfmt",
+      "description": "A shell formatter for POSIX Shell, Bash and mksh.",
+      "author": "moonrepo",
+      "repositoryUrl": "https://github.com/mvdan/sh",
+      "bins": [
+        "shfmt"
+      ]
+    },
+    {
+      "id": "task",
+      "locator": "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/task.toml",
+      "format": "toml",
+      "name": "Task",
+      "description": "Task is a task runner / build tool that aims to be simpler and easier to use than, for example, GNU Make.",
+      "author": "moonrepo",
+      "homepageUrl": "https://taskfile.dev/",
+      "repositoryUrl": "https://github.com/go-task/task",
+      "bins": [
+        "task"
+      ]
+    },
+    {
+      "id": "traefik",
+      "locator": "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/traefik.toml",
+      "format": "toml",
+      "name": "Traefik",
+      "description": "A modern HTTP reverse proxy and load balancer that makes deploying microservices easy.",
+      "author": "moonrepo",
+      "homepageUrl": "https://traefik.io/",
+      "repositoryUrl": "https://github.com/traefik/traefik",
+      "bins": [
+        "traefik"
+      ]
+    },
+    {
+      "id": "trufflehog",
+      "locator": "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/trufflehog.toml",
+      "format": "toml",
+      "name": "TruffleHog",
+      "description": "Find and verify credentials.",
+      "author": "moonrepo",
+      "repositoryUrl": "https://github.com/trufflesecurity/trufflehog",
+      "bins": [
+        "trufflehog"
+      ]
+    },
+    {
+      "id": "watchexec",
+      "locator": "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/watchexec.toml",
+      "format": "toml",
+      "name": "watchexec",
+      "description": "",
+      "author": "moonrepo",
+      "repositoryUrl": "https://github.com/watchexec/watchexec",
+      "bins": [
+        "watchexec"
+      ]
+    },
+    {
+      "id": "wizer",
+      "locator": "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/wizer.toml",
+      "format": "toml",
+      "name": "Wizer",
+      "description": "The WebAssembly Pre-Initializer.",
+      "author": "moonrepo",
+      "repositoryUrl": "https://github.com/bytecodealliance/wizer",
+      "bins": [
+        "wizer"
+      ]
+    }
+  ]
+}
