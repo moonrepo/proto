@@ -24,6 +24,7 @@
 
 - Fixed the NDJSON output banner being displayed for tool executions.
 - Fixed scoped version requirements, like `next-12`, not resolving to an alias of the same name, and instead being treated as a requirement, like `~next-12`.
+- Fixed version resolving hard failing when a tool's available versions could not be loaded, typically from a transient network failure. We now fallback to the previously cached versions, even when they have expired, and log a warning.
 
 ## 0.61.1
 

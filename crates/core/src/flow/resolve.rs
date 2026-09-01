@@ -6,7 +6,7 @@ use crate::tool_spec::ToolSpec;
 use crate::version_resolver::VersionResolver;
 use proto_pdk_api::*;
 use std::env;
-use tracing::{debug, instrument};
+use tracing::{debug, instrument, warn};
 
 /// Loads, resolves, and validates versions.
 pub struct Resolver<'tool> {
@@ -71,7 +71,7 @@ impl<'tool> Resolver<'tool> {
             }
 
             if env::var("PROTO_BYPASS_VERSION_CHECK").is_err() {
-                versions = self
+                let result = self
                     .tool
                     .plugin
                     .cache_func_with(
@@ -81,12 +81,38 @@ impl<'tool> Resolver<'tool> {
                             initial: initial_version.to_owned(),
                         },
                     )
-                    .await?;
+                    .await;
 
-                if !versions.versions.is_empty() {
-                    self.tool
-                        .inventory
-                        .save_remote_versions(&versions, initial_version.get_scope())?;
+                match result {
+                    Ok(remote_versions) => {
+                        versions = remote_versions;
+
+                        if !versions.versions.is_empty() {
+                            self.tool
+                                .inventory
+                                .save_remote_versions(&versions, initial_version.get_scope())?;
+                        }
+                    }
+                    // The remote is unreachable, which is typically a transient
+                    // network failure, so fallback to the previously cached
+                    // versions instead of failing the entire flow
+                    Err(error) => {
+                        let Some(expired_versions) = self
+                            .tool
+                            .inventory
+                            .load_expired_remote_versions(initial_version.get_scope())?
+                        else {
+                            return Err(error.into());
+                        };
+
+                        warn!(
+                            tool = self.tool.context.as_str(),
+                            "Failed to load available versions, falling back to the previously cached versions: {}",
+                            error.to_string(),
+                        );
+
+                        versions = expired_versions;
+                    }
                 }
             }
         }
@@ -292,7 +318,7 @@ impl<'tool> Resolver<'tool> {
                 let mut alias = String::new();
 
                 if let Some(scope) = &req.scope {
-                    alias.push_str(&scope);
+                    alias.push_str(scope);
 
                     if let Some(major) = &req.major {
                         alias.push_str(&format!("-{major}"));

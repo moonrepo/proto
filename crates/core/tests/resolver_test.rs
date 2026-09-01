@@ -3,7 +3,7 @@ use proto_core::{
     load_tool_from_locator,
 };
 use starbase_sandbox::create_empty_sandbox;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use version_spec::{UnresolvedVersionSpec, VersionSpec};
 
 async fn create_node(_root: &Path) -> Tool {
@@ -37,13 +37,30 @@ async fn create_mocked_tool(root: &Path) -> Tool {
     .unwrap()
 }
 
+fn remote_versions_path(tool: &Tool, scope: Option<&str>) -> PathBuf {
+    tool.inventory.dir.join(match scope {
+        Some(scope) => format!("remote-versions-{scope}.json"),
+        None => "remote-versions.json".into(),
+    })
+}
+
 // Seed the remote versions cache for a scope, so that `load_versions` reads
 // from it instead of calling the plugin, which lets us control the alias map
-fn seed_remote_versions(tool: &Tool, scope: &str, contents: &str) {
-    let dir = &tool.inventory.dir;
+fn seed_remote_versions(tool: &Tool, scope: Option<&str>, contents: &str) {
+    std::fs::create_dir_all(&tool.inventory.dir).unwrap();
+    std::fs::write(remote_versions_path(tool, scope), contents).unwrap();
+}
 
-    std::fs::create_dir_all(dir).unwrap();
-    std::fs::write(dir.join(format!("remote-versions-{scope}.json")), contents).unwrap();
+// The cache is only read for 12 hours, so backdate the file
+// well beyond that to mark it as expired
+fn expire_remote_versions(tool: &Tool, scope: Option<&str>) {
+    let file = std::fs::File::options()
+        .write(true)
+        .open(remote_versions_path(tool, scope))
+        .unwrap();
+
+    file.set_modified(std::time::SystemTime::now() - std::time::Duration::from_secs(60 * 60 * 24))
+        .unwrap();
 }
 
 mod resolver {
@@ -473,7 +490,7 @@ mod resolver {
             // resolve by treating "next-12" as an alias
             seed_remote_versions(
                 &tool,
-                "next",
+                Some("next"),
                 r#"{
                     "aliases": { "next-12": "1.2.3" },
                     "versions": ["1.0.0", "1.2.3", "2.0.0"]
@@ -499,7 +516,7 @@ mod resolver {
 
             seed_remote_versions(
                 &tool,
-                "next",
+                Some("next"),
                 r#"{
                     "aliases": { "next-12.3": "1.2.3" },
                     "versions": ["1.0.0", "1.2.3", "2.0.0"]
@@ -525,7 +542,7 @@ mod resolver {
 
             seed_remote_versions(
                 &tool,
-                "next",
+                Some("next"),
                 r#"{
                     "aliases": { "next-12": "stable-ish", "stable-ish": "1.2.3" },
                     "versions": ["1.0.0", "1.2.3", "2.0.0"]
@@ -551,7 +568,7 @@ mod resolver {
 
             seed_remote_versions(
                 &tool,
-                "next",
+                Some("next"),
                 r#"{
                     "aliases": { "next-12": "1.2.3" },
                     "versions": ["1.0.0", "1.2.3", "2.0.0"]
@@ -580,7 +597,7 @@ mod resolver {
 
             seed_remote_versions(
                 &tool,
-                "temurin",
+                Some("temurin"),
                 r#"{
                     "versions": ["temurin-5.0.0", "temurin-5.1.0", "temurin-6.0.0"]
                 }"#,
@@ -606,7 +623,7 @@ mod resolver {
             // The alias is for a different major, so it must not be applied
             seed_remote_versions(
                 &tool,
-                "temurin",
+                Some("temurin"),
                 r#"{
                     "aliases": { "temurin-6": "temurin-6.0.0" },
                     "versions": ["temurin-5.0.0", "temurin-5.1.0", "temurin-6.0.0"]
@@ -632,7 +649,7 @@ mod resolver {
 
             seed_remote_versions(
                 &tool,
-                "next",
+                Some("next"),
                 r#"{
                     "aliases": { "next-13": "1.2.3" },
                     "versions": ["1.0.0", "1.2.3", "2.0.0"]
@@ -657,6 +674,149 @@ mod resolver {
 
             // An unscoped requirement has no scope to build an alias from,
             // so it resolves against the version list as usual
+            let result = Resolver::new(&tool)
+                .resolve_version_candidate(
+                    &UnresolvedVersionSpec::parse("5").unwrap(),
+                    false,
+                    false,
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(result, VersionSpec::parse("5.10.15").unwrap());
+        }
+    }
+
+    // The mocked tool fails `load_versions` for the "unreachable"
+    // scope, simulating a remote that can't be reached
+    mod unreachable_remote {
+        use super::*;
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn falls_back_to_the_expired_cache() {
+            let sandbox = create_empty_sandbox();
+            let tool = create_mocked_tool(sandbox.path()).await;
+
+            seed_remote_versions(
+                &tool,
+                Some("unreachable"),
+                r#"{
+                    "versions": ["unreachable-1.0.0", "unreachable-1.5.0", "unreachable-2.0.0"]
+                }"#,
+            );
+            expire_remote_versions(&tool, Some("unreachable"));
+
+            let result = Resolver::new(&tool)
+                .resolve_version_candidate(
+                    &UnresolvedVersionSpec::parse("unreachable-1").unwrap(),
+                    false,
+                    false,
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(result, VersionSpec::parse("unreachable-1.5.0").unwrap());
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn falls_back_to_expired_aliases() {
+            let sandbox = create_empty_sandbox();
+            let tool = create_mocked_tool(sandbox.path()).await;
+
+            seed_remote_versions(
+                &tool,
+                Some("unreachable"),
+                r#"{
+                    "aliases": { "unreachable-1": "unreachable-1.5.0" },
+                    "versions": ["unreachable-1.0.0", "unreachable-1.5.0"]
+                }"#,
+            );
+            expire_remote_versions(&tool, Some("unreachable"));
+
+            let result = Resolver::new(&tool)
+                .resolve_version_candidate(
+                    &UnresolvedVersionSpec::parse("unreachable-1").unwrap(),
+                    false,
+                    false,
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(result, VersionSpec::parse("unreachable-1.5.0").unwrap());
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn does_not_write_the_expired_cache_back() {
+            let sandbox = create_empty_sandbox();
+            let tool = create_mocked_tool(sandbox.path()).await;
+
+            seed_remote_versions(
+                &tool,
+                Some("unreachable"),
+                r#"{
+                    "versions": ["unreachable-1.0.0", "unreachable-1.5.0"]
+                }"#,
+            );
+            expire_remote_versions(&tool, Some("unreachable"));
+
+            Resolver::new(&tool)
+                .resolve_version_candidate(
+                    &UnresolvedVersionSpec::parse("unreachable-1").unwrap(),
+                    false,
+                    false,
+                )
+                .await
+                .unwrap();
+
+            // The cache must stay expired, otherwise it would be
+            // continually refreshed while the remote is down
+            assert!(
+                tool.inventory
+                    .load_remote_versions(false, Some("unreachable"))
+                    .unwrap()
+                    .is_none()
+            );
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn errors_when_there_is_no_cache() {
+            let sandbox = create_empty_sandbox();
+            let tool = create_mocked_tool(sandbox.path()).await;
+
+            let result = Resolver::new(&tool)
+                .resolve_version_candidate(
+                    &UnresolvedVersionSpec::parse("unreachable-1").unwrap(),
+                    false,
+                    false,
+                )
+                .await;
+
+            // The original failure must be surfaced, and not
+            // be masked as an unresolved version
+            assert!(
+                result
+                    .unwrap_err()
+                    .to_string()
+                    .contains("Failed to call protostar plugin function load_versions"),
+            );
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn does_not_use_the_expired_cache_when_loading_succeeds() {
+            let sandbox = create_empty_sandbox();
+            let tool = create_mocked_tool(sandbox.path()).await;
+
+            // The plugin loads 1.0.0 - 5.10.15 for this scopeless
+            // candidate, which must win over the expired cache
+            seed_remote_versions(
+                &tool,
+                None,
+                r#"{
+                    "versions": ["9.9.9"]
+                }"#,
+            );
+            expire_remote_versions(&tool, None);
+
             let result = Resolver::new(&tool)
                 .resolve_version_candidate(
                     &UnresolvedVersionSpec::parse("5").unwrap(),

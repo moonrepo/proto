@@ -83,6 +83,22 @@ impl Inventory {
         Ok(None)
     }
 
+    /// Load the remote versions cache while ignoring its expiration time.
+    /// Used as a last resort when the remote versions can't be loaded.
+    #[instrument(skip(self))]
+    pub fn load_expired_remote_versions(
+        &self,
+        scope: Option<&str>,
+    ) -> Result<Option<LoadVersionsOutput>, ProtoLayoutError> {
+        let cache_path = self.get_remote_versions_cache_path(scope);
+
+        if cache_path.exists() && is_cache_enabled() {
+            return Ok(Some(json::read_file(&cache_path)?));
+        }
+
+        Ok(None)
+    }
+
     #[instrument(skip_all)]
     pub fn save_remote_versions(
         &self,

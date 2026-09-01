@@ -117,7 +117,13 @@ pub fn unpin_version(
 }
 
 #[plugin_fn]
-pub fn load_versions(Json(_): Json<LoadVersionsInput>) -> FnResult<Json<LoadVersionsOutput>> {
+pub fn load_versions(Json(input): Json<LoadVersionsInput>) -> FnResult<Json<LoadVersionsOutput>> {
+    // Simulate an unreachable remote, so that tests can verify the
+    // behavior when available versions fail to load
+    if input.initial.get_scope() == Some("unreachable") {
+        return Err(plugin_err!("Failed to make HTTP request."));
+    }
+
     let mut tags = vec![];
 
     for major in 1..=5 {

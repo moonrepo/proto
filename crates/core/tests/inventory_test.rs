@@ -18,6 +18,15 @@ fn create_versions(version: &str) -> LoadVersionsOutput {
     }
 }
 
+// The cache is only read for 12 hours, so backdate the file
+// well beyond that to mark it as expired
+fn expire_cache(path: &Path) {
+    let file = std::fs::File::options().write(true).open(path).unwrap();
+
+    file.set_modified(std::time::SystemTime::now() - std::time::Duration::from_secs(60 * 60 * 24))
+        .unwrap();
+}
+
 mod inventory {
     use super::*;
 
@@ -178,6 +187,93 @@ mod inventory {
                     .load_remote_versions(false, Some("temurin"))
                     .unwrap()
                     .is_some()
+            );
+        }
+    }
+
+    mod expired_remote_versions_cache {
+        use super::*;
+
+        #[test]
+        fn loads_when_expired() {
+            let sandbox = create_empty_sandbox();
+            let inventory = create_inventory(sandbox.path());
+
+            inventory
+                .save_remote_versions(&create_versions("1.2.3"), None)
+                .unwrap();
+
+            expire_cache(&sandbox.path().join("remote-versions.json"));
+
+            // The regular load ignores it, as it's beyond the cache duration
+            assert!(
+                inventory
+                    .load_remote_versions(false, None)
+                    .unwrap()
+                    .is_none()
+            );
+
+            let data = inventory
+                .load_expired_remote_versions(None)
+                .unwrap()
+                .unwrap();
+
+            assert_eq!(data.versions, vec![VersionSpec::parse("1.2.3").unwrap()]);
+        }
+
+        #[test]
+        fn loads_when_not_expired() {
+            let sandbox = create_empty_sandbox();
+            let inventory = create_inventory(sandbox.path());
+
+            inventory
+                .save_remote_versions(&create_versions("1.2.3"), None)
+                .unwrap();
+
+            let data = inventory
+                .load_expired_remote_versions(None)
+                .unwrap()
+                .unwrap();
+
+            assert_eq!(data.versions, vec![VersionSpec::parse("1.2.3").unwrap()]);
+        }
+
+        #[test]
+        fn loads_with_scope() {
+            let sandbox = create_empty_sandbox();
+            let inventory = create_inventory(sandbox.path());
+
+            inventory
+                .save_remote_versions(&create_versions("1.2.3"), Some("temurin"))
+                .unwrap();
+
+            expire_cache(&sandbox.path().join("remote-versions-temurin.json"));
+
+            assert!(
+                inventory
+                    .load_expired_remote_versions(None)
+                    .unwrap()
+                    .is_none()
+            );
+
+            let data = inventory
+                .load_expired_remote_versions(Some("temurin"))
+                .unwrap()
+                .unwrap();
+
+            assert_eq!(data.versions, vec![VersionSpec::parse("1.2.3").unwrap()]);
+        }
+
+        #[test]
+        fn returns_none_when_missing() {
+            let sandbox = create_empty_sandbox();
+            let inventory = create_inventory(sandbox.path());
+
+            assert!(
+                inventory
+                    .load_expired_remote_versions(None)
+                    .unwrap()
+                    .is_none()
             );
         }
     }
