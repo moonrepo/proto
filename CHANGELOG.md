@@ -18,7 +18,7 @@
 - [Swift](https://github.com/moonrepo/plugins/blob/master/tools/swift/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
-## Unreleased
+## 0.61.2
 
 #### 🐞 Fixes
 
