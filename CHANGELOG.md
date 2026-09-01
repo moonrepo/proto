@@ -18,6 +18,12 @@
 - [Swift](https://github.com/moonrepo/plugins/blob/master/tools/swift/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Fixed the NDJSON output banner being displayed for tool executions.
+
 ## 0.61.1
 
 #### 🛠️ Tools
