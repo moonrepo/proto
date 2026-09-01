@@ -43,7 +43,7 @@ Tests run alphabetically. The numeric prefix encodes phase, not strict ordering 
 | ------- | ------------------------------------------------------------------------------------ |
 | `00–09` | Smoke (help, version listing)                                                        |
 | `10–19` | Standalone tool installs                                                             |
-| `20–29` | Dependent tool installs (npm/pnpm/yarn → node, poetry → python)                      |
+| `20–29` | Secondary tool installs (npm/pnpm/yarn → node, poetry → python, jdk/jre, zig/zls)    |
 | `30–39` | Backends (asdf, Unix-only)                                                           |
 | `40–49` | Cross-cutting checks (status, bin, run, shim, prototools, exec, outdated, pin/alias) |
 | `50-59` | Activation checks (activate, deactivate, etc)                                        |
@@ -67,7 +67,7 @@ source "$(dirname "$0")/../lib/assert.sh"
 
 - **`# requires:`** — if any named test FAILED or was SKIPPED, this test is also SKIPPED. Used for tool dependencies (`npm` requires `node`).
 - **`# os:`** — allow-list of OSes. Default = all 3. Used for `30-asdf-backend` (`linux,macos`) since the asdf backend doesn't run on Windows.
-- **`# group:`** — consecutive tests sharing this value run as background jobs in parallel. The harness waits for the whole group to finish before moving on to the next test. Used to fan out the install phase: `10–18` share `install-base`, `20–23` share `install-deps`. Members of the same group must be independent of each other — `# requires:` should only point to tests in earlier groups or earlier sequential tests, not peers in the same group (peer status isn't recorded until the batch completes).
+- **`# group:`** — consecutive tests sharing this value run as background jobs in parallel. The harness waits for the whole group to finish before moving on to the next test. Used to fan out the install phase: `10–19` share `tools`, `20–27` share `tools-secondary`. Members of the same group must be independent of each other — `# requires:` should only point to tests in earlier groups or earlier sequential tests, not peers in the same group (peer status isn't recorded until the batch completes).
 
 ## Adding a test
 
