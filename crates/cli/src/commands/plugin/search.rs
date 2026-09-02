@@ -15,7 +15,7 @@ pub struct PluginSearchArgs {
 
 #[instrument(skip(session))]
 pub async fn search(session: ProtoSession, args: PluginSearchArgs) -> SessionResult {
-    let mut registry = session.create_registry();
+    let registry = session.env.load_registry();
     let plugins = registry.load_external_plugins().await?;
 
     let query = &args.query;

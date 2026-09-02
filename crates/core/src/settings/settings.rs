@@ -92,6 +92,13 @@ pub struct ProtoSettingsConfig {
     #[setting(env = "PROTO_CACHE_DURATION")]
     pub cache_duration: Option<u64>,
 
+    #[setting(
+        default = true,
+        env = "PROTO_COMMUNITY_TOOLS",
+        parse_env = env::parse_bool,
+    )]
+    pub community_tools: bool,
+
     #[setting(env = "PROTO_DETECT_STRATEGY")]
     pub detect_strategy: DetectStrategy,
 

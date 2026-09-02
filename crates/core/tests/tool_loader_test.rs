@@ -155,7 +155,36 @@ mod locate_plugin {
         let mut proto = ProtoEnvironment::new_testing(sandbox.path()).unwrap();
         proto.working_dir = sandbox.path().to_path_buf();
 
+        write_community_cache(&proto, "[]");
+
         (sandbox, proto)
+    }
+
+    fn write_community_cache(proto: &ProtoEnvironment, contents: &str) {
+        let path = proto
+            .store
+            .cache_dir
+            .join("registry/community-plugins.json");
+
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, contents).unwrap();
+    }
+
+    fn write_act_community_cache(proto: &ProtoEnvironment) {
+        write_community_cache(
+            proto,
+            r#"[
+  {
+    "id": "act",
+    "locator": "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/act.toml",
+    "format": "toml",
+    "name": "act",
+    "description": "Run your GitHub Actions locally.",
+    "author": "moonrepo",
+    "bins": ["act"]
+  }
+]"#,
+        );
     }
 
     fn ctx(value: &str) -> ToolContext {
@@ -164,8 +193,8 @@ mod locate_plugin {
 
     // User-defined plugins in `[plugins.tools]` must beat the new
     // registry-fallback branch even when a default registry is configured.
-    #[test]
-    fn user_locator_takes_priority_over_registry() {
+    #[tokio::test]
+    async fn user_locator_takes_priority_over_registry() {
         let (_sandbox, proto) = setup(
             r#"
 [plugins.tools]
@@ -178,7 +207,9 @@ default = true
 "#,
         );
 
-        let result = locate_plugin(&ctx("foo"), &proto, PluginType::Tool).unwrap();
+        let result = locate_plugin(&ctx("foo"), &proto, PluginType::Tool)
+            .await
+            .unwrap();
 
         let PluginLocator::GitHub(github) = result else {
             panic!("expected GitHub locator, got {result:?}");
@@ -190,11 +221,13 @@ default = true
     // Built-in plugins resolve through `builtin_plugins()` before reaching
     // the registry fallback. With no debug WASM available, the synthesized
     // locator is a Registry pointing at the moonrepo namespace.
-    #[test]
-    fn builtin_plugin_resolves_via_builtins() {
+    #[tokio::test]
+    async fn builtin_plugin_resolves_via_builtins() {
         let (_sandbox, proto) = setup("");
 
-        let result = locate_plugin(&ctx("node"), &proto, PluginType::Tool).unwrap();
+        let result = locate_plugin(&ctx("node"), &proto, PluginType::Tool)
+            .await
+            .unwrap();
 
         match result {
             // Local debug builds may resolve to a File locator pointing at a
@@ -208,11 +241,122 @@ default = true
         }
     }
 
+    #[tokio::test]
+    async fn community_plugin_resolves_via_remote_registry() {
+        let (_sandbox, proto) = setup(
+            r#"
+[[settings.registries]]
+registry = "ghcr.io"
+namespace = "fallback"
+default = true
+"#,
+        );
+
+        write_act_community_cache(&proto);
+
+        let result = locate_plugin(&ctx("act"), &proto, PluginType::Tool)
+            .await
+            .unwrap();
+
+        assert_eq!(
+            result.to_string(),
+            "https://raw.githubusercontent.com/moonrepo/community-plugins/master/tools/act.toml"
+        );
+    }
+
+    #[tokio::test]
+    async fn community_registry_instance_is_reused_across_environment_clones() {
+        let (_sandbox, proto) = setup("");
+        let cloned_proto = proto.clone();
+        write_act_community_cache(&proto);
+
+        let first = locate_plugin(&ctx("act"), &proto, PluginType::Tool)
+            .await
+            .unwrap();
+
+        write_community_cache(&proto, "[]");
+
+        let second = locate_plugin(&ctx("act"), &cloned_proto, PluginType::Tool)
+            .await
+            .unwrap();
+
+        assert_eq!(first, second);
+    }
+
+    #[tokio::test]
+    async fn community_registry_can_be_disabled() {
+        let (_sandbox, proto) = setup(
+            r#"
+[settings]
+community-tools = false
+"#,
+        );
+        write_act_community_cache(&proto);
+
+        let error = locate_plugin(&ctx("act"), &proto, PluginType::Tool)
+            .await
+            .expect_err("disabled community tools should not resolve");
+
+        assert!(matches!(error, ProtoLoaderError::UnknownTool { .. }));
+    }
+
+    #[tokio::test]
+    async fn community_registry_failure_falls_back_to_default_registry() {
+        let (_sandbox, proto) = setup(
+            r#"
+[[settings.registries]]
+registry = "ghcr.io"
+namespace = "fallback"
+default = true
+"#,
+        );
+        write_community_cache(&proto, "not valid JSON");
+
+        let result = locate_plugin(&ctx("foo"), &proto, PluginType::Tool)
+            .await
+            .unwrap();
+
+        let PluginLocator::Registry(registry) = result else {
+            panic!("expected Registry locator, got {result:?}");
+        };
+
+        assert_eq!(registry.registry, Some("ghcr.io".into()));
+        assert_eq!(registry.namespace, Some("fallback".into()));
+        assert_eq!(registry.image, "foo");
+    }
+
+    #[tokio::test]
+    async fn user_locator_takes_priority_over_community_plugin() {
+        let (_sandbox, proto) = setup(
+            r#"
+[plugins.tools]
+act = "github://example/act-plugin"
+"#,
+        );
+
+        let result = locate_plugin(&ctx("act"), &proto, PluginType::Tool)
+            .await
+            .unwrap();
+
+        assert_eq!(result.to_string(), "github://example/act-plugin");
+    }
+
+    #[tokio::test]
+    async fn community_registry_does_not_resolve_backends() {
+        let (_sandbox, proto) = setup("");
+
+        let error = locate_plugin(&ctx("act:example"), &proto, PluginType::Backend)
+            .await
+            .expect_err("community plugins should only resolve tools");
+
+        assert!(matches!(error, ProtoLoaderError::UnknownTool { .. }));
+    }
+
     // The central new-behavior test: with a `default = true` registry,
     // an unknown id resolves to a Registry locator built from
     // `registry.get_reference(id)` (so the namespace is preserved).
-    #[test]
-    fn unknown_id_with_default_registry_returns_registry_locator() {
+    #[tokio::test]
+    async fn unknown_id_with_default_registry_returns_registry_locator() {
         let (_sandbox, proto) = setup(
             r#"
 [[settings.registries]]
@@ -222,7 +366,9 @@ default = true
 "#,
         );
 
-        let result = locate_plugin(&ctx("foo"), &proto, PluginType::Tool).unwrap();
+        let result = locate_plugin(&ctx("foo"), &proto, PluginType::Tool)
+            .await
+            .unwrap();
 
         let PluginLocator::Registry(registry) = result else {
             panic!("expected Registry locator, got {result:?}");
@@ -237,11 +383,12 @@ default = true
     // Regression guard for the GHCR migration: the auto-default registry
     // ships with `default: false`, so an unknown id must error rather than
     // silently resolve to ghcr.io.
-    #[test]
-    fn unknown_id_without_default_registry_returns_unknown_tool_error() {
+    #[tokio::test]
+    async fn unknown_id_without_default_registry_returns_unknown_tool_error() {
         let (_sandbox, proto) = setup("");
 
         let err = locate_plugin(&ctx("totally_unknown_xyz"), &proto, PluginType::Tool)
+            .await
             .expect_err("expected UnknownTool error");
 
         match err {
@@ -254,8 +401,8 @@ default = true
 
     // Multiple registries: only the one marked `default = true` is selected,
     // regardless of order in the list.
-    #[test]
-    fn multiple_registries_only_default_is_selected() {
+    #[tokio::test]
+    async fn multiple_registries_only_default_is_selected() {
         let (_sandbox, proto) = setup(
             r#"
 [[settings.registries]]
@@ -275,7 +422,9 @@ default = false
 "#,
         );
 
-        let result = locate_plugin(&ctx("foo"), &proto, PluginType::Tool).unwrap();
+        let result = locate_plugin(&ctx("foo"), &proto, PluginType::Tool)
+            .await
+            .unwrap();
 
         let PluginLocator::Registry(registry) = result else {
             panic!("expected Registry locator, got {result:?}");
@@ -288,8 +437,8 @@ default = false
 
     // PluginType::Backend resolves the context's backend id against
     // `[plugins.backends]`, not `[plugins.tools]`.
-    #[test]
-    fn backend_type_uses_backends_table() {
+    #[tokio::test]
+    async fn backend_type_uses_backends_table() {
         let (_sandbox, proto) = setup(
             r#"
 [plugins.backends]
@@ -300,7 +449,9 @@ asdf = "github://wrong/wrong"
 "#,
         );
 
-        let result = locate_plugin(&ctx("asdf:node"), &proto, PluginType::Backend).unwrap();
+        let result = locate_plugin(&ctx("asdf:node"), &proto, PluginType::Backend)
+            .await
+            .unwrap();
 
         let PluginLocator::GitHub(github) = result else {
             panic!("expected GitHub locator, got {result:?}");
@@ -311,8 +462,8 @@ asdf = "github://wrong/wrong"
 
     // A default registry with no namespace produces a locator with
     // `namespace == None` and `image == id`.
-    #[test]
-    fn unknown_id_default_registry_no_namespace() {
+    #[tokio::test]
+    async fn unknown_id_default_registry_no_namespace() {
         let (_sandbox, proto) = setup(
             r#"
 [[settings.registries]]
@@ -321,7 +472,9 @@ default = true
 "#,
         );
 
-        let result = locate_plugin(&ctx("foo"), &proto, PluginType::Tool).unwrap();
+        let result = locate_plugin(&ctx("foo"), &proto, PluginType::Tool)
+            .await
+            .unwrap();
 
         let PluginLocator::Registry(registry) = result else {
             panic!("expected Registry locator, got {result:?}");

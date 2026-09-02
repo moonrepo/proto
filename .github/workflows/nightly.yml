@@ -53,7 +53,7 @@ jobs:
     name: Stable - ${{ matrix.target }}
     runs-on: ${{ matrix.host }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: moonrepo/setup-rust@v1
         with:
           bins: cargo-release

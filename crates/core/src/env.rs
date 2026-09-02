@@ -5,6 +5,7 @@ use crate::file_manager::{ProtoConfigFile, ProtoDirEntry, ProtoFileManager};
 use crate::helpers::is_offline;
 use crate::layout::Store;
 use crate::lockfile::ProtoLock;
+use crate::registry::ProtoRegistry;
 use crate::telemetry::MetricTimer;
 use crate::tool_context::ToolContext;
 use once_cell::sync::OnceCell;
@@ -35,6 +36,7 @@ pub struct ProtoEnvironment {
 
     file_manager: Arc<OnceCell<ProtoFileManager>>,
     plugin_loader: Arc<OnceCell<PluginLoader>>,
+    registry: Arc<OnceCell<ProtoRegistry>>,
 }
 
 impl ProtoEnvironment {
@@ -76,6 +78,7 @@ impl ProtoEnvironment {
             otel_enabled: false,
             file_manager: Arc::new(OnceCell::new()),
             plugin_loader: Arc::new(OnceCell::new()),
+            registry: Arc::new(OnceCell::new()),
             test_only: env::var("PROTO_TEST").is_ok(),
             store: Store::new(root),
             os: SystemOS::default(),
@@ -116,6 +119,11 @@ impl ProtoEnvironment {
 
             Ok(loader)
         })
+    }
+
+    pub fn load_registry(&self) -> &ProtoRegistry {
+        self.registry
+            .get_or_init(|| ProtoRegistry::new(self.store.clone()))
     }
 
     pub fn get_virtual_paths(&self) -> Vec<(PathBuf, PathBuf)> {
@@ -257,6 +265,7 @@ impl ProtoEnvironment {
             arch: self.arch,
             file_manager: Arc::new(OnceCell::new()),
             plugin_loader: Arc::new(OnceCell::new()),
+            registry: Arc::new(OnceCell::new()),
         }
     }
 }

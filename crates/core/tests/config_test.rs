@@ -57,6 +57,7 @@ proto = "file://./file.toml"
 [settings]
 auto-clean = true
 auto-install = true
+community-tools = false
 pin-latest = "global"
 "#,
         );
@@ -68,6 +69,7 @@ pin-latest = "global"
             PartialProtoSettingsConfig {
                 auto_clean: Some(true),
                 auto_install: Some(true),
+                community_tools: Some(false),
                 pin_latest: Some(PinLocation::Global),
                 ..Default::default()
             }
@@ -82,6 +84,7 @@ pin-latest = "global"
         unsafe {
             env::set_var("PROTO_AUTO_CLEAN", "1");
             env::set_var("PROTO_AUTO_INSTALL", "true");
+            env::set_var("PROTO_COMMUNITY_TOOLS", "false");
             env::set_var("PROTO_DETECT_STRATEGY", "prefer-prototools");
             env::set_var("PROTO_PIN_LATEST", "local");
         };
@@ -92,6 +95,7 @@ pin-latest = "global"
 
         assert!(config.settings.auto_clean);
         assert!(config.settings.auto_install);
+        assert!(!config.settings.community_tools);
         assert_eq!(
             config.settings.detect_strategy,
             DetectStrategy::PreferPrototools
@@ -101,6 +105,7 @@ pin-latest = "global"
         unsafe {
             env::remove_var("PROTO_AUTO_CLEAN");
             env::remove_var("PROTO_AUTO_INSTALL");
+            env::remove_var("PROTO_COMMUNITY_TOOLS");
             env::remove_var("PROTO_DETECT_STRATEGY");
             env::remove_var("PROTO_PIN_LATEST");
         };
