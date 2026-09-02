@@ -43,7 +43,7 @@ Tests run alphabetically. The numeric prefix encodes phase, not strict ordering 
 | ------- | ------------------------------------------------------------------------------------ |
 | `00–09` | Smoke (help, version listing)                                                        |
 | `10–19` | Standalone tool installs                                                             |
-| `20–29` | Secondary tool installs (npm/pnpm/yarn → node, poetry → python, jdk/jre, zig/zls)    |
+| `20–29` | Secondary and community tool installs                                               |
 | `30–39` | Backends (asdf, Unix-only)                                                           |
 | `40–49` | Cross-cutting checks (status, bin, run, shim, prototools, exec, outdated, pin/alias) |
 | `50-59` | Activation checks (activate, deactivate, etc)                                        |
