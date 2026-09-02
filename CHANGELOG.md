@@ -37,6 +37,8 @@
 
 #### 🚀 Updates
 
+- Added automatic plugin resolution for tools in the official [community plugins](https://github.com/moonrepo/community-plugins) registry. Community tools can now be used by ID without first configuring a plugin locator.
+  - Set `community-tools = false` in `[settings]`, or `PROTO_COMMUNITY_TOOLS=false`, to disable this behavior.
 - Added `proto activate` support for the following shells: `ash`, `dash`, `sh`, `powershell` (5.1+), `xonsh`
 - Added a new `proto deactivate` command, that turns off a previous activation for the current shell session, by unsetting environment variables, removing shell aliases, and removing the injected `PATH` entries.
   - The activation hook now also defines a `proto_deactivate` function, which runs the command, unregisters the hook, and removes both functions. Re-activate by evaluating `proto activate` again.

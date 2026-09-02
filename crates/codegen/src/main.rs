@@ -105,6 +105,7 @@ fn load_save_json(path: &str) {
 
 fn validate_registries() {
     load_save_json("registry/data/built-in.json");
+    load_save_json("registry/data/community.json");
     load_save_json("registry/data/third-party.json");
 }
 

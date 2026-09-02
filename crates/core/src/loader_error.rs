@@ -1,6 +1,7 @@
 use crate::config::PROTO_CONFIG_NAME;
 use crate::config_error::ProtoConfigError;
 use crate::flow::resolve::ProtoResolveError;
+use crate::registry::ProtoRegistryError;
 use crate::tool_context::ToolContext;
 use crate::tool_error::ProtoToolError;
 use starbase_styles::{Style, Stylize};
@@ -32,6 +33,10 @@ pub enum ProtoLoaderError {
     #[diagnostic(transparent)]
     #[error(transparent)]
     Plugin(#[from] Box<WarpgatePluginError>),
+
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Registry(#[from] Box<ProtoRegistryError>),
 
     #[diagnostic(transparent)]
     #[error(transparent)]
@@ -95,6 +100,12 @@ impl From<WarpgateLoaderError> for ProtoLoaderError {
 impl From<WarpgatePluginError> for ProtoLoaderError {
     fn from(e: WarpgatePluginError) -> ProtoLoaderError {
         ProtoLoaderError::Plugin(Box::new(e))
+    }
+}
+
+impl From<ProtoRegistryError> for ProtoLoaderError {
+    fn from(e: ProtoRegistryError) -> ProtoLoaderError {
+        ProtoLoaderError::Registry(Box::new(e))
     }
 }
 

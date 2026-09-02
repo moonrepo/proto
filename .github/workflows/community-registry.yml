@@ -1,0 +1,47 @@
+name: Update community plugins registry
+
+on:
+  schedule:
+    - cron: "15 1 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: community-plugins-registry
+  cancel-in-progress: true
+
+jobs:
+  update:
+    if: ${{ github.repository == 'moonrepo/proto' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout proto
+        uses: actions/checkout@v7
+
+      - name: Checkout community plugins
+        uses: actions/checkout@v7
+        with:
+          repository: moonrepo/community-plugins
+          path: community-plugins
+
+      - name: Setup Rust
+        uses: moonrepo/setup-rust@v1
+        with:
+          cache: false
+
+      - name: Test registry generator
+        run: python3 -B -m unittest registry/tests/test_generate_community_registry.py
+
+      - name: Generate registry
+        run: python3 registry/generate_community_registry.py community-plugins
+
+      - name: Validate registry
+        run: cargo run -p proto_codegen
+
+      - name: Commit and push changes
+        uses: EndBug/add-and-commit@v11
+        with:
+          add: registry/data/community.json
+          message: "chore: Update community plugins registry [skip ci]"

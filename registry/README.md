@@ -2,6 +2,10 @@
 
 proto's registry is currently powered by static JSON files located in the [registry/data](./data) directory.
 
+The `community.json` dataset is generated nightly from the TOML plugins in
+[`moonrepo/community-plugins`](https://github.com/moonrepo/community-plugins). Changes to those
+entries should be made in the community plugins repository instead of editing the generated file.
+
 In the future, we plan to build and host an actual server based registry, in which all plugin artifacts are stored. Until then, this works quite well.
 
 ## Publishing a plugin
