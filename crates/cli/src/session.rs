@@ -9,7 +9,6 @@ use proto_core::flow::resolve::Resolver;
 use proto_core::{
     ConfigMode, ProtoConfig, ProtoEnvironment, SCHEMA_PLUGIN_KEY, ToolContext, ToolSpec, Version,
     load_schema_plugin_with_proto, load_tool,
-    registry::ProtoRegistry,
     reporter::{ProtoConsole, ProtoReporter, ReporterFormat},
 };
 use proto_core::{ProtoConfigError, ProtoLoaderError, UnresolvedVersionSpec};
@@ -82,10 +81,6 @@ impl ProtoSession {
             console,
             env: Arc::new(env),
         }
-    }
-
-    pub fn create_registry(&self) -> ProtoRegistry {
-        ProtoRegistry::new(Arc::clone(&self.env))
     }
 
     pub fn load_config(&self) -> Result<&ProtoConfig, ProtoConfigError> {

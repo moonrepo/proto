@@ -54,7 +54,7 @@ pub fn inject_proto_manifest_config(
 }
 
 #[instrument]
-pub fn locate_plugin(
+pub async fn locate_plugin(
     context: &ToolContext,
     proto: &ProtoEnvironment,
     ty: PluginType,
@@ -77,7 +77,7 @@ pub fn locate_plugin(
 
     let id = context.backend.as_ref().unwrap_or(&context.id);
 
-    // And finally the built-in plugins (must include global config)
+    // Then check the built-in plugins (must include global config)
     if locator.is_none()
         && let Some(maybe_locator) = config.builtin_plugins().get(id, ty)
     {
@@ -88,6 +88,21 @@ pub fn locate_plugin(
         );
 
         locator = Some(maybe_locator.to_owned());
+    }
+
+    // Then check the remote community plugins registry
+    if locator.is_none() && ty == PluginType::Tool {
+        let registry = proto.load_registry();
+
+        if let Some(plugin) = registry.load_community_plugin(id).await? {
+            debug!(
+                context = context.as_str(),
+                plugin = plugin.locator.to_string(),
+                "Using a community plugin"
+            );
+
+            locator = Some(plugin.locator.to_owned());
+        }
     }
 
     // Search in registries
@@ -291,7 +306,8 @@ pub async fn load_tool(
         } else {
             PluginType::Tool
         },
-    )?;
+    )
+    .await?;
 
     let tool = load_tool_from_locator(&context, proto, locator).await?;
 
