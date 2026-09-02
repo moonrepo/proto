@@ -94,14 +94,23 @@ pub async fn locate_plugin(
     if locator.is_none() && ty == PluginType::Tool && config.settings.community_tools {
         let registry = proto.load_registry();
 
-        if let Some(plugin) = registry.load_community_plugin(id).await? {
-            debug!(
-                context = context.as_str(),
-                plugin = plugin.locator.to_string(),
-                "Using a community plugin"
-            );
+        match registry.load_community_plugin(id).await {
+            Ok(Some(plugin)) => {
+                debug!(
+                    context = context.as_str(),
+                    plugin = plugin.locator.to_string(),
+                    "Using a community plugin"
+                );
 
-            locator = Some(plugin.locator.to_owned());
+                locator = Some(plugin.locator.to_owned());
+            }
+            Ok(None) => {}
+            Err(error) => {
+                warn!(
+                    error = ?error,
+                    "Failed to load the community plugins registry; continuing without it"
+                );
+            }
         }
     }
 

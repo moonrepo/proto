@@ -128,17 +128,25 @@ impl ProtoRegistry {
         // Otherwise fetch from the upstream URL
         debug!(url = &data_url, "Loading plugins data from remote URL");
 
-        let data: PluginRegistryDocument = reqwest::get(&data_url)
+        let response = reqwest::get(&data_url)
             .await
+            .map_err(|error| ProtoRegistryError::FailedRequest {
+                url: data_url.clone(),
+                error: Box::new(error),
+            })?
+            .error_for_status()
             .map_err(|error| ProtoRegistryError::FailedRequest {
                 url: data_url,
                 error: Box::new(error),
-            })?
-            .json()
-            .await
-            .map_err(|error| ProtoRegistryError::FailedParse {
-                error: Box::new(error),
             })?;
+
+        let data: PluginRegistryDocument =
+            response
+                .json()
+                .await
+                .map_err(|error| ProtoRegistryError::FailedParse {
+                    error: Box::new(error),
+                })?;
 
         // Cache the result for future requests
         json::write_file(temp_file, &data.plugins, false)?;

@@ -301,6 +301,31 @@ community-tools = false
     }
 
     #[tokio::test]
+    async fn community_registry_failure_falls_back_to_default_registry() {
+        let (_sandbox, proto) = setup(
+            r#"
+[[settings.registries]]
+registry = "ghcr.io"
+namespace = "fallback"
+default = true
+"#,
+        );
+        write_community_cache(&proto, "not valid JSON");
+
+        let result = locate_plugin(&ctx("foo"), &proto, PluginType::Tool)
+            .await
+            .unwrap();
+
+        let PluginLocator::Registry(registry) = result else {
+            panic!("expected Registry locator, got {result:?}");
+        };
+
+        assert_eq!(registry.registry, Some("ghcr.io".into()));
+        assert_eq!(registry.namespace, Some("fallback".into()));
+        assert_eq!(registry.image, "foo");
+    }
+
+    #[tokio::test]
     async fn user_locator_takes_priority_over_community_plugin() {
         let (_sandbox, proto) = setup(
             r#"
