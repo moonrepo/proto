@@ -91,7 +91,7 @@ pub async fn locate_plugin(
     }
 
     // Then check the remote community plugins registry
-    if locator.is_none() && ty == PluginType::Tool {
+    if locator.is_none() && ty == PluginType::Tool && config.settings.community_tools {
         let registry = proto.load_registry();
 
         if let Some(plugin) = registry.load_community_plugin(id).await? {

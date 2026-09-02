@@ -284,6 +284,23 @@ default = true
     }
 
     #[tokio::test]
+    async fn community_registry_can_be_disabled() {
+        let (_sandbox, proto) = setup(
+            r#"
+[settings]
+community-tools = false
+"#,
+        );
+        write_act_community_cache(&proto);
+
+        let error = locate_plugin(&ctx("act"), &proto, PluginType::Tool)
+            .await
+            .expect_err("disabled community tools should not resolve");
+
+        assert!(matches!(error, ProtoLoaderError::UnknownTool { .. }));
+    }
+
+    #[tokio::test]
     async fn user_locator_takes_priority_over_community_plugin() {
         let (_sandbox, proto) = setup(
             r#"
