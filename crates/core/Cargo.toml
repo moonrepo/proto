@@ -69,7 +69,7 @@ uuid = { workspace = true }
 
 [dev-dependencies]
 proto_core = { path = ".", features = ["test-plugins"] }
-rand = "0.10.2"
+rand = "0.8.7"
 starbase_sandbox = { workspace = true }
 tokio = { workspace = true }
 

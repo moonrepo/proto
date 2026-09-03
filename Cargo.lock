@@ -4272,7 +4272,7 @@ dependencies = [
  "proto_core",
  "proto_pdk_api",
  "proto_shim",
- "rand 0.10.2",
+ "rand 0.8.8",
  "regex",
  "reqwest",
  "rustc-hash",
