@@ -209,6 +209,7 @@ pub enum StdoutOwner {
     ShellCode,
     CompletionCode,
     McpStdio,
+    ToolProcess,
 }
 
 impl App {
@@ -233,6 +234,9 @@ impl App {
                     StdoutOwner::McpStdio
                 }
             }
+            // Stdout belongs to the tool we're executing, so everything we
+            // write, errors included, must go to stderr instead
+            Commands::Exec(_) | Commands::Run(_) | Commands::Shell(_) => StdoutOwner::ToolProcess,
             _ => StdoutOwner::Reporter,
         }
     }

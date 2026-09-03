@@ -334,13 +334,6 @@ impl ProtoSession {
         ProgressInstance { reporter, handle }
     }
 
-    pub fn is_tool_exec_command(&self) -> bool {
-        matches!(
-            self.cli.command,
-            Commands::Exec(_) | Commands::Run(_) | Commands::Shell(_)
-        )
-    }
-
     pub fn is_json_format(&self) -> bool {
         self.console.is_json_format()
     }
@@ -359,9 +352,9 @@ impl AppSession for ProtoSession {
     type Error = miette::Report;
 
     async fn startup(&mut self) -> AppResult<Self::Error> {
-        // Do not show for run/exec commands, as we don't want to pollute the output
-        if !self.is_tool_exec_command()
-            && self.cli.stdout_owner() == StdoutOwner::Reporter
+        // Only show when we own stdout, otherwise we pollute the output of
+        // the tool process, shell code, and other stdout protocols
+        if self.cli.stdout_owner() == StdoutOwner::Reporter
             && self.cli.reporter_format() == ReporterFormat::Ndjson
             && ai_env::is_ai_agent()
         {

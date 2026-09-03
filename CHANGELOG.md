@@ -25,6 +25,7 @@
 - Fixed `proto outdated --update` not writing any versions when the reporter format is JSON or NDJSON, which is enabled with `--json`/`--reporter`, and detected automatically within AI agent environments.
 - Fixed `proto outdated --update` not writing any versions when not running in a terminal, as the confirmation prompt could never be answered. The `--update` flag is now the confirmation in this situation.
 - Fixed `proto outdated --update` reporting a successful update when no versions were actually written. We now warn and list the tools that were skipped.
+- Fixed `proto run`, `proto exec`, and `proto shell` writing proto's own output to stdout, which corrupts the output of the tool being ran. Errors (including the NDJSON error record in AI agent environments), auto-install messages, and install progress are now written to stderr, leaving stdout to the tool.
 
 ## 0.61.2
 

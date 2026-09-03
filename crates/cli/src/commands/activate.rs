@@ -58,7 +58,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> SessionResul
         StdoutOwner::Reporter => ActivateOutputMode::Structured,
         StdoutOwner::ShellCode if args.export => ActivateOutputMode::Export,
         StdoutOwner::ShellCode => ActivateOutputMode::Hook,
-        StdoutOwner::CompletionCode | StdoutOwner::McpStdio => {
+        StdoutOwner::CompletionCode | StdoutOwner::McpStdio | StdoutOwner::ToolProcess => {
             unreachable!("activate resolved to an unrelated stdout owner")
         }
     };

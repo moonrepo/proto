@@ -43,6 +43,8 @@ mod exec {
         ));
     }
 
+    // Stdout belongs to the tool being executed, so the reporter must render
+    // to stderr, otherwise a failure corrupts the tool's output stream
     #[test]
     fn errors_use_reporter_output_in_agent_environments() {
         let sandbox = create_empty_proto_sandbox();
@@ -53,13 +55,14 @@ mod exec {
                 .env_remove("PROTO_REPORTER");
         });
 
-        let stdout = assert.stdout();
-        let records = stdout
+        let stderr = assert.stderr();
+        let records = stderr
             .lines()
+            .filter(|line| line.starts_with('{'))
             .map(|line| serde_json::from_str::<serde_json::Value>(line).unwrap())
             .collect::<Vec<_>>();
 
-        assert.failure();
+        assert.failure().stdout(predicate::str::is_empty());
         assert!(records.iter().any(|record| {
             record.get("type").and_then(|value| value.as_str()) == Some("error")
                 && record
