@@ -27,6 +27,10 @@
 - Fixed `proto outdated --update` reporting a successful update when no versions were actually written. We now warn and list the tools that were skipped.
 - Fixed `proto run`, `proto exec`, and `proto shell` writing proto's own output to stdout, which corrupts the output of the tool being ran. Errors (including the NDJSON error record in AI agent environments), auto-install messages, and install progress are now written to stderr, leaving stdout to the tool.
 
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.61.2
 
 #### 🐞 Fixes

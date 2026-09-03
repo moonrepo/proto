@@ -23,7 +23,7 @@ futures = "0.3.34"
 hex = { version = "0.4.3", features = ["alloc"] }
 http-cache-reqwest = "1.0.0-alpha.7"
 human-sort = "0.2.2"
-indexmap = "2.14.0"
+indexmap = "2.14.1"
 iocraft = "0.8.4"
 # iocraft = { git = "https://github.com/ccbrown/iocraft.git", branch = "main" }
 miette = "7.6.0"
@@ -42,12 +42,12 @@ reqwest-middleware = { version = "0.5.2", default-features = false, features = [
     "charset",
     "http2",
 ] }
-rmcp = { version = "3.1.4", default-features = false, features = [
+rmcp = { version = "3.2.0", default-features = false, features = [
     "base64",
     "macros",
 ] }
 rustc-hash = "2.1.3"
-scc = "3.8.5"
+scc = "3.8.8"
 schemars = "1.2.2"
 schematic = { version = "0.20.2", default-features = false }
 serde = { version = "1.0.229", features = ["derive"] }
@@ -73,7 +73,7 @@ starbase_id = { version = "0.4.0", features = ["miette", "schematic"] }
 starbase_sandbox = { version = "0.12.0" }
 starbase_shell = { version = "0.12.8", features = ["miette"] }
 starbase_styles = { version = "0.6.9" }
-starbase_utils = { version = "0.14.3", default-features = false, features = [
+starbase_utils = { version = "0.14.4", default-features = false, features = [
     "fs-lock",
     "json",
     "miette",
@@ -86,4 +86,4 @@ toml_edit = "0.25"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", default-features = false }
 url = "2.5.8"
-uuid = { version = "1.25.0", features = ["v4"] }
+uuid = { version = "1.26.0", features = ["v4"] }
