@@ -120,6 +120,50 @@ mod run {
         ));
     }
 
+    // Stdout belongs to the tool being ran, so a failure must never write to
+    // it, even when rendering machine readable output. The banner is also
+    // suppressed for the same reason, so stdout stays completely empty.
+    #[test]
+    fn errors_to_stderr_as_ndjson_and_not_stdout() {
+        let sandbox = create_empty_proto_sandbox();
+
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.arg("run")
+                .arg("node")
+                .arg("19.0.0")
+                .arg("--reporter")
+                .arg("ndjson")
+                .env("CODEX_CI", "1")
+                .env("PROTO_AUTO_INSTALL", "false")
+                .env("PROTO_TELEMETRY", "false")
+                // The testing reporter ignores both the format and the
+                // stream, so opt into the real one
+                .env_remove("PROTO_SANDBOX")
+                .env_remove("PROTO_TEST");
+        });
+        let stderr = assert.stderr();
+
+        assert.failure().stdout(predicate::str::is_empty());
+
+        let records = stderr
+            .lines()
+            .filter(|line| line.starts_with('{'))
+            .map(|line| {
+                serde_json::from_str::<serde_json::Value>(line).unwrap_or_else(|error| {
+                    panic!("stderr line is not valid NDJSON: {line}: {error}")
+                })
+            })
+            .collect::<Vec<_>>();
+
+        assert!(records.iter().any(|record| {
+            record.get("type").and_then(|value| value.as_str()) == Some("error")
+                && record
+                    .get("message")
+                    .and_then(|value| value.as_str())
+                    .is_some_and(|message| message.contains("This project requires Node.js 19.0.0"))
+        }));
+    }
+
     #[test]
     fn errors_if_no_version_detected() {
         let sandbox = create_empty_proto_sandbox();
@@ -317,7 +361,8 @@ mod run {
             })
             .success();
 
-        assert.stdout(predicate::str::contains("installed"));
+        // Proto's own output goes to stderr, as stdout belongs to the tool
+        assert.stderr(predicate::str::contains("installed"));
     }
 
     #[test]
@@ -337,7 +382,8 @@ mod run {
             })
             .success();
 
-        assert.stdout(predicate::str::contains("installed"));
+        // Proto's own output goes to stderr, as stdout belongs to the tool
+        assert.stderr(predicate::str::contains("installed"));
 
         unsafe { env::remove_var("PROTO_AUTO_INSTALL") };
     }
@@ -381,7 +427,7 @@ mod run {
             })
             .success();
 
-        assert.stdout(predicate::str::contains("Node.js 19.0.0 installed"));
+        assert.stderr(predicate::str::contains("Node.js 19.0.0 installed"));
 
         let assert = sandbox
             .run_bin(|cmd| {
@@ -394,7 +440,7 @@ mod run {
             })
             .success();
 
-        assert.stdout(predicate::str::contains("Node.js 19.0.0 installed").not());
+        assert.stderr(predicate::str::contains("Node.js 19.0.0 installed").not());
     }
 
     #[test]

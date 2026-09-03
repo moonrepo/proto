@@ -7,7 +7,7 @@ use proto_core::flow::lock::Locker;
 use proto_core::flow::resolve::{ProtoResolveError, Resolver};
 use proto_core::{
     PROTO_CONFIG_NAME, ProtoConfig, Requirement, ToolContext, ToolSpec, UnresolvedVersionSpec,
-    VersionSpec, cfg,
+    VersionSpec, cfg, reporter::NoticeOutput,
 };
 use serde::Serialize;
 use starbase_console::ui::*;
@@ -51,6 +51,73 @@ fn get_in_major_range(spec: &UnresolvedVersionSpec) -> UnresolvedVersionSpec {
         ),
         _ => spec.clone(),
     }
+}
+
+fn render_table(
+    session: &ProtoSession,
+    items: &BTreeMap<ToolContext, OutdatedItem>,
+) -> miette::Result<()> {
+    let ctx_width = items.keys().fold(0, |acc, ctx| acc.max(ctx.as_str().len()));
+
+    // Only show the locked column if a tool is using a lockfile
+    let show_locked = items.values().any(|item| item.locked_version.is_some());
+
+    let mut headers = vec![
+        TableHeader::new("Tool", Size::Length((ctx_width + 3).max(10) as u32)),
+        TableHeader::new("Current", Size::Length(10)),
+    ];
+
+    if show_locked {
+        headers.push(TableHeader::new("Locked", Size::Length(10)));
+    }
+
+    headers.extend([
+        TableHeader::new("Newest", Size::Length(10)),
+        TableHeader::new("Latest", Size::Length(10)),
+        TableHeader::new("Config", Size::Auto),
+    ]);
+
+    session.console.table(
+        headers,
+        items
+            .iter()
+            .map(|(ctx, item)| {
+                let mut row = vec![format!("<id>{ctx}</id>"), item.current_version.to_string()];
+
+                if show_locked {
+                    row.push(if let Some(version) = &item.locked_version {
+                        format!("<hash>{version}</hash>")
+                    } else {
+                        "<mutedlight>N/A</mutedlight>".into()
+                    });
+                }
+
+                row.extend([
+                    if item.newest_version == item.current_version {
+                        format!("<mutedlight>{}</mutedlight>", item.newest_version)
+                    } else {
+                        format!("<success>{}</success>", item.newest_version)
+                    },
+                    if item.latest_version == item.current_version {
+                        format!("<mutedlight>{}</mutedlight>", item.latest_version)
+                    } else if item.latest_version == item.newest_version {
+                        format!("<success>{}</success>", item.latest_version)
+                    } else {
+                        format!("<failure>{}</failure>", item.latest_version)
+                    },
+                    if let Some(src) = &item.config_source {
+                        format!("<path>{}</path>", src.to_string_lossy())
+                    } else {
+                        "<mutedlight>N/A</mutedlight>".into()
+                    },
+                ]);
+
+                row
+            })
+            .collect(),
+    )?;
+
+    Ok(())
 }
 
 #[instrument(skip(session))]
@@ -152,80 +219,25 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> SessionResul
     );
 
     if session.is_json_format() {
-        session.console.write_json_for_format(items)?;
-
-        return Ok(None);
+        session.console.write_json_for_format(&items)?;
+    } else {
+        render_table(&session, &items)?;
     }
-
-    let ctx_width = items.keys().fold(0, |acc, ctx| acc.max(ctx.as_str().len()));
-
-    // Only show the locked column if a tool is using a lockfile
-    let show_locked = items.values().any(|item| item.locked_version.is_some());
-
-    let mut headers = vec![
-        TableHeader::new("Tool", Size::Length((ctx_width + 3).max(10) as u32)),
-        TableHeader::new("Current", Size::Length(10)),
-    ];
-
-    if show_locked {
-        headers.push(TableHeader::new("Locked", Size::Length(10)));
-    }
-
-    headers.extend([
-        TableHeader::new("Newest", Size::Length(10)),
-        TableHeader::new("Latest", Size::Length(10)),
-        TableHeader::new("Config", Size::Auto),
-    ]);
-
-    session.console.table(
-        headers,
-        items
-            .iter()
-            .map(|(ctx, item)| {
-                let mut row = vec![format!("<id>{ctx}</id>"), item.current_version.to_string()];
-
-                if show_locked {
-                    row.push(if let Some(version) = &item.locked_version {
-                        format!("<hash>{version}</hash>")
-                    } else {
-                        "<mutedlight>N/A</mutedlight>".into()
-                    });
-                }
-
-                row.extend([
-                    if item.newest_version == item.current_version {
-                        format!("<mutedlight>{}</mutedlight>", item.newest_version)
-                    } else {
-                        format!("<success>{}</success>", item.newest_version)
-                    },
-                    if item.latest_version == item.current_version {
-                        format!("<mutedlight>{}</mutedlight>", item.latest_version)
-                    } else if item.latest_version == item.newest_version {
-                        format!("<success>{}</success>", item.latest_version)
-                    } else {
-                        format!("<failure>{}</failure>", item.latest_version)
-                    },
-                    if let Some(src) = &item.config_source {
-                        format!("<path>{}</path>", src.to_string_lossy())
-                    } else {
-                        "<mutedlight>N/A</mutedlight>".into()
-                    },
-                ]);
-
-                row
-            })
-            .collect(),
-    )?;
 
     // If updating versions, batch the changes based on config paths
     if !args.update {
         return Ok(None);
     }
 
-    let skip_prompts = session.should_skip_prompts();
-    let mut confirmed = false;
+    // A prompt can only be answered when attached to a terminal that isn't
+    // rendering machine readable output, otherwise the explicit `--update`
+    // flag is the confirmation, as there's no one to ask
+    let can_prompt =
+        !session.should_skip_prompts() && !session.is_json_format() && session.is_tty();
 
-    if !skip_prompts {
+    if can_prompt {
+        let mut confirmed = false;
+
         session
             .console
             .render_interactive(element! {
@@ -239,100 +251,147 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> SessionResul
                 )
             })
             .await?;
+
+        if !confirmed {
+            session.console.notice(
+                Variant::Info,
+                "Update aborted, no configuration files were changed.",
+            )?;
+
+            return Ok(None);
+        }
     }
 
-    if skip_prompts || confirmed {
-        let mut updates: BTreeMap<PathBuf, BTreeMap<ToolContext, UnresolvedVersionSpec>> =
-            BTreeMap::new();
+    let mut updates: BTreeMap<PathBuf, BTreeMap<ToolContext, UnresolvedVersionSpec>> =
+        BTreeMap::new();
+    let mut skipped = vec![];
 
-        for (context, item) in &items {
-            let Some(src) = &item.config_source else {
-                continue;
-            };
+    for (context, item) in &items {
+        let Some(src) = &item.config_source else {
+            skipped.push(format!(
+                "<id>{context}</id> - version was not detected from a configuration file"
+            ));
 
-            // Only proto configs can be updated, including environment scoped
-            // configs, as versions may also be detected from ecosystem files
-            if !ProtoConfig::is_config_file(src) {
-                warn!(
-                    config = ?src,
-                    "Unable to update the version for {}, as its config source is not a {} file",
-                    color::id(context),
-                    color::file(PROTO_CONFIG_NAME),
-                );
+            continue;
+        };
 
-                continue;
-            }
-
-            // Don't update aliases, only semantic or calendar versions
-            if matches!(
-                item.config_version.req,
-                UnresolvedVersionSpec::Canary | UnresolvedVersionSpec::Alias(_)
-            ) {
-                continue;
-            }
-
-            updates.entry(src.to_owned()).or_default().insert(
-                context.to_owned(),
-                if args.latest {
-                    item.latest_version.to_unresolved_spec()
-                } else {
-                    item.newest_version.to_unresolved_spec()
-                },
-            );
-        }
-
-        for (config_path, updated_versions) in &updates {
-            debug!(
-                config = ?config_path,
-                versions = ?updated_versions
-                    .iter()
-                    .map(|(k, v)| (k.to_string(), v.to_string()))
-                    .collect::<BTreeMap<_, _>>(),
-                "Updating config with versions",
+        // Only proto configs can be updated, including environment scoped
+        // configs, as versions may also be detected from ecosystem files
+        if !ProtoConfig::is_config_file(src) {
+            warn!(
+                config = ?src,
+                "Unable to update the version for {}, as its config source is not a {} file",
+                color::id(context),
+                color::file(PROTO_CONFIG_NAME),
             );
 
-            ProtoConfig::update_document(config_path, |doc| {
-                for (context, updated_version) in updated_versions {
-                    doc[context.as_str()] =
-                        cfg::value(ToolSpec::new(updated_version.to_owned()).to_string());
-                }
-            })?;
+            skipped.push(format!(
+                "<id>{context}</id> - <path>{}</path> is not a <file>{PROTO_CONFIG_NAME}</file> file",
+                src.to_string_lossy()
+            ));
+
+            continue;
         }
 
-        // Update records in the lockfiles owned by the updated configs,
-        // otherwise the stale records will be used indefinitely
-        for tool in &tools {
-            let Some(item) = items.get(&tool.context) else {
-                continue;
-            };
+        // Don't update aliases, only semantic or calendar versions
+        if matches!(
+            item.config_version.req,
+            UnresolvedVersionSpec::Canary | UnresolvedVersionSpec::Alias(_)
+        ) {
+            skipped.push(format!(
+                "<id>{context}</id> - <version>{}</version> is an alias, not a version",
+                item.config_version.req
+            ));
 
-            let Some(src) = &item.config_source else {
-                continue;
-            };
-
-            let Some(new_spec) = updates
-                .get(src)
-                .and_then(|versions| versions.get(&tool.context))
-            else {
-                continue;
-            };
-
-            Locker::for_config(tool, src).update_spec_in_lockfile(
-                &item.config_version.req,
-                new_spec,
-                if args.latest {
-                    &item.latest_version
-                } else {
-                    &item.newest_version
-                },
-            )?;
+            continue;
         }
 
-        session.console.notice(
-            Variant::Success,
-            "Update complete! Run <shell>proto install</shell> to install these new versions.",
+        updates.entry(src.to_owned()).or_default().insert(
+            context.to_owned(),
+            if args.latest {
+                item.latest_version.to_unresolved_spec()
+            } else {
+                item.newest_version.to_unresolved_spec()
+            },
+        );
+    }
+
+    // Don't silently do nothing, as callers have no other signal that we
+    // declined to write anything to their configs
+    if updates.is_empty() {
+        let mut messages = vec!["No versions were updated!".into()];
+        messages.extend(skipped);
+
+        session.console.notice_with(NoticeOutput {
+            variant: Variant::Caution,
+            messages,
+            ..Default::default()
+        })?;
+
+        return Ok(None);
+    }
+
+    for (config_path, updated_versions) in &updates {
+        debug!(
+            config = ?config_path,
+            versions = ?updated_versions
+                .iter()
+                .map(|(k, v)| (k.to_string(), v.to_string()))
+                .collect::<BTreeMap<_, _>>(),
+            "Updating config with versions",
+        );
+
+        ProtoConfig::update_document(config_path, |doc| {
+            for (context, updated_version) in updated_versions {
+                doc[context.as_str()] =
+                    cfg::value(ToolSpec::new(updated_version.to_owned()).to_string());
+            }
+        })?;
+    }
+
+    // Update records in the lockfiles owned by the updated configs,
+    // otherwise the stale records will be used indefinitely
+    for tool in &tools {
+        let Some(item) = items.get(&tool.context) else {
+            continue;
+        };
+
+        let Some(src) = &item.config_source else {
+            continue;
+        };
+
+        let Some(new_spec) = updates
+            .get(src)
+            .and_then(|versions| versions.get(&tool.context))
+        else {
+            continue;
+        };
+
+        Locker::for_config(tool, src).update_spec_in_lockfile(
+            &item.config_version.req,
+            new_spec,
+            if args.latest {
+                &item.latest_version
+            } else {
+                &item.newest_version
+            },
         )?;
     }
+
+    let mut messages = vec![
+        "Update complete! Run <shell>proto install</shell> to install these new versions.".into(),
+    ];
+
+    if !skipped.is_empty() {
+        messages.push("The following tools were not updated:".into());
+        messages.extend(skipped);
+    }
+
+    session.console.notice_with(NoticeOutput {
+        variant: Variant::Success,
+        messages,
+        ..Default::default()
+    })?;
 
     Ok(None)
 }

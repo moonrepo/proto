@@ -44,7 +44,12 @@ pub struct ProtoSession {
 }
 
 fn should_check_for_new_version(cli: &CLI) -> bool {
-    if cli.stdout_owner() != StdoutOwner::Reporter {
+    // The remaining owners write a protocol payload to stdout that the notice
+    // would corrupt. The tool process owner renders to stderr, so it's safe
+    if !matches!(
+        cli.stdout_owner(),
+        StdoutOwner::Reporter | StdoutOwner::ToolProcess
+    ) {
         return false;
     }
 
@@ -334,13 +339,6 @@ impl ProtoSession {
         ProgressInstance { reporter, handle }
     }
 
-    pub fn is_tool_exec_command(&self) -> bool {
-        matches!(
-            self.cli.command,
-            Commands::Exec(_) | Commands::Run(_) | Commands::Shell(_)
-        )
-    }
-
     pub fn is_json_format(&self) -> bool {
         self.console.is_json_format()
     }
@@ -359,9 +357,9 @@ impl AppSession for ProtoSession {
     type Error = miette::Report;
 
     async fn startup(&mut self) -> AppResult<Self::Error> {
-        // Do not show for run/exec commands, as we don't want to pollute the output
-        if !self.is_tool_exec_command()
-            && self.cli.stdout_owner() == StdoutOwner::Reporter
+        // Only show when we own stdout, otherwise we pollute the output of
+        // the tool process, shell code, and other stdout protocols
+        if self.cli.stdout_owner() == StdoutOwner::Reporter
             && self.cli.reporter_format() == ReporterFormat::Ndjson
             && ai_env::is_ai_agent()
         {
@@ -429,7 +427,8 @@ mod tests {
     use clap::Parser;
 
     #[test]
-    fn version_checks_require_reporter_owned_stdout() {
+    fn version_checks_never_corrupt_protocol_stdout() {
+        // Renders to stderr, so the notice can't corrupt the shell session
         let shell = CLI::try_parse_from(["proto", "shell", "--shell", "bash"]).unwrap();
         assert!(should_check_for_new_version(&shell));
 
@@ -441,5 +440,13 @@ mod tests {
 
         let mcp_info = CLI::try_parse_from(["proto", "mcp", "--info"]).unwrap();
         assert!(should_check_for_new_version(&mcp_info));
+
+        // Excluded by command, as the notice is just noise when passing
+        // through to another tool
+        let run = CLI::try_parse_from(["proto", "run", "node"]).unwrap();
+        assert!(!should_check_for_new_version(&run));
+
+        let exec = CLI::try_parse_from(["proto", "exec", "--", "node"]).unwrap();
+        assert!(!should_check_for_new_version(&exec));
     }
 }

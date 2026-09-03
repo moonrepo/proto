@@ -427,7 +427,8 @@ pub async fn run(session: ProtoSession, mut args: RunArgs) -> SessionResult {
             if hide_output {
                 session.console.set_quiet(true);
             } else {
-                session.console.out.write_line(format!(
+                // Write to stderr, as stdout belongs to the tool being ran
+                session.console.err.write_line(format!(
                     "Auto-install is enabled, attempting to install {} {}",
                     tool.get_name(),
                     resolved_version,
@@ -457,7 +458,7 @@ pub async fn run(session: ProtoSession, mut args: RunArgs) -> SessionResult {
             if hide_output {
                 session.console.set_quiet(false);
             } else {
-                session.console.out.write_line(format!(
+                session.console.err.write_line(format!(
                     "{} {} has been installed, continuing execution...",
                     tool.get_name(),
                     resolved_version,
