@@ -23,7 +23,7 @@ warpgate = { version = "0.36.2", path = "../warpgate", features = [
 ] }
 ai_env = { workspace = true }
 clap = { workspace = true, optional = true }
-convert_case = "0.11.0"
+convert_case = "0.12.0"
 docker_credential = { workspace = true }
 dotenv-ng = { version = "1.0.0", default-features = false }
 indexmap = { workspace = true }
@@ -69,7 +69,7 @@ uuid = { workspace = true }
 
 [dev-dependencies]
 proto_core = { path = ".", features = ["test-plugins"] }
-rand = "0.8.7"
+rand = "0.10.2"
 starbase_sandbox = { workspace = true }
 tokio = { workspace = true }
 
