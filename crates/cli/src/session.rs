@@ -44,7 +44,12 @@ pub struct ProtoSession {
 }
 
 fn should_check_for_new_version(cli: &CLI) -> bool {
-    if cli.stdout_owner() != StdoutOwner::Reporter {
+    // The remaining owners write a protocol payload to stdout that the notice
+    // would corrupt. The tool process owner renders to stderr, so it's safe
+    if !matches!(
+        cli.stdout_owner(),
+        StdoutOwner::Reporter | StdoutOwner::ToolProcess
+    ) {
         return false;
     }
 
@@ -422,7 +427,8 @@ mod tests {
     use clap::Parser;
 
     #[test]
-    fn version_checks_require_reporter_owned_stdout() {
+    fn version_checks_never_corrupt_protocol_stdout() {
+        // Renders to stderr, so the notice can't corrupt the shell session
         let shell = CLI::try_parse_from(["proto", "shell", "--shell", "bash"]).unwrap();
         assert!(should_check_for_new_version(&shell));
 
@@ -434,5 +440,13 @@ mod tests {
 
         let mcp_info = CLI::try_parse_from(["proto", "mcp", "--info"]).unwrap();
         assert!(should_check_for_new_version(&mcp_info));
+
+        // Excluded by command, as the notice is just noise when passing
+        // through to another tool
+        let run = CLI::try_parse_from(["proto", "run", "node"]).unwrap();
+        assert!(!should_check_for_new_version(&run));
+
+        let exec = CLI::try_parse_from(["proto", "exec", "--", "node"]).unwrap();
+        assert!(!should_check_for_new_version(&exec));
     }
 }
