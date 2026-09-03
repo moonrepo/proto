@@ -167,6 +167,85 @@ mod outdated {
     }
 
     #[test]
+    fn updates_when_using_json_format() {
+        let sandbox = create_empty_proto_sandbox();
+        sandbox.create_file(".prototools", r#"moonbase = "1.0.0""#);
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("outdated")
+                    .arg("--update")
+                    .arg("--latest")
+                    .arg("--yes")
+                    .arg("--json");
+            })
+            .success();
+
+        assert!(
+            !fs::read_to_string(sandbox.path().join(".prototools"))
+                .unwrap()
+                .contains("1.0.0")
+        );
+    }
+
+    #[test]
+    fn updates_when_using_ndjson_format() {
+        let sandbox = create_empty_proto_sandbox();
+        sandbox.create_file(".prototools", r#"moonbase = "1.0.0""#);
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("outdated")
+                    .arg("--update")
+                    .arg("--latest")
+                    .arg("--yes")
+                    .arg("--reporter")
+                    .arg("ndjson");
+            })
+            .success();
+
+        assert!(
+            !fs::read_to_string(sandbox.path().join(".prototools"))
+                .unwrap()
+                .contains("1.0.0")
+        );
+    }
+
+    // Prompts can't be answered without a terminal, so the `--update`
+    // flag itself is the confirmation
+    #[test]
+    fn updates_without_yes_when_not_a_tty() {
+        let sandbox = create_empty_proto_sandbox();
+        sandbox.create_file(".prototools", r#"moonbase = "1.0.0""#);
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("outdated").arg("--update").arg("--latest");
+            })
+            .success();
+
+        assert!(
+            !fs::read_to_string(sandbox.path().join(".prototools"))
+                .unwrap()
+                .contains("1.0.0")
+        );
+    }
+
+    #[test]
+    fn warns_when_nothing_was_updated() {
+        let sandbox = create_empty_proto_sandbox();
+        sandbox.create_file(".prototools", r#"moonbase = "latest""#);
+
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.arg("outdated").arg("--update").arg("--yes");
+        });
+
+        let output = assert.output();
+
+        assert!(predicate::str::contains("No versions were updated!").eval(&output));
+    }
+
+    #[test]
     fn doesnt_overwrite_aliases() {
         let sandbox = create_empty_proto_sandbox();
         sandbox.create_file(".prototools", r#"moonbase = "latest""#);
