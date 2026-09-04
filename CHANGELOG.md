@@ -37,6 +37,7 @@
 
 #### 🚀 Updates
 
+- Added unstable Zig (and ZLS) support: `proto install zig`.
 - Added automatic plugin resolution for tools in the official [community plugins](https://github.com/moonrepo/community-plugins) registry. Community tools can now be used by ID without first configuring a plugin locator.
   - Set `community-tools = false` in `[settings]`, or `PROTO_COMMUNITY_TOOLS=false`, to disable this behavior.
 - Added `proto activate` support for the following shells: `ash`, `dash`, `sh`, `powershell` (5.1+), `xonsh`
