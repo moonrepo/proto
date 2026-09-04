@@ -26,7 +26,7 @@ mod install_all_lockfile {
 
     #[test]
     fn adds_all_to_lockfile() {
-        let sandbox = create_proto_sandbox("lockfile-all");
+        let sandbox = create_proto_sandbox_with_shared_plugins("lockfile-all");
         let lockfile_path = sandbox.path().join(".protolock");
 
         assert!(!lockfile_path.exists());
@@ -80,7 +80,7 @@ mod install_all_lockfile {
 
     #[test]
     fn doesnt_add_tools_from_nested_configs() {
-        let sandbox = create_proto_sandbox("lockfile-nested");
+        let sandbox = create_proto_sandbox_with_shared_plugins("lockfile-nested");
         let nested_dir = sandbox.path().join("nested");
 
         // The nested config isn't locked, so the parent lockfile
@@ -103,7 +103,7 @@ mod install_all_lockfile {
 
     #[test]
     fn supports_lockfiles_in_nested_configs() {
-        let sandbox = create_proto_sandbox("lockfile-nested");
+        let sandbox = create_proto_sandbox_with_shared_plugins("lockfile-nested");
         let nested_dir = sandbox.path().join("nested");
 
         sandbox.create_file(
@@ -151,7 +151,7 @@ unstable-lockfile = true
 
     #[test]
     fn locks_env_configs_to_their_own_lockfiles() {
-        let sandbox = create_proto_sandbox("lockfile-nested");
+        let sandbox = create_proto_sandbox_with_shared_plugins("lockfile-nested");
         sandbox.create_file(
             ".prototools",
             r#"
@@ -232,7 +232,7 @@ builtin-tools = false
 
     #[test]
     fn prunes_orphaned_records() {
-        let sandbox = create_empty_proto_sandbox();
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
 
         sandbox.create_file(
             ".prototools",
@@ -324,7 +324,7 @@ version = "4.5.15"
         use super::*;
 
         fn create_sandbox() -> ProtoSandbox {
-            let sandbox = create_empty_proto_sandbox();
+            let sandbox = create_empty_proto_sandbox_with_shared_plugins();
             sandbox.create_file(
                 ".prototools",
                 r#"

@@ -106,7 +106,7 @@ impl ProtoEnvironment {
             options.cache_dir = Some(self.store.cache_dir.join("requests-v2"));
 
             let mut loader =
-                PluginLoader::new(&self.store.plugins_dir, self.store.temp_dir.join("plugins"));
+                PluginLoader::new(&self.store.plugins_dir, &self.store.plugins_temp_dir);
 
             if let Some(secs) = config.settings.cache_duration {
                 loader.set_cache_duration(Duration::from_secs(secs));

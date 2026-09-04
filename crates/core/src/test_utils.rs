@@ -103,6 +103,48 @@ pub fn create_proto_sandbox<N: AsRef<str>>(fixture: N) -> ProtoSandbox {
     ProtoSandbox::new(starbase_sandbox::create_sandbox(fixture))
 }
 
+/// A plugins directory shared by every sandbox that opts into it, so that
+/// commands loading *all* tools don't each re-download the same builtin
+/// plugins. Machine local and reused across runs; the loader coordinates
+/// concurrent access through lock files kept alongside it.
+pub fn shared_plugins_dir() -> PathBuf {
+    std::env::temp_dir().join("proto-test-plugins")
+}
+
+fn apply_shared_plugins(sandbox: &mut Sandbox) {
+    let dir = shared_plugins_dir();
+
+    fs::create_dir_all(&dir).unwrap();
+
+    sandbox.settings.env.insert(
+        "PROTO_PLUGINS_DIR".into(),
+        dir.to_str().unwrap().to_owned(),
+    );
+}
+
+/// Like [`create_empty_proto_sandbox`], but points the sandbox at a plugins
+/// directory shared with other tests. Only for tests that run commands which
+/// load every configured tool (`clean`, `exec`, `outdated`, `status`,
+/// `install` with no argument, ...), where the builtin plugin downloads
+/// otherwise dominate the runtime. Do NOT use it for tests that assert on or
+/// mutate the contents of the plugins directory.
+pub fn create_empty_proto_sandbox_with_shared_plugins() -> ProtoSandbox {
+    let mut sandbox = starbase_sandbox::create_empty_sandbox();
+
+    apply_shared_plugins(&mut sandbox);
+
+    ProtoSandbox::new(sandbox)
+}
+
+/// See [`create_empty_proto_sandbox_with_shared_plugins`].
+pub fn create_proto_sandbox_with_shared_plugins<N: AsRef<str>>(fixture: N) -> ProtoSandbox {
+    let mut sandbox = starbase_sandbox::create_sandbox(fixture);
+
+    apply_shared_plugins(&mut sandbox);
+
+    ProtoSandbox::new(sandbox)
+}
+
 pub fn load_config<T: AsRef<Path>>(dir: T) -> ProtoConfig {
     let manager = ProtoFileManager::load(dir, None, None).unwrap();
     let config = manager.get_merged_config().unwrap();

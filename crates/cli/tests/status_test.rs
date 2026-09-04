@@ -6,7 +6,7 @@ mod status {
 
     #[test]
     fn errors_when_nothing_configured() {
-        let sandbox = create_empty_proto_sandbox();
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
 
         let assert = sandbox
             .run_bin(|cmd| {
@@ -19,7 +19,7 @@ mod status {
 
     #[test]
     fn reports_all_non_global_configs() {
-        let sandbox = create_empty_proto_sandbox();
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
         sandbox.create_file(".proto/.prototools", r#"moonbase = "*""#);
         sandbox.create_file("a/.prototools", r#"protostar = "*""#);
         sandbox.create_file("a/b/.prototools", r#"moonstone = "*""#);
@@ -39,7 +39,7 @@ mod status {
 
     #[test]
     fn only_includes_local_config() {
-        let sandbox = create_empty_proto_sandbox();
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
         sandbox.create_file(".proto/.prototools", r#"moonbase = "*""#);
         sandbox.create_file("a/.prototools", r#"protostar = "*""#);
         sandbox.create_file("a/b/.prototools", r#"moonstone = "*""#);
@@ -62,7 +62,7 @@ mod status {
 
     #[test]
     fn can_include_global_config() {
-        let sandbox = create_empty_proto_sandbox();
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
         sandbox.create_file(".proto/.prototools", r#"moonbase = "*""#);
         sandbox.create_file("a/.prototools", r#"protostar = "*""#);
         sandbox.create_file("a/b/.prototools", r#"moonstone = "*""#);
@@ -85,7 +85,7 @@ mod status {
 
     #[test]
     fn can_include_ecosystem_config() {
-        let sandbox = create_empty_proto_sandbox();
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
         sandbox.create_file(".prototools", r#"protoform = "*""#);
         sandbox.create_file(".protostarrc", ">=20");
 
@@ -101,7 +101,7 @@ mod status {
 
     #[test]
     fn global_doesnt_overwrite_local() {
-        let sandbox = create_empty_proto_sandbox();
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
         sandbox.create_file(".proto/.prototools", r#"protostar = "18""#);
         sandbox.create_file("a/.prototools", r#"protostar = "20""#);
 

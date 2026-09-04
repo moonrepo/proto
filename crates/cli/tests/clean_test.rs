@@ -35,7 +35,8 @@ mod clean {
 
     #[test]
     fn cleans_without_issue() {
-        let sandbox = create_empty_proto_sandbox();
+        // Cleaning everything loads all tools, so share the plugin store
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
 
         sandbox
             .run_bin(|cmd| {
@@ -159,7 +160,8 @@ mod clean {
 
     #[test]
     fn cleans_multiple_stale_tool_versions() {
-        let sandbox = create_empty_proto_sandbox();
+        // Cleaning everything loads all tools, so share the plugin store
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
 
         sandbox
             .run_bin(|cmd| {

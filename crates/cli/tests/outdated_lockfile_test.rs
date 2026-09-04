@@ -21,7 +21,7 @@ mod outdated_lockfile {
 
     #[test]
     fn updates_lockfile_records_with_newest() {
-        let sandbox = create_empty_proto_sandbox();
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
         sandbox.create_file(
             ".prototools",
             r#"protostar = "4.0.0"
@@ -79,7 +79,7 @@ builtin-tools = false
 
     #[test]
     fn updates_lockfile_records_with_latest() {
-        let sandbox = create_empty_proto_sandbox();
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
         sandbox.create_file(
             ".prototools",
             r#"protostar = "4.0.0"
@@ -132,7 +132,7 @@ builtin-tools = false
 
     #[test]
     fn updates_env_config_and_its_lockfile_records() {
-        let sandbox = create_empty_proto_sandbox();
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
         sandbox.create_file(
             ".prototools",
             r#"protostar = "4.0.0"
@@ -223,7 +223,7 @@ builtin-tools = false
 
     #[test]
     fn doesnt_create_lockfile_if_disabled() {
-        let sandbox = create_empty_proto_sandbox();
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
         sandbox.create_file(
             ".prototools",
             r#"protostar = "4.0.0"
@@ -248,7 +248,7 @@ builtin-tools = false
 
     #[test]
     fn shows_locked_column_when_records_exist() {
-        let sandbox = create_empty_proto_sandbox();
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
         sandbox.create_file(
             ".prototools",
             r#"protostar = "~4.0"
@@ -280,7 +280,7 @@ builtin-tools = false
 
     #[test]
     fn hides_locked_column_when_no_records() {
-        let sandbox = create_empty_proto_sandbox();
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
         sandbox.create_file(
             ".prototools",
             r#"protostar = "~4.0"
@@ -303,7 +303,7 @@ builtin-tools = false
 
     #[test]
     fn includes_locked_version_in_json() {
-        let sandbox = create_empty_proto_sandbox();
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
         sandbox.create_file(
             ".prototools",
             r#"protostar = "~4.0"
