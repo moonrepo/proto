@@ -88,7 +88,7 @@ pub async fn deactivate(session: ProtoSession, args: DeactivateArgs) -> SessionR
                 }
             }
         }
-        StdoutOwner::CompletionCode | StdoutOwner::McpStdio => {
+        StdoutOwner::CompletionCode | StdoutOwner::McpStdio | StdoutOwner::ToolProcess => {
             unreachable!("deactivate resolved to an unrelated stdout owner")
         }
     };

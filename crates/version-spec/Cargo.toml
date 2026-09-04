@@ -11,8 +11,8 @@ rust-version = "1.85.0"
 [dependencies]
 compact_str = { workspace = true }
 human-sort = { workspace = true }
-pest = "2.8.7"
-pest_derive = "2.8.7"
+pest = "2.9.0"
+pest_derive = "2.9.0"
 regex = { workspace = true }
 schematic = { workspace = true, optional = true, features = ["schema"] }
 serde = { workspace = true }
