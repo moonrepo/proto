@@ -74,9 +74,8 @@ jobs:
       - uses: moonrepo/setup-rust@v1
         with:
           bins: cargo-wasi, cargo-nextest, just
-          cache: false
-          # cache: ${{ runner.os != 'Linux' }}
-          # cache-base: "^(master|develop-)"
+          cache: true
+          cache-base: "^(master|develop-)"
           targets: wasm32-wasip1
       - run: just build-wasm
         # Windows runs out of disk space
@@ -87,23 +86,7 @@ jobs:
           PROTO_DEBUG_COMMAND: 1
           RUST_BACKTRACE: 1
           WASMTIME_BACKTRACE_DETAILS: 1
-  run:
-    name: Run
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-      fail-fast: false
-    steps:
-      - uses: actions/checkout@v7
-      - uses: moonrepo/setup-rust@v1
-        with:
-          bins: cargo-wasi, just
-          cache: false
-          # cache-base: "^(master|develop-)"
-          targets: wasm32-wasip1
-      - run: just build
-      - run: just build-wasm
+      # Smoke checks, reusing the binaries that `test-ci` already built
       - run: cargo run -- --help
       - run: cargo run -- versions node
       - run: cargo run --features test-plugins -- versions protostar
