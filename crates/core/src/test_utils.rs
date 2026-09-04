@@ -116,10 +116,10 @@ fn apply_shared_plugins(sandbox: &mut Sandbox) {
 
     fs::create_dir_all(&dir).unwrap();
 
-    sandbox.settings.env.insert(
-        "PROTO_PLUGINS_DIR".into(),
-        dir.to_str().unwrap().to_owned(),
-    );
+    sandbox
+        .settings
+        .env
+        .insert("PROTO_PLUGINS_DIR".into(), dir.to_str().unwrap().to_owned());
 }
 
 /// Like [`create_empty_proto_sandbox`], but points the sandbox at a plugins
