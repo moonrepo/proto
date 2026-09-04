@@ -107,8 +107,14 @@ pub fn create_proto_sandbox<N: AsRef<str>>(fixture: N) -> ProtoSandbox {
 /// commands loading *all* tools don't each re-download the same builtin
 /// plugins. Machine local and reused across runs; the loader coordinates
 /// concurrent access through lock files kept alongside it.
+///
+/// CI sets `PROTO_TEST_PLUGINS_DIR` so the directory can be warmed before the
+/// suite starts and cached between runs, otherwise the first tests to need a
+/// plugin all block on the same cold download.
 pub fn shared_plugins_dir() -> PathBuf {
-    std::env::temp_dir().join("proto-test-plugins")
+    std::env::var_os("PROTO_TEST_PLUGINS_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| std::env::temp_dir().join("proto-test-plugins"))
 }
 
 fn apply_shared_plugins(sandbox: &mut Sandbox) {
