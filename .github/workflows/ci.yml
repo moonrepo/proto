@@ -89,9 +89,6 @@ jobs:
         with:
           path: ${{ env.PROTO_TEST_PLUGINS_DIR }}
           key: proto-test-plugins-${{ runner.os }}-${{ hashFiles('crates/core/src/config.rs') }}
-      # Smoke checks, which also build the binary used to warm the store below
-      - run: cargo run -- --help
-      - run: cargo run -- versions node
       # Warm the shared store serially, before nextest starts. On a cache miss
       # this download otherwise lands inside whichever tests run first, and
       # under `test-threads` contention it blows their timeouts.
@@ -105,4 +102,3 @@ jobs:
           PROTO_DEBUG_COMMAND: 1
           RUST_BACKTRACE: 1
           WASMTIME_BACKTRACE_DETAILS: 1
-      - run: cargo run --features test-plugins -- versions protostar
