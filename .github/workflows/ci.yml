@@ -89,6 +89,17 @@ jobs:
         with:
           path: ${{ env.PROTO_TEST_PLUGINS_DIR }}
           key: proto-test-plugins-${{ runner.os }}-${{ hashFiles('crates/core/src/config.rs') }}
+      # Extism leaves wasmtime's compiled module cache on, but runners start
+      # empty, so every process recompiles all 22 plugins. Paths are wasmtime's
+      # platform defaults, via `ProjectDirs::from("", "BytecodeAlliance", "wasmtime")`.
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/wasmtime
+            ~/Library/Caches/BytecodeAlliance.wasmtime
+            ~\AppData\Local\BytecodeAlliance\wasmtime\cache
+          key: wasmtime-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'crates/core/src/config.rs') }}
+          restore-keys: wasmtime-${{ runner.os }}-
       # Smoke checks, which also build the binary used to warm the store below
       - run: cargo run -- --help
       - run: cargo run -- versions node
@@ -105,4 +116,19 @@ jobs:
           PROTO_DEBUG_COMMAND: 1
           RUST_BACKTRACE: 1
           WASMTIME_BACKTRACE_DETAILS: 1
+      # A wrong path above would cache nothing and say nothing, so make it visible
+      - name: Report WASM compile cache
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          found=0
+          for dir in "$HOME/.cache/wasmtime" \
+                     "$HOME/Library/Caches/BytecodeAlliance.wasmtime" \
+                     "$LOCALAPPDATA/BytecodeAlliance/wasmtime/cache"; do
+            if [ -d "$dir" ]; then
+              found=1
+              echo "$dir: $(find "$dir" -type f | wc -l) files, $(du -sh "$dir" | cut -f1)"
+            fi
+          done
+          [ "$found" = 1 ] || echo "::warning::No wasmtime cache directory found; the cache paths are wrong for ${{ runner.os }}"
       - run: cargo run --features test-plugins -- versions protostar
