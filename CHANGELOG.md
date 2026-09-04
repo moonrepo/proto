@@ -58,6 +58,10 @@
 - Fixed `[env]` variables failing to apply in Murex and PowerShell, as the values were not quoted, and both shells parse the right side of an assignment as an expression.
 - Fixed Nushell not unsetting a previous directory's `[env]` variables when changing directories, as the activation was not tracking what it applied.
 
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.61.3
 
 #### 🐞 Fixes

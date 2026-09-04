@@ -897,9 +897,9 @@ dependencies = [
 
 [[package]]
 name = "convert_case"
-version = "0.11.0"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "affbf0190ed2caf063e3def54ff444b449371d55c58e513a95ab98eca50adb49"
+checksum = "1af709f1f33454bf52eadfc8c78b3b9ef9cb26fb54d16dc9cd9a7299f899fd1b"
 dependencies = [
  "unicode-segmentation",
 ]
@@ -4258,7 +4258,7 @@ version = "0.61.6"
 dependencies = [
  "ai_env",
  "clap",
- "convert_case 0.11.0",
+ "convert_case 0.12.0",
  "docker_credential",
  "dotenv-ng",
  "indexmap",
@@ -5114,11 +5114,11 @@ dependencies = [
 
 [[package]]
 name = "schematic"
-version = "0.20.2"
+version = "0.20.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f5dc97e195765d8e7b81127b6d35a087159560e58626f5364c9f1f814fa441ac"
+checksum = "427c18c3620b962053fdf499901e2ec7d7a61cb3168404cac7a6abe6c036e030"
 dependencies = [
- "convert_case 0.11.0",
+ "convert_case 0.12.0",
  "garde",
  "indexmap",
  "json-strip-comments",
@@ -5140,11 +5140,11 @@ dependencies = [
 
 [[package]]
 name = "schematic_core"
-version = "0.1.2"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "94f7762de93d7c84b0b55efc7ed69b9443c1fc5f5d5abdaf420e59ba88d33fff"
+checksum = "a057961c43aeed1545d53ef83f9ea8a96c6a7617652343c7022bee3b2ae0c58e"
 dependencies = [
- "convert_case 0.11.0",
+ "convert_case 0.12.0",
  "darling 0.24.1",
  "proc-macro2",
  "quote",
@@ -5153,9 +5153,9 @@ dependencies = [
 
 [[package]]
 name = "schematic_macros"
-version = "0.20.2"
+version = "0.20.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cce1bb80d387519babe67987ea567ad57e9abebf1a38f57b48f9294cf0ecb549"
+checksum = "444bf58bdf4cac8843d3f9aadc8201cb78d8b2b9fd5ce4d268a700bb314fb597"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5165,9 +5165,9 @@ dependencies = [
 
 [[package]]
 name = "schematic_types"
-version = "0.12.2"
+version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3102eb01646916d2ac24661014c931213a01fcf985cf4a0f4488122608a624c7"
+checksum = "5d0ac9bda7db6a25316a76a95818bc049d4239bb60a62d308aa270d3a2b25dd8"
 dependencies = [
  "indexmap",
  "regex",
