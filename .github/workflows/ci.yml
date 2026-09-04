@@ -16,6 +16,7 @@ env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For setup-rust
   RUST_BACKTRACE: full
   WARPGATE_PLUGINS_DIR: ${{ github.workspace }}/plugins
+  PROTO_TEST_PLUGINS_DIR: ${{ github.workspace }}/.proto-test-plugins
 
 jobs:
   codegen:
@@ -74,36 +75,30 @@ jobs:
       - uses: moonrepo/setup-rust@v1
         with:
           bins: cargo-wasi, cargo-nextest, just
-          cache: false
-          # cache: ${{ runner.os != 'Linux' }}
-          # cache-base: "^(master|develop-)"
+          cache: true
+          cache-base: "^(master|develop-)"
           targets: wasm32-wasip1
       - run: just build-wasm
         # Windows runs out of disk space
       - if: ${{ runner.os == 'Windows' }}
         run: node .github/actions/delete-target-files.js;
+      # Tests that load every tool share this directory instead of each
+      # re-downloading the builtin plugins. Keyed on the pinned plugin
+      # versions, so a bump re-populates it.
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.PROTO_TEST_PLUGINS_DIR }}
+          key: proto-test-plugins-${{ runner.os }}-${{ hashFiles('crates/core/src/config.rs') }}
+      # Warm the shared store serially, before nextest starts. On a cache miss
+      # this download otherwise lands inside whichever tests run first, and
+      # under `test-threads` contention it blows their timeouts.
+      - name: Warm shared plugin store
+        run: cargo run -- clean --yes
+        env:
+          PROTO_HOME: ${{ runner.temp }}/proto-warm-home
+          PROTO_PLUGINS_DIR: ${{ env.PROTO_TEST_PLUGINS_DIR }}
       - run: just test-ci
         env:
           PROTO_DEBUG_COMMAND: 1
           RUST_BACKTRACE: 1
           WASMTIME_BACKTRACE_DETAILS: 1
-  run:
-    name: Run
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-      fail-fast: false
-    steps:
-      - uses: actions/checkout@v7
-      - uses: moonrepo/setup-rust@v1
-        with:
-          bins: cargo-wasi, just
-          cache: false
-          # cache-base: "^(master|develop-)"
-          targets: wasm32-wasip1
-      - run: just build
-      - run: just build-wasm
-      - run: cargo run -- --help
-      - run: cargo run -- versions node
-      - run: cargo run --features test-plugins -- versions protostar

@@ -104,7 +104,8 @@ mod exec {
 
     #[test]
     fn many_tools() {
-        let sandbox = create_empty_proto_sandbox();
+        // Bare `install` loads all tools, so share the plugin store
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
         sandbox.create_file(
             ".prototools",
             r#"
@@ -139,7 +140,8 @@ bun = "1.2"
 
     #[test]
     fn can_use_all_config_tools() {
-        let sandbox = create_empty_proto_sandbox();
+        // Bare `install` loads all tools, so share the plugin store
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
         sandbox.create_file(
             ".prototools",
             r#"

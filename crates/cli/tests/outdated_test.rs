@@ -8,7 +8,7 @@ mod outdated {
 
     #[test]
     fn errors_when_nothing_configured() {
-        let sandbox = create_empty_proto_sandbox();
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
 
         let assert = sandbox.run_bin(|cmd| {
             cmd.arg("outdated");
@@ -21,7 +21,7 @@ mod outdated {
 
     #[test]
     fn reports_all_non_global_configs() {
-        let sandbox = create_empty_proto_sandbox();
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
         sandbox.create_file(".proto/.prototools", r#"moonbase = "*""#);
         sandbox.create_file("a/.prototools", r#"protostar = "*""#);
         sandbox.create_file("a/b/.prototools", r#"moonstone = "*""#);
@@ -42,7 +42,7 @@ mod outdated {
 
     #[test]
     fn only_includes_local_config() {
-        let sandbox = create_empty_proto_sandbox();
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
         sandbox.create_file(".proto/.prototools", r#"moonbase = "*""#);
         sandbox.create_file("a/.prototools", r#"protostar = "*""#);
         sandbox.create_file("a/b/.prototools", r#"moonstone = "*""#);
@@ -65,7 +65,7 @@ mod outdated {
 
     #[test]
     fn can_include_global_config() {
-        let sandbox = create_empty_proto_sandbox();
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
         sandbox.create_file(".proto/.prototools", r#"moonbase = "*""#);
         sandbox.create_file("a/.prototools", r#"protostar = "*""#);
         sandbox.create_file("a/b/.prototools", r#"moonstone = "*""#);
@@ -88,7 +88,7 @@ mod outdated {
 
     #[test]
     fn global_doesnt_overwrite_local() {
-        let sandbox = create_empty_proto_sandbox();
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
         sandbox.create_file(".proto/.prototools", r#"protostar = "1""#);
         sandbox.create_file("a/.prototools", r#"protostar = "2""#);
 
@@ -107,7 +107,7 @@ mod outdated {
 
     #[test]
     fn updates_each_file_respectively() {
-        let sandbox = create_empty_proto_sandbox();
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
         sandbox.create_file(".proto/.prototools", r#"moonbase = "1""#);
         sandbox.create_file("a/.prototools", r#"protostar = "2""#);
         sandbox.create_file("a/b/.prototools", r#"moonstone = "3""#);
@@ -132,7 +132,7 @@ mod outdated {
 
     #[test]
     fn can_update_with_latest_version() {
-        let sandbox = create_empty_proto_sandbox();
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
         sandbox.create_file(".proto/.prototools", r#"moonbase = "1.0.0""#);
         sandbox.create_file("a/.prototools", r#"protostar = "2.0.0""#);
         sandbox.create_file("a/b/.prototools", r#"moonstone = "3.0.0""#);
@@ -168,7 +168,7 @@ mod outdated {
 
     #[test]
     fn updates_when_using_json_format() {
-        let sandbox = create_empty_proto_sandbox();
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
         sandbox.create_file(".prototools", r#"moonbase = "1.0.0""#);
 
         sandbox
@@ -190,7 +190,7 @@ mod outdated {
 
     #[test]
     fn updates_when_using_ndjson_format() {
-        let sandbox = create_empty_proto_sandbox();
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
         sandbox.create_file(".prototools", r#"moonbase = "1.0.0""#);
 
         sandbox
@@ -215,7 +215,7 @@ mod outdated {
     // flag itself is the confirmation
     #[test]
     fn updates_without_yes_when_not_a_tty() {
-        let sandbox = create_empty_proto_sandbox();
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
         sandbox.create_file(".prototools", r#"moonbase = "1.0.0""#);
 
         sandbox
@@ -233,7 +233,7 @@ mod outdated {
 
     #[test]
     fn warns_when_nothing_was_updated() {
-        let sandbox = create_empty_proto_sandbox();
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
         sandbox.create_file(".prototools", r#"moonbase = "latest""#);
 
         let assert = sandbox.run_bin(|cmd| {
@@ -247,7 +247,7 @@ mod outdated {
 
     #[test]
     fn doesnt_overwrite_aliases() {
-        let sandbox = create_empty_proto_sandbox();
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
         sandbox.create_file(".prototools", r#"moonbase = "latest""#);
 
         sandbox

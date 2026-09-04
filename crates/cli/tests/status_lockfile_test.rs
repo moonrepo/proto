@@ -18,7 +18,7 @@ mod status_lockfile {
 
     #[test]
     fn shows_locked_column_when_resolved_from_lockfile() {
-        let sandbox = create_empty_proto_sandbox();
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
         sandbox.create_file(
             ".prototools",
             r#"protostar = "~4.0"
@@ -50,7 +50,7 @@ builtin-tools = false
 
     #[test]
     fn hides_locked_column_when_no_records() {
-        let sandbox = create_empty_proto_sandbox();
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
         sandbox.create_file(
             ".prototools",
             r#"protostar = "~4.0"
@@ -73,7 +73,7 @@ builtin-tools = false
 
     #[test]
     fn includes_locked_version_in_json() {
-        let sandbox = create_empty_proto_sandbox();
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
         sandbox.create_file(
             ".prototools",
             r#"protostar = "~4.0"
@@ -105,7 +105,7 @@ builtin-tools = false
 
     #[test]
     fn resolves_locked_version_from_env_lockfile() {
-        let sandbox = create_empty_proto_sandbox();
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
         sandbox.create_file(
             ".prototools",
             r#"protostar = "~4.0"
