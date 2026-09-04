@@ -23,6 +23,7 @@ pub struct Store {
     pub cache_dir: PathBuf,
     pub inventory_dir: PathBuf,
     pub plugins_dir: PathBuf,
+    pub plugins_temp_dir: PathBuf,
     pub shims_dir: PathBuf,
     pub temp_dir: PathBuf,
 
@@ -46,6 +47,26 @@ impl Store {
             None => dir.join("temp"),
         };
 
+        // When the plugins directory is relocated, it may be shared by many
+        // concurrent proto processes that each have their own store. The loader
+        // coordinates downloads through lock files in its temp directory, so
+        // that must travel with the plugins directory, otherwise each process
+        // would lock a path that the others never look at.
+        let (plugins_dir, plugins_temp_dir) = match envx::path_var("PROTO_PLUGINS_DIR") {
+            Some(custom) => {
+                debug!(
+                    plugins_dir = ?custom,
+                    "Using custom plugins directory from {}",
+                    color::symbol("PROTO_PLUGINS_DIR")
+                );
+
+                let temp = custom.join(".temp");
+
+                (custom, temp)
+            }
+            None => (dir.join("plugins"), temp_dir.join("plugins")),
+        };
+
         Self {
             dir: dir.to_path_buf(),
             backends_dir: dir.join("backends"),
@@ -53,7 +74,8 @@ impl Store {
             builders_dir: dir.join("builders"),
             cache_dir: dir.join("cache"),
             inventory_dir: dir.join("tools"),
-            plugins_dir: dir.join("plugins"),
+            plugins_dir,
+            plugins_temp_dir,
             shims_dir: dir.join("shims"),
             temp_dir,
             shim_binary: Arc::new(OnceCell::new()),
@@ -195,6 +217,7 @@ impl fmt::Debug for Store {
             .field("cache_dir", &self.cache_dir)
             .field("inventory_dir", &self.inventory_dir)
             .field("plugins_dir", &self.plugins_dir)
+            .field("plugins_temp_dir", &self.plugins_temp_dir)
             .field("shims_dir", &self.shims_dir)
             .field("temp_dir", &self.temp_dir)
             .finish()

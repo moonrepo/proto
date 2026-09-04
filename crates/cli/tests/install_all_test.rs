@@ -10,7 +10,7 @@ mod install_all {
 
     #[test]
     fn installs_all_tools() {
-        let sandbox = create_empty_proto_sandbox();
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
         let protostar_path = sandbox.path().join(".proto/tools/protostar/1.0.0");
         let moonstone_path = sandbox.path().join(".proto/tools/moonstone/2.0.0");
         let moonbase_path = sandbox.path().join(".proto/tools/moonbase/3.0.0");
@@ -40,7 +40,7 @@ moonbase = "3.0.0"
 
     #[test]
     fn installs_tool_via_detection() {
-        let sandbox = create_empty_proto_sandbox();
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
         let protostar_path = sandbox.path().join(".proto/tools/protostar/1.0.0");
 
         sandbox.create_file(".protostarrc", "1.0.0");
@@ -58,7 +58,7 @@ moonbase = "3.0.0"
 
     #[test]
     fn doesnt_install_global_tools() {
-        let sandbox = create_empty_proto_sandbox();
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
         let protostar_path = sandbox.path().join(".proto/tools/protostar/1.0.0");
         let moonstone_path = sandbox.path().join(".proto/tools/moonstone/3.0.0");
 
@@ -80,7 +80,7 @@ moonbase = "3.0.0"
 
     #[test]
     fn installs_global_tools_when_included() {
-        let sandbox = create_empty_proto_sandbox();
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
         let protostar_path = sandbox.path().join(".proto/tools/protostar/1.0.0");
         let moonstone_path = sandbox.path().join(".proto/tools/moonstone/3.0.0");
 
@@ -104,7 +104,7 @@ moonbase = "3.0.0"
 
     #[test]
     fn creates_log_for_each_failed_tool() {
-        let sandbox = create_empty_proto_sandbox();
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
 
         sandbox.create_file(
             ".prototools",
@@ -130,7 +130,7 @@ moonstone = "latest"
 
         #[test]
         fn errors_if_reqs_not_met() {
-            let sandbox = create_empty_proto_sandbox();
+            let sandbox = create_empty_proto_sandbox_with_shared_plugins();
             sandbox.create_file(".prototools", r#"moonbase = "2.0.0""#);
 
             let assert = sandbox
@@ -146,7 +146,7 @@ moonstone = "latest"
 
         #[test]
         fn passes_if_reqs_met() {
-            let sandbox = create_empty_proto_sandbox();
+            let sandbox = create_empty_proto_sandbox_with_shared_plugins();
             sandbox.create_file(
                 ".prototools",
                 r#"moonbase = "1.0.0"
@@ -172,7 +172,7 @@ moonstone = "2.0.0"
 
         #[test]
         fn creates_all_lockfiles() {
-            let sandbox = create_empty_proto_sandbox();
+            let sandbox = create_empty_proto_sandbox_with_shared_plugins();
             let protostar_path = sandbox.path().join(".proto/tools/protostar/1.0.0");
             let moonstone_path = sandbox.path().join(".proto/tools/moonstone/2.0.0");
             let moonbase_path = sandbox.path().join(".proto/tools/moonbase/3.0.0");
