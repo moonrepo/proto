@@ -10,5 +10,7 @@ trap 'rm -rf "$work"' EXIT
 cp "$E2E_DIR/fixtures/basic.prototools" "$work/.prototools"
 cd "$work"
 
-ver=$(proto run node -- --version 2>&1)
-assert_contains "$ver" "v24"
+run_probe proto run node -- --version
+echo_probe
+assert_probe_ok
+assert_contains "$RUN_ALL" "v24"

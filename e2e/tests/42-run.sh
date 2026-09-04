@@ -16,8 +16,10 @@ check_run() {
   local tool="$1" expect="$2"
   shift 2
   if proto bin "$tool" >/dev/null 2>&1; then
-    out=$(proto run "$tool" -- "$@" 2>&1)
-    assert_contains "$out" "$expect"
+    run_probe proto run "$tool" -- "$@"
+    echo_probe
+    assert_probe_ok
+    assert_contains "$RUN_ALL" "$expect"
   fi
 }
 
