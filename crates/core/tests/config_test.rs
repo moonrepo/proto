@@ -328,6 +328,28 @@ root-cert = "../cert.pem"
     }
 
     #[test]
+    fn parses_http_user_agent() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(
+            ".prototools",
+            r#"
+[settings.http]
+user-agent = "acme-corp/1.2.3"
+"#,
+        );
+
+        let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
+
+        assert_eq!(
+            config.settings.unwrap().http.unwrap(),
+            HttpOptions {
+                user_agent: Some("acme-corp/1.2.3".into()),
+                ..Default::default()
+            }
+        );
+    }
+
+    #[test]
     fn parses_plugins_table() {
         let sandbox = create_empty_sandbox();
         sandbox.create_file(

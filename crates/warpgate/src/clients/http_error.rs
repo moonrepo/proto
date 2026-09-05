@@ -64,6 +64,16 @@ pub enum WarpgateHttpClientError {
         #[source]
         error: Box<reqwest::Error>,
     },
+
+    #[cfg_attr(
+        feature = "miette",
+        diagnostic(code(plugin::http_client::invalid_user_agent))
+    )]
+    #[error(
+        "Invalid user agent {}. Must not be empty, and must not contain control characters.",
+        .value.style(Style::Symbol)
+    )]
+    InvalidUserAgent { value: String },
 }
 
 impl From<FsError> for WarpgateHttpClientError {

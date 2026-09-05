@@ -20,6 +20,12 @@
 - [Zig](https://github.com/moonrepo/plugins/blob/master/tools/zig/CHANGELOG.md)
 - [ZLS](https://github.com/moonrepo/plugins/blob/master/tools/zig-ls/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added a `user-agent` setting to `[settings.http]`, which overrides the user agent that proto sends with each HTTP(S) request.
+
 ## 0.62.0
 
 #### 💥 Breaking
