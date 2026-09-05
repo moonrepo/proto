@@ -3,6 +3,7 @@ use async_trait::async_trait;
 use core::ops::Deref;
 use netrc::Netrc;
 use regex::Regex;
+use reqwest::header::HeaderValue;
 use reqwest::{Client, Response, Url};
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware, RequestBuilder, RequestInitialiser};
 use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
@@ -152,6 +153,19 @@ pub struct HttpOptions {
 
     /// Absolute path to the root certificate. Supports `.pem` and `.der` files.
     pub root_cert: Option<PathBuf>,
+
+    /// Override the user agent that is sent with every request.
+    pub user_agent: Option<String>,
+}
+
+/// Parse a user agent into a header value.
+fn parse_user_agent(user_agent: &str) -> Result<HeaderValue, WarpgateHttpClientError> {
+    HeaderValue::from_str(user_agent)
+        .ok()
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| WarpgateHttpClientError::InvalidUserAgent {
+            value: user_agent.to_owned(),
+        })
 }
 
 /// Build a [`reqwest::ClientBuilder`] with the provided options.
@@ -162,6 +176,12 @@ pub fn build_http_client(
     let mut client_builder = reqwest::Client::builder()
         .user_agent(format!("warpgate@{}", env!("CARGO_PKG_VERSION")))
         .use_rustls_tls();
+
+    if let Some(user_agent) = &options.user_agent {
+        trace!(user_agent, "Using a user provided user agent");
+
+        client_builder = client_builder.user_agent(parse_user_agent(user_agent)?);
+    }
 
     if !envx::bool_var("WARPGATE_HTTP_NO_TIMEOUTS") {
         client_builder = client_builder

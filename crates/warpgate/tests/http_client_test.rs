@@ -1,12 +1,58 @@
 use rustc_hash::FxHashMap;
 use starbase_utils::net::Downloader;
 use std::env;
-use warpgate::create_http_client;
+use std::io::{Read, Write};
+use std::net::TcpListener;
+use std::thread;
+use warpgate::{HttpOptions, create_http_client, create_http_client_with_options};
 
 // Env var names are unique per test since tests run in parallel threads
 // within the same process.
 fn set_env(key: &str, value: &str) {
     unsafe { env::set_var(key, value) };
+}
+
+// Accept a single connection, capture the raw request head, and reply
+// with an empty 200 so the client resolves without retrying.
+fn spawn_server(listener: TcpListener) -> thread::JoinHandle<String> {
+    thread::spawn(move || {
+        let (mut stream, _) = listener.accept().unwrap();
+        let mut request = Vec::new();
+        let mut buffer = [0u8; 1024];
+
+        loop {
+            let bytes = stream.read(&mut buffer).unwrap();
+            request.extend_from_slice(&buffer[..bytes]);
+
+            if bytes == 0 || request.windows(4).any(|window| window == b"\r\n\r\n") {
+                break;
+            }
+        }
+
+        stream
+            .write_all(b"HTTP/1.1 200 OK\r\ncontent-length: 0\r\nconnection: close\r\n\r\n")
+            .unwrap();
+
+        String::from_utf8_lossy(&request).into_owned()
+    })
+}
+
+// Download a file with the provided options, and return the raw request head.
+async fn capture_request(options: HttpOptions) -> String {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let addr = listener.local_addr().unwrap();
+    let server = spawn_server(listener);
+
+    let downloader = create_http_client_with_options(&options)
+        .unwrap()
+        .create_downloader();
+
+    downloader
+        .download(format!("http://{addr}/file.txt").parse().unwrap())
+        .await
+        .unwrap();
+
+    server.join().unwrap()
 }
 
 mod expand_env_vars {
@@ -107,34 +153,6 @@ mod expand_env_vars {
 
 mod downloader_headers {
     use super::*;
-    use std::io::{Read, Write};
-    use std::net::TcpListener;
-    use std::thread;
-
-    // Accept a single connection, capture the raw request head, and reply
-    // with an empty 200 so the client resolves without retrying.
-    fn spawn_server(listener: TcpListener) -> thread::JoinHandle<String> {
-        thread::spawn(move || {
-            let (mut stream, _) = listener.accept().unwrap();
-            let mut request = Vec::new();
-            let mut buffer = [0u8; 1024];
-
-            loop {
-                let bytes = stream.read(&mut buffer).unwrap();
-                request.extend_from_slice(&buffer[..bytes]);
-
-                if bytes == 0 || request.windows(4).any(|window| window == b"\r\n\r\n") {
-                    break;
-                }
-            }
-
-            stream
-                .write_all(b"HTTP/1.1 200 OK\r\ncontent-length: 0\r\nconnection: close\r\n\r\n")
-                .unwrap();
-
-            String::from_utf8_lossy(&request).into_owned()
-        })
-    }
 
     #[tokio::test]
     async fn expands_env_vars_in_request_headers() {
@@ -166,5 +184,59 @@ mod downloader_headers {
                 .to_lowercase()
                 .contains("authorization: bearer wg-secret-value")
         );
+    }
+}
+
+mod user_agent {
+    use super::*;
+
+    #[tokio::test]
+    async fn keeps_client_default_when_not_configured() {
+        let request = capture_request(HttpOptions::default()).await;
+
+        assert!(request.contains(&format!(
+            "user-agent: warpgate@{}\r\n",
+            env!("CARGO_PKG_VERSION")
+        )));
+    }
+
+    #[tokio::test]
+    async fn sends_configured_value() {
+        let request = capture_request(HttpOptions {
+            user_agent: Some("acme-corp/1.2.3 (+https://acme.corp)".into()),
+            ..Default::default()
+        })
+        .await;
+
+        assert!(request.contains("user-agent: acme-corp/1.2.3 (+https://acme.corp)\r\n"));
+        assert!(!request.contains("warpgate@"));
+    }
+
+    #[test]
+    fn errors_when_empty() {
+        let error = create_http_client_with_options(&HttpOptions {
+            user_agent: Some("".into()),
+            ..Default::default()
+        })
+        .unwrap_err();
+
+        assert!(error.to_string().starts_with("Invalid user agent"));
+    }
+
+    #[test]
+    fn errors_when_not_a_valid_header_value() {
+        for value in [
+            "proto\nX-Injected: yes",
+            "proto\rX-Injected: yes",
+            "proto\u{0}",
+        ] {
+            let error = create_http_client_with_options(&HttpOptions {
+                user_agent: Some(value.into()),
+                ..Default::default()
+            })
+            .unwrap_err();
+
+            assert!(error.to_string().starts_with("Invalid user agent"));
+        }
     }
 }
