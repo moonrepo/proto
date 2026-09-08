@@ -13,7 +13,7 @@ proto_pdk_api = { version = "0.34.3", path = "../pdk-api", features = [
     "schematic",
 ] }
 proto_shim = { version = "0.8.5", path = "../shim" }
-system_env = { version = "0.10.2", path = "../system-env" }
+system_env = { version = "0.10.3", path = "../system-env" }
 version_spec = { version = "0.11.4", path = "../version-spec", features = [
     "schematic",
 ] }
