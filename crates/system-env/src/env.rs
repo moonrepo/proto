@@ -203,8 +203,24 @@ impl fmt::Display for SystemOS {
 #[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
 #[serde(rename_all = "lowercase")]
 pub enum SystemLibc {
+    /// Android
+    Bionic,
+
+    /// GNU C Library
+    #[serde(alias = "glibc")]
     Gnu,
+
+    /// macOS & iOS
+    #[serde(alias = "macos")]
+    LibSystem,
+
+    /// Alpine Linux
     Musl,
+
+    /// Microsoft Visual C++ / UCRT (Universal C Runtime)
+    #[serde(alias = "ucrt")]
+    Msvc,
+
     #[default]
     Unknown,
 }
@@ -213,8 +229,9 @@ impl SystemLibc {
     /// Detect the libc type from the current system environment.
     pub fn detect(os: SystemOS) -> Self {
         match os {
-            SystemOS::IOS | SystemOS::MacOS => Self::Gnu,
-            SystemOS::Windows => Self::Unknown,
+            SystemOS::Android => Self::Bionic,
+            SystemOS::IOS | SystemOS::MacOS => Self::LibSystem,
+            SystemOS::Windows => Self::Msvc,
             _ => {
                 if Self::is_musl() {
                     Self::Musl
@@ -252,13 +269,48 @@ impl SystemLibc {
 
         false
     }
+
+    /// Return true if the libc appears in a Rust target triple.
+    pub fn appears_in_triple(&self) -> bool {
+        match self {
+            Self::Bionic | Self::LibSystem | Self::Unknown => false,
+            _ => true,
+        }
+    }
 }
 
 impl fmt::Display for SystemLibc {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
+            Self::Bionic => "bionic",
             Self::Gnu => "gnu",
+            Self::LibSystem => "libsystem",
             Self::Musl => "musl",
+            Self::Msvc => "msvc",
+            Self::Unknown => "unknown",
+        })
+    }
+}
+
+/// ABI (Application Binary Interface) of a target triple.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
+#[serde(rename_all = "lowercase")]
+pub enum SystemABI {
+    Eabi,
+    Eabihf,
+    Llvm,
+
+    #[default]
+    Unknown,
+}
+
+impl fmt::Display for SystemABI {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Eabi => "eabi",
+            Self::Eabihf => "eabihf",
+            Self::Llvm => "llvm",
             Self::Unknown => "unknown",
         })
     }
