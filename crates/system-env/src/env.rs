@@ -272,10 +272,7 @@ impl SystemLibc {
 
     /// Return true if the libc appears in a Rust target triple.
     pub fn appears_in_triple(&self) -> bool {
-        match self {
-            Self::Bionic | Self::LibSystem | Self::Unknown => false,
-            _ => true,
-        }
+        matches!(self, Self::Gnu | Self::Musl | Self::Msvc)
     }
 }
 
