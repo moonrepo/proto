@@ -82,10 +82,11 @@ impl<'tool> Locker<'tool> {
         })
     }
 
-    /// Get all resolved versions that have a record in the lockfile,
-    /// scoped to the current operating system and architecture.
+    /// Get all resolved versions that have a record in the lockfile. Records
+    /// for other operating systems and architectures are included, as a
+    /// resolved version applies to every machine, and is inherited when this
+    /// platform has no record of its own.
     pub fn get_locked_versions(&self) -> Result<BTreeSet<VersionSpec>, ProtoLockError> {
-        let proto = &self.tool.proto;
         let mut versions = BTreeSet::default();
 
         let Some(lock) = self.load_lock()? else {
@@ -95,8 +96,6 @@ impl<'tool> Locker<'tool> {
         if let Some(records) = lock.tools.get(self.tool.get_id()) {
             for record in records {
                 if record.backend.as_ref() == self.tool.context.backend.as_ref()
-                    && record.os.is_none_or(|os| os == proto.os)
-                    && record.arch.is_none_or(|arch| arch == proto.arch)
                     && let Some(version) = &record.version
                 {
                     versions.insert(version.to_owned());
@@ -357,6 +356,15 @@ impl<'tool> Locker<'tool> {
         Ok(())
     }
 
+    /// Find the record in the lockfile that locks the version for the provided
+    /// specification, preferring a record for the current operating system
+    /// and architecture.
+    ///
+    /// When no record exists for the current platform, fall back to a record
+    /// created by another platform, as a resolved version applies to every
+    /// machine. Only the version is inherited, as the platform specific data
+    /// of that record, like the checksum, is not valid here, and is
+    /// repopulated when this platform installs.
     #[instrument(skip(self))]
     pub fn resolve_locked_record(
         &self,
@@ -368,20 +376,51 @@ impl<'tool> Locker<'tool> {
             return Ok(None);
         };
 
-        if let Some(records) = lock.tools.get(self.tool.get_id()) {
-            for record in records {
-                let matched = record.is_match_with(
-                    self.tool.context.backend.as_ref(),
-                    Some(&spec.req),
-                    Some(&proto.os),
-                    Some(&proto.arch),
-                    &self.tool.metadata.lock_options,
-                );
+        let Some(records) = lock.tools.get(self.tool.get_id()) else {
+            return Ok(None);
+        };
 
-                if matched && record.version.is_some() {
-                    return Ok(Some(record.clone()));
-                }
+        let mut other_platform: Option<&LockRecord> = None;
+
+        for record in records {
+            if record.version.is_none() {
+                continue;
             }
+
+            if record.is_match_with(
+                self.tool.context.backend.as_ref(),
+                Some(&spec.req),
+                Some(&proto.os),
+                Some(&proto.arch),
+                &self.tool.metadata.lock_options,
+            ) {
+                return Ok(Some(record.clone()));
+            }
+
+            if record.backend.as_ref() != self.tool.context.backend.as_ref()
+                || record.spec.as_ref() != Some(&spec.req)
+            {
+                continue;
+            }
+
+            // Multiple platforms may have locked different versions for the
+            // same specification, so inherit the highest, which is the same
+            // version that an install would persist back to the lockfile
+            if other_platform.is_none_or(|current| record.version > current.version) {
+                other_platform = Some(record);
+            }
+        }
+
+        if let Some(record) = other_platform {
+            debug!(
+                tool = self.tool.context.as_str(),
+                spec = spec.req.to_string(),
+                os = record.os.map(|os| os.to_string()),
+                arch = record.arch.map(|arch| arch.to_string()),
+                "No record in lock file for the current platform, inheriting the version locked by another platform",
+            );
+
+            return Ok(Some(record.for_other_platform()));
         }
 
         Ok(None)

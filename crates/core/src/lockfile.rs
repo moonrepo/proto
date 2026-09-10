@@ -58,6 +58,21 @@ impl LockRecord {
         record
     }
 
+    /// Create a copy of this record that only retains the information that
+    /// is valid on every operating system and architecture. The resolved
+    /// version applies to all machines, while the checksum, source, and
+    /// metadata are derived from a platform specific artifact, so they are
+    /// removed, and are repopulated when the current platform installs.
+    pub fn for_other_platform(&self) -> Self {
+        let mut record = self.clone();
+        record.os = None;
+        record.arch = None;
+        record.checksum = None;
+        record.source = None;
+        record.metadata = FxHashMap::default();
+        record
+    }
+
     pub fn is_match(&self, other: &Self, options: &ToolLockOptions) -> bool {
         self.is_match_with(
             other.backend.as_ref(),

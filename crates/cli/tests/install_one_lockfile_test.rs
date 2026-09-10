@@ -334,12 +334,16 @@ version = "5.10.0"
                 })
                 .success();
 
+            // The existing record is for another operating system, so this
+            // one gains its own record, and inherits the locked version
             let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
             let records = lockfile.tools.get("protostar").unwrap();
 
             assert_eq!(records.len(), 2);
+            assert_eq!(records[0].os.unwrap(), SystemOS::Android);
             assert_record!(records[0], "^5.10", "5.10.0");
-            assert_record!(records[1], "^5.10", "5.10.15");
+            assert_eq!(records[1].os.unwrap(), SystemOS::default());
+            assert_record!(records[1], "^5.10", "5.10.0");
         }
 
         #[test]
@@ -366,11 +370,15 @@ version = "5.10.0"
                 })
                 .success();
 
+            // The existing record is for another architecture, so this one
+            // gains its own record, and inherits the locked version
             let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
             let records = lockfile.tools.get("protostar").unwrap();
 
             assert_eq!(records.len(), 2);
-            assert_record!(records[0], "^5.10", "5.10.15");
+            assert_eq!(records[0].arch.unwrap(), SystemArch::default());
+            assert_record!(records[0], "^5.10", "5.10.0");
+            assert_eq!(records[1].arch.unwrap(), SystemArch::Mips64);
             assert_record!(records[1], "^5.10", "5.10.0");
         }
 
@@ -502,6 +510,48 @@ version = "5.10.10"
             assert.stdout(predicate::str::contains(
                 "protostar 5.10.10 has been installed",
             ));
+        }
+
+        #[test]
+        fn inherits_version_from_record_for_another_platform() {
+            let sandbox = create_proto_sandbox("lockfile");
+            sandbox.create_file(
+                ".protolock",
+                r#"
+[[tools.protostar]]
+os = "solaris"
+arch = "sparc64"
+spec = "^5.10"
+version = "5.10.10"
+"#,
+            );
+
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    // 5.10.15 is latest
+                    cmd.arg("install").arg("protostar").arg("^5.10");
+                })
+                .success();
+
+            assert.stdout(predicate::str::contains(
+                "protostar 5.10.10 has been installed",
+            ));
+
+            // The other platform's record is kept, and this platform
+            // gains its own record, with its own checksum
+            let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
+            let records = lockfile.tools.get("protostar").unwrap();
+
+            assert_eq!(records.len(), 2);
+
+            let record = records
+                .iter()
+                .find(|record| record.os == Some(SystemOS::default()))
+                .unwrap();
+
+            assert_record!(record, "^5.10", "5.10.10");
+            assert_eq!(record.arch.unwrap(), SystemArch::default());
+            assert!(record.checksum.is_some());
         }
     }
 
@@ -1043,6 +1093,20 @@ version = "{version}"
             )
         }
 
+        // A record that could only have been created on another machine,
+        // as proto does not run on this platform combination
+        fn create_other_platform_record(spec: &str, version: &str) -> String {
+            format!(
+                r#"
+[[tools.protostar]]
+os = "solaris"
+arch = "sparc64"
+spec = "{spec}"
+version = "{version}"
+"#
+            )
+        }
+
         #[test]
         fn installs_from_locked_record_without_modifying_lockfile() {
             let sandbox = create_proto_sandbox("lockfile");
@@ -1135,6 +1199,77 @@ version = "{version}"
 
             assert_eq!(records.len(), 1);
             assert_record!(records[0], "5.0.0");
+        }
+
+        #[test]
+        fn inherits_locked_version_from_another_platform() {
+            let sandbox = create_proto_sandbox("lockfile");
+
+            // The version was locked by a machine on another platform,
+            // for example when a teammate bumped the version and committed
+            sandbox.create_file(".protolock", create_other_platform_record("5.0.0", "5.0.0"));
+
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("protostar")
+                        .arg("5.0.0")
+                        .arg("--immutable-lockfile");
+                })
+                .success();
+
+            assert.stdout(predicate::str::contains(
+                "protostar 5.0.0 has been installed",
+            ));
+
+            // And the lockfile is still untouched
+            let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
+            let records = lockfile.tools.get("protostar").unwrap();
+
+            assert_eq!(records.len(), 1);
+            assert_eq!(records[0].os.unwrap(), SystemOS::Solaris);
+            assert_eq!(records[0].arch.unwrap(), SystemArch::Sparc64);
+        }
+
+        #[test]
+        fn inherits_locked_version_from_another_platform_range() {
+            let sandbox = create_proto_sandbox("lockfile");
+            sandbox.create_file(
+                ".protolock",
+                create_other_platform_record("^5.10", "5.10.10"),
+            );
+
+            // 5.10.15 is the latest, but the other platform pins 5.10.10
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("protostar")
+                        .arg("^5.10")
+                        .arg("--immutable-lockfile");
+                })
+                .success();
+
+            assert.stdout(predicate::str::contains(
+                "protostar 5.10.10 has been installed",
+            ));
+        }
+
+        #[test]
+        fn errors_when_another_platform_locked_a_different_spec() {
+            let sandbox = create_proto_sandbox("lockfile");
+            sandbox.create_file(".protolock", create_other_platform_record("5.0.0", "5.0.0"));
+
+            // Another platform locked 5.0.0, which says nothing about 5.10.0
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("protostar")
+                        .arg("5.10.0")
+                        .arg("--immutable-lockfile");
+                })
+                .failure();
+
+            assert.stderr(predicate::str::contains("Lockfile is immutable"));
         }
 
         #[test]
