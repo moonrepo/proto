@@ -150,18 +150,34 @@ pub fn resolve_version(
 ) -> FnResult<Json<ResolveVersionOutput>> {
     let mut output = ResolveVersionOutput::default();
 
-    if let UnresolvedVersionSpec::Alias(alias) = input.initial {
-        let candidate = if alias == "stable" {
-            "5.0.0"
-        } else if alias == "unstable" {
-            "6.0.0-rc.1"
-        } else if alias == "legacy" {
-            "4.10.15"
-        } else {
-            return Ok(Json(output));
-        };
+    match &input.initial {
+        UnresolvedVersionSpec::Alias(alias) => {
+            // Return a version as-is, without it being validated against
+            // the list of available versions
+            if alias == "explicit" {
+                output.version = Some(VersionSpec::parse("7.7.7")?);
 
-        output.candidate = Some(UnresolvedVersionSpec::parse(candidate)?);
+                return Ok(Json(output));
+            }
+
+            let candidate = if alias == "stable" {
+                "5.0.0"
+            } else if alias == "unstable" {
+                "6.0.0-rc.1"
+            } else if alias == "legacy" {
+                "4.10.15"
+            } else {
+                return Ok(Json(output));
+            };
+
+            output.candidate = Some(UnresolvedVersionSpec::parse(candidate)?);
+        }
+        // Remap a fully qualified version that doesn't exist to one that does,
+        // so that we can verify this function is always called
+        UnresolvedVersionSpec::Version(version) if version.to_string() == "9.9.9" => {
+            output.candidate = Some(UnresolvedVersionSpec::parse("5.0.0")?);
+        }
+        _ => {}
     }
 
     Ok(Json(output))

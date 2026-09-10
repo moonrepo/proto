@@ -209,24 +209,6 @@ impl<'tool> Resolver<'tool> {
     ) -> Result<VersionSpec, ProtoResolveError> {
         let mut candidate = candidate.to_owned();
 
-        // If we have a fully qualified semantic version,
-        // exit early and assume the version is legitimate!
-        // Also canary is a special type that we can simply just use.
-        if (short_circuit && candidate.is_fully_qualified())
-            || matches!(candidate, UnresolvedVersionSpec::Canary)
-        {
-            let version = candidate.to_resolved_spec();
-
-            debug!(
-                tool = self.tool.context.as_str(),
-                spec = candidate.to_string(),
-                "Resolved to {} (without validation)",
-                version
-            );
-
-            return Ok(version);
-        }
-
         // Resolve the version from the plugin if it has a custom resolver,
         // as we need to inherit any custom scopes for caching
         let mut version = None;
@@ -268,6 +250,24 @@ impl<'tool> Resolver<'tool> {
 
                 version = Some(new_version);
             }
+        }
+
+        // If we have a fully qualified semantic version,
+        // exit early and assume the version is legitimate!
+        // Also canary is a special type that we can simply just use.
+        if (short_circuit && (candidate.is_fully_qualified() || version.is_some()))
+            || matches!(candidate, UnresolvedVersionSpec::Canary)
+        {
+            let resolved_version = version.unwrap_or_else(|| candidate.to_resolved_spec());
+
+            debug!(
+                tool = self.tool.context.as_str(),
+                spec = candidate.to_string(),
+                "Resolved to {} (without validation)",
+                resolved_version
+            );
+
+            return Ok(resolved_version);
         }
 
         if version.is_none() {

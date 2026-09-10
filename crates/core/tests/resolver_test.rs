@@ -218,6 +218,43 @@ mod resolver {
         }
 
         #[tokio::test(flavor = "multi_thread")]
+        async fn remaps_fully_qualified_versions_when_short_circuiting() {
+            let sandbox = create_empty_sandbox();
+            let tool = create_mocked_tool(sandbox.path()).await;
+
+            let mut spec = ToolSpec::parse("9.9.9").unwrap();
+
+            let result = Resolver::new(&tool)
+                .resolve_version(&mut spec, true)
+                .await
+                .unwrap();
+
+            assert_eq!(result, VersionSpec::parse("5.0.0").unwrap());
+            assert!(spec.is_resolved());
+            assert_eq!(
+                spec.get_resolved_version(),
+                VersionSpec::parse("5.0.0").unwrap()
+            );
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn resolves_alias_to_an_explicit_version_from_plugin() {
+            let sandbox = create_empty_sandbox();
+            let tool = create_mocked_tool(sandbox.path()).await;
+
+            let mut spec = ToolSpec::parse("explicit").unwrap();
+
+            let result = Resolver::new(&tool)
+                .resolve_version(&mut spec, true)
+                .await
+                .unwrap();
+
+            assert_eq!(result, VersionSpec::parse("7.7.7").unwrap());
+            assert!(spec.is_resolved());
+            assert!(!remote_versions_path(&tool, None).exists());
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
         async fn resolves_requirement_to_highest_from_list() {
             let sandbox = create_empty_sandbox();
             let tool = create_mocked_tool(sandbox.path()).await;
@@ -330,6 +367,7 @@ mod resolver {
                 .unwrap();
 
             assert_eq!(result, VersionSpec::Canary);
+            assert!(!remote_versions_path(&tool, None).exists());
         }
 
         #[tokio::test(flavor = "multi_thread")]
@@ -346,6 +384,119 @@ mod resolver {
                 .await;
 
             assert!(result.is_err());
+        }
+
+        // The plugin resolver runs before short circuiting, so a fully qualified
+        // version can still be remapped to another candidate. The mocked tool
+        // remaps 9.9.9, which doesn't exist, to 5.0.0, which does
+        #[tokio::test(flavor = "multi_thread")]
+        async fn calls_the_plugin_resolver_for_fully_qualified_versions() {
+            let sandbox = create_empty_sandbox();
+            let tool = create_mocked_tool(sandbox.path()).await;
+
+            let result = Resolver::new(&tool)
+                .resolve_version_candidate(
+                    &UnresolvedVersionSpec::parse("9.9.9").unwrap(),
+                    true,
+                    false,
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(result, VersionSpec::parse("5.0.0").unwrap());
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn calls_the_plugin_resolver_for_fully_qualified_versions_when_not_short_circuited() {
+            let sandbox = create_empty_sandbox();
+            let tool = create_mocked_tool(sandbox.path()).await;
+
+            let result = Resolver::new(&tool)
+                .resolve_version_candidate(
+                    &UnresolvedVersionSpec::parse("9.9.9").unwrap(),
+                    false,
+                    false,
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(result, VersionSpec::parse("5.0.0").unwrap());
+        }
+
+        // A remapped candidate that is fully qualified is trusted as-is,
+        // so the available versions are never loaded
+        #[tokio::test(flavor = "multi_thread")]
+        async fn short_circuits_a_candidate_remapped_by_the_plugin() {
+            let sandbox = create_empty_sandbox();
+            let tool = create_mocked_tool(sandbox.path()).await;
+
+            let result = Resolver::new(&tool)
+                .resolve_version_candidate(
+                    &UnresolvedVersionSpec::parse("stable").unwrap(),
+                    true,
+                    false,
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(result, VersionSpec::parse("5.0.0").unwrap());
+            assert!(!remote_versions_path(&tool, None).exists());
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn loads_versions_for_a_remapped_candidate_when_not_short_circuited() {
+            let sandbox = create_empty_sandbox();
+            let tool = create_mocked_tool(sandbox.path()).await;
+
+            let result = Resolver::new(&tool)
+                .resolve_version_candidate(
+                    &UnresolvedVersionSpec::parse("stable").unwrap(),
+                    false,
+                    false,
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(result, VersionSpec::parse("5.0.0").unwrap());
+            assert!(remote_versions_path(&tool, None).exists());
+        }
+
+        // The mocked tool maps the "explicit" alias to 7.7.7, which doesn't
+        // exist in the list of available versions
+        #[tokio::test(flavor = "multi_thread")]
+        async fn short_circuits_an_explicit_version_from_the_plugin() {
+            let sandbox = create_empty_sandbox();
+            let tool = create_mocked_tool(sandbox.path()).await;
+
+            let result = Resolver::new(&tool)
+                .resolve_version_candidate(
+                    &UnresolvedVersionSpec::parse("explicit").unwrap(),
+                    true,
+                    false,
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(result, VersionSpec::parse("7.7.7").unwrap());
+            assert!(!remote_versions_path(&tool, None).exists());
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn uses_an_explicit_version_from_the_plugin_without_validation() {
+            let sandbox = create_empty_sandbox();
+            let tool = create_mocked_tool(sandbox.path()).await;
+
+            let result = Resolver::new(&tool)
+                .resolve_version_candidate(
+                    &UnresolvedVersionSpec::parse("explicit").unwrap(),
+                    false,
+                    false,
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(result, VersionSpec::parse("7.7.7").unwrap());
+            assert!(!remote_versions_path(&tool, None).exists());
         }
 
         #[tokio::test(flavor = "multi_thread")]
