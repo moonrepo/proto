@@ -33,6 +33,12 @@
   - Pass `--update-lockfile` to resolve a fresh version instead of inheriting the locked one.
 - Fixed an issue where the wrong `libc` was reported for certain platforms.
 
+#### 🛠️ Tools
+
+- **Python, Ruby**
+  - Updated pre-builts to reference our new APIs: https://registry.moonrepo.app/releases/python and https://registry.moonrepo.app/releases/ruby
+  - Added a new config setting `use-latest-build`, that will resolve a version to use the latest available build (trailing `+`) when one exists, and no build was provided in the original version. Builds are unofficial.
+
 #### ⚙️ Internal
 
 - Updated dependencies.
