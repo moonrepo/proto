@@ -39,7 +39,7 @@ proto_core = { version = "0.62.0", path = "../core", features = [
 ] }
 proto_pdk_api = { version = "0.34.3", path = "../pdk-api" }
 proto_shim = { version = "0.8.5", path = "../shim" }
-system_env = { version = "0.10.3", path = "../system-env" }
+system_env = { version = "0.10.4", path = "../system-env" }
 ai_env = { workspace = true }
 anyhow = { workspace = true }
 async-trait = { workspace = true }
