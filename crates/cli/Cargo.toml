@@ -90,7 +90,7 @@ liblzma = { version = "0.4.8", features = ["static"] }
 [dev-dependencies]
 proto_core = { path = "../core", features = ["test"] }
 starbase_sandbox = { workspace = true }
-shared_child = "1.1.1"
+shared_child = "1.1.2"
 
 [target."cfg(windows)".dependencies]
 winreg = { version = "0.56.0", default-features = false }
