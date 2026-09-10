@@ -32,6 +32,7 @@
   - This unblocks a version bump authored on one platform from passing an `--immutable-lockfile` install on another, which previously failed with "Lockfile is immutable, but is missing a record".
   - Pass `--update-lockfile` to resolve a fresh version instead of inheriting the locked one.
 - Fixed an issue where the wrong `libc` was reported for certain platforms.
+- Fixed an issue with Nu shell activation hooks where we would string match a non-string value.
 
 #### 🛠️ Tools
 
