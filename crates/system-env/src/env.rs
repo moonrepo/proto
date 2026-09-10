@@ -204,22 +204,22 @@ impl fmt::Display for SystemOS {
 #[serde(rename_all = "lowercase")]
 pub enum SystemLibc {
     /// Android
-    Bionic,
+    // Bionic,
 
     /// GNU C Library
     #[serde(alias = "glibc")]
     Gnu,
 
     /// macOS & iOS
-    #[serde(alias = "macos")]
-    LibSystem,
+    // #[serde(alias = "macos")]
+    // LibSystem,
 
     /// Alpine Linux
     Musl,
 
     /// Microsoft Visual C++ / UCRT (Universal C Runtime)
-    #[serde(alias = "ucrt")]
-    Msvc,
+    // #[serde(alias = "ucrt")]
+    // Msvc,
 
     #[default]
     Unknown,
@@ -229,9 +229,12 @@ impl SystemLibc {
     /// Detect the libc type from the current system environment.
     pub fn detect(os: SystemOS) -> Self {
         match os {
-            SystemOS::Android => Self::Bionic,
-            SystemOS::IOS | SystemOS::MacOS => Self::LibSystem,
-            SystemOS::Windows => Self::Msvc,
+            // SystemOS::Android => Self::Bionic,
+            // SystemOS::IOS | SystemOS::MacOS => Self::LibSystem,
+            // SystemOS::Windows => Self::Msvc,
+            SystemOS::Android => Self::Unknown,
+            SystemOS::IOS | SystemOS::MacOS => Self::Unknown,
+            SystemOS::Windows => Self::Unknown,
             _ => {
                 if Self::is_musl() {
                     Self::Musl
@@ -272,18 +275,18 @@ impl SystemLibc {
 
     /// Return true if the libc appears in a Rust target triple.
     pub fn appears_in_triple(&self) -> bool {
-        matches!(self, Self::Gnu | Self::Musl | Self::Msvc)
+        matches!(self, Self::Gnu | Self::Musl) //  | Self::Msvc)
     }
 }
 
 impl fmt::Display for SystemLibc {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
-            Self::Bionic => "bionic",
+            // Self::Bionic => "bionic",
             Self::Gnu => "gnu",
-            Self::LibSystem => "libsystem",
+            // Self::LibSystem => "libsystem",
             Self::Musl => "musl",
-            Self::Msvc => "msvc",
+            // Self::Msvc => "msvc",
             Self::Unknown => "unknown",
         })
     }
