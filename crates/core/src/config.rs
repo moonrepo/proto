@@ -232,7 +232,7 @@ impl ProtoConfig {
         if !tools.contains_key("python") && is_tool_allowed("python") {
             tools.insert(
                 Id::raw("python"),
-                find_debug_locator_with_fallback("python_tool", "0.14.9"),
+                find_debug_locator_with_fallback("python_tool", "0.15.0"),
             );
         }
 
@@ -246,7 +246,7 @@ impl ProtoConfig {
         if !tools.contains_key("ruby") && is_tool_allowed("ruby") {
             tools.insert(
                 Id::raw("ruby"),
-                find_debug_locator_with_fallback("ruby_tool", "0.2.10"),
+                find_debug_locator_with_fallback("ruby_tool", "0.3.0"),
             );
         }
 

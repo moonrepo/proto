@@ -24,7 +24,25 @@
 
 #### 🚀 Updates
 
+- Added a `--no-builds` option to `proto versions`, to hide build versions (trailing `+`) from the list.
 - Added a `user-agent` setting to `[settings.http]`, which overrides the user agent that proto sends with each HTTP(S) request.
+
+#### 🐞 Fixes
+
+- Fixed lockfile records only applying to the operating system and architecture that created them. A resolved version applies to every machine, so when the lockfile has no record for the current platform, the version is now inherited from a record created by another platform, and only the platform specific data (like the checksum) is discarded.
+  - This unblocks a version bump authored on one platform from passing an `--immutable-lockfile` install on another, which previously failed with "Lockfile is immutable, but is missing a record".
+  - Pass `--update-lockfile` to resolve a fresh version instead of inheriting the locked one.
+- Fixed an issue with Nu shell activation hooks where we would string match a non-string value.
+
+#### 🛠️ Tools
+
+- **Python, Ruby**
+  - Updated pre-builts to reference our new APIs: https://registry.moonrepo.app/releases/python and https://registry.moonrepo.app/releases/ruby
+  - Added a new config setting `use-latest-build`, that will resolve a version to use the latest available build (trailing `+`) when one exists, and no build was provided in the original version. Builds are unofficial.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
 
 ## 0.62.0
 

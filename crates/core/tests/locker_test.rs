@@ -38,6 +38,12 @@ async fn create_tool_in_sandbox_with_env(
     .unwrap()
 }
 
+/// An operating system that proto has no builds for, so a record using it
+/// can only have come from another machine.
+fn other_os() -> SystemOS {
+    SystemOS::Solaris
+}
+
 fn make_record(
     version: &str,
     spec: &str,
@@ -134,6 +140,120 @@ mod locker {
             let result = locker.resolve_locked_record(&spec).unwrap();
 
             assert!(result.is_none());
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn inherits_version_from_another_platform() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+            // The record was created on another platform, and includes data
+            // that is only valid for that platform
+            let mut record =
+                make_record("20.0.0", "^20", Some(other_os()), Some(SystemArch::Sparc64));
+            record.checksum = Some(Checksum::sha256("abcdef".into()));
+            record.source = Some("https://example.com/node.tar.xz".into());
+            record
+                .metadata
+                .insert("target".into(), "sparc64-solaris".into());
+
+            let mut lock = ProtoLock::default();
+            lock.tools.entry(Id::raw("node")).or_default().push(record);
+            lock.path = sandbox.path().join(".protolock");
+            lock.save().unwrap();
+
+            let tool = create_tool_in_sandbox(sandbox.path()).await;
+            let locker = Locker::new(&tool);
+
+            let spec = ToolSpec::parse("^20").unwrap();
+            let record = locker.resolve_locked_record(&spec).unwrap().unwrap();
+
+            // The version applies to every platform
+            assert_eq!(record.version, Some(VersionSpec::parse("20.0.0").unwrap()));
+
+            // While the platform specific data does not
+            assert_eq!(record.os, None);
+            assert_eq!(record.arch, None);
+            assert_eq!(record.checksum, None);
+            assert_eq!(record.source, None);
+            assert!(record.metadata.is_empty());
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn prefers_record_for_current_platform() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+            let mut lock = ProtoLock::default();
+            lock.tools.entry(Id::raw("node")).or_default().extend([
+                make_record("20.5.0", "^20", Some(other_os()), Some(SystemArch::Sparc64)),
+                make_record(
+                    "20.0.0",
+                    "^20",
+                    Some(SystemOS::default()),
+                    Some(SystemArch::default()),
+                ),
+            ]);
+            lock.path = sandbox.path().join(".protolock");
+            lock.save().unwrap();
+
+            let tool = create_tool_in_sandbox(sandbox.path()).await;
+            let locker = Locker::new(&tool);
+
+            let spec = ToolSpec::parse("^20").unwrap();
+            let record = locker.resolve_locked_record(&spec).unwrap().unwrap();
+
+            assert_eq!(record.version, Some(VersionSpec::parse("20.0.0").unwrap()));
+            assert_eq!(record.os, Some(SystemOS::default()));
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn inherits_highest_version_when_platforms_differ() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+            // Two other platforms locked different versions for the same spec
+            let mut lock = ProtoLock::default();
+            lock.tools.entry(Id::raw("node")).or_default().extend([
+                make_record("20.5.0", "^20", Some(other_os()), Some(SystemArch::Sparc64)),
+                make_record("20.9.0", "^20", Some(other_os()), Some(SystemArch::Mips64)),
+            ]);
+            lock.path = sandbox.path().join(".protolock");
+            lock.save().unwrap();
+
+            let tool = create_tool_in_sandbox(sandbox.path()).await;
+            let locker = Locker::new(&tool);
+
+            let spec = ToolSpec::parse("^20").unwrap();
+            let record = locker.resolve_locked_record(&spec).unwrap().unwrap();
+
+            assert_eq!(record.version, Some(VersionSpec::parse("20.9.0").unwrap()));
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn doesnt_inherit_from_another_spec() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+            let mut lock = ProtoLock::default();
+            lock.tools
+                .entry(Id::raw("node"))
+                .or_default()
+                .push(make_record(
+                    "18.0.0",
+                    "^18",
+                    Some(other_os()),
+                    Some(SystemArch::Sparc64),
+                ));
+            lock.path = sandbox.path().join(".protolock");
+            lock.save().unwrap();
+
+            let tool = create_tool_in_sandbox(sandbox.path()).await;
+            let locker = Locker::new(&tool);
+
+            let spec = ToolSpec::parse("^20").unwrap();
+
+            assert!(locker.resolve_locked_record(&spec).unwrap().is_none());
         }
     }
 
@@ -654,7 +774,7 @@ mod locker {
         use super::*;
 
         #[tokio::test(flavor = "multi_thread")]
-        async fn returns_versions_for_current_os_arch() {
+        async fn returns_versions_for_every_os_arch() {
             let sandbox = create_empty_sandbox();
             sandbox.create_file(".prototools", "[settings]\nlockfile = true");
 
@@ -689,10 +809,12 @@ mod locker {
 
             let versions = locker.get_locked_versions().unwrap();
 
-            assert_eq!(versions.len(), 2);
+            // A version locked by another platform is inherited when this
+            // platform has no record of its own, so it counts as locked
+            assert_eq!(versions.len(), 3);
             assert!(versions.contains(&VersionSpec::parse("18.0.0").unwrap()));
             assert!(versions.contains(&VersionSpec::parse("20.0.0").unwrap()));
-            assert!(!versions.contains(&VersionSpec::parse("21.0.0").unwrap()));
+            assert!(versions.contains(&VersionSpec::parse("21.0.0").unwrap()));
         }
 
         #[tokio::test(flavor = "multi_thread")]

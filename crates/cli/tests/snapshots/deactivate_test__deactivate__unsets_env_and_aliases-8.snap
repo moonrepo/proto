@@ -4,18 +4,20 @@ expression: "get_deactivate_output(&assert, &sandbox)"
 ---
 export-env {
     let entry = { code: "proto_activate" }
+    let apply = { code: '# proto_activate apply
+const proto_activate_file = $"($nu.temp-dir)/proto_activate-($nu.pid).nu"
+source $proto_activate_file
+"" | save --force $proto_activate_file' }
 
     $env.config = ($env.config | upsert hooks.env_change.PWD (
         (($env.config | get --optional hooks.env_change.PWD) | default []) | where { |it| $it != $entry }
     ))
 
-    # Statements the function staged but that have not applied yet are dropped
-    # too: the handler may have staged a fresh activation on this very prompt,
-    # and left alone it would resurrect the environment right after teardown
+    # The entry that applies the function's statements goes too: the handler
+    # may have written a fresh activation on this very prompt, and left alone
+    # it would resurrect the environment right after teardown
     $env.config = ($env.config | upsert hooks.pre_prompt (
-        (($env.config | get --optional hooks.pre_prompt) | default []) | where { |it|
-            $it != $entry and (not (($it | describe | str starts-with "record") and (($it | get --optional code | default "") | str starts-with "# proto_activate apply")))
-        }
+        (($env.config | get --optional hooks.pre_prompt) | default []) | where { |it| $it != $entry and $it != $apply }
     ))
 }
 hide proto_activate

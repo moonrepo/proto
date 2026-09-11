@@ -425,6 +425,41 @@ version = "{version}"
         }
 
         #[test]
+        fn installs_all_from_records_authored_on_another_platform() {
+            let sandbox = create_sandbox();
+
+            // A teammate on another platform bumped the versions and
+            // committed the lockfile, so no record exists for this one
+            sandbox.create_file(
+                ".protolock",
+                format!(
+                    r#"
+[[tools.protostar]]
+os = "solaris"
+arch = "sparc64"
+spec = "1"
+version = "1.10.15"
+{}"#,
+                    record("protoform", "2.1", "2.1.15"),
+                ),
+            );
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("--immutable-lockfile");
+                })
+                .success();
+
+            // And the other platform's record is left untouched
+            let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
+            let protostar = lockfile.tools.get("protostar").unwrap();
+
+            assert_eq!(protostar.len(), 1);
+            assert_eq!(protostar[0].os.unwrap(), SystemOS::Solaris);
+            assert_eq!(protostar[0].arch.unwrap(), SystemArch::Sparc64);
+        }
+
+        #[test]
         fn errors_when_a_tool_is_missing_from_lockfile() {
             let sandbox = create_sandbox();
 

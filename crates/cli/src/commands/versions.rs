@@ -25,6 +25,9 @@ pub struct VersionsArgs {
 
     #[arg(long, help = "Only display installed versions")]
     installed: bool,
+
+    #[arg(long, help = "Exclude build versions from the output")]
+    no_builds: bool,
 }
 
 #[derive(Serialize)]
@@ -83,6 +86,8 @@ pub async fn versions(session: ProtoSession, args: VersionsArgs) -> SessionResul
                 .map(|meta| meta.installed_at);
 
             if args.installed && installed_at.is_none() {
+                None
+            } else if args.no_builds && version.as_version().is_some_and(|v| v.build.is_some()) {
                 None
             } else {
                 Some(VersionItem {
