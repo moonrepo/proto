@@ -4200,7 +4200,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.62.0"
+version = "0.62.1"
 dependencies = [
  "ai_env",
  "anyhow",
@@ -4251,7 +4251,7 @@ dependencies = [
 
 [[package]]
 name = "proto_codegen"
-version = "0.16.0"
+version = "0.16.1"
 dependencies = [
  "proto_core",
  "proto_pdk_api",
@@ -4261,7 +4261,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.62.0"
+version = "0.62.1"
 dependencies = [
  "ai_env",
  "clap",
@@ -4307,7 +4307,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.35.3"
+version = "0.35.4"
 dependencies = [
  "extism-pdk",
  "proto_pdk",
@@ -4319,7 +4319,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.34.3"
+version = "0.34.4"
 dependencies = [
  "derive_setters",
  "proto_pdk_api",
@@ -4335,7 +4335,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.50.0"
+version = "0.50.1"
 dependencies = [
  "extism",
  "proto_core",
@@ -6736,7 +6736,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "version_spec"
-version = "0.11.4"
+version = "0.11.5"
 dependencies = [
  "compact_str 0.10.0",
  "human-sort",
@@ -6779,7 +6779,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.36.2"
+version = "0.36.3"
 dependencies = [
  "async-trait",
  "compact_str 0.10.0",
@@ -6815,7 +6815,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_api"
-version = "0.19.2"
+version = "0.19.3"
 dependencies = [
  "anyhow",
  "derive_setters",
@@ -6830,7 +6830,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_pdk"
-version = "0.18.2"
+version = "0.18.3"
 dependencies = [
  "extism-pdk",
  "serde",
