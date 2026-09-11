@@ -24,6 +24,7 @@
 
 #### 🚀 Updates
 
+- Added a `--no-builds` option to `proto versions`, to hide build versions (trailing `+`) from the list.
 - Added a `user-agent` setting to `[settings.http]`, which overrides the user agent that proto sends with each HTTP(S) request.
 
 #### 🐞 Fixes
