@@ -20,7 +20,7 @@
 - [Zig](https://github.com/moonrepo/plugins/blob/master/tools/zig/CHANGELOG.md)
 - [ZLS](https://github.com/moonrepo/plugins/blob/master/tools/zig-ls/CHANGELOG.md)
 
-## 0.62.1
+## Unreleased
 
 #### 🚀 Updates
 
@@ -43,6 +43,10 @@
 #### ⚙️ Internal
 
 - Updated dependencies.
+
+## 0.62.1
+
+> Release failed to create on GitHub, moved the changes above.
 
 ## 0.62.0
 
