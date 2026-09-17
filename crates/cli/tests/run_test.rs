@@ -347,8 +347,11 @@ mod run {
     #[test]
     fn auto_installs_if_missing() {
         let sandbox = create_empty_proto_sandbox();
+        let last_used_file = sandbox.path().join(".proto/tools/node/19.0.0/.last-used");
 
         sandbox.create_file(".prototools", "[settings]\nauto-install = true");
+
+        assert!(!last_used_file.exists());
 
         let assert = sandbox
             .run_bin(|cmd| {
@@ -357,12 +360,19 @@ mod run {
                     .arg("19.0.0")
                     .arg("--")
                     .arg("-e")
-                    .arg("'//'");
+                    .arg("process.stdout.write(process.env.PROTO_NODE_VERSION || '')")
+                    .env_remove("PROTO_NODE_VERSION")
+                    .env_remove("PROTO_SKIP_USED_AT");
             })
             .success();
 
         // Proto's own output goes to stderr, as stdout belongs to the tool
-        assert.stderr(predicate::str::contains("installed"));
+        assert
+            .stdout(predicate::eq("19.0.0"))
+            .stderr(predicate::str::contains("installed"));
+
+        assert!(last_used_file.exists());
+        assert_ne!(fs::read_to_string(&last_used_file).unwrap(), "");
     }
 
     #[test]
