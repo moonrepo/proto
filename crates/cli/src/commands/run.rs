@@ -464,6 +464,9 @@ pub async fn run(session: ProtoSession, mut args: RunArgs) -> SessionResult {
                     resolved_version,
                 ))?;
             }
+
+            // The install uses a separate tool instance, so reload the manifest.
+            tool.inventory.manifest.reload_from_disk()?;
         }
         // If this is the proto tool running, continue instead of failing
         else if use_global_proto {

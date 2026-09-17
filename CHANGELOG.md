@@ -20,6 +20,12 @@
 - [Zig](https://github.com/moonrepo/plugins/blob/master/tools/zig/CHANGELOG.md)
 - [ZLS](https://github.com/moonrepo/plugins/blob/master/tools/zig-ls/CHANGELOG.md)
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Fixed a regression where `proto run` would not track usage, set version environment variables, or run pre-run hooks for a tool version it had just auto-installed, preventing that version from being cleaned when no longer used.
+
 ## 0.62.2
 
 #### 🚀 Updates
