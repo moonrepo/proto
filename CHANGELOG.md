@@ -26,6 +26,18 @@
 
 - Fixed a regression where `proto run` would not track usage, set version environment variables, or run pre-run hooks for a tool version it had just auto-installed, preventing that version from being cleaned when no longer used.
 
+#### 🔩 Backends
+
+- **npm**
+  - Fixed loading versions failing with npm v12, as `npm view --json` now wraps objects in an array.
+
+#### 🛠️ Tools
+
+- **Deno**
+  - Added `package.json` `devEngines.runtime` support for version detection, pinning, and unpinning.
+- **yarn**
+  - Fixed Yarn v6 downloads on glibc Linux by always using the musl build.
+
 #### ⚙️ Internal
 
 - Updated dependencies.
