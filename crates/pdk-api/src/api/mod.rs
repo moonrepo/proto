@@ -253,14 +253,21 @@ api_struct!(
 api_unit_enum!(
     /// Supported types of plugins.
     pub enum PluginType {
-        #[serde(alias = "CLI", alias = "CommandLine")]
+        #[serde(alias = "CommandLine", alias = "CLI", alias = "cli")]
         CommandLine,
         #[default]
-        #[serde(alias = "Language")]
+        #[serde(alias = "Language", alias = "lang")]
         Language,
-        #[serde(alias = "PM", alias = "DependencyManager")]
+        #[serde(
+            alias = "DependencyManager",
+            alias = "DM",
+            alias = "dm",
+            alias = "PackageManager",
+            alias = "PM",
+            alias = "pm"
+        )]
         DependencyManager,
-        #[serde(alias = "VM", alias = "VersionManager")]
+        #[serde(alias = "VersionManager", alias = "VM", alias = "vm")]
         VersionManager,
     }
 );
@@ -621,33 +628,34 @@ api_struct!(
 
 api_struct!(
     /// Output returned by the `download_prebuilt` function.
+    #[serde(default)]
     pub struct DownloadPrebuiltOutput {
         /// Name of the direct folder within the archive that contains the tool,
         /// and will be removed when unpacking the archive.
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub archive_prefix: Option<String>,
 
         /// The checksum hash itself.
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub checksum: Option<Checksum>,
 
         /// File name of the checksum to download. If not provided,
         /// will attempt to extract it from the URL.
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub checksum_name: Option<String>,
 
         /// Public key to use for checksum verification.
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub checksum_public_key: Option<String>,
 
         /// A secure URL to download the checksum file for verification.
         /// If the tool does not support checksum verification, this setting can be omitted.
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub checksum_url: Option<String>,
 
         /// File name of the archive to download. If not provided,
         /// will attempt to extract it from the URL.
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub download_name: Option<String>,
 
         /// A secure URL to download the tool/archive.
@@ -655,16 +663,16 @@ api_struct!(
 
         /// A map of HTTP headers to include in all requests
         /// during the download phase.
-        #[serde(default, skip_serializing_if = "FxHashMap::is_empty")]
+        #[serde(skip_serializing_if = "FxHashMap::is_empty")]
         pub http_headers: FxHashMap<String, String>,
 
         /// A script file, relative from the install directory, to execute after
         /// the prebuilt has been installed.
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub post_script: Option<PathBuf>,
 
         /// A list of arguments to pass to the script file when executing it.
-        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        #[serde(skip_serializing_if = "Vec::is_empty")]
         pub post_script_args: Vec<String>,
     }
 );
