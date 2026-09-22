@@ -1,6 +1,7 @@
 use version_spec::{
-    Clause, MatchesVersion, Op, Range, Requirement, Version, VersionKind, parse_calver,
-    parse_calver_range, parse_calver_req, parse_semver, parse_semver_range, parse_semver_req,
+    Clause, MatchesRequirement, MatchesVersion, Op, Range, Requirement, Version, VersionKind,
+    parse_calver, parse_calver_range, parse_calver_req, parse_semver, parse_semver_range,
+    parse_semver_req,
 };
 
 mod syntax {
@@ -2635,6 +2636,213 @@ mod syntax {
             assert!(or.matches(&ver("1.5.0")));
             assert!(or.matches(&ver("2.5.0")));
             assert!(!or.matches(&ver("3.0.0")));
+        }
+    }
+
+    mod matches_req {
+        use super::*;
+
+        fn req(input: &str) -> Requirement {
+            Requirement::parse(input).unwrap()
+        }
+
+        fn range(input: &str) -> Range {
+            Range::parse(input).unwrap()
+        }
+
+        #[test]
+        fn matches_wildcard() {
+            assert!(range("").matches_req(&req("1.2")));
+            assert!(range("").matches_req(&req("<1")));
+            assert!(range("^1").matches_req(&req("*")));
+
+            // Except pre-releases
+            assert!(!range("").matches_req(&req("=1.2.3-alpha")));
+        }
+
+        #[test]
+        fn matches_overlaps() {
+            // Only part of the requirement needs to overlap
+            assert!(range(">=1.2.5").matches_req(&req("1.2")));
+            assert!(range("^1").matches_req(&req(">=1.5")));
+            assert!(range("<=1.2.0").matches_req(&req("~1.2")));
+
+            assert!(!range(">=1.3").matches_req(&req("~1.2")));
+            assert!(!range("^1").matches_req(&req(">=2")));
+            assert!(!range("<1.2").matches_req(&req("~1.2")));
+        }
+
+        #[test]
+        fn matches_exclusive_bounds() {
+            assert!(range(">1.2.3").matches_req(&req("<=1.2.4")));
+            assert!(!range(">1.2.3").matches_req(&req("<=1.2.3")));
+            assert!(!range(">1.2").matches_req(&req("=1.2")));
+
+            // No release exists between the bounds
+            assert!(!range(">1.2.3 <1.2.4").matches_req(&req("*")));
+
+            // The version after the bound carries into the next part
+            assert!(range(">1.4294967295").matches_req(&req("<3")));
+        }
+
+        #[test]
+        fn matches_prereleases() {
+            assert!(range("=1.2.3-alpha").matches_req(&req("=1.2.3-alpha")));
+            assert!(range(">=1.2.3-alpha <1.2.3").matches_req(&req("=1.2.3-beta")));
+            assert!(!range(">=1.2.3-alpha <1.2.3").matches_req(&req("=1.2.4-beta")));
+
+            // Only shares a pre-release after the exclusive bound
+            assert!(range(">1.2.3-alpha <1.2.3").matches_req(&req(">=1.2.3-alpha")));
+            assert!(!range(">1.2.3-alpha <1.2.3").matches_req(&req("=1.2.3-alpha")));
+
+            // Only shares the lowest possible pre-release, like "1.2.3-0"
+            assert!(range(">1.2.2 <1.2.3-alpha").matches_req(&req("<=1.2.3-alpha")));
+
+            // Both sides must opt into pre-releases
+            assert!(!range("^1").matches_req(&req("=1.2.3-alpha")));
+            assert!(!range("=1.2.3-alpha").matches_req(&req("^1")));
+        }
+
+        #[test]
+        fn matches_scopes() {
+            assert!(range(">=node-1").matches_req(&req("node-1.5")));
+            assert!(!range(">=node-1").matches_req(&req("bun-1.5")));
+
+            // An unscoped requirement matches any scope
+            assert!(range(">=node-1").matches_req(&req("1.5")));
+            assert!(range(">=1").matches_req(&req("node-1.5")));
+
+            // Unless the clause's requirements disagree
+            assert!(!range(">=node-1 <bun-2").matches_req(&req("1.5")));
+        }
+
+        #[test]
+        fn matches_calver() {
+            assert!(range(">=2024-6").matches_req(&req("~2024-6")));
+            assert!(range(">=2024-6").matches_req(&req("~2024")));
+            assert!(!range(">=2024-6").matches_req(&req("~2024-5")));
+        }
+
+        #[test]
+        fn matches_between_clauses() {
+            let between = range("1.2.3 - 2.3.4");
+
+            // Inclusive on both ends
+            assert!(between.matches_req(&req("<=1.2.3")));
+            assert!(between.matches_req(&req(">=2.3.4")));
+            assert!(between.matches_req(&req("^2")));
+            assert!(!between.matches_req(&req("<1.2.3")));
+            assert!(!between.matches_req(&req(">2.3.4")));
+        }
+
+        #[test]
+        fn matches_or_clauses() {
+            let or = range("^1 || ^3");
+
+            assert!(or.matches_req(&req(">=2.5")));
+            assert!(or.matches_req(&req("<2")));
+            assert!(!or.matches_req(&req("~2")));
+        }
+
+        // Verify against a brute force search for a shared version, in which
+        // the grid includes every version that a match may be found on
+        #[test]
+        fn matches_same_as_shared_versions() {
+            let ranges = [
+                "",
+                "*",
+                "1.2",
+                "=1.2.3",
+                ">1",
+                ">1.2",
+                ">1.2.3",
+                ">=1.2",
+                "<2",
+                "<1.2.3",
+                "<=1.2",
+                "~1.2.3",
+                "^0.2.3",
+                "^0.0.3",
+                "^1.2",
+                ">=1.2.3-alpha",
+                "=1.2.3-beta",
+                ">1.2.3-alpha <1.2.3",
+                ">1.2.2 <1.2.3-alpha",
+                ">=1.2 <1.3 || >=3",
+                ">1.2.3 <1.2.4",
+                "1.2.3-alpha - 2.0.0",
+                "1.2.3 - 2.3.1-beta",
+                ">=node-1",
+                ">=node-1 <bun-2",
+            ];
+
+            let reqs = [
+                "*",
+                "0",
+                "1",
+                "1.2",
+                "=1.2",
+                "=1.2.3",
+                "=1.2.3-alpha",
+                "=1.2.3-beta",
+                ">=1.2.3-beta",
+                ">1.2.3-alpha",
+                "<=1.2.3-alpha",
+                ">2",
+                ">1.2.3",
+                "<1.2.3",
+                "<=1.2",
+                "~1.2.4",
+                "^0.2",
+                "^0.0.3",
+                "^2",
+                "2.3.1-alpha",
+                "node-1.3",
+                "bun-1",
+            ];
+
+            let mut versions = vec![];
+
+            for scope in [None, Some("node"), Some("bun")] {
+                for major in 0..=4 {
+                    for minor in 0..=4 {
+                        for patch in 0..=4 {
+                            for pre in [
+                                None,
+                                Some("0"),
+                                Some("alpha"),
+                                Some("alpha.0"),
+                                Some("beta"),
+                                Some("beta.0"),
+                            ] {
+                                versions.push(Version {
+                                    scope: scope.map(Into::into),
+                                    prerelease: pre.map(Into::into),
+                                    ..Version::new(major, minor, patch)
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+
+            for range_input in ranges {
+                let range = range(range_input);
+
+                for req_input in reqs {
+                    let req = req(req_input);
+                    let shared = versions
+                        .iter()
+                        .find(|version| req.matches(version) && range.matches(version));
+
+                    assert_eq!(
+                        range.matches_req(&req),
+                        shared.is_some(),
+                        "range {range_input:?} against requirement {req_input:?}, shared version {:?}",
+                        shared.map(|version| version.to_string()),
+                    );
+                }
+            }
         }
     }
 }
