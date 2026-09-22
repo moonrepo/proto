@@ -163,7 +163,7 @@ impl ProtoConfig {
         if !backends.contains_key("npm") && is_backend_allowed("npm") {
             backends.insert(
                 Id::raw("npm"),
-                find_debug_locator_with_fallback("npm_backend", "0.1.3"),
+                find_debug_locator_with_fallback("npm_backend", "0.1.4"),
             );
         }
 
@@ -179,7 +179,7 @@ impl ProtoConfig {
         if !tools.contains_key("deno") && is_tool_allowed("deno") {
             tools.insert(
                 Id::raw("deno"),
-                find_debug_locator_with_fallback("deno_tool", "0.15.11"),
+                find_debug_locator_with_fallback("deno_tool", "0.15.12"),
             );
         }
 
@@ -217,7 +217,7 @@ impl ProtoConfig {
             if !tools.contains_key(depman) && is_tool_allowed(depman) {
                 tools.insert(
                     Id::raw(depman),
-                    find_debug_locator_with_fallback("node_depman_tool", "0.20.1"),
+                    find_debug_locator_with_fallback("node_depman_tool", "0.20.2"),
                 );
             }
         }

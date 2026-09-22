@@ -22,9 +22,37 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- Updated `proto versions` to accept any version specification as the filter, instead of only a requirement.
+  - Ranges show every matching version, for example `proto versions node "^20 || ^22"`.
+  - Fully-qualified versions and `canary` only show themselves. Previously a version like `20.1.0` was treated as the requirement `~20.1.0`.
+  - Aliases only show the version they resolve to, for example `proto versions node latest`.
+- Updated versions, requirements, and ranges to be ordered semantically across the board.
+  - Calendar and semantic versions are now compared by their numbers, instead of all calendar versions ordering before semantic versions. This affects which version is the highest when a tool publishes both kinds.
+  - Requirements and ranges are now compared by the versions they match, instead of by their string. This may reorder the records in `.protolock` files.
+
 #### 🐞 Fixes
 
 - Fixed a regression where `proto run` would not track usage, set version environment variables, or run pre-run hooks for a tool version it had just auto-installed, preventing that version from being cleaned when no longer used.
+- Fixed scoped versions failing to parse as the bounds of a range, for example `temurin-17.0.1 - temurin-21.0.0`.
+
+#### 🔩 Backends
+
+- **npm**
+  - Fixed loading versions failing with npm v12, as `npm view --json` now wraps objects in an array.
+
+#### 🛠️ Tools
+
+- **Deno**
+  - Added `package.json` `devEngines.runtime` support for version detection, pinning, and unpinning.
+- **yarn**
+  - Fixed Yarn v6 downloads on glibc Linux by always using the musl build.
+
+#### ⚙️ Internal
+
+- Added a `MatchesRequirement` trait to `version_spec`, which checks whether a range overlaps a requirement.
+- Updated dependencies.
 
 ## 0.62.2
 

@@ -187,6 +187,10 @@ pub fn load_schema_config(plugin_path: &Path) -> Result<json::JsonValue, ProtoLo
         _ => unimplemented!(),
     };
 
+    let is_v2_format = schema.get("format").is_some_and(|format| {
+        format.is_string() && format == "2" || format.is_number() && format == 2
+    });
+
     // These are maps with user provided keys, so we shouldn't conver the casing
     let preserved_keys = FxHashSet::from_iter([
         "aliases",
@@ -204,25 +208,25 @@ pub fn load_schema_config(plugin_path: &Path) -> Result<json::JsonValue, ProtoLo
         config: &mut json::JsonValue,
         preserved_keys: &FxHashSet<&str>,
         parent_key: &str,
-        is_toml: bool,
+        preserve: bool,
     ) {
         match config {
             json::JsonValue::Array(array) => {
                 for item in array {
-                    convert_config(item, preserved_keys, parent_key, is_toml);
+                    convert_config(item, preserved_keys, parent_key, preserve);
                 }
             }
             json::JsonValue::Object(object) => {
                 let mut map = json::JsonMap::default();
 
                 for (key, value) in object.iter_mut() {
-                    let next_key = if is_toml || preserved_keys.contains(parent_key) {
+                    let next_key = if preserve || preserved_keys.contains(parent_key) {
                         key.to_owned()
                     } else {
                         key.from_case(Case::Camel).to_case(Case::Kebab)
                     };
 
-                    convert_config(value, preserved_keys, &next_key, is_toml);
+                    convert_config(value, preserved_keys, &next_key, preserve);
 
                     map.insert(next_key, value.to_owned());
                 }
@@ -236,7 +240,7 @@ pub fn load_schema_config(plugin_path: &Path) -> Result<json::JsonValue, ProtoLo
         }
     }
 
-    convert_config(&mut schema, &preserved_keys, "", is_toml);
+    convert_config(&mut schema, &preserved_keys, "", is_toml || is_v2_format);
 
     Ok(schema)
 }

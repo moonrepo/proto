@@ -1,9 +1,11 @@
-use crate::syntax::{Clause, Op, Range, Requirement, Version, VersionKind};
+use crate::syntax_range::{Clause, Range};
+use crate::syntax_requirement::{Op, Requirement};
+use crate::syntax_version::{Version, VersionKind};
 
 /// Trait for matching a version against the implementing type.
 pub trait MatchesVersion {
     /// Returns true if the provided version satisfies this shape,
-    /// following the same rules as the [`semver`] crate.
+    /// following the same rules as the [`semver`](https://crates.io/crates/semver) crate.
     fn matches(&self, version: &Version) -> bool;
 }
 
@@ -52,6 +54,151 @@ impl MatchesVersion for Range {
         }
 
         self.clauses.iter().any(|clause| clause.matches(version))
+    }
+}
+
+/// Trait for matching a requirement against the implementing type.
+pub trait MatchesRequirement {
+    /// Returns true if the provided requirement overlaps this shape, in
+    /// which at least one version satisfies both, following the same
+    /// rules as [`MatchesVersion`]. For example, `>=1.2.5` overlaps `~1.2`,
+    /// as both are satisfied by `1.2.5`.
+    fn matches_req(&self, req: &Requirement) -> bool;
+}
+
+impl MatchesRequirement for Clause {
+    fn matches_req(&self, req: &Requirement) -> bool {
+        match self {
+            Clause::All(reqs) => has_shared_version(req, reqs, |version| self.matches(version)),
+            Clause::Between(lower, upper) => has_shared_version(
+                req,
+                &[
+                    lower.to_requirement(Op::GreaterEq),
+                    upper.to_requirement(Op::LessEq),
+                ],
+                |version| self.matches(version),
+            ),
+            Clause::Only(other) => {
+                has_shared_version(req, std::slice::from_ref(other), |version| {
+                    self.matches(version)
+                })
+            }
+        }
+    }
+}
+
+impl MatchesRequirement for Range {
+    fn matches_req(&self, req: &Requirement) -> bool {
+        if self.clauses.is_empty() {
+            return has_shared_version(req, &[], |version| self.matches(version));
+        }
+
+        self.clauses.iter().any(|clause| clause.matches_req(req))
+    }
+}
+
+// Rather than intersecting requirements directly, which would duplicate the
+// matching rules, search for a version that satisfies both sides. Within
+// a scope, the versions that a requirement matches are contiguous (as a
+// part cannot follow a wildcard part), so if any shared version exists,
+// the lowest one is the lower bound of one of the requirements involved,
+// and only those bounds need to be checked.
+//
+// For releases, a lower bound is a requirement with its omitted parts
+// zeroed, the version after it for an exclusive (`>`) requirement, or
+// `0.0.0`. Pre-releases only match when a requirement opts into them on
+// the same version numbers, so they are only possible on the provided
+// requirement's version numbers, where a lower bound is a requirement's
+// pre-release, the pre-release after it, or the lowest possible pre-release.
+//
+// A scoped requirement only matches its own scope, so a shared version can
+// only exist within the first scope found. When the scopes disagree, no
+// version satisfies both sides, so every check fails as expected
+fn has_shared_version(
+    req: &Requirement,
+    bounds: &[Requirement],
+    matches: impl Fn(&Version) -> bool,
+) -> bool {
+    let scope = req
+        .scope
+        .as_deref()
+        .or_else(|| bounds.iter().find_map(|bound| bound.scope.as_deref()));
+    let all_bounds = || std::iter::once(req).chain(bounds);
+
+    let check = |major: u32, minor: u32, patch: u32, prerelease: Option<&str>| {
+        let version = Version {
+            kind: req.kind,
+            scope: scope.map(Into::into),
+            major,
+            minor,
+            patch,
+            prerelease: prerelease.map(Into::into),
+            build: None,
+        };
+
+        req.matches(&version) && matches(&version)
+    };
+
+    // Releases
+    if check(0, 0, 0, None) {
+        return true;
+    }
+
+    for bound in all_bounds() {
+        let Some(major) = bound.major else {
+            continue;
+        };
+
+        if check(
+            major,
+            bound.minor.unwrap_or(0),
+            bound.patch.unwrap_or(0),
+            None,
+        ) {
+            return true;
+        }
+
+        if let Some((major, minor, patch)) = next_release(major, bound.minor, bound.patch)
+            && check(major, minor, patch, None)
+        {
+            return true;
+        }
+    }
+
+    // Pre-releases
+    let (Some(major), Some(minor), Some(patch), Some(_)) =
+        (req.major, req.minor, req.patch, &req.prerelease)
+    else {
+        return false;
+    };
+
+    // A numeric identifier has the lowest precedence, and fewer
+    // identifiers have a lower precedence than more
+    if check(major, minor, patch, Some("0")) {
+        return true;
+    }
+
+    all_bounds().any(|bound| {
+        bound.prerelease.as_deref().is_some_and(|pre| {
+            check(major, minor, patch, Some(pre))
+                || check(major, minor, patch, Some(&format!("{pre}.0")))
+        })
+    })
+}
+
+// Increments the lowest defined part, carrying into
+// the higher parts when the maximum is reached
+fn next_release(major: u32, minor: Option<u32>, patch: Option<u32>) -> Option<(u32, u32, u32)> {
+    match (minor, patch) {
+        (Some(minor), Some(patch)) => patch
+            .checked_add(1)
+            .map(|patch| (major, minor, patch))
+            .or_else(|| next_release(major, Some(minor), None)),
+        (Some(minor), None) => minor
+            .checked_add(1)
+            .map(|minor| (major, minor, 0))
+            .or_else(|| next_release(major, None, None)),
+        _ => major.checked_add(1).map(|major| (major, 0, 0)),
     }
 }
 

@@ -27,11 +27,15 @@ req_wild = { "*" | "x" | "X" }
 
 // Repetition never backtracks, so stop before a "-" that leads into the
 // version itself, otherwise the scope consumes the entire input. The tails
-// must check the entire remaining input (mirroring the suffix of the `semver`
+// must check the entire remaining version (mirroring the suffix of the `semver`
 // and `calver` rules), otherwise a scope segment that looks like the start of
-// a version, like the "16-" in "node-16-1.2.3", ends the scope too early
-semver_tail = _{ semver_version ~ pre_anchor? ~ build_anchor? ~ EOI }
-calver_tail = _{ calver_version ~ pre_anchor_fixed? ~ build_anchor? ~ EOI }
+// a version, like the "16-" in "node-16-1.2.3", ends the scope too early. A
+// version ends at the end of the input, or at a separator when it bounds a
+// range, like the " - " in "node-1.2.3 - node-2.0.0", or a following "||"
+version_end = _{ EOI | " " | or }
+
+semver_tail = _{ semver_version ~ pre_anchor? ~ build_anchor? ~ version_end }
+calver_tail = _{ calver_version ~ pre_anchor_fixed? ~ build_anchor? ~ version_end }
 
 scope        =  { ASCII_ALPHANUMERIC ~ (!("-" ~ (semver_tail | calver_tail)) ~ id)* }
 scope_anchor = _{ scope ~ "-" }
