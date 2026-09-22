@@ -1126,8 +1126,10 @@ mod syntax {
                 (">=temurin-17 <temurin-21", Some("temurin")),
                 // Unscoped clauses are ignored
                 ("temurin-17 || ^21", Some("temurin")),
+                ("temurin-1.2.3 - temurin-2.0.0", Some("temurin")),
                 // A partially scoped between has no scope
                 ("1.2.3 - temurin-2.0.0", None),
+                ("temurin-1.2.3 - 2.0.0", None),
                 // Conflicting scopes have no scope
                 ("temurin-17 || zulu-21", None),
                 ("^1 || ^2", None),
@@ -1139,23 +1141,70 @@ mod syntax {
                     "input: {input}"
                 );
             }
-
-            // A fully scoped between is not parseable, but can be constructed
-            assert_eq!(
-                Range {
-                    clauses: vec![Clause::Between(ver("temurin-1.2.3"), ver("temurin-2.0.0"))]
-                }
-                .get_scope(),
-                Some("temurin")
-            );
         }
 
         #[test]
-        fn errors_scoped_between() {
-            // The scope lookahead requires the version tail to reach the end
-            // of the input, so a scoped lower bound can never be parsed
-            assert!(parse_semver_range("temurin-1.2.3 - temurin-2.0.0").is_err());
-            assert!(parse_semver_range("temurin-1.2.3 - 2.0.0").is_err());
+        fn parses_scoped_between() {
+            let scoped = |scope: &str, input: &str| {
+                Box::new(Version {
+                    scope: Some(scope.into()),
+                    ..parse_semver(input).unwrap()
+                })
+            };
+
+            for (input, lower, upper) in [
+                (
+                    "temurin-1.2.3 - temurin-2.0.0",
+                    scoped("temurin", "1.2.3"),
+                    scoped("temurin", "2.0.0"),
+                ),
+                (
+                    "temurin-1.2.3 - 2.0.0",
+                    scoped("temurin", "1.2.3"),
+                    ver("2.0.0"),
+                ),
+                (
+                    "1.2.3 - temurin-2.0.0",
+                    ver("1.2.3"),
+                    scoped("temurin", "2.0.0"),
+                ),
+                // A scope segment that looks like the start of a version
+                (
+                    "node-16-1.2.3 - node-16-2.0.0",
+                    scoped("node-16", "1.2.3"),
+                    scoped("node-16", "2.0.0"),
+                ),
+                (
+                    "node-1.2.3-alpha - node-2.0.0+build",
+                    scoped("node", "1.2.3-alpha"),
+                    scoped("node", "2.0.0+build"),
+                ),
+            ] {
+                assert_eq!(
+                    parse_semver_range(input).unwrap(),
+                    Range {
+                        clauses: vec![Clause::Between(lower, upper)]
+                    },
+                    "input: {input}"
+                );
+            }
+
+            // Followed by another clause
+            for input in [
+                "temurin-1.2.3 - temurin-2.0.0 || ^3",
+                "temurin-1.2.3 - temurin-2.0.0||^3",
+            ] {
+                assert_eq!(
+                    parse_semver_range(input).unwrap(),
+                    Range {
+                        clauses: vec![
+                            Clause::Between(scoped("temurin", "1.2.3"), scoped("temurin", "2.0.0")),
+                            Clause::Only(req("^3")),
+                        ]
+                    },
+                    "input: {input}"
+                );
+            }
         }
 
         #[test]
@@ -1199,6 +1248,9 @@ mod syntax {
                 }
             );
             assert_eq!(range.get_scope(), Some("temurin"));
+
+            // And parses back from its string form
+            assert_eq!(parse_semver_range(range.to_string()).unwrap(), range);
 
             // Overwrites existing scopes
             let mut range = parse_semver_range("zulu-17 || zulu-21").unwrap();
@@ -2138,6 +2190,58 @@ mod syntax {
         }
 
         #[test]
+        fn parses_scoped_between() {
+            let scoped = |scope: &str, input: &str| {
+                Box::new(Version {
+                    scope: Some(scope.into()),
+                    ..parse_calver(input).unwrap()
+                })
+            };
+
+            for (input, lower, upper) in [
+                (
+                    "node-2000-2 - node-2001-3",
+                    scoped("node", "2000-2"),
+                    scoped("node", "2001-3"),
+                ),
+                (
+                    "node-2000-2-1 - 2001-3",
+                    scoped("node", "2000-2-1"),
+                    ver("2001-3"),
+                ),
+                (
+                    "2000-2 - node-2001-3",
+                    ver("2000-2"),
+                    scoped("node", "2001-3"),
+                ),
+                (
+                    "foo-bar-2000-2-alpha - foo-bar-2001-3",
+                    scoped("foo-bar", "2000-2-alpha"),
+                    scoped("foo-bar", "2001-3"),
+                ),
+            ] {
+                assert_eq!(
+                    parse_calver_range(input).unwrap(),
+                    Range {
+                        clauses: vec![Clause::Between(lower, upper)]
+                    },
+                    "input: {input}"
+                );
+            }
+
+            // Followed by another clause
+            assert_eq!(
+                parse_calver_range("node-2000-2 - node-2001-3 || >=2002").unwrap(),
+                Range {
+                    clauses: vec![
+                        Clause::Between(scoped("node", "2000-2"), scoped("node", "2001-3")),
+                        Clause::Only(req(">=2002")),
+                    ]
+                }
+            );
+        }
+
+        #[test]
         fn parses_v_prefix() {
             // A leading "v" or "V" is ignored
             assert_eq!(
@@ -2761,6 +2865,28 @@ mod syntax {
         }
 
         #[test]
+        fn matches_scoped_between_clauses() {
+            let between = range("node-1.2.3 - node-2.0.0");
+
+            assert!(between.matches(&ver("node-1.2.3")));
+            assert!(between.matches(&ver("node-2.0.0")));
+            assert!(!between.matches(&ver("node-2.0.1")));
+
+            // Only matches the same scope
+            assert!(!between.matches(&ver("1.5.0")));
+            assert!(!between.matches(&ver("bun-1.5.0")));
+
+            // Including when only one bound is scoped
+            assert!(range("node-1.2.3 - 2.0.0").matches(&ver("node-1.5.0")));
+            assert!(!range("node-1.2.3 - 2.0.0").matches(&ver("1.5.0")));
+
+            let between = range("node-2000-2 - node-2001-3");
+
+            assert!(between.matches(&ver("node-2000-6-15")));
+            assert!(!between.matches(&ver("2000-6-15")));
+        }
+
+        #[test]
         fn matches_or_clauses() {
             let or = range("^1 || ^2");
 
@@ -2845,6 +2971,11 @@ mod syntax {
 
             // Unless the clause's requirements disagree
             assert!(!range(">=node-1 <bun-2").matches_req(&req("1.5")));
+
+            // A partially scoped between only matches the scoped bound's scope
+            assert!(range("node-1.2.3 - 2.0.0").matches_req(&req("*")));
+            assert!(range("1.2.3 - node-2.0.0").matches_req(&req("^1")));
+            assert!(!range("node-1.2.3 - 2.0.0").matches_req(&req("bun-1")));
         }
 
         #[test]
@@ -2905,6 +3036,8 @@ mod syntax {
                 "1.2.3 - 2.3.1-beta",
                 ">=node-1",
                 ">=node-1 <bun-2",
+                "node-1.2.3 - node-2.3.1",
+                "node-1.2.3 - 2.0.0",
             ];
 
             let reqs = [

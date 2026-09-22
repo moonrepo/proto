@@ -67,24 +67,20 @@ pub trait MatchesRequirement {
 impl MatchesRequirement for Clause {
     fn matches_req(&self, req: &Requirement) -> bool {
         match self {
-            Clause::All(reqs) => {
-                has_shared_version(req, reqs, self.get_scope(), |version| self.matches(version))
-            }
+            Clause::All(reqs) => has_shared_version(req, reqs, |version| self.matches(version)),
             Clause::Between(lower, upper) => has_shared_version(
                 req,
                 &[
                     lower.to_requirement(Op::GreaterEq),
                     upper.to_requirement(Op::LessEq),
                 ],
-                self.get_scope(),
                 |version| self.matches(version),
             ),
-            Clause::Only(other) => has_shared_version(
-                req,
-                std::slice::from_ref(other),
-                self.get_scope(),
-                |version| self.matches(version),
-            ),
+            Clause::Only(other) => {
+                has_shared_version(req, std::slice::from_ref(other), |version| {
+                    self.matches(version)
+                })
+            }
         }
     }
 }
@@ -92,7 +88,7 @@ impl MatchesRequirement for Clause {
 impl MatchesRequirement for Range {
     fn matches_req(&self, req: &Requirement) -> bool {
         if self.clauses.is_empty() {
-            return has_shared_version(req, &[], None, |version| self.matches(version));
+            return has_shared_version(req, &[], |version| self.matches(version));
         }
 
         self.clauses.iter().any(|clause| clause.matches_req(req))
@@ -111,14 +107,20 @@ impl MatchesRequirement for Range {
 // `0.0.0`. Pre-releases only match when a requirement opts into them on
 // the same version numbers, so they are only possible on the provided
 // requirement's version numbers, where a lower bound is a requirement's
-// pre-release, the pre-release after it, or the lowest possible pre-release
+// pre-release, the pre-release after it, or the lowest possible pre-release.
+//
+// A scoped requirement only matches its own scope, so a shared version can
+// only exist within the first scope found. When the scopes disagree, no
+// version satisfies both sides, so every check fails as expected
 fn has_shared_version(
     req: &Requirement,
     bounds: &[Requirement],
-    scope: Option<&str>,
     matches: impl Fn(&Version) -> bool,
 ) -> bool {
-    let scope = req.scope.as_deref().or(scope);
+    let scope = req
+        .scope
+        .as_deref()
+        .or_else(|| bounds.iter().find_map(|bound| bound.scope.as_deref()));
     let all_bounds = || std::iter::once(req).chain(bounds);
 
     let check = |major: u32, minor: u32, patch: u32, prerelease: Option<&str>| {
