@@ -4177,7 +4177,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.62.2"
+version = "0.62.3"
 dependencies = [
  "ai_env",
  "anyhow",
@@ -4238,7 +4238,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.62.1"
+version = "0.62.2"
 dependencies = [
  "ai_env",
  "clap",
@@ -4296,7 +4296,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.34.4"
+version = "0.34.5"
 dependencies = [
  "derive_setters",
  "proto_pdk_api",
@@ -6697,7 +6697,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "version_spec"
-version = "0.11.5"
+version = "0.11.6"
 dependencies = [
  "compact_str 0.10.0",
  "pest",
@@ -6739,7 +6739,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.36.3"
+version = "0.36.4"
 dependencies = [
  "async-trait",
  "compact_str 0.10.0",

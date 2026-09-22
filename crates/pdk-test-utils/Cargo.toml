@@ -9,9 +9,9 @@ repository = "https://github.com/moonrepo/proto"
 rust-version = "1.89.0"
 
 [dependencies]
-proto_core = { version = "0.62.1", path = "../core" }
-proto_pdk_api = { version = "0.34.4", path = "../pdk-api" }
-warpgate = { version = "0.36.3", path = "../warpgate" }
+proto_core = { version = "0.62.2", path = "../core" }
+proto_pdk_api = { version = "0.34.5", path = "../pdk-api" }
+warpgate = { version = "0.36.4", path = "../warpgate" }
 extism = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
