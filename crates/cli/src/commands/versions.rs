@@ -85,9 +85,9 @@ pub async fn versions(session: ProtoSession, args: VersionsArgs) -> SessionResul
                 .get(version)
                 .map(|meta| meta.installed_at);
 
-            if args.installed && installed_at.is_none() {
-                None
-            } else if args.no_builds && version.as_version().is_some_and(|v| v.build.is_some()) {
+            if args.installed && installed_at.is_none()
+                || (args.no_builds && version.as_version().is_some_and(|v| v.build.is_some()))
+            {
                 None
             } else {
                 Some(VersionItem {

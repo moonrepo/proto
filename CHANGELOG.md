@@ -26,6 +26,10 @@
 
 - Fixed a regression where `proto run` would not track usage, set version environment variables, or run pre-run hooks for a tool version it had just auto-installed, preventing that version from being cleaned when no longer used.
 
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.62.2
 
 #### 🚀 Updates
