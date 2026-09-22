@@ -2342,6 +2342,8 @@ mod syntax {
 
     mod ordering {
         use super::*;
+        use std::cmp::Ordering;
+        use std::fmt::Debug;
 
         fn sorted<const N: usize>(inputs: [&str; N]) -> Vec<String> {
             let mut versions = inputs.map(|input| Version::parse(input).unwrap());
@@ -2355,6 +2357,32 @@ mod syntax {
 
         fn range(input: &str) -> Range {
             Range::parse(input).unwrap()
+        }
+
+        fn sort_inputs<T: Ord, const N: usize>(
+            parse: impl Fn(&str) -> T,
+            inputs: [&'static str; N],
+        ) -> Vec<&'static str> {
+            let mut items = inputs.map(|input| (parse(input), input));
+            items.sort_by(|lhs, rhs| lhs.0.cmp(&rhs.0));
+            items.iter().map(|item| item.1).collect()
+        }
+
+        // Ordering must be total, and agree with equality
+        #[track_caller]
+        fn assert_total_order<T: Debug + Ord>(items: &[T]) {
+            for a in items {
+                for b in items {
+                    assert_eq!(a.cmp(b) == Ordering::Equal, a == b, "{a:?} and {b:?}");
+                    assert_eq!(a.cmp(b), b.cmp(a).reverse(), "{a:?} and {b:?}");
+
+                    for c in items {
+                        if a <= b && b <= c {
+                            assert!(a <= c, "{a:?}, {b:?}, and {c:?}");
+                        }
+                    }
+                }
+            }
         }
 
         #[test]
@@ -2430,8 +2458,11 @@ mod syntax {
         fn orders_kinds_and_scopes() {
             let ver = |input: &str| Version::parse(input).unwrap();
 
-            // Calendar versions group before semantic versions
-            assert!(ver("2024-2") < ver("1.0.0"));
+            // Kinds are ordered by their numbers, like when matching,
+            // with the kind as a tiebreaker
+            assert!(ver("1.0.0") < ver("2024-2"));
+            assert!(ver("2024-2") < ver("2025.0.0"));
+            assert!(ver("2024-2") < ver("2024.2.0"));
 
             // Unscoped versions group before scoped versions,
             // and scopes group before version numbers
@@ -2441,29 +2472,129 @@ mod syntax {
 
         #[test]
         fn orders_requirements() {
-            // Wildcard parts order first
-            assert!(req("*") < req("=1"));
-            assert!(req("=1.x") < req("=1.2"));
+            // Omitted parts order first, then by version
+            assert_eq!(
+                sort_inputs(
+                    req,
+                    ["=1.3", "=1.2.3", "=1", "*", "=1.2.3-alpha", "=1.2", "1.x"]
+                ),
+                ["*", "=1", "1.x", "=1.2", "=1.2.3-alpha", "=1.2.3", "=1.3"]
+            );
 
-            // Then by version, with the operator as the tiebreaker
-            assert!(req("=1.2") < req("=1.3"));
-            assert!(req("=1.2.3-alpha") < req("=1.2.3"));
-            assert!(req(">1.2") < req(">=1.2"));
+            // Then by operator, from the lowest matching versions to the highest
+            assert_eq!(
+                sort_inputs(
+                    req,
+                    [
+                        ">1.2.3", ">=1.2.3", "^1.2.3", "~1.2.3", "=1.2.3", "<=1.2.3", "<1.2.3"
+                    ]
+                ),
+                [
+                    "<1.2.3", "<=1.2.3", "=1.2.3", "~1.2.3", "^1.2.3", ">=1.2.3", ">1.2.3"
+                ]
+            );
 
-            // Calendar requirements
+            // Kinds are ordered by their numbers, with the kind as a tiebreaker
             assert!(req("=2000-2") < req("=2000-3"));
+            assert!(req("=2.0") < req("=2000-2"));
+            assert!(req("=2000-2") < req("=2000.2"));
+
+            // Unscoped requirements group before scoped requirements
+            assert!(req("=2") < req("=node-1"));
         }
 
         #[test]
         fn orders_ranges() {
-            // Clauses are compared in order, with an empty range first
-            assert!(range("") < range("=1"));
-            assert!(range("=1") < range("=1 || =2"));
-            assert!(range("=1 || =2") < range("=2"));
+            // Clauses are compared by their lowest requirements first, regardless
+            // of the kind of clause, with an empty range first
+            assert_eq!(
+                sort_inputs(
+                    range,
+                    ["^2", "1.5.0 - 3.0.0", ">=1.2 <2", "", "^1", "<3 >=1.2"]
+                ),
+                ["", "^1", ">=1.2 <2", "<3 >=1.2", "1.5.0 - 3.0.0", "^2"]
+            );
 
-            // "all" clauses order before "between", then "only" clauses
-            assert!(range("=1 && =2") < range("1.2.3 - 2.3.4"));
-            assert!(range("1.2.3 - 2.3.4") < range("=1"));
+            // Clauses are compared from lowest to highest, regardless of the
+            // written order, which is only used as a tiebreaker
+            assert!(range("^3 || ^1") < range("^2"));
+            assert!(range("^1") < range("^1 || ^3"));
+            assert!(range("^1 || ^3") < range("^3 || ^1"));
+
+            // A bounded range is compared like `>=lower && <=upper`, with
+            // the kind of clause as a tiebreaker
+            assert!(range(">=1.2.3 <=2.3.4") < range("1.2.3 - 2.3.4"));
+            assert!(range("1.2.3 - 2.3.4") < range("1.2.4 - 2.0.0"));
+        }
+
+        #[test]
+        fn orders_consistently() {
+            assert_total_order(
+                &[
+                    "0.0.0",
+                    "1.0.0",
+                    "1.0.0-alpha",
+                    "1.0.0+build",
+                    "1.0.0-alpha+build",
+                    "10.0.0",
+                    "2024-2",
+                    "2024-02-01",
+                    "2024.2.0",
+                    "node-1.0.0",
+                    "node-2024-2",
+                ]
+                .map(|input| Version::parse(input).unwrap()),
+            );
+
+            assert_total_order(
+                &[
+                    "*",
+                    "=1",
+                    "1.x",
+                    "1",
+                    "^1",
+                    "~1",
+                    ">1",
+                    ">=1",
+                    "<1",
+                    "<=1",
+                    "=1.2",
+                    "=1.2.3",
+                    "=1.2.3-alpha",
+                    ">1.2.3-alpha",
+                    "^0.0.3",
+                    "~2024-2",
+                    "~2024.2",
+                    "=node-1",
+                ]
+                .map(req),
+            );
+
+            let ranges = [
+                "",
+                "^1",
+                "^1 || ^3",
+                "^3 || ^1",
+                ">=1.2 <2",
+                "<2 >=1.2",
+                ">=1.2.3 <=2.3.4",
+                "1.2.3 - 2.3.4",
+                "1.2.3+build - 2.3.4",
+                ">=node-1.2 <node-2",
+                "2000-2 - 2001-3",
+            ]
+            .map(range);
+
+            // Including shapes that are not parsed, like a single "all" requirement
+            let mut clauses = ranges
+                .iter()
+                .flat_map(|range| range.clauses.clone())
+                .collect::<Vec<_>>();
+            clauses.push(Clause::All(vec![req("^1")]));
+            clauses.push(Clause::All(vec![]));
+
+            assert_total_order(&clauses);
+            assert_total_order(&ranges);
         }
     }
 

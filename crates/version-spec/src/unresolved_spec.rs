@@ -4,14 +4,21 @@ use crate::syntax::*;
 use crate::syntax_parser::parse_alias;
 use crate::syntax_traits::{FormatOptions, FormatsVersion};
 use compact_str::CompactString;
-use human_sort::compare;
 use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
 
 /// Represents an unresolved version or alias that must be resolved
 /// to a fully-qualified version.
+///
+/// Like [`VersionSpec`], canary orders first, then aliases by name, then
+/// ranges, requirements, and versions, which are ordered together. A version
+/// orders like an exact (`=`) requirement, and a requirement orders like a
+/// range with a single requirement (see [`Range`]), for example `~1.2`,
+/// `1.2.0`, `^1.2.0 || ^2`, and then `>=1.2.0`. When those are equal, ranges
+/// order before requirements, and requirements before versions.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(untagged, into = "String", try_from = "String")]
 pub enum UnresolvedVersionSpec {
@@ -114,23 +121,53 @@ impl UnresolvedVersionSpec {
     /// requirements will return "latest", and aliases will return as-is.
     pub fn to_partial_string(&self) -> String {
         match self {
-            UnresolvedVersionSpec::Canary => "canary".into(),
-            UnresolvedVersionSpec::Alias(alias) => alias.to_string(),
-            UnresolvedVersionSpec::Range(_) => "latest".into(),
-            UnresolvedVersionSpec::Requirement(req) if req.major.is_none() => "latest".into(),
-            UnresolvedVersionSpec::Requirement(req) => {
+            Self::Canary => "canary".into(),
+            Self::Alias(alias) => alias.to_string(),
+            Self::Range(_) => "latest".into(),
+            Self::Requirement(req) if req.major.is_none() => "latest".into(),
+            Self::Requirement(req) => {
                 let mut options = FormatOptions::new(req.kind);
                 options.include_op = false;
                 options.include_build = false;
 
                 req.to_formatted_string(&options)
             }
-            UnresolvedVersionSpec::Version(ver) => {
+            Self::Version(ver) => {
                 let mut options = FormatOptions::new(ver.kind);
                 options.include_build = false;
 
                 ver.to_formatted_string(&options)
             }
+        }
+    }
+
+    // Versions and requirements are compared as a range of a single
+    // requirement, so that all 3 are ordered semantically. The patch of
+    // a calendar version is kept as-is, instead of being omitted when
+    // not defined, so that versions are ordered exactly like `Version`
+    fn to_range(&self) -> Option<Cow<'_, Range>> {
+        let req = match self {
+            Self::Range(range) => return Some(Cow::Borrowed(range)),
+            Self::Requirement(req) => req.clone(),
+            Self::Version(version) => Requirement {
+                patch: Some(version.patch),
+                ..version.to_requirement(Op::Exact)
+            },
+            _ => return None,
+        };
+
+        Some(Cow::Owned(Range {
+            clauses: vec![Clause::Only(req)],
+        }))
+    }
+
+    fn rank(&self) -> u8 {
+        match self {
+            Self::Canary => 0,
+            Self::Alias(_) => 1,
+            Self::Range(_) => 2,
+            Self::Requirement(_) => 3,
+            Self::Version(_) => 4,
         }
     }
 }
@@ -165,7 +202,6 @@ impl FromStr for UnresolvedVersionSpec {
         // The grammar is the authority on what a version looks like, so try the
         // most specific shape first, and treat an alias as the residual: it is
         // whatever is not structurally a version, requirement, or range
-
         if let Ok(version) = Version::parse(value) {
             return Ok(Self::Version(version));
         }
@@ -243,10 +279,13 @@ impl Ord for UnresolvedVersionSpec {
         match (self, other) {
             (Self::Canary, Self::Canary) => Ordering::Equal,
             (Self::Alias(l), Self::Alias(r)) => l.cmp(r),
+            (Self::Range(l), Self::Range(r)) => l.cmp(r),
+            (Self::Requirement(l), Self::Requirement(r)) => l.cmp(r),
             (Self::Version(l), Self::Version(r)) => l.cmp(r),
-
-            // Use human sorting for requirements/ranges
-            _ => compare(&self.to_string(), &other.to_string()),
+            _ => match (self.to_range(), other.to_range()) {
+                (Some(l), Some(r)) => l.cmp(&r).then_with(|| self.rank().cmp(&other.rank())),
+                _ => self.rank().cmp(&other.rank()),
+            },
         }
     }
 }

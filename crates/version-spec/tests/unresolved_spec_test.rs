@@ -1,5 +1,7 @@
 use compact_str::CompactString;
-use version_spec::{Clause, Op, Range, Requirement, UnresolvedVersionSpec, Version, VersionKind};
+use version_spec::{
+    Clause, Op, Range, Requirement, UnresolvedVersionSpec, Version, VersionKind, VersionSpec,
+};
 
 fn req(input: &str) -> Requirement {
     Requirement::parse(input).unwrap()
@@ -521,6 +523,126 @@ mod unresolved_spec {
                 "input: {input}"
             );
             assert_eq!(spec.get_scope(), None, "input: {input}");
+        }
+    }
+
+    mod ordering {
+        use super::*;
+        use std::cmp::Ordering;
+
+        fn spec(input: &str) -> UnresolvedVersionSpec {
+            UnresolvedVersionSpec::parse(input).unwrap()
+        }
+
+        fn sort_inputs<const N: usize>(inputs: [&'static str; N]) -> Vec<&'static str> {
+            let mut items = inputs.map(|input| (spec(input), input));
+            items.sort_by(|lhs, rhs| lhs.0.cmp(&rhs.0));
+            items.iter().map(|item| item.1).collect()
+        }
+
+        #[test]
+        fn orders_variants() {
+            // Canary, then aliases, then everything else
+            assert_eq!(
+                sort_inputs(["latest", "^1", "canary", "1.2.3", "beta", "^1 || ^3"]),
+                ["canary", "beta", "latest", "^1", "^1 || ^3", "1.2.3"]
+            );
+        }
+
+        #[test]
+        fn orders_versions_requirements_and_ranges_together() {
+            assert_eq!(
+                sort_inputs(["^1.2.0 || ^2", ">=1.2.0", "1.2.0", "~1.2"]),
+                ["~1.2", "1.2.0", "^1.2.0 || ^2", ">=1.2.0"]
+            );
+
+            // By number, not by string
+            assert_eq!(
+                sort_inputs(["1.10.0", "~1.9", "2", "1.9.5"]),
+                ["~1.9", "1.9.5", "1.10.0", "2"]
+            );
+
+            // Ranges, then requirements, then versions, when otherwise equal
+            let range = UnresolvedVersionSpec::Range(Range {
+                clauses: vec![Clause::Only(req("=1.2.3"))],
+            });
+
+            assert!(range < spec("=1.2.3"));
+            assert!(spec("=1.2.3") < spec("1.2.3"));
+        }
+
+        #[test]
+        fn orders_like_resolved_specs() {
+            let inputs = [
+                "2.0.0",
+                "canary",
+                "latest",
+                "1.0.0-alpha",
+                "beta",
+                "2024-02",
+                "1.0.0",
+            ];
+
+            let mut unresolved = inputs.map(spec);
+            unresolved.sort();
+
+            let mut resolved = inputs.map(|input| VersionSpec::parse(input).unwrap());
+            resolved.sort();
+
+            assert_eq!(
+                unresolved.map(|spec| spec.to_string()),
+                resolved.map(|spec| spec.to_string())
+            );
+        }
+
+        #[test]
+        fn orders_consistently() {
+            let mut specs = [
+                "canary",
+                "latest",
+                "beta",
+                "*",
+                "1",
+                "~1",
+                "=1",
+                "^1 || ^3",
+                "^3 || ^1",
+                "1.2.3",
+                "1.2.3+build",
+                "=1.2.3",
+                ">=1.2.3 <2",
+                "1.2.3 - 2.0.0",
+                "2024-02",
+                "2024.2.0",
+                "2024.2.0-alpha",
+                "~2024-02",
+                "=2024-02",
+                "node-1.2.3",
+                "^node-1",
+            ]
+            .map(spec)
+            .to_vec();
+
+            // Including shapes that are not parsed
+            specs.push(UnresolvedVersionSpec::Alias(CompactString::new("canary")));
+            specs.push(UnresolvedVersionSpec::Range(Range::default()));
+            specs.push(UnresolvedVersionSpec::Range(Range {
+                clauses: vec![Clause::Only(req("=1.2.3"))],
+            }));
+
+            // Ordering must be total, and agree with equality
+            for a in &specs {
+                for b in &specs {
+                    assert_eq!(a.cmp(b) == Ordering::Equal, a == b, "{a:?} and {b:?}");
+                    assert_eq!(a.cmp(b), b.cmp(a).reverse(), "{a:?} and {b:?}");
+
+                    for c in &specs {
+                        if a <= b && b <= c {
+                            assert!(a <= c, "{a:?}, {b:?}, and {c:?}");
+                        }
+                    }
+                }
+            }
         }
     }
 }

@@ -4,6 +4,7 @@ use crate::syntax_parser::*;
 use crate::syntax_traits::{FormatOptions, FormatsVersion};
 use compact_str::CompactString;
 use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::fmt::{self, Display};
 use std::str::FromStr;
@@ -22,6 +23,11 @@ pub enum VersionKind {
 
 /// A version in either calendar or semantic format, with support for
 /// scopes, pre-releases, and build metadata.
+///
+/// Versions are grouped by scope, with unscoped versions first, and then
+/// ordered by precedence per the semver spec: the major, minor, and patch
+/// numbers, then the pre-release. As the kind and build metadata do not
+/// affect precedence, they are only used as tiebreakers.
 #[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(try_from = "String", into = "String")]
 pub struct Version {
@@ -145,15 +151,15 @@ impl Display for Version {
 
 impl Ord for Version {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.kind
-            .cmp(&other.kind)
-            .then_with(|| self.scope.cmp(&other.scope))
+        self.scope
+            .cmp(&other.scope)
             .then_with(|| self.major.cmp(&other.major))
             .then_with(|| self.minor.cmp(&other.minor))
             .then_with(|| self.patch.cmp(&other.patch))
             .then_with(|| {
                 compare_prerelease(self.prerelease.as_deref(), other.prerelease.as_deref())
             })
+            .then_with(|| self.kind.cmp(&other.kind))
             .then_with(|| compare_build(self.build.as_deref(), other.build.as_deref()))
     }
 }
@@ -198,7 +204,11 @@ impl schematic::Schematic for Version {
 }
 
 /// The comparison operator of a requirement.
-#[derive(Copy, Clone, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
+///
+/// Operators are ordered by the versions they match against the same
+/// version, from the lowest to the highest, for example `<1.2.3`, `=1.2.3`,
+/// `~1.2.3`, `^1.2.3`, and then `>1.2.3`.
+#[derive(Copy, Clone, Debug, Default, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 pub enum Op {
     /// An exact match (`=` or `==`).
@@ -231,21 +241,56 @@ pub enum Op {
 impl Display for Op {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_str(match self {
-            Op::Exact => "=",
-            Op::Greater => ">",
-            Op::GreaterEq => ">=",
-            Op::Less => "<",
-            Op::LessEq => "<=",
-            Op::Tilde => "~",
-            Op::Caret => "^",
-            Op::Wildcard => "",
+            Self::Exact => "=",
+            Self::Greater => ">",
+            Self::GreaterEq => ">=",
+            Self::Less => "<",
+            Self::LessEq => "<=",
+            Self::Tilde => "~",
+            Self::Caret => "^",
+            Self::Wildcard => "",
         })
+    }
+}
+
+impl Op {
+    // Operators that match from lower versions rank first, and among
+    // those that start matching on the same version, the operators that
+    // stop matching on lower versions rank first
+    fn rank(self) -> u8 {
+        match self {
+            Self::Less => 0,
+            Self::LessEq => 1,
+            Self::Exact => 2,
+            Self::Wildcard => 3,
+            Self::Tilde => 4,
+            Self::Caret => 5,
+            Self::GreaterEq => 6,
+            Self::Greater => 7,
+        }
+    }
+}
+
+impl Ord for Op {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.rank().cmp(&other.rank())
+    }
+}
+
+impl PartialOrd for Op {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
 /// A version requirement composed of a comparison operator and a full
 /// or partial version to match against. Build metadata is accepted
 /// when parsing, but is otherwise ignored.
+///
+/// Requirements are ordered like the version they reference, in which an
+/// omitted part orders before any number, for example `1` before `1.0`,
+/// and then by operator (see [`Op`]). As the kind does not affect
+/// matching, it is only used as a tiebreaker.
 #[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(try_from = "String", into = "String")]
 pub struct Requirement {
@@ -497,9 +542,8 @@ impl Display for Requirement {
 
 impl Ord for Requirement {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.kind
-            .cmp(&other.kind)
-            .then_with(|| self.scope.cmp(&other.scope))
+        self.scope
+            .cmp(&other.scope)
             .then_with(|| self.major.cmp(&other.major))
             .then_with(|| self.minor.cmp(&other.minor))
             .then_with(|| self.patch.cmp(&other.patch))
@@ -507,6 +551,7 @@ impl Ord for Requirement {
                 compare_prerelease(self.prerelease.as_deref(), other.prerelease.as_deref())
             })
             .then_with(|| self.op.cmp(&other.op))
+            .then_with(|| self.kind.cmp(&other.kind))
     }
 }
 
@@ -550,7 +595,13 @@ impl schematic::Schematic for Requirement {
 }
 
 /// A single clause within a version range.
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+///
+/// Clauses are ordered by their requirements, from the lowest to the
+/// highest, regardless of the order they were written in, in which
+/// a bounded range is treated as `>=lower && <=upper`. When those are
+/// equal, the kind of clause, and then the written order, are used
+/// as tiebreakers.
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum Clause {
     /// A list of requirements that must all match, for example `>=1.2 && <2`.
     All(Vec<Requirement>),
@@ -570,7 +621,7 @@ impl Clause {
     /// requirements without a scope are ignored.
     pub fn get_scope(&self) -> Option<&str> {
         match self {
-            Clause::All(reqs) => {
+            Self::All(reqs) => {
                 let mut scope = None;
 
                 for req in reqs {
@@ -585,14 +636,14 @@ impl Clause {
 
                 scope
             }
-            Clause::Between(ver1, ver2) => {
+            Self::Between(ver1, ver2) => {
                 if ver1.scope == ver2.scope {
                     ver1.scope.as_deref()
                 } else {
                     None
                 }
             }
-            Clause::Only(req) => req.scope.as_deref(),
+            Self::Only(req) => req.scope.as_deref(),
         }
     }
 
@@ -601,26 +652,74 @@ impl Clause {
         let scope = Some(scope.as_ref().into());
 
         match self {
-            Clause::All(reqs) => {
+            Self::All(reqs) => {
                 for req in reqs {
                     req.scope = scope.clone();
                 }
             }
-            Clause::Between(ver1, ver2) => {
+            Self::Between(ver1, ver2) => {
                 ver1.scope = scope.clone();
                 ver2.scope = scope;
             }
-            Clause::Only(req) => {
+            Self::Only(req) => {
                 req.scope = scope;
             }
         }
+    }
+
+    // A bounded range is converted into requirements, which drops
+    // the build metadata, so it must also be compared separately
+    fn to_sorted_requirements(&self) -> Vec<Cow<'_, Requirement>> {
+        let mut reqs = match self {
+            Self::All(reqs) => reqs.iter().map(Cow::Borrowed).collect(),
+            Self::Between(lower, upper) => vec![
+                Cow::Owned(lower.to_requirement(Op::GreaterEq)),
+                Cow::Owned(upper.to_requirement(Op::LessEq)),
+            ],
+            Self::Only(req) => vec![Cow::Borrowed(req)],
+        };
+
+        reqs.sort();
+        reqs
+    }
+
+    fn rank(&self) -> u8 {
+        match self {
+            Self::All(_) => 0,
+            Self::Between(_, _) => 1,
+            Self::Only(_) => 2,
+        }
+    }
+}
+
+impl Ord for Clause {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.to_sorted_requirements()
+            .cmp(&other.to_sorted_requirements())
+            .then_with(|| self.rank().cmp(&other.rank()))
+            .then_with(|| match (self, other) {
+                (Self::All(lhs), Self::All(rhs)) => lhs.cmp(rhs),
+                (Self::Between(lhs_lower, lhs_upper), Self::Between(rhs_lower, rhs_upper)) => {
+                    lhs_lower
+                        .cmp(rhs_lower)
+                        .then_with(|| lhs_upper.cmp(rhs_upper))
+                }
+                (Self::Only(lhs), Self::Only(rhs)) => lhs.cmp(rhs),
+                _ => Ordering::Equal,
+            })
+    }
+}
+
+impl PartialOrd for Clause {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
 impl Display for Clause {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Clause::All(reqs) => {
+            Self::All(reqs) => {
                 for (i, req) in reqs.iter().enumerate() {
                     if i > 0 {
                         f.write_str(" && ")?;
@@ -631,15 +730,20 @@ impl Display for Clause {
 
                 Ok(())
             }
-            Clause::Between(ver1, ver2) => write!(f, "{ver1} - {ver2}"),
-            Clause::Only(req) => write!(f, "{req}"),
+            Self::Between(ver1, ver2) => write!(f, "{ver1} - {ver2}"),
+            Self::Only(req) => write!(f, "{req}"),
         }
     }
 }
 
 /// A version range composed of clauses, in which any clause may match,
 /// for example `^1 || 2.3.4 - 3.0.0 || >=4, <5`.
-#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+///
+/// Ranges are ordered by their clauses (see [`Clause`]), from the lowest
+/// to the highest, regardless of the order they were written in, in which
+/// an empty range orders first. When those are equal, the written order
+/// is used as a tiebreaker.
+#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(try_from = "String", into = "String")]
 pub struct Range {
     /// The list of clauses. An empty list is a wildcard match.
@@ -707,6 +811,24 @@ impl Display for Range {
         }
 
         Ok(())
+    }
+}
+
+impl Ord for Range {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let mut lhs = self.clauses.iter().collect::<Vec<_>>();
+        let mut rhs = other.clauses.iter().collect::<Vec<_>>();
+
+        lhs.sort();
+        rhs.sort();
+
+        lhs.cmp(&rhs).then_with(|| self.clauses.cmp(&other.clauses))
+    }
+}
+
+impl PartialOrd for Range {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
