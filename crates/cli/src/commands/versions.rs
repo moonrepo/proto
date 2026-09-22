@@ -4,9 +4,8 @@ use clap::Args;
 use indexmap::IndexMap;
 use iocraft::prelude::{View, element};
 use proto_core::flow::lock::Locker;
-use proto_core::{
-    MatchesVersion, Requirement, ToolContext, ToolSpec, UnresolvedVersionSpec, VersionSpec,
-};
+use proto_core::flow::resolve::Resolver;
+use proto_core::{MatchesVersion, ToolContext, ToolSpec, UnresolvedVersionSpec, VersionSpec};
 use serde::Serialize;
 use starbase_console::ui::*;
 use std::collections::BTreeMap;
@@ -17,8 +16,8 @@ pub struct VersionsArgs {
     #[arg(required = true, help = "Tool to list for")]
     context: ToolContext,
 
-    #[arg(help = "Filter versions with the provided requirement")]
-    filter: Option<Requirement>,
+    #[arg(help = "Filter versions with the provided version, requirement, range, or alias")]
+    filter: Option<UnresolvedVersionSpec>,
 
     #[arg(long, help = "Include aliases in the output")]
     aliases: bool,
@@ -45,6 +44,15 @@ pub struct VersionsOutput {
     remote_aliases: BTreeMap<String, ToolSpec>,
 }
 
+fn matches_filter(filter: &UnresolvedVersionSpec, version: &VersionSpec) -> bool {
+    match (filter, version.as_version()) {
+        (UnresolvedVersionSpec::Range(range), Some(version)) => range.matches(version),
+        (UnresolvedVersionSpec::Requirement(req), Some(version)) => req.matches(version),
+        // Canary and fully-qualified versions must be equal
+        _ => filter == version,
+    }
+}
+
 #[instrument(skip(session))]
 pub async fn versions(session: ProtoSession, args: VersionsArgs) -> SessionResult {
     let tool = session
@@ -52,10 +60,7 @@ pub async fn versions(session: ProtoSession, args: VersionsArgs) -> SessionResul
             &args.context,
             LoadToolOptions {
                 inherit_local: true,
-                inherit_remote: Some(match args.filter.clone() {
-                    Some(req) => UnresolvedVersionSpec::Requirement(req),
-                    None => UnresolvedVersionSpec::default(),
-                }),
+                inherit_remote: Some(args.filter.clone().unwrap_or_default()),
                 ..Default::default()
             },
         )
@@ -99,12 +104,17 @@ pub async fn versions(session: ProtoSession, args: VersionsArgs) -> SessionResul
         })
         .collect::<Vec<_>>();
 
-    if let Some(filter) = args.filter {
-        versions.retain(|item| {
-            item.version
-                .as_version()
-                .is_some_and(|version| filter.matches(version))
-        });
+    if let Some(filter) = &args.filter {
+        // An alias only matches the version it resolves to, so resolve it
+        // like other commands do, which includes configured aliases
+        if let UnresolvedVersionSpec::Alias(_) = filter {
+            let version =
+                Resolver::resolve(&tool, &mut ToolSpec::new(filter.to_owned()), false).await?;
+
+            versions.retain(|item| item.version == version);
+        } else {
+            versions.retain(|item| matches_filter(filter, &item.version));
+        }
     }
 
     if session.is_json_format() {

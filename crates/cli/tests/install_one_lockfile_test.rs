@@ -126,9 +126,10 @@ mod install_one_lockfile {
 
             assert_eq!(records.len(), 2);
 
-            // Sorted!
-            assert_record!(records[0], "5.0.0");
-            assert_record!(records[1], "^5.0", "5.10.15");
+            // Sorted semantically, in which the requirement's omitted
+            // patch orders before the version's patch
+            assert_record!(records[0], "^5.0", "5.10.15");
+            assert_record!(records[1], "5.0.0");
         }
 
         #[test]
