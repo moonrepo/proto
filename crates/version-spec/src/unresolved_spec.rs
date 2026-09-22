@@ -1,8 +1,10 @@
 use crate::resolved_spec::VersionSpec;
 use crate::spec_error::SpecError;
-use crate::syntax::*;
 use crate::syntax_parser::parse_alias;
+use crate::syntax_range::{Clause, Range};
+use crate::syntax_requirement::{Op, Requirement};
 use crate::syntax_traits::{FormatOptions, FormatsVersion};
+use crate::syntax_version::Version;
 use compact_str::CompactString;
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;

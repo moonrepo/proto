@@ -1,9 +1,11 @@
-use crate::syntax::{Clause, Op, Range, Requirement, Version, VersionKind};
+use crate::syntax_range::{Clause, Range};
+use crate::syntax_requirement::{Op, Requirement};
+use crate::syntax_version::{Version, VersionKind};
 
 /// Trait for matching a version against the implementing type.
 pub trait MatchesVersion {
     /// Returns true if the provided version satisfies this shape,
-    /// following the same rules as the [`semver`] crate.
+    /// following the same rules as the [`semver`](https://crates.io/crates/semver) crate.
     fn matches(&self, version: &Version) -> bool;
 }
 

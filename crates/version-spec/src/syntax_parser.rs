@@ -1,4 +1,6 @@
-use crate::syntax::*;
+use crate::syntax_range::{Clause, Range};
+use crate::syntax_requirement::{Op, Requirement};
+use crate::syntax_version::{Version, VersionKind};
 use compact_str::CompactString;
 use pest::error::*;
 use pest::{Parser, Span, iterators::Pair};
