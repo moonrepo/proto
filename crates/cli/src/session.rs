@@ -276,10 +276,25 @@ impl ProtoSession {
         }
 
         while let Some(result) = set.join_next().await {
-            let mut record: ToolRecord =
-                result.map_err(|error| ProtoLoaderError::FailedJoin {
-                    error: Box::new(error),
-                })??;
+            let result = result.map_err(|error| ProtoLoaderError::FailedJoin {
+                error: Box::new(error),
+            })?;
+
+            // Skip tools whose plugin was configured in an untrusted config,
+            // as the other tools can still be used. The config has already
+            // been reported as untrusted.
+            let mut record: ToolRecord = match result {
+                Err(ProtoLoaderError::UntrustedPlugin { context, config }) => {
+                    debug!(
+                        tool = context.as_str(),
+                        config = ?config,
+                        "Skipping tool as its plugin was configured in an untrusted config",
+                    );
+
+                    continue;
+                }
+                other => other?,
+            };
 
             if options.inherit_local {
                 record.inherit_from_local(config);
@@ -369,6 +384,19 @@ impl AppSession for ProtoSession {
 
     async fn analyze(&mut self) -> AppResult<Self::Error> {
         load_proto_configs(&self.env)?;
+
+        // Activation tracks and warns about untrusted configs itself, as its
+        // hook runs on every prompt, while the others don't load configs
+        if !matches!(
+            self.cli.command,
+            Commands::Activate(_)
+                | Commands::Completions(_)
+                | Commands::Deactivate(_)
+                | Commands::Trust(_)
+                | Commands::Untrust(_)
+        ) {
+            warn_untrusted_configs(&self.env)?;
+        }
 
         Ok(None)
     }

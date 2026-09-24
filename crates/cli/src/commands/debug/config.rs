@@ -2,7 +2,7 @@ use crate::components::CodeBlock;
 use crate::session::{ProtoSession, SessionResult};
 use clap::Args;
 use iocraft::prelude::*;
-use proto_core::{PartialProtoConfig, ProtoConfig, ProtoLock};
+use proto_core::{PartialProtoConfig, ProtoConfig, ProtoConfigTrust, ProtoLock};
 use serde::Serialize;
 use starbase_console::ui::*;
 use starbase_utils::toml;
@@ -66,11 +66,17 @@ pub async fn config(session: ProtoSession, args: DebugConfigArgs) -> SessionResu
     for file in manager.get_config_files().into_iter().rev() {
         if file.exists {
             let code = toml::format(&file.config, true)?;
+            let mut title = file.path.to_string_lossy().to_string();
+
+            // The config has been rendered without its sensitive settings
+            if file.trust == ProtoConfigTrust::Untrusted {
+                title.push_str(" (untrusted)");
+            }
 
             session.console.render(element! {
                 Container {
                     Section(
-                        title: file.path.to_string_lossy(),
+                        title,
                         title_color: style_to_color(Style::Path)
                     )
                     CodeBlock(code, format: "toml")

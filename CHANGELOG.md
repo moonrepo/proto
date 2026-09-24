@@ -22,11 +22,23 @@
 
 ## Unreleased
 
+#### 🛡️ Security
+
+- Local `.prototools` configs must now be trusted before their security-sensitive settings are applied. Previously, any config, for example one in a freshly cloned repository, could execute arbitrary code on the host as soon as its directory was entered with shell activation, through environment variables (like `BASH_ENV` or `PROMPT_COMMAND`), shell aliases, or plugins.
+  - Security-sensitive settings are `[env]` (including `.env` files), `[shell]`, `[plugins]`, `[backends]`, `[tools.*]` (except `aliases`), the `proto` version pin, and all `[settings]` except `detect-strategy`, `lockfile`, `pin-latest`, and `telemetry`.
+  - Version pins, version aliases, and the remaining settings are always applied.
+  - User (`~/.prototools`) and global (`~/.proto/.prototools`) configs are always trusted.
+  - All configs are trusted in CI, and within the directories listed in the `PROTO_TRUSTED_PATHS` environment variable.
+
 #### 🚀 Updates
 
 - Added a `closest` pin location, which targets the closest directory with a `.prototools`, starting from the current directory and traversing upwards. When none is found, the current directory is used. Directories with only an environment config (`.prototools.<env>`), and the user (`~/.prototools`) and global (`~/.proto/.prototools`) configs, are never targeted.
   - This is now the default location for `proto pin`, `proto unpin`, `proto alias`, `proto unalias`, `proto plugin add`, `proto plugin remove`, and `proto install --pin`, instead of `local`. Pass `--to local` (or `--from local`) for the previous behavior.
   - The `install` MCP tool now pins to the closest config as well.
+- Added `proto trust` and `proto untrust` commands.
+  - Trust is tied to the current values of a config's security-sensitive settings, so a config must be trusted again when they change. Changing version pins, comments, or formatting does not require trust again.
+  - Changes that proto makes to a trusted config, like `proto plugin add`, keep it trusted.
+- Updated `proto activate` to warn about untrusted configs once per shell session, and other commands to warn about them.
 
 ## 0.62.3
 

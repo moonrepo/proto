@@ -1,6 +1,7 @@
 use crate::app::StdoutOwner;
 use crate::commands::activate::{
-    ACTIVATED_ALIASES_KEY, ACTIVATED_ENV_KEY, ACTIVATED_PATH_KEY, ActivateOutput,
+    ACTIVATED_ALIASES_KEY, ACTIVATED_ENV_KEY, ACTIVATED_PATH_KEY, ACTIVATED_UNTRUSTED_KEY,
+    ActivateOutput,
 };
 use crate::session::{ProtoSession, SessionResult};
 use crate::workflows::{convert_paths_for_shell, remove_activated_paths};
@@ -163,11 +164,16 @@ fn list_tracked_keys(tracking_key: &str) -> Vec<String> {
 
 /// Return the tracking variables that are currently set.
 fn list_set_tracking_keys() -> Vec<String> {
-    [ACTIVATED_ENV_KEY, ACTIVATED_ALIASES_KEY, ACTIVATED_PATH_KEY]
-        .into_iter()
-        .filter(|key| env::var(key).is_ok())
-        .map(|key| key.to_owned())
-        .collect()
+    [
+        ACTIVATED_ENV_KEY,
+        ACTIVATED_ALIASES_KEY,
+        ACTIVATED_PATH_KEY,
+        ACTIVATED_UNTRUSTED_KEY,
+    ]
+    .into_iter()
+    .filter(|key| env::var(key).is_ok())
+    .map(|key| key.to_owned())
+    .collect()
 }
 
 fn split_tracked_keys(value: &str) -> Vec<String> {

@@ -1,7 +1,7 @@
 use crate::error::ProtoCliError;
 use crate::session::{ProtoSession, SessionResult};
 use clap::Args;
-use proto_core::{Id, PROTO_CONFIG_NAME, PinLocation, PluginType, ProtoConfig};
+use proto_core::{Id, PROTO_CONFIG_NAME, PinLocation, PluginType};
 use starbase_console::ui::*;
 use tracing::instrument;
 
@@ -26,7 +26,7 @@ pub async fn remove(session: ProtoSession, args: PluginRemoveArgs) -> SessionRes
         return Err(ProtoCliError::MissingToolsConfigInCwd { path: config_path }.into());
     }
 
-    let config_path = ProtoConfig::update_document(config_dir, |doc| {
+    let config_path = session.env.update_config_document(config_dir, |doc| {
         let key = if args.ty == PluginType::Backend {
             "backends"
         } else {
