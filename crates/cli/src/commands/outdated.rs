@@ -341,7 +341,7 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> SessionResul
             "Updating config with versions",
         );
 
-        ProtoConfig::update_document(config_path, |doc| {
+        session.env.update_config_document(config_path, |doc| {
             for (context, updated_version) in updated_versions {
                 doc[context.as_str()] =
                     cfg::value(ToolSpec::new(updated_version.to_owned()).to_string());

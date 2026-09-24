@@ -1,11 +1,15 @@
 use crate::app::{App as CLI, Commands};
 use crate::helpers::fetch_latest_version;
-use proto_core::{ConfigMode, ProtoEnvironment, Version, is_offline, now, reporter::ProtoConsole};
+use proto_core::{
+    ConfigMode, ProtoConfigFile, ProtoConfigTrust, ProtoEnvironment, Version, is_offline, now,
+    reporter::ProtoConsole,
+};
 use proto_shim::get_exe_file_name;
+use starbase_styles::color;
 use starbase_utils::fs;
 use std::env;
 use std::time::Duration;
-use tracing::{debug, instrument};
+use tracing::{debug, instrument, warn};
 
 // STARTUP
 
@@ -58,6 +62,35 @@ pub fn load_proto_configs(env: &ProtoEnvironment) -> miette::Result<()> {
     );
 
     env.load_config()?;
+
+    Ok(())
+}
+
+pub fn format_untrusted_config_warning(file: &ProtoConfigFile) -> String {
+    format!(
+        "Config {} has not been trusted, so its security-sensitive settings ({}) were ignored. Review the config, then trust it with {}",
+        color::path(&file.path),
+        file.sensitive
+            .as_ref()
+            .map(|sensitive| sensitive
+                .fields
+                .iter()
+                .map(color::property)
+                .collect::<Vec<_>>()
+                .join(", "))
+            .unwrap_or_default(),
+        color::shell(format!("proto trust {}", file.path.display())),
+    )
+}
+
+#[instrument]
+pub fn warn_untrusted_configs(env: &ProtoEnvironment) -> miette::Result<()> {
+    // Only the configs that apply to the current config mode
+    for file in env.load_config_files()? {
+        if file.trust == ProtoConfigTrust::Untrusted {
+            warn!("{}", format_untrusted_config_warning(file));
+        }
+    }
 
     Ok(())
 }

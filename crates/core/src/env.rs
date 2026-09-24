@@ -1,5 +1,6 @@
 use crate::config::{ConfigMode, PROTO_CONFIG_NAME, PinLocation, ProtoConfig};
 use crate::config_error::ProtoConfigError;
+use crate::config_trust::{ProtoConfigSensitive, ProtoConfigTrust, ProtoTrustStore};
 use crate::env_error::ProtoEnvError;
 use crate::file_manager::{ProtoConfigFile, ProtoDirEntry, ProtoFileManager};
 use crate::helpers::is_offline;
@@ -18,6 +19,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLockReadGuard, RwLockWriteGuard};
 use std::time::Duration;
 use system_env::{SystemArch, SystemOS};
+use toml_edit::DocumentMut;
 use tracing::{debug, instrument};
 use warpgate::PluginLoader;
 
@@ -29,6 +31,7 @@ pub struct ProtoEnvironment {
     pub otel_enabled: bool,
     pub store: Store,
     pub test_only: bool,
+    pub trust: ProtoTrustStore,
     pub working_dir: PathBuf,
 
     pub os: SystemOS,
@@ -57,6 +60,15 @@ impl ProtoEnvironment {
         let mut env = Self::from(sandbox.join(".proto"), sandbox.join(".home"))?;
         env.test_only = true;
 
+        // Tests write configs throughout the sandbox, so trust it, unless trusted
+        // paths are explicitly configured (even if empty). CI is ignored so that
+        // tests behave the same everywhere.
+        env.trust.trust_all = false;
+
+        if env::var_os("PROTO_TRUSTED_PATHS").is_none() {
+            env.trust.add_trusted_path(sandbox);
+        }
+
         Ok(env)
     }
 
@@ -80,6 +92,7 @@ impl ProtoEnvironment {
             plugin_loader: Arc::new(OnceCell::new()),
             registry: Arc::new(OnceCell::new()),
             test_only: env::var("PROTO_TEST").is_ok(),
+            trust: ProtoTrustStore::new(root.join("trust")),
             store: Store::new(root),
             os: SystemOS::default(),
             arch: SystemArch::default(),
@@ -173,6 +186,56 @@ impl ProtoEnvironment {
         }
     }
 
+    /// Return true if the config at the provided path must be trusted before its
+    /// security-sensitive settings are applied. Only user and global configs
+    /// are owned by the user.
+    pub fn requires_config_trust(&self, config_path: &Path) -> bool {
+        !config_path
+            .parent()
+            .is_some_and(|dir| dir == self.home_dir || dir == self.store.dir)
+    }
+
+    /// Update a config file through its document, like [`ProtoConfig::update_document`].
+    /// If the config was trusted before the update (or didn't need to be),
+    /// the updated config is also trusted, as the change was made through proto.
+    pub fn update_config_document<P: AsRef<Path> + fmt::Debug, F: FnOnce(&mut DocumentMut)>(
+        &self,
+        dir: P,
+        op: F,
+    ) -> Result<PathBuf, ProtoConfigError> {
+        let path = ProtoConfig::resolve_path(dir);
+
+        if !self.requires_config_trust(&path) || self.trust.is_implicitly_trusted(&path) {
+            return ProtoConfig::update_document(&path, op);
+        }
+
+        let load_sensitive = |path: &Path| {
+            ProtoConfig::parse(path, true)
+                .and_then(|config| ProtoConfigSensitive::from_config(&config))
+        };
+
+        // A config that fails to parse is not trusted
+        let (was_trusted, prev_hash) = match load_sensitive(&path) {
+            Ok(Some(sensitive)) => (
+                self.trust.is_trusted(&path, &sensitive),
+                Some(sensitive.hash),
+            ),
+            Ok(None) => (true, None),
+            Err(_) => (false, None),
+        };
+
+        let path = ProtoConfig::update_document(&path, op)?;
+
+        if was_trusted
+            && let Some(sensitive) = load_sensitive(&path)?
+            && prev_hash.is_none_or(|hash| hash != sensitive.hash)
+        {
+            self.trust.trust(&path, &sensitive.hash)?;
+        }
+
+        Ok(path)
+    }
+
     pub fn load_config_files(&self) -> Result<Vec<&ProtoConfigFile>, ProtoConfigError> {
         Ok(self
             .load_file_manager()?
@@ -241,12 +304,18 @@ impl ProtoEnvironment {
                     path,
                     config: ProtoConfig::load_from(&self.store.dir, true)?,
                     locked: false,
+                    trust: ProtoConfigTrust::NotRequired,
+                    sensitive: None,
+                    untrusted_config: None,
                 }],
             });
 
             // Remove the pinned `proto` version from global/user configs,
             // as it causes massive recursion and `proto` process chains
             manager.remove_proto_pins();
+
+            // Remove security-sensitive settings from untrusted configs
+            manager.apply_trust(&self.trust);
 
             Ok(manager)
         })
@@ -260,6 +329,7 @@ impl ProtoEnvironment {
             otel_enabled: self.otel_enabled,
             store: self.store.clone(),
             test_only: self.test_only,
+            trust: self.trust.clone(),
             working_dir: self.working_dir.clone(),
             os: self.os,
             arch: self.arch,
@@ -285,6 +355,7 @@ impl fmt::Debug for ProtoEnvironment {
             .field("otel_enabled", &self.otel_enabled)
             .field("store", &self.store)
             .field("test_only", &self.test_only)
+            .field("trust", &self.trust)
             .field("working_dir", &self.working_dir)
             .finish()
     }

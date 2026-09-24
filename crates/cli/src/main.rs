@@ -118,9 +118,11 @@ async fn async_main() -> MainResult {
                 Commands::Setup(args) => commands::setup(session, args).await,
                 Commands::Shell(args) => commands::shell(session, args).await,
                 Commands::Status(args) => commands::status(session, args).await,
+                Commands::Trust(args) => commands::trust(session, args).await,
                 Commands::Unalias(args) => commands::unalias(session, args).await,
                 Commands::Uninstall(args) => commands::uninstall(session, args).await,
                 Commands::Unpin(args) => commands::unpin(session, args).await,
+                Commands::Untrust(args) => commands::untrust(session, args).await,
                 Commands::Upgrade(args) => commands::upgrade(session, args).await,
                 Commands::Versions(args) => commands::versions(session, args).await,
             }

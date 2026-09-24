@@ -312,6 +312,12 @@ impl ProtoConfig {
     ) -> Result<PartialProtoConfig, ProtoConfigError> {
         let path = path.as_ref();
 
+        Self::resolve_paths(Self::parse(path, with_lock)?, path)
+    }
+
+    /// Parse and validate a config file, with its settings exactly as written.
+    /// Use [`ProtoConfig::load`] to also resolve the file paths within it.
+    pub fn parse(path: &Path, with_lock: bool) -> Result<PartialProtoConfig, ProtoConfigError> {
         if !path.exists() {
             return Ok(PartialProtoConfig::default());
         }
@@ -324,7 +330,7 @@ impl ProtoConfig {
             fs::read_file(path)?
         };
 
-        let mut config = ConfigLoader::<ProtoConfig>::new()
+        let config = ConfigLoader::<ProtoConfig>::new()
             .code(config_content, format!("{}.toml", PROTO_CONFIG_NAME))?
             .load_partial(&())?;
 
@@ -379,6 +385,15 @@ impl ProtoConfig {
             }
         }
 
+        Ok(config)
+    }
+
+    /// Resolve relative file paths within a parsed config to be absolute,
+    /// relative to the config file, and extract `.env` files.
+    pub(crate) fn resolve_paths(
+        mut config: PartialProtoConfig,
+        path: &Path,
+    ) -> Result<PartialProtoConfig, ProtoConfigError> {
         // Update file paths to be absolute
         fn make_absolute<T: AsRef<OsStr>>(file: T, current_path: &Path) -> PathBuf {
             let file = PathBuf::from(file.as_ref());
@@ -719,7 +734,7 @@ impl ProtoConfig {
             .is_some_and(|suffix| suffix.is_empty() || suffix.len() > 1 && suffix.starts_with('.'))
     }
 
-    fn resolve_path(path: impl AsRef<Path>) -> PathBuf {
+    pub(crate) fn resolve_path(path: impl AsRef<Path>) -> PathBuf {
         let path = path.as_ref();
 
         if Self::is_config_file(path) {

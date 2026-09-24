@@ -7,7 +7,7 @@ use iocraft::element;
 use proto_core::flow::lock::Locker;
 use proto_core::flow::manage::Manager;
 use proto_core::flow::resolve::Resolver;
-use proto_core::{ProtoConfig, ProtoConfigError, Tool, ToolContext, ToolSpec};
+use proto_core::{ProtoConfigError, Tool, ToolContext, ToolSpec};
 use starbase_console::ui::*;
 use starbase_utils::fs;
 use tracing::{debug, instrument};
@@ -33,7 +33,7 @@ fn unpin_version(session: &ProtoSession, args: &UninstallArgs) -> Result<(), Pro
                 continue;
             }
 
-            ProtoConfig::update_document(&file.path, |doc| {
+            session.env.update_config_document(&file.path, |doc| {
                 if let Some(version) = doc
                     .get(args.context.as_str())
                     .and_then(|item| item.as_str())

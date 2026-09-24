@@ -1,8 +1,8 @@
 use crate::commands::{
     ActivateArgs, AliasArgs, BinArgs, CleanArgs, CompletionsArgs, DeactivateArgs, DiagnoseArgs,
     ExecArgs, InstallArgs, McpArgs, MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs,
-    SetupArgs, ShellArgs, StatusArgs, UnaliasArgs, UninstallArgs, UnpinArgs, UpgradeArgs,
-    VersionsArgs,
+    SetupArgs, ShellArgs, StatusArgs, TrustArgs, UnaliasArgs, UninstallArgs, UnpinArgs,
+    UntrustArgs, UpgradeArgs, VersionsArgs,
     debug::{DebugConfigArgs, DebugEnvArgs},
     plugin::{PluginAddArgs, PluginInfoArgs, PluginListArgs, PluginRemoveArgs, PluginSearchArgs},
 };
@@ -420,6 +420,13 @@ pub enum Commands {
     )]
     Status(StatusArgs),
 
+    #[command(
+        name = "trust",
+        about = "Trust the security-sensitive settings of a config file.",
+        long_about = "Trust the security-sensitive settings of a config file, like environment variables, shell aliases, and plugins, so that they are applied. Local configs are untrusted by default, as they may come from a cloned repository.\n\nTrust is tied to the current value of these settings, so the config must be trusted again when they change.\nLearn more: https://moonrepo.dev/docs/proto/config#trust"
+    )]
+    Trust(TrustArgs),
+
     #[command(alias = "ua", name = "unalias", about = "Remove an alias from a tool.")]
     Unalias(UnaliasArgs),
 
@@ -437,6 +444,12 @@ pub enum Commands {
         about = "Unpin a global or local version of a tool."
     )]
     Unpin(UnpinArgs),
+
+    #[command(
+        name = "untrust",
+        about = "Remove trust from a config file, so that its security-sensitive settings are ignored."
+    )]
+    Untrust(UntrustArgs),
 
     #[command(
         alias = "up",

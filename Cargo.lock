@@ -4241,6 +4241,7 @@ name = "proto_core"
 version = "0.62.2"
 dependencies = [
  "ai_env",
+ "ci_env",
  "clap",
  "convert_case 0.12.0",
  "docker_credential",
