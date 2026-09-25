@@ -4,7 +4,9 @@ use crate::systems::format_untrusted_config_warning;
 use crate::workflows::{ExecWorkflow, ExecWorkflowParams};
 use clap::Args;
 use indexmap::IndexMap;
-use proto_core::{Id, PROTO_PLUGIN_KEY, ProtoConfigTrust, ToolContext, UnresolvedVersionSpec};
+use proto_core::{
+    Id, PROTO_PLUGIN_KEY, ProtoConfigTrust, ToolContext, UnresolvedVersionSpec, hash_path,
+};
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 use starbase_shell::{Hook, ShellType, Statement};
@@ -19,8 +21,9 @@ pub const ACTIVATED_ALIASES_KEY: &str = "_PROTO_ACTIVATED_ALIASES";
 pub const ACTIVATED_ENV_KEY: &str = "_PROTO_ACTIVATED_ENV";
 pub const ACTIVATED_PATH_KEY: &str = "_PROTO_ACTIVATED_PATH";
 
-/// Environment variable that tracks the untrusted configs that the previous
-/// activation warned about, so that each is only warned about once.
+/// Environment variable that tracks the untrusted configs (by a hash of their
+/// path) that the previous activation warned about, so that each is only
+/// warned about once.
 pub const ACTIVATED_UNTRUSTED_KEY: &str = "_PROTO_ACTIVATED_UNTRUSTED";
 
 /// The payload that both `proto activate` and `proto deactivate` print in
@@ -191,13 +194,14 @@ fn warn_untrusted_configs(session: &ProtoSession) -> miette::Result<Option<Strin
             continue;
         }
 
-        let path = file.path.to_string_lossy().to_string();
+        // Paths may contain the separator, so track a hash instead
+        let id = hash_path(&file.path)[..16].to_owned();
 
-        if !previous.contains(&path.as_str()) {
+        if !previous.contains(&id.as_str()) {
             warn!("{}", format_untrusted_config_warning(file));
         }
 
-        current.push(path);
+        current.push(id);
     }
 
     Ok((!current.is_empty()).then(|| current.join(",")))

@@ -71,14 +71,10 @@ pub fn format_untrusted_config_warning(file: &ProtoConfigFile) -> String {
         "Config {} has not been trusted, so its security-sensitive settings ({}) were ignored. Review the config, then trust it with {}",
         color::path(&file.path),
         file.sensitive
-            .as_ref()
-            .map(|sensitive| sensitive
-                .fields
-                .iter()
-                .map(color::property)
-                .collect::<Vec<_>>()
-                .join(", "))
-            .unwrap_or_default(),
+            .iter()
+            .map(color::property)
+            .collect::<Vec<_>>()
+            .join(", "),
         color::shell(format!("proto trust {}", file.path.display())),
     )
 }

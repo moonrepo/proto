@@ -6,7 +6,7 @@ use crate::id::Id;
 use crate::tool_context::ToolContext;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use starbase_utils::json::{self, JsonError, JsonMap, JsonValue};
+use starbase_utils::json::{self, JsonError, JsonValue};
 use starbase_utils::{fs, hash};
 use std::collections::BTreeMap;
 use std::env;
@@ -20,7 +20,7 @@ use tracing::{debug, trace};
 /// environment variables and shell aliases that are applied to the shell,
 /// plugins that are loaded and executed, and settings that change where
 /// plugins and tools are downloaded from. These settings are only applied
-/// once the config has been trusted.
+/// once the directory of the config has been trusted.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum ProtoConfigTrust {
@@ -36,38 +36,21 @@ pub enum ProtoConfigTrust {
     Untrusted,
 }
 
-/// The security-sensitive settings of a config file.
-#[derive(Clone, Debug, PartialEq)]
-pub struct ProtoConfigSensitive {
-    /// Paths to the settings, for display purposes.
-    pub fields: Vec<String>,
+/// Return the paths of the security-sensitive settings configured in the
+/// provided config, for display purposes. Returns an empty list if the
+/// config has none, in which case it does not need to be trusted.
+pub fn get_sensitive_fields(config: &PartialProtoConfig) -> Result<Vec<String>, ProtoConfigError> {
+    let (_, sensitive) = split_config(config.to_owned());
 
-    /// Hash of the settings, which a trust record must match.
-    pub hash: String,
-}
+    let value = json::serde_json::to_value(&sensitive).map_err(|error| {
+        Box::new(JsonError::Format {
+            error: Box::new(error),
+        })
+    })?;
 
-impl ProtoConfigSensitive {
-    /// Extract the security-sensitive settings from a config, exactly as
-    /// written in the file. Returns `None` if the config has none, in
-    /// which case it does not need to be trusted.
-    pub fn from_config(config: &PartialProtoConfig) -> Result<Option<Self>, ProtoConfigError> {
-        let (_, sensitive) = split_config(config.to_owned());
-
-        let value = json::serde_json::to_value(&sensitive).map_err(|error| {
-            Box::new(JsonError::Format {
-                error: Box::new(error),
-            })
-        })?;
-
-        let Some(value) = canonicalize_json(value) else {
-            return Ok(None);
-        };
-
-        Ok(Some(Self {
-            fields: collect_fields(&value),
-            hash: hash::sha256::from_bytes(json::format(&value, false).map_err(Box::new)?),
-        }))
-    }
+    Ok(prune_json(value)
+        .map(|value| collect_fields(&value))
+        .unwrap_or_default())
 }
 
 /// Split a config into the settings that are safe to apply from any config,
@@ -129,33 +112,19 @@ pub fn split_config(mut config: PartialProtoConfig) -> (PartialProtoConfig, Part
     (safe, config)
 }
 
-/// Canonicalize a JSON value so that it hashes deterministically: object keys
-/// are sorted, and nulls and empty objects (settings that were not configured)
-/// are removed. Returns `None` if nothing remains.
-fn canonicalize_json(value: JsonValue) -> Option<JsonValue> {
+/// Remove nulls and empty objects (settings that were not configured)
+/// from a JSON value. Returns `None` if nothing remains.
+fn prune_json(value: JsonValue) -> Option<JsonValue> {
     match value {
         JsonValue::Null => None,
         JsonValue::Object(map) => {
-            let mut entries = map
+            let map = map
                 .into_iter()
-                .filter_map(|(key, value)| canonicalize_json(value).map(|value| (key, value)))
-                .collect::<Vec<_>>();
+                .filter_map(|(key, value)| prune_json(value).map(|value| (key, value)))
+                .collect::<json::JsonMap<_, _>>();
 
-            if entries.is_empty() {
-                return None;
-            }
-
-            entries.sort_by(|a, b| a.0.cmp(&b.0));
-
-            Some(JsonValue::Object(JsonMap::from_iter(entries)))
+            (!map.is_empty()).then_some(JsonValue::Object(map))
         }
-        // Arrays are kept even when empty, as that is an explicit value
-        JsonValue::Array(items) => Some(JsonValue::Array(
-            items
-                .into_iter()
-                .map(|item| canonicalize_json(item).unwrap_or(JsonValue::Null))
-                .collect(),
-        )),
         other => Some(other),
     }
 }
@@ -179,21 +148,35 @@ fn collect_fields(value: &JsonValue) -> Vec<String> {
         }
     }
 
+    fields.sort();
     fields
 }
 
-/// A record that the security-sensitive settings of a config file
+/// Why a config file is trusted.
+#[derive(Clone, Debug, PartialEq)]
+pub enum ProtoTrustSource {
+    /// All configs are trusted, as we're running in CI.
+    Ci,
+
+    /// Within a directory listed in `PROTO_TRUSTED_PATHS`.
+    TrustedPath(PathBuf),
+
+    /// The config file itself, or a directory it's within,
+    /// was trusted with `proto trust`.
+    Record(PathBuf),
+}
+
+/// A record that a config file, or the configs within a directory,
 /// have been trusted by the user.
 #[derive(Deserialize, Serialize)]
 struct ProtoTrustRecord {
-    hash: String,
     path: PathBuf,
 }
 
-/// Determines which config files are trusted. A config is trusted when
-/// the user has trusted its current security-sensitive settings (with
-/// `proto trust`), when it's located within a trusted path, or when
-/// running in CI.
+/// Determines which config files are trusted. A config is trusted when the
+/// user has trusted the file itself or a directory it's within (with
+/// `proto trust`), when it's within a directory listed in
+/// `PROTO_TRUSTED_PATHS`, or when running in CI.
 #[derive(Clone, Debug, Default)]
 pub struct ProtoTrustStore {
     /// Directory of trust records: `~/.proto/trust`.
@@ -208,9 +191,17 @@ pub struct ProtoTrustStore {
 
 impl ProtoTrustStore {
     pub fn new(dir: PathBuf) -> Self {
+        // Variables applied to the shell by a previous activation must not
+        // influence trust, otherwise a trusted config could trust the next
+        // directory that's entered. See `ACTIVATED_ENV_KEY` in the CLI.
+        let activated = env::var("_PROTO_ACTIVATED_ENV").unwrap_or_default();
+        let from_shell = |key: &str| !activated.split(',').any(|activated| activated == key);
+
         let mut trusted_paths = vec![];
 
-        if let Some(value) = env::var_os("PROTO_TRUSTED_PATHS") {
+        if from_shell("PROTO_TRUSTED_PATHS")
+            && let Some(value) = env::var_os("PROTO_TRUSTED_PATHS")
+        {
             for path in env::split_paths(&value) {
                 if !path.as_os_str().is_empty() {
                     trusted_paths.push(normalize_path(&path));
@@ -222,7 +213,7 @@ impl ProtoTrustStore {
             dir,
             // In CI, the checked out repository is the code being
             // built, and there's no user around to trust it
-            trust_all: ci_env::is_ci(),
+            trust_all: from_shell("CI") && ci_env::is_ci(),
             trusted_paths,
         }
     }
@@ -232,71 +223,90 @@ impl ProtoTrustStore {
         self.trusted_paths.push(normalize_path(dir));
     }
 
-    /// Return true if the provided config file, with the provided
-    /// security-sensitive settings, has been trusted.
-    pub fn is_trusted(&self, config_path: &Path, sensitive: &ProtoConfigSensitive) -> bool {
+    /// Return why the provided config file is trusted, or `None` if it's not.
+    pub fn get_trust_source(&self, config_path: &Path) -> Option<ProtoTrustSource> {
         if self.trust_all {
             trace!(config = ?config_path, "Trusting config as all configs are trusted (CI)");
 
-            return true;
+            return Some(ProtoTrustSource::Ci);
         }
 
         let config_path = normalize_path(config_path);
 
-        if self.is_trusted_path(&config_path) {
+        if let Some(dir) = self
+            .trusted_paths
+            .iter()
+            .find(|dir| config_path.starts_with(dir))
+        {
             trace!(config = ?config_path, "Trusting config as it's within a trusted path");
 
-            return true;
+            return Some(ProtoTrustSource::TrustedPath(dir.to_owned()));
         }
 
-        self.has_record(&config_path, &sensitive.hash)
+        // The file itself may be trusted
+        if self.has_record(&config_path) {
+            trace!(config = ?config_path, "Trusting config as the file is trusted");
+
+            return Some(ProtoTrustSource::Record(config_path));
+        }
+
+        // Otherwise trust applies to a directory and everything within it
+        let mut current = config_path.parent();
+
+        while let Some(dir) = current {
+            if self.has_record(dir) {
+                trace!(config = ?config_path, dir = ?dir, "Trusting config as its directory is trusted");
+
+                return Some(ProtoTrustSource::Record(dir.to_owned()));
+            }
+
+            current = dir.parent();
+        }
+
+        None
     }
 
-    /// Return true if the config file is trusted by the environment (CI or
-    /// trusted paths), instead of an explicit record.
-    pub fn is_implicitly_trusted(&self, config_path: &Path) -> bool {
-        self.trust_all || self.is_trusted_path(&normalize_path(config_path))
+    /// Return true if the provided config file is trusted.
+    pub fn is_trusted(&self, config_path: &Path) -> bool {
+        self.get_trust_source(config_path).is_some()
     }
 
-    /// Trust the security-sensitive settings of the provided config file,
-    /// replacing any previous trust.
-    pub fn trust(&self, config_path: &Path, hash: &str) -> Result<(), ProtoConfigError> {
-        let config_path = normalize_path(config_path);
+    /// Trust the provided config file, or the config files within the provided
+    /// directory and its sub-directories. Returns the normalized path.
+    pub fn trust(&self, path: &Path) -> Result<PathBuf, ProtoConfigError> {
+        let path = normalize_path(path);
 
-        debug!(config = ?config_path, hash, "Trusting config");
+        debug!(path = ?path, "Trusting path");
 
         json::write_file(
-            self.get_record_path(&config_path),
-            &ProtoTrustRecord {
-                hash: hash.to_owned(),
-                path: config_path,
-            },
+            self.get_record_path(&path),
+            &ProtoTrustRecord { path: path.clone() },
             true,
         )
         .map_err(Box::new)?;
 
-        Ok(())
+        Ok(path)
     }
 
-    /// Remove trust for the provided config file. Returns true if the
-    /// config was previously trusted.
-    pub fn untrust(&self, config_path: &Path) -> Result<bool, ProtoConfigError> {
-        let config_path = normalize_path(config_path);
-        let record_path = self.get_record_path(&config_path);
+    /// Remove trust for the provided config file or directory. Returns true
+    /// if it was previously trusted.
+    pub fn untrust(&self, path: &Path) -> Result<bool, ProtoConfigError> {
+        let path = normalize_path(path);
+        let record_path = self.get_record_path(&path);
 
         if !record_path.exists() {
             return Ok(false);
         }
 
-        debug!(config = ?config_path, "Untrusting config");
+        debug!(path = ?path, "Untrusting path");
 
         fs::remove_file(record_path)?;
 
         Ok(true)
     }
 
-    fn has_record(&self, config_path: &Path, hash: &str) -> bool {
-        let record_path = self.get_record_path(config_path);
+    fn has_record(&self, path: &Path) -> bool {
+        let record_path = self.get_record_path(path);
 
         if !record_path.exists() {
             return false;
@@ -304,12 +314,12 @@ impl ProtoTrustStore {
 
         // Treat unreadable records as untrusted
         match json::read_file::<ProtoTrustRecord>(&record_path) {
-            Ok(record) => record.path == config_path && record.hash == hash,
+            Ok(record) => record.path == path,
             Err(error) => {
                 debug!(
                     record = ?record_path,
                     error = ?error,
-                    "Failed to read trust record, treating config as untrusted"
+                    "Failed to read trust record, treating path as untrusted"
                 );
 
                 false
@@ -317,25 +327,33 @@ impl ProtoTrustStore {
         }
     }
 
-    // One file per config, so that trusting multiple configs concurrently
+    // One file per trusted path, so that trusting multiple paths concurrently
     // never has to read, modify, and write a shared file
-    fn get_record_path(&self, config_path: &Path) -> PathBuf {
-        self.dir.join(format!(
-            "{}.json",
-            hash::sha256::from_bytes(config_path.as_os_str().as_encoded_bytes())
-        ))
-    }
-
-    fn is_trusted_path(&self, config_path: &Path) -> bool {
-        self.trusted_paths
-            .iter()
-            .any(|dir| config_path.starts_with(dir))
+    fn get_record_path(&self, path: &Path) -> PathBuf {
+        self.dir.join(format!("{}.json", hash_path(path)))
     }
 }
 
-// Resolve symlinks so that a config is trusted regardless of the path used to reach it
-fn normalize_path(path: &Path) -> PathBuf {
-    std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf())
+/// Hash a path, for use as an identifier.
+pub fn hash_path(path: &Path) -> String {
+    hash::sha256::from_bytes(path.as_os_str().as_encoded_bytes())
+}
+
+/// Resolve symlinks and relative components so that a directory is trusted
+/// regardless of the path used to reach it. A config file may not exist yet,
+/// so fall back to resolving its directory.
+pub fn normalize_path(path: &Path) -> PathBuf {
+    if let Ok(path) = std::fs::canonicalize(path) {
+        return path;
+    }
+
+    if let (Some(parent), Some(name)) = (path.parent(), path.file_name())
+        && let Ok(parent) = std::fs::canonicalize(parent)
+    {
+        return parent.join(name);
+    }
+
+    path.to_path_buf()
 }
 
 #[cfg(test)]
@@ -351,8 +369,8 @@ mod tests {
         ProtoConfig::parse(&sandbox.path().join(".prototools"), false).unwrap()
     }
 
-    fn sensitive(content: &str) -> Option<ProtoConfigSensitive> {
-        ProtoConfigSensitive::from_config(&parse(content)).unwrap()
+    fn sensitive(content: &str) -> Vec<String> {
+        get_sensitive_fields(&parse(content)).unwrap()
     }
 
     mod sensitive {
@@ -360,12 +378,12 @@ mod tests {
 
         #[test]
         fn none_for_empty_config() {
-            assert_eq!(sensitive(""), None);
+            assert!(sensitive("").is_empty());
         }
 
         #[test]
         fn none_for_safe_settings() {
-            assert_eq!(
+            assert!(
                 sensitive(
                     r#"
 node = "20"
@@ -381,60 +399,55 @@ lockfile = true
 pin-latest = "local"
 telemetry = false
 "#
-                ),
-                None
+                )
+                .is_empty()
             );
         }
 
         #[test]
         fn none_for_empty_tables() {
-            assert_eq!(
-                sensitive("[env]\n[settings]\n[shell]\n[tools.node]\n"),
-                None
-            );
+            assert!(sensitive("[env]\n[settings]\n[shell]\n[tools.node]\n").is_empty());
         }
 
         #[test]
         fn includes_env_vars() {
-            let data = sensitive("[env]\nBASH_ENV = \"script.sh\"\n").unwrap();
-
-            assert_eq!(data.fields, ["env"]);
+            assert_eq!(sensitive("[env]\nBASH_ENV = \"script.sh\"\n"), ["env"]);
         }
 
         #[test]
         fn includes_env_files() {
-            let data = sensitive("[env]\nfile = \".env\"\n").unwrap();
-
-            assert_eq!(data.fields, ["env"]);
+            assert_eq!(sensitive("[env]\nfile = \".env\"\n"), ["env"]);
         }
 
         #[test]
         fn includes_shell_aliases() {
-            let data = sensitive("[shell.aliases]\nls = \"echo\"\n").unwrap();
-
-            assert_eq!(data.fields, ["shell.aliases"]);
+            assert_eq!(
+                sensitive("[shell.aliases]\nls = \"echo\"\n"),
+                ["shell.aliases"]
+            );
         }
 
         #[test]
         fn includes_plugins() {
-            let data = sensitive(
-                r#"
+            assert_eq!(
+                sensitive(
+                    r#"
 [plugins.tools]
 foo = "file://./foo.wasm"
 
 [tools.bar]
 plugin = "https://example.com/bar.wasm"
 "#,
-            )
-            .unwrap();
-
-            assert_eq!(data.fields, ["plugins.tools", "tools.bar"]);
+                ),
+                ["plugins.tools", "tools.bar"]
+            );
         }
 
         #[test]
         fn includes_tool_and_backend_config() {
-            let data = sensitive(
-                r#"
+            assert_eq!(
+                sensitive(
+                    r#"
 [tools.node]
 dist-url = "https://example.com"
 
@@ -444,16 +457,16 @@ KEY = "value"
 [backends.asdf]
 repository = "https://example.com"
 "#,
-            )
-            .unwrap();
-
-            assert_eq!(data.fields, ["backends.asdf", "tools.node"]);
+                ),
+                ["backends.asdf", "tools.node"]
+            );
         }
 
         #[test]
         fn includes_unsafe_settings() {
-            let data = sensitive(
-                r#"
+            assert_eq!(
+                sensitive(
+                    r#"
 [settings]
 auto-install = true
 lockfile = true
@@ -461,49 +474,14 @@ lockfile = true
 [settings.url-rewrites]
 "github.com" = "example.com"
 "#,
-            )
-            .unwrap();
-
-            assert_eq!(
-                data.fields,
+                ),
                 ["settings.auto-install", "settings.url-rewrites"]
             );
         }
 
         #[test]
         fn includes_proto_pin() {
-            let data = sensitive("node = \"20\"\nproto = \"0.40.0\"\n").unwrap();
-
-            assert_eq!(data.fields, ["proto"]);
-        }
-
-        #[test]
-        fn hash_ignores_safe_settings() {
-            let a = sensitive("node = \"20\"\n[env]\nKEY = \"value\"\n").unwrap();
-            let b = sensitive("node = \"22\"\nbun = \"1\"\n[env]\nKEY = \"value\"\n").unwrap();
-
-            assert_eq!(a.hash, b.hash);
-        }
-
-        #[test]
-        fn hash_ignores_formatting_and_order() {
-            let a = sensitive("[env]\nA = \"a\"\n[shell.aliases]\nx = \"y\"\nz = \"w\"\n").unwrap();
-            let b = sensitive(
-                "[shell.aliases]\nz = \"w\"\n  x = \"y\"\n\n# comment\n[env]\nA = \"a\"\n",
-            )
-            .unwrap();
-
-            assert_eq!(a.hash, b.hash);
-        }
-
-        #[test]
-        fn hash_changes_with_sensitive_settings() {
-            let a = sensitive("[env]\nKEY = \"value\"\n").unwrap();
-            let b = sensitive("[env]\nKEY = \"other\"\n").unwrap();
-            let c = sensitive("[env]\nKEY = \"value\"\nBASH_ENV = \"script.sh\"\n").unwrap();
-
-            assert_ne!(a.hash, b.hash);
-            assert_ne!(a.hash, c.hash);
+            assert_eq!(sensitive("node = \"20\"\nproto = \"0.40.0\"\n"), ["proto"]);
         }
     }
 
@@ -568,13 +546,6 @@ lockfile = true
             }
         }
 
-        fn create_sensitive(hash: &str) -> ProtoConfigSensitive {
-            ProtoConfigSensitive {
-                fields: vec![],
-                hash: hash.into(),
-            }
-        }
-
         #[test]
         fn not_trusted_by_default() {
             let sandbox = create_empty_sandbox();
@@ -582,39 +553,91 @@ lockfile = true
 
             let store = create_store(sandbox.path());
 
-            assert!(!store.is_trusted(&sandbox.path().join(".prototools"), &create_sensitive("a")));
+            assert_eq!(
+                store.get_trust_source(&sandbox.path().join(".prototools")),
+                None
+            );
         }
 
         #[test]
-        fn trusts_matching_hash() {
-            let sandbox = create_empty_sandbox();
-            sandbox.create_file(".prototools", "");
-
-            let store = create_store(sandbox.path());
-            let path = sandbox.path().join(".prototools");
-
-            store.trust(&path, "a").unwrap();
-
-            assert!(store.is_trusted(&path, &create_sensitive("a")));
-            assert!(!store.is_trusted(&path, &create_sensitive("b")));
-        }
-
-        #[test]
-        fn trust_is_per_path() {
+        fn trusts_directory() {
             let sandbox = create_empty_sandbox();
             sandbox.create_file("a/.prototools", "");
             sandbox.create_file("b/.prototools", "");
 
             let store = create_store(sandbox.path());
+            let dir = store.trust(&sandbox.path().join("a")).unwrap();
 
-            store
-                .trust(&sandbox.path().join("a/.prototools"), "a")
-                .unwrap();
+            assert_eq!(
+                store.get_trust_source(&sandbox.path().join("a/.prototools")),
+                Some(ProtoTrustSource::Record(dir))
+            );
+            assert!(!store.is_trusted(&sandbox.path().join("b/.prototools")));
+        }
 
-            assert!(!store.is_trusted(
-                &sandbox.path().join("b/.prototools"),
-                &create_sensitive("a")
+        #[test]
+        fn trusts_nested_directories() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file("a/b/c/.prototools", "");
+
+            let store = create_store(sandbox.path());
+            store.trust(&sandbox.path().join("a")).unwrap();
+
+            assert!(store.is_trusted(&sandbox.path().join("a/b/c/.prototools")));
+            assert!(store.is_trusted(&sandbox.path().join("a/b/.prototools.prod")));
+            assert!(!store.is_trusted(&sandbox.path().join(".prototools")));
+        }
+
+        #[test]
+        fn trusts_file() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "");
+            sandbox.create_file(".prototools.prod", "");
+            sandbox.create_file("child/.prototools", "");
+
+            let store = create_store(sandbox.path());
+            let file = store.trust(&sandbox.path().join(".prototools")).unwrap();
+
+            assert_eq!(
+                store.get_trust_source(&sandbox.path().join(".prototools")),
+                Some(ProtoTrustSource::Record(file))
+            );
+
+            // Only that file
+            assert!(!store.is_trusted(&sandbox.path().join(".prototools.prod")));
+            assert!(!store.is_trusted(&sandbox.path().join("child/.prototools")));
+        }
+
+        #[test]
+        fn file_and_directory_trust_are_independent() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "");
+
+            let store = create_store(sandbox.path());
+            let file = sandbox.path().join(".prototools");
+
+            store.trust(sandbox.path()).unwrap();
+            store.trust(&file).unwrap();
+
+            assert!(store.untrust(&file).unwrap());
+            assert!(matches!(
+                store.get_trust_source(&file),
+                Some(ProtoTrustSource::Record(dir)) if dir.is_dir()
             ));
+
+            assert!(store.untrust(sandbox.path()).unwrap());
+            assert!(!store.is_trusted(&file));
+        }
+
+        #[test]
+        fn trusts_configs_that_do_not_exist_yet() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file("a/.gitkeep", "");
+
+            let store = create_store(sandbox.path());
+            store.trust(&sandbox.path().join("a")).unwrap();
+
+            assert!(store.is_trusted(&sandbox.path().join("a/.prototools")));
         }
 
         #[test]
@@ -623,13 +646,13 @@ lockfile = true
             sandbox.create_file(".prototools", "");
 
             let store = create_store(sandbox.path());
-            let path = sandbox.path().join(".prototools");
+            let dir = sandbox.path().to_path_buf();
 
-            store.trust(&path, "a").unwrap();
+            store.trust(&dir).unwrap();
 
-            assert!(store.untrust(&path).unwrap());
-            assert!(!store.untrust(&path).unwrap());
-            assert!(!store.is_trusted(&path, &create_sensitive("a")));
+            assert!(store.untrust(&dir).unwrap());
+            assert!(!store.untrust(&dir).unwrap());
+            assert!(!store.is_trusted(&dir.join(".prototools")));
         }
 
         #[test]
@@ -640,7 +663,10 @@ lockfile = true
             let mut store = create_store(sandbox.path());
             store.trust_all = true;
 
-            assert!(store.is_trusted(&sandbox.path().join(".prototools"), &create_sensitive("a")));
+            assert_eq!(
+                store.get_trust_source(&sandbox.path().join(".prototools")),
+                Some(ProtoTrustSource::Ci)
+            );
         }
 
         #[test]
@@ -652,14 +678,11 @@ lockfile = true
             let mut store = create_store(sandbox.path());
             store.add_trusted_path(&sandbox.path().join("trusted"));
 
-            assert!(store.is_trusted(
-                &sandbox.path().join("trusted/nested/.prototools"),
-                &create_sensitive("a")
+            assert!(matches!(
+                store.get_trust_source(&sandbox.path().join("trusted/nested/.prototools")),
+                Some(ProtoTrustSource::TrustedPath(_))
             ));
-            assert!(!store.is_trusted(
-                &sandbox.path().join("trusted-sibling/.prototools"),
-                &create_sensitive("a")
-            ));
+            assert!(!store.is_trusted(&sandbox.path().join("trusted-sibling/.prototools")));
         }
 
         #[test]
@@ -668,14 +691,11 @@ lockfile = true
             sandbox.create_file(".prototools", "");
 
             let store = create_store(sandbox.path());
-            let path = sandbox.path().join(".prototools");
+            let dir = store.trust(sandbox.path()).unwrap();
 
-            store.trust(&path, "a").unwrap();
+            std::fs::write(store.get_record_path(&dir), "{").unwrap();
 
-            let record_path = store.get_record_path(&normalize_path(&path));
-            std::fs::write(&record_path, "{").unwrap();
-
-            assert!(!store.is_trusted(&path, &create_sensitive("a")));
+            assert!(!store.is_trusted(&dir.join(".prototools")));
         }
     }
 }

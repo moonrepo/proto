@@ -386,12 +386,19 @@ impl AppSession for ProtoSession {
         load_proto_configs(&self.env)?;
 
         // Activation tracks and warns about untrusted configs itself, as its
-        // hook runs on every prompt, while the others don't load configs
+        // hook runs on every prompt. Tool commands are executed many times by
+        // scripts and editors (through shims), so they stay quiet, and fail
+        // with a trust error when the tool itself is affected. The remaining
+        // commands don't load configs.
         if !matches!(
             self.cli.command,
             Commands::Activate(_)
+                | Commands::Bin(_)
                 | Commands::Completions(_)
                 | Commands::Deactivate(_)
+                | Commands::Exec(_)
+                | Commands::Run(_)
+                | Commands::Shell(_)
                 | Commands::Trust(_)
                 | Commands::Untrust(_)
         ) {

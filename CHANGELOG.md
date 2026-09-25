@@ -35,10 +35,10 @@
 - Added a `closest` pin location, which targets the closest directory with a `.prototools`, starting from the current directory and traversing upwards. When none is found, the current directory is used. Directories with only an environment config (`.prototools.<env>`), and the user (`~/.prototools`) and global (`~/.proto/.prototools`) configs, are never targeted.
   - This is now the default location for `proto pin`, `proto unpin`, `proto alias`, `proto unalias`, `proto plugin add`, `proto plugin remove`, and `proto install --pin`, instead of `local`. Pass `--to local` (or `--from local`) for the previous behavior.
   - The `install` MCP tool now pins to the closest config as well.
-- Added `proto trust` and `proto untrust` commands.
-  - Trust is tied to the current values of a config's security-sensitive settings, so a config must be trusted again when they change. Changing version pins, comments, or formatting does not require trust again.
-  - Changes that proto makes to a trusted config, like `proto plugin add`, keep it trusted.
-- Updated `proto activate` to warn about untrusted configs once per shell session, and other commands to warn about them.
+- Added `proto trust [path]` and `proto untrust [path]` commands, where the path is a config file, or a directory (including its sub-directories). Defaults to the current directory.
+  - Trust is not affected by changes to the configs.
+  - When proto adds security-sensitive settings to a config that had none, like `proto plugin add`, the config is trusted.
+- Updated `proto activate` to warn about untrusted configs once per shell session. Other commands warn about them too, except tool commands (`run`, `exec`, `bin`, `shell`), which are executed by scripts and editors.
 
 ## 0.62.3
 

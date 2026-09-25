@@ -30,9 +30,9 @@ pub struct ProtoConfigFile {
     /// Whether the security-sensitive settings of this config are applied.
     pub trust: ProtoConfigTrust,
 
-    /// The security-sensitive settings of this config, as written.
-    #[serde(skip)]
-    pub sensitive: Option<ProtoConfigSensitive>,
+    /// Paths of the security-sensitive settings in this config,
+    /// like `env` or `plugins.tools`. Empty when it has none.
+    pub sensitive: Vec<String>,
 
     /// The security-sensitive settings that were removed from `config`,
     /// because the config has not been trusted.
@@ -162,7 +162,7 @@ impl ProtoFileManager {
                 // Extract the sensitive settings before paths are resolved,
                 // so that trust is based on what's written in the file
                 let config = ProtoConfig::parse(&config_path, false)?;
-                let sensitive = ProtoConfigSensitive::from_config(&config)?;
+                let sensitive = get_sensitive_fields(&config)?;
 
                 let mut file = ProtoConfigFile {
                     config: ProtoConfig::resolve_paths(config, &config_path)?,
@@ -397,24 +397,25 @@ impl ProtoFileManager {
     }
 
     /// Remove the security-sensitive settings from local configs that have not
-    /// been trusted. User and global configs are owned by the user, and are
-    /// always trusted.
-    pub(crate) fn apply_trust(&mut self, store: &ProtoTrustStore) {
+    /// been trusted. Configs owned by the user (user and global configs) are
+    /// always trusted, even when reached by traversal, for example when the
+    /// working directory is within the proto store.
+    pub(crate) fn apply_trust(
+        &mut self,
+        store: &ProtoTrustStore,
+        is_owned_by_user: impl Fn(&Path) -> bool,
+    ) {
         for dir in &mut self.entries {
             if dir.location != PinLocation::Local {
                 continue;
             }
 
             for file in &mut dir.configs {
-                let Some(sensitive) = &file.sensitive else {
-                    continue;
-                };
-
-                if !file.exists {
+                if !file.exists || file.sensitive.is_empty() || is_owned_by_user(&file.path) {
                     continue;
                 }
 
-                if store.is_trusted(&file.path, sensitive) {
+                if store.is_trusted(&file.path) {
                     file.trust = ProtoConfigTrust::Trusted;
 
                     continue;
@@ -422,7 +423,7 @@ impl ProtoFileManager {
 
                 debug!(
                     config = ?file.path,
-                    fields = ?sensitive.fields,
+                    fields = ?file.sensitive,
                     "Config has not been trusted, ignoring its security-sensitive settings",
                 );
 
