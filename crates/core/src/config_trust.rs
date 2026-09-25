@@ -1,8 +1,8 @@
 use crate::config::{
-    PROTO_PLUGIN_KEY, PartialProtoConfig, PartialProtoSettingsConfig, PartialProtoToolConfig,
+    BuiltinPlugins, PROTO_PLUGIN_KEY, PartialProtoConfig, PartialProtoSettingsConfig,
+    PartialProtoToolConfig, ProtoConfig, ProtoPluginsConfig,
 };
 use crate::config_error::ProtoConfigError;
-use crate::id::Id;
 use crate::tool_context::ToolContext;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -11,6 +11,7 @@ use starbase_utils::{fs, hash};
 use std::collections::BTreeMap;
 use std::env;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 use tracing::{debug, trace};
 
 /// The trust state of a config file.
@@ -61,26 +62,25 @@ pub fn get_sensitive_fields(config: &PartialProtoConfig) -> Result<Vec<String>, 
 pub fn split_config(mut config: PartialProtoConfig) -> (PartialProtoConfig, PartialProtoConfig) {
     let mut safe = PartialProtoConfig::default();
 
-    // Version pins are safe, except for proto itself, as it determines which
-    // proto binary is executed, and a version released before trust existed
-    // would not enforce it
-    if let Some(mut versions) = config.versions.take() {
-        let proto_context = ToolContext::new(Id::raw(PROTO_PLUGIN_KEY));
+    // Version pins are safe when they resolve to a built-in plugin
+    if let Some(versions) = config.versions.take() {
+        let (safe_versions, sensitive_versions): (BTreeMap<_, _>, BTreeMap<_, _>) = versions
+            .into_iter()
+            .partition(|(context, _)| is_safe_pin(context));
 
-        if let Some(spec) = versions.remove(&proto_context) {
-            config.versions = Some(BTreeMap::from_iter([(proto_context, spec)]));
-        }
-
-        safe.versions = Some(versions);
+        safe.versions = Some(safe_versions);
+        config.versions = Some(sensitive_versions);
     }
 
     // Versions also show up in the unknown fields, because of flattening
-    if let Some(mut unknown) = config.unknown.take() {
-        if let Some(value) = unknown.remove(PROTO_PLUGIN_KEY) {
-            config.unknown = Some(FxHashMap::from_iter([(PROTO_PLUGIN_KEY.to_owned(), value)]));
-        }
+    if let Some(unknown) = config.unknown.take() {
+        let (safe_unknown, sensitive_unknown): (FxHashMap<_, _>, FxHashMap<_, _>) =
+            unknown.into_iter().partition(|(key, _)| {
+                ToolContext::parse(key).is_ok_and(|context| is_safe_pin(&context))
+            });
 
-        safe.unknown = Some(unknown);
+        safe.unknown = Some(safe_unknown);
+        config.unknown = Some(sensitive_unknown);
     }
 
     // Version aliases are safe, while the tool's environment
@@ -110,6 +110,38 @@ pub fn split_config(mut config: PartialProtoConfig) -> (PartialProtoConfig, Part
     }
 
     (safe, config)
+}
+
+/// Return true if a version pin for the provided tool can be applied without
+/// trust. Loading a tool downloads and executes its plugin, and resolving a
+/// version may execute more (for example, the scripts of an asdf plugin), all
+/// of which happens during activation. That is only safe for the plugins
+/// that ship with proto:
+///
+/// - `proto` itself is excluded, as it determines which proto binary is
+///   executed, and a version released before trust existed would not enforce it.
+/// - The `asdf` backend is excluded, as it clones and runs third-party scripts.
+/// - Tools without a built-in plugin are excluded, as the plugin is loaded
+///   from a community registry.
+fn is_safe_pin(context: &ToolContext) -> bool {
+    static BUILTINS: OnceLock<ProtoPluginsConfig> = OnceLock::new();
+
+    let builtins = BUILTINS.get_or_init(|| {
+        let mut config = ProtoConfig::default();
+        config.settings.builtin_backends = BuiltinPlugins::Enabled(true);
+        config.settings.builtin_tools = BuiltinPlugins::Enabled(true);
+        config.inherit_builtin_plugins();
+        config.plugins
+    });
+
+    if context.id == PROTO_PLUGIN_KEY {
+        return false;
+    }
+
+    match &context.backend {
+        Some(backend) => backend != "asdf" && builtins.backends.contains_key(backend),
+        None => builtins.tools.contains_key(&context.id),
+    }
 }
 
 /// Remove nulls and empty objects (settings that were not configured)
@@ -339,11 +371,17 @@ pub fn hash_path(path: &Path) -> String {
     hash::sha256::from_bytes(path.as_os_str().as_encoded_bytes())
 }
 
-/// Resolve symlinks and relative components so that a directory is trusted
-/// regardless of the path used to reach it. A config file may not exist yet,
-/// so fall back to resolving its directory.
+/// Resolve symlinks and relative components so that a path is trusted
+/// regardless of the path used to reach it.
+///
+/// A config file is never resolved itself, only its directory. Otherwise a
+/// repository could symlink its config to a trusted one and inherit its trust,
+/// while relative paths within the config (plugins, `.env` files) would still
+/// resolve against the repository. A config may also not exist yet.
 pub fn normalize_path(path: &Path) -> PathBuf {
-    if let Ok(path) = std::fs::canonicalize(path) {
+    if !ProtoConfig::is_config_file(path)
+        && let Ok(path) = std::fs::canonicalize(path)
+    {
         return path;
     }
 
@@ -359,7 +397,7 @@ pub fn normalize_path(path: &Path) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::ProtoConfig;
+    use crate::id::Id;
     use starbase_sandbox::create_empty_sandbox;
 
     fn parse(content: &str) -> PartialProtoConfig {
@@ -482,6 +520,22 @@ lockfile = true
         #[test]
         fn includes_proto_pin() {
             assert_eq!(sensitive("node = \"20\"\nproto = \"0.40.0\"\n"), ["proto"]);
+        }
+
+        #[test]
+        fn includes_pins_that_load_third_party_plugins() {
+            assert_eq!(
+                sensitive(
+                    r#"
+node = "20"
+"npm:typescript" = "5"
+"cargo:ripgrep" = "14"
+"asdf:foo" = "1"
+sometool = "latest"
+"#
+                ),
+                ["asdf:foo", "sometool"]
+            );
         }
     }
 
@@ -627,6 +681,31 @@ lockfile = true
 
             assert!(store.untrust(sandbox.path()).unwrap());
             assert!(!store.is_trusted(&file));
+        }
+
+        #[cfg(unix)]
+        #[test]
+        fn does_not_follow_config_symlinks() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file("trusted/.prototools", "");
+            sandbox.create_file("other/.gitkeep", "");
+
+            std::os::unix::fs::symlink(
+                sandbox.path().join("trusted/.prototools"),
+                sandbox.path().join("other/.prototools"),
+            )
+            .unwrap();
+
+            let store = create_store(sandbox.path());
+
+            // Neither the directory nor the file
+            store.trust(&sandbox.path().join("trusted")).unwrap();
+            store
+                .trust(&sandbox.path().join("trusted/.prototools"))
+                .unwrap();
+
+            assert!(store.is_trusted(&sandbox.path().join("trusted/.prototools")));
+            assert!(!store.is_trusted(&sandbox.path().join("other/.prototools")));
         }
 
         #[test]

@@ -143,21 +143,28 @@ pub async fn trust(session: ProtoSession, args: TrustArgs) -> SessionResult {
         return Ok(Some(1));
     };
 
-    let probe = match &target {
-        TrustTarget::File(file) => file.clone(),
-        TrustTarget::Dir(dir) => dir.join(PROTO_CONFIG_NAME),
-    };
-
-    if session.env.is_config_owned_by_user(&probe) {
+    if let TrustTarget::File(file) = &target
+        && session.env.is_config_owned_by_user(file)
+    {
         session.console.notice(
             Variant::Info,
             format!(
-                "<path>{}</path> is owned by the user, and is always trusted",
-                target.path().display()
+                "Config <path>{}</path> is owned by the user, and is always trusted",
+                file.display()
             ),
         )?;
 
         return Ok(None);
+    }
+
+    // Trusting a directory is allowed at any level, but make the scope clear
+    if let TrustTarget::Dir(dir) = &target
+        && session.env.home_dir.starts_with(dir)
+    {
+        session.console.notice(
+            Variant::Caution,
+            "This trusts every config within your home directory, including configs in repositories cloned in the future",
+        )?;
     }
 
     let path = session.env.trust.trust(target.path())?;
