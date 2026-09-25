@@ -186,6 +186,33 @@ lockfile = true
         }
 
         #[test]
+        fn ignores_pins_that_load_third_party_plugins() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+node = "20.0.0"
+"asdf:foo" = "1"
+sometool = "latest"
+"#,
+            );
+
+            let assert = run(&sandbox, Path::new(""), &["debug", "config", "--json"], &[]);
+            let stdout = assert.stdout();
+            let stderr = assert.stderr();
+
+            assert.success();
+
+            let output: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+            let config = output.get("config").unwrap();
+
+            assert_eq!(config.get("node").unwrap(), "20.0.0");
+            assert!(config.get("asdf:foo").is_none());
+            assert!(config.get("sometool").is_none());
+            assert!(stderr.contains("asdf:foo, sometool"));
+        }
+
+        #[test]
         fn ignores_proto_pin_when_activating() {
             let sandbox = create_empty_proto_sandbox();
             sandbox.create_file(".prototools", "proto = \"0.40.0\"\n");
