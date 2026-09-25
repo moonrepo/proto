@@ -1,6 +1,7 @@
 use schematic::ConfigError;
 use starbase_styles::{Style, Stylize};
 use starbase_utils::fs::FsError;
+use starbase_utils::json::JsonError;
 use starbase_utils::toml::TomlError;
 use std::path::PathBuf;
 use thiserror::Error;
@@ -10,6 +11,10 @@ pub enum ProtoConfigError {
     #[diagnostic(transparent)]
     #[error(transparent)]
     Fs(#[from] Box<FsError>),
+
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Json(#[from] Box<JsonError>),
 
     #[diagnostic(transparent)]
     #[error(transparent)]
@@ -58,6 +63,12 @@ pub enum ProtoConfigError {
 impl From<FsError> for ProtoConfigError {
     fn from(e: FsError) -> ProtoConfigError {
         ProtoConfigError::Fs(Box::new(e))
+    }
+}
+
+impl From<JsonError> for ProtoConfigError {
+    fn from(e: JsonError) -> ProtoConfigError {
+        ProtoConfigError::Json(Box::new(e))
     }
 }
 

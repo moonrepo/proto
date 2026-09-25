@@ -3,7 +3,7 @@ use clap::Args;
 use proto_core::flow::lock::{Locker, ProtoLockError};
 use proto_core::flow::resolve::Resolver;
 use proto_core::{
-    LockRecord, PinLocation, ProtoConfig, Tool, ToolContext, ToolSpec, cfg, reporter::NoticeOutput,
+    LockRecord, PinLocation, Tool, ToolContext, ToolSpec, cfg, reporter::NoticeOutput,
 };
 use proto_pdk_api::{PinVersionInput, PinVersionOutput, PluginFunction};
 use starbase_console::ui::*;
@@ -47,7 +47,7 @@ pub async fn internal_pin(
     let config_dir = tool.proto.get_config_dir(pin_to);
     let mut previous_spec = None;
 
-    let config_path = ProtoConfig::update_document(config_dir, |doc| {
+    let config_path = tool.proto.update_config_document(config_dir, |doc| {
         previous_spec = doc
             .get(tool.context.as_str())
             .and_then(|item| item.as_str())

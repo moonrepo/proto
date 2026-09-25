@@ -90,6 +90,21 @@ pub async fn locate_plugin(
         locator = Some(maybe_locator.to_owned());
     }
 
+    // The plugin may have been configured in a config that has not been
+    // trusted, so fail instead of falling back to a different plugin
+    if locator.is_none()
+        && let Some(file) = proto
+            .load_file_manager()?
+            .get_untrusted_config_files()
+            .into_iter()
+            .find(|file| file.has_untrusted_plugin(context, ty))
+    {
+        return Err(ProtoLoaderError::UntrustedPlugin {
+            context: context.to_owned(),
+            config: file.path.clone(),
+        });
+    }
+
     // Then check the remote community plugins registry
     if locator.is_none() && ty == PluginType::Tool && config.settings.community_tools {
         let registry = proto.load_registry();

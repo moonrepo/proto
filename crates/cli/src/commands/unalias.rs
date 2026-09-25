@@ -1,6 +1,6 @@
 use crate::session::{ProtoSession, SessionResult};
 use clap::Args;
-use proto_core::{PinLocation, ProtoConfig, ToolContext};
+use proto_core::{PinLocation, ToolContext};
 use starbase_console::ui::*;
 use starbase_styles::encode_style_tags;
 use tracing::instrument;
@@ -22,33 +22,36 @@ pub async fn unalias(session: ProtoSession, args: UnaliasArgs) -> SessionResult 
     let tool = session.load_tool(&args.context).await?;
     let mut value = None;
 
-    let config_path = ProtoConfig::update_document(tool.proto.get_config_dir(args.from), |doc| {
-        if let Some(tools) = doc.get_mut("tools").and_then(|item| item.as_table_mut()) {
-            if let Some(record) = tools
-                .get_mut(tool.context.as_str())
-                .and_then(|item| item.as_table_mut())
-            {
-                if let Some(aliases) = record
-                    .get_mut("aliases")
-                    .and_then(|item| item.as_table_mut())
-                {
-                    value = aliases.remove(&args.alias);
+    let config_path =
+        session
+            .env
+            .update_config_document(tool.proto.get_config_dir(args.from), |doc| {
+                if let Some(tools) = doc.get_mut("tools").and_then(|item| item.as_table_mut()) {
+                    if let Some(record) = tools
+                        .get_mut(tool.context.as_str())
+                        .and_then(|item| item.as_table_mut())
+                    {
+                        if let Some(aliases) = record
+                            .get_mut("aliases")
+                            .and_then(|item| item.as_table_mut())
+                        {
+                            value = aliases.remove(&args.alias);
 
-                    if aliases.is_empty() {
-                        record.remove("aliases");
+                            if aliases.is_empty() {
+                                record.remove("aliases");
+                            }
+                        }
+
+                        if record.is_empty() {
+                            tools.remove(tool.context.as_str());
+                        }
+                    }
+
+                    if tools.is_empty() {
+                        doc.as_table_mut().remove("tools");
                     }
                 }
-
-                if record.is_empty() {
-                    tools.remove(tool.context.as_str());
-                }
-            }
-
-            if tools.is_empty() {
-                doc.as_table_mut().remove("tools");
-            }
-        }
-    })?;
+            })?;
 
     let Some(value) = value else {
         session.console.notice(

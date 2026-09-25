@@ -2,8 +2,7 @@ use crate::error::ProtoCliError;
 use crate::session::{ProtoSession, SessionResult};
 use clap::Args;
 use proto_core::{
-    PinLocation, ProtoConfig, ToolContext, ToolSpec, UnresolvedVersionSpec, cfg,
-    version_spec::parse_alias,
+    PinLocation, ToolContext, ToolSpec, UnresolvedVersionSpec, cfg, version_spec::parse_alias,
 };
 use starbase_console::ui::*;
 use starbase_styles::encode_style_tags;
@@ -41,13 +40,16 @@ pub async fn alias(session: ProtoSession, args: AliasArgs) -> SessionResult {
 
     let tool = session.load_tool(&args.context).await?;
 
-    let config_path = ProtoConfig::update_document(tool.proto.get_config_dir(args.to), |doc| {
-        let tools = doc["tools"].or_insert(cfg::implicit_table());
-        let record = tools[tool.context.as_str()].or_insert(cfg::implicit_table());
-        let aliases = record["aliases"].or_insert(cfg::implicit_table());
+    let config_path =
+        session
+            .env
+            .update_config_document(tool.proto.get_config_dir(args.to), |doc| {
+                let tools = doc["tools"].or_insert(cfg::implicit_table());
+                let record = tools[tool.context.as_str()].or_insert(cfg::implicit_table());
+                let aliases = record["aliases"].or_insert(cfg::implicit_table());
 
-        aliases[&args.alias] = cfg::value(args.spec.to_string());
-    })?;
+                aliases[&args.alias] = cfg::value(args.spec.to_string());
+            })?;
 
     session.console.notice(
         Variant::Success,

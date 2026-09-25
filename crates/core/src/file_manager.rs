@@ -1,5 +1,6 @@
 use crate::config::*;
 use crate::config_error::ProtoConfigError;
+use crate::config_trust::*;
 use crate::id::Id;
 use crate::lockfile::*;
 use crate::tool_context::ToolContext;
@@ -25,9 +26,57 @@ pub struct ProtoConfigFile {
     /// is locked to `.protolock`, and `.prototools.<env>` is locked
     /// to `.protolock.<env>`.
     pub locked: bool,
+
+    /// Whether the security-sensitive settings of this config are applied.
+    pub trust: ProtoConfigTrust,
+
+    /// Paths of the security-sensitive settings in this config,
+    /// like `env` or `plugins.tools`. Empty when it has none.
+    pub sensitive: Vec<String>,
+
+    /// The security-sensitive settings that were removed from `config`,
+    /// because the config has not been trusted.
+    #[serde(skip)]
+    pub untrusted_config: Option<PartialProtoConfig>,
 }
 
 impl ProtoConfigFile {
+    /// Return true if a plugin for the provided tool was configured in
+    /// this config, but was ignored because the config is not trusted.
+    pub fn has_untrusted_plugin(&self, context: &ToolContext, ty: PluginType) -> bool {
+        let Some(config) = &self.untrusted_config else {
+            return false;
+        };
+
+        let plugins = config.plugins.as_ref();
+
+        if ty == PluginType::Backend
+            && let Some(id) = &context.backend
+        {
+            config
+                .backends
+                .as_ref()
+                .and_then(|backends| backends.get(id))
+                .is_some_and(|backend| backend.plugin.is_some())
+                || plugins
+                    .and_then(|plugins| plugins.backends.as_ref())
+                    .is_some_and(|backends| backends.contains_key(id))
+        } else {
+            config
+                .tools
+                .as_ref()
+                .and_then(|tools| tools.get(context))
+                .is_some_and(|tool| tool.plugin.is_some())
+                || plugins.is_some_and(|plugins| {
+                    [&plugins.tools, &plugins.legacy].into_iter().any(|tools| {
+                        tools
+                            .as_ref()
+                            .is_some_and(|tools| tools.contains_key(&context.id))
+                    })
+                })
+        }
+    }
+
     /// Gather the version specifications defined in this config only. Since a
     /// lockfile is scoped to the config in which it was enabled, these are the
     /// only specifications that dictate which of its records are still in use.
@@ -110,11 +159,19 @@ impl ProtoFileManager {
             // Load in reverse so that the base config comes first,
             // as environment configs inherit settings from it
             for (config_path, lock_path) in paths.into_iter().rev() {
+                // Extract the sensitive settings before paths are resolved,
+                // so that trust is based on what's written in the file
+                let config = ProtoConfig::parse(&config_path, false)?;
+                let sensitive = get_sensitive_fields(&config)?;
+
                 let mut file = ProtoConfigFile {
-                    config: ProtoConfig::load(&config_path, false)?,
+                    config: ProtoConfig::resolve_paths(config, &config_path)?,
                     exists: config_path.exists(),
                     path: config_path,
                     locked: false,
+                    trust: ProtoConfigTrust::default(),
+                    sensitive,
+                    untrusted_config: None,
                 };
 
                 // A lockfile is scoped to the config in which it was enabled,
@@ -238,6 +295,16 @@ impl ProtoFileManager {
         self.entries.iter().flat_map(|dir| &dir.configs).collect()
     }
 
+    /// Return config files whose security-sensitive settings were ignored,
+    /// because they have not been trusted.
+    pub fn get_untrusted_config_files(&self) -> Vec<&ProtoConfigFile> {
+        self.entries
+            .iter()
+            .flat_map(|dir| &dir.configs)
+            .filter(|file| file.trust == ProtoConfigTrust::Untrusted)
+            .collect()
+    }
+
     pub fn get_global_config(&self) -> Result<&ProtoConfig, ProtoConfigError> {
         self.global_config.get_or_try_init(|| {
             debug!("Loading global config only");
@@ -327,6 +394,46 @@ impl ProtoFileManager {
                 });
             }
         });
+    }
+
+    /// Remove the security-sensitive settings from local configs that have not
+    /// been trusted. Configs owned by the user (user and global configs) are
+    /// always trusted, even when reached by traversal, for example when the
+    /// working directory is within the proto store.
+    pub(crate) fn apply_trust(
+        &mut self,
+        store: &ProtoTrustStore,
+        is_owned_by_user: impl Fn(&Path) -> bool,
+    ) {
+        for dir in &mut self.entries {
+            if dir.location != PinLocation::Local {
+                continue;
+            }
+
+            for file in &mut dir.configs {
+                if !file.exists || file.sensitive.is_empty() || is_owned_by_user(&file.path) {
+                    continue;
+                }
+
+                if store.is_trusted(&file.path) {
+                    file.trust = ProtoConfigTrust::Trusted;
+
+                    continue;
+                }
+
+                debug!(
+                    config = ?file.path,
+                    fields = ?file.sensitive,
+                    "Config has not been trusted, ignoring its security-sensitive settings",
+                );
+
+                let (safe, untrusted) = split_config(std::mem::take(&mut file.config));
+
+                file.config = safe;
+                file.untrusted_config = Some(untrusted);
+                file.trust = ProtoConfigTrust::Untrusted;
+            }
+        }
     }
 
     fn merge_configs(&self, files: Vec<&ProtoConfigFile>) -> Result<ProtoConfig, ProtoConfigError> {

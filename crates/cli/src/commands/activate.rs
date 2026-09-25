@@ -1,22 +1,30 @@
 use crate::app::StdoutOwner;
 use crate::session::{LoadToolOptions, ProtoSession, SessionResult};
+use crate::systems::format_untrusted_config_warning;
 use crate::workflows::{ExecWorkflow, ExecWorkflowParams};
 use clap::Args;
 use indexmap::IndexMap;
-use proto_core::{Id, PROTO_PLUGIN_KEY, ToolContext, UnresolvedVersionSpec};
+use proto_core::{
+    Id, PROTO_PLUGIN_KEY, ProtoConfigTrust, ToolContext, UnresolvedVersionSpec, hash_path,
+};
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 use starbase_shell::{Hook, ShellType, Statement};
 use starbase_utils::envx::is_test;
 use std::env;
 use std::path::PathBuf;
-use tracing::instrument;
+use tracing::{instrument, warn};
 
 /// Environment variables that track what the previous activation applied,
 /// so that a follow-up activation (or `proto deactivate`) can reverse it.
 pub const ACTIVATED_ALIASES_KEY: &str = "_PROTO_ACTIVATED_ALIASES";
 pub const ACTIVATED_ENV_KEY: &str = "_PROTO_ACTIVATED_ENV";
 pub const ACTIVATED_PATH_KEY: &str = "_PROTO_ACTIVATED_PATH";
+
+/// Environment variable that tracks the untrusted configs (by a hash of their
+/// path) that the previous activation warned about, so that each is only
+/// warned about once.
+pub const ACTIVATED_UNTRUSTED_KEY: &str = "_PROTO_ACTIVATED_UNTRUSTED";
 
 /// The payload that both `proto activate` and `proto deactivate` print in
 /// structured mode. The shape is a contract with the nu hook, which cannot
@@ -85,6 +93,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> SessionResul
 
     // Load configuration and tools
     let config = session.env.load_config()?;
+    let untrusted = warn_untrusted_configs(&session)?;
     let tools = session
         .load_tools_with_options(LoadToolOptions {
             detect_version: true,
@@ -158,17 +167,44 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> SessionResul
 
     // Output/export the information for the chosen shell
     if output_mode == ActivateOutputMode::Export {
-        print_activation_exports(&session, &shell_type, workflow)?;
+        print_activation_exports(&session, &shell_type, workflow, untrusted)?;
 
         return Ok(None);
     }
 
     session.console.write_json_for_format(ActivateOutput {
-        env: create_activation_env(&workflow, &shell_type)?,
+        env: create_activation_env(&workflow, &shell_type, untrusted)?,
         paths: stringify_paths(workflow.reset_paths_for_shell(&session.env.store.dir, &shell_type)),
     })?;
 
     Ok(None)
+}
+
+/// Warn about configs that have not been trusted, but only once per shell
+/// session, as the activation hook runs on every prompt. Returns the
+/// untrusted configs to track for the next activation.
+fn warn_untrusted_configs(session: &ProtoSession) -> miette::Result<Option<String>> {
+    let previous = env::var(ACTIVATED_UNTRUSTED_KEY).unwrap_or_default();
+    let previous = previous.split(',').collect::<Vec<_>>();
+    let mut current = vec![];
+
+    // Only the configs that apply to the current config mode
+    for file in session.env.load_config_files()? {
+        if file.trust != ProtoConfigTrust::Untrusted {
+            continue;
+        }
+
+        // Paths may contain the separator, so track a hash instead
+        let id = hash_path(&file.path)[..16].to_owned();
+
+        if !previous.contains(&id.as_str()) {
+            warn!("{}", format_untrusted_config_warning(file));
+        }
+
+        current.push(id);
+    }
+
+    Ok((!current.is_empty()).then(|| current.join(",")))
 }
 
 fn print_activation_hook(
@@ -249,6 +285,7 @@ fn print_activation_hook(
 fn create_activation_env(
     workflow: &ExecWorkflow,
     shell_type: &ShellType,
+    untrusted: Option<String>,
 ) -> miette::Result<IndexMap<String, Option<String>>> {
     let mut env = IndexMap::default();
 
@@ -287,6 +324,8 @@ fn create_activation_env(
             .map(|path| path.to_string_lossy().to_string()),
     );
 
+    track_activation(&mut env, ACTIVATED_UNTRUSTED_KEY, untrusted);
+
     Ok(env)
 }
 
@@ -310,13 +349,14 @@ fn print_activation_exports(
     session: &ProtoSession,
     shell_type: &ShellType,
     workflow: ExecWorkflow,
+    untrusted: Option<String>,
 ) -> miette::Result<()> {
     let shell = shell_type.build();
     let aliases = &session.load_config()?.shell.aliases;
     let mut output = vec![];
 
     // Set/remove variables
-    for (key, value) in create_activation_env(&workflow, shell_type)? {
+    for (key, value) in create_activation_env(&workflow, shell_type, untrusted)? {
         output.push(shell.format_env(&key, value.as_deref()));
     }
 

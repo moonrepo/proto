@@ -1,6 +1,6 @@
 use crate::session::{ProtoSession, SessionResult};
 use clap::Args;
-use proto_core::{Id, PinLocation, PluginLocator, PluginType, ProtoConfig, cfg};
+use proto_core::{Id, PinLocation, PluginLocator, PluginType, cfg};
 use starbase_console::ui::*;
 use tracing::instrument;
 
@@ -21,38 +21,41 @@ pub struct PluginAddArgs {
 
 #[instrument(skip(session))]
 pub async fn add(session: ProtoSession, args: PluginAddArgs) -> SessionResult {
-    let config_path = ProtoConfig::update_document(session.env.get_config_dir(args.to), |doc| {
-        let key = if args.ty == PluginType::Backend {
-            "backends"
-        } else {
-            "tools"
-        };
+    let config_path =
+        session
+            .env
+            .update_config_document(session.env.get_config_dir(args.to), |doc| {
+                let key = if args.ty == PluginType::Backend {
+                    "backends"
+                } else {
+                    "tools"
+                };
 
-        // Convert legacy [plugins] to [plugins.tools]
-        if doc.contains_key("plugins")
-            && doc["plugins"].as_table().is_some_and(|table| {
-                !table.contains_key("backends") && !table.contains_key("tools")
-            })
-        {
-            let existing = doc["plugins"].clone();
+                // Convert legacy [plugins] to [plugins.tools]
+                if doc.contains_key("plugins")
+                    && doc["plugins"].as_table().is_some_and(|table| {
+                        !table.contains_key("backends") && !table.contains_key("tools")
+                    })
+                {
+                    let existing = doc["plugins"].clone();
 
-            doc.remove("plugins");
+                    doc.remove("plugins");
 
-            let plugins = doc["plugins"].or_insert(cfg::implicit_table());
-            plugins["tools"] = existing;
-        }
+                    let plugins = doc["plugins"].or_insert(cfg::implicit_table());
+                    plugins["tools"] = existing;
+                }
 
-        // Add plugin to nested tables
-        if doc.contains_key("plugins") {
-            let plugins = doc["plugins"].or_insert(cfg::implicit_table());
-            let table = plugins[key].or_insert(cfg::table());
-            table[args.id.as_str()] = cfg::value(args.plugin.to_string());
-        } else {
-            let plugins = doc[key].or_insert(cfg::implicit_table());
-            let table = plugins[args.id.as_str()].or_insert(cfg::table());
-            table["plugin"] = cfg::value(args.plugin.to_string());
-        }
-    })?;
+                // Add plugin to nested tables
+                if doc.contains_key("plugins") {
+                    let plugins = doc["plugins"].or_insert(cfg::implicit_table());
+                    let table = plugins[key].or_insert(cfg::table());
+                    table[args.id.as_str()] = cfg::value(args.plugin.to_string());
+                } else {
+                    let plugins = doc[key].or_insert(cfg::implicit_table());
+                    let table = plugins[args.id.as_str()].or_insert(cfg::table());
+                    table["plugin"] = cfg::value(args.plugin.to_string());
+                }
+            })?;
 
     // Load the tool and verify it works. We can't load the tool with the
     // session as the config has already been cached, and doesn't reflect
