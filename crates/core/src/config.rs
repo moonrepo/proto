@@ -330,8 +330,17 @@ impl ProtoConfig {
             fs::read_file(path)?
         };
 
+        Self::parse_content(config_content, path)
+    }
+
+    /// Parse and validate the content of a config file, with its settings exactly
+    /// as written. The path is only used for error messages.
+    pub fn parse_content(
+        content: String,
+        path: &Path,
+    ) -> Result<PartialProtoConfig, ProtoConfigError> {
         let config = ConfigLoader::<ProtoConfig>::new()
-            .code(config_content, format!("{}.toml", PROTO_CONFIG_NAME))?
+            .code(content, format!("{}.toml", PROTO_CONFIG_NAME))?
             .load_partial(&())?;
 
         config.validate(&(), true).map_err(|error| match error {

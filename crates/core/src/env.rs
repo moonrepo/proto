@@ -1,6 +1,6 @@
 use crate::config::{ConfigMode, PROTO_CONFIG_NAME, PinLocation, ProtoConfig};
 use crate::config_error::ProtoConfigError;
-use crate::config_trust::{ProtoConfigSensitive, ProtoConfigTrust, ProtoTrustStore};
+use crate::config_trust::{ProtoConfigTrust, ProtoTrustStore, get_sensitive_fields};
 use crate::env_error::ProtoEnvError;
 use crate::file_manager::{ProtoConfigFile, ProtoDirEntry, ProtoFileManager};
 use crate::helpers::is_offline;
@@ -186,18 +186,20 @@ impl ProtoEnvironment {
         }
     }
 
-    /// Return true if the config at the provided path must be trusted before its
-    /// security-sensitive settings are applied. Only user and global configs
-    /// are owned by the user.
-    pub fn requires_config_trust(&self, config_path: &Path) -> bool {
-        !config_path
+    /// Return true if the config at the provided path is owned by the user, and
+    /// never requires trust. Only the user and global configs are.
+    pub fn is_config_owned_by_user(&self, config_path: &Path) -> bool {
+        config_path
             .parent()
             .is_some_and(|dir| dir == self.home_dir || dir == self.store.dir)
     }
 
     /// Update a config file through its document, like [`ProtoConfig::update_document`].
-    /// If the config was trusted before the update (or didn't need to be),
-    /// the updated config is also trusted, as the change was made through proto.
+    ///
+    /// If the config had no security-sensitive settings before the update, but
+    /// has some after, the user introduced them through proto (for example with
+    /// `proto plugin add`), so the file is trusted. A config that was already
+    /// untrusted stays untrusted.
     pub fn update_config_document<P: AsRef<Path> + fmt::Debug, F: FnOnce(&mut DocumentMut)>(
         &self,
         dir: P,
@@ -205,32 +207,35 @@ impl ProtoEnvironment {
     ) -> Result<PathBuf, ProtoConfigError> {
         let path = ProtoConfig::resolve_path(dir);
 
-        if !self.requires_config_trust(&path) || self.trust.is_implicitly_trusted(&path) {
+        if self.is_config_owned_by_user(&path) || self.trust.is_trusted(&path) {
             return ProtoConfig::update_document(&path, op);
         }
 
-        let load_sensitive = |path: &Path| {
-            ProtoConfig::parse(path, true)
-                .and_then(|config| ProtoConfigSensitive::from_config(&config))
+        // Inspect the content within the lock held by the update, so that a
+        // concurrent change to the file is never trusted by mistake. Content
+        // that fails to parse is treated as requiring trust.
+        let requires_trust = |doc: &DocumentMut| {
+            !ProtoConfig::parse_content(doc.to_string(), &path)
+                .and_then(|config| get_sensitive_fields(&config))
+                .is_ok_and(|fields| fields.is_empty())
         };
 
-        // A config that fails to parse is not trusted
-        let (was_trusted, prev_hash) = match load_sensitive(&path) {
-            Ok(Some(sensitive)) => (
-                self.trust.is_trusted(&path, &sensitive),
-                Some(sensitive.hash),
-            ),
-            Ok(None) => (true, None),
-            Err(_) => (false, None),
-        };
+        let mut required_before = true;
+        let mut required_after = false;
 
-        let path = ProtoConfig::update_document(&path, op)?;
+        let path = ProtoConfig::update_document(&path, |doc| {
+            required_before = requires_trust(doc);
+            op(doc);
+            required_after = requires_trust(doc);
+        })?;
 
-        if was_trusted
-            && let Some(sensitive) = load_sensitive(&path)?
-            && prev_hash.is_none_or(|hash| hash != sensitive.hash)
-        {
-            self.trust.trust(&path, &sensitive.hash)?;
+        if !required_before && required_after {
+            debug!(
+                config = ?path,
+                "Trusting config, as security-sensitive settings were added through proto",
+            );
+
+            self.trust.trust(&path)?;
         }
 
         Ok(path)
@@ -305,7 +310,7 @@ impl ProtoEnvironment {
                     config: ProtoConfig::load_from(&self.store.dir, true)?,
                     locked: false,
                     trust: ProtoConfigTrust::NotRequired,
-                    sensitive: None,
+                    sensitive: vec![],
                     untrusted_config: None,
                 }],
             });
@@ -315,7 +320,7 @@ impl ProtoEnvironment {
             manager.remove_proto_pins();
 
             // Remove security-sensitive settings from untrusted configs
-            manager.apply_trust(&self.trust);
+            manager.apply_trust(&self.trust, |path| self.is_config_owned_by_user(path));
 
             Ok(manager)
         })

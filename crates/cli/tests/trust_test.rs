@@ -64,17 +64,27 @@ gs = "git status"
         run(sandbox, Path::new(""), &full_args, &[])
     }
 
+    fn untrust<'s>(sandbox: &'s Sandbox, args: &[&str]) -> SandboxAssert<'s> {
+        let mut full_args = vec!["untrust"];
+        full_args.extend(args);
+
+        run(sandbox, Path::new(""), &full_args, &[])
+    }
+
+    fn tracked_untrusted(activation: &Activation) -> &str {
+        activation
+            .env
+            .get("_PROTO_ACTIVATED_UNTRUSTED")
+            .unwrap()
+            .as_str()
+            .unwrap()
+    }
+
     fn assert_untrusted(activation: &Activation) {
         assert!(activation.env.get("KEY").is_none());
-        assert!(
-            activation
-                .env
-                .get("_PROTO_ACTIVATED_UNTRUSTED")
-                .unwrap()
-                .as_str()
-                .unwrap()
-                .ends_with(".prototools")
-        );
+
+        // Tracked by a hash of the path
+        assert_eq!(tracked_untrusted(activation).len(), 16);
     }
 
     fn assert_trusted(activation: &Activation) {
@@ -96,6 +106,7 @@ gs = "git status"
             assert_untrusted(&activation);
             assert!(activation.stderr.contains(WARNING));
             assert!(activation.stderr.contains("env, shell.aliases"));
+            assert!(activation.stderr.contains("proto trust"));
         }
 
         #[test]
@@ -104,13 +115,7 @@ gs = "git status"
             sandbox.create_file(".prototools", CONFIG);
 
             let first = activate(&sandbox);
-            let tracked = first
-                .env
-                .get("_PROTO_ACTIVATED_UNTRUSTED")
-                .unwrap()
-                .as_str()
-                .unwrap()
-                .to_owned();
+            let tracked = tracked_untrusted(&first).to_owned();
 
             let second = activate_in(
                 &sandbox,
@@ -127,9 +132,20 @@ gs = "git status"
             let sandbox = create_empty_proto_sandbox();
             sandbox.create_file(".prototools", CONFIG);
 
-            let assert = run(&sandbox, Path::new(""), &["debug", "config"], &[]);
+            run(&sandbox, Path::new(""), &["debug", "config"], &[])
+                .success()
+                .stderr(predicate::str::contains(WARNING));
+        }
 
-            assert.success().stderr(predicate::str::contains(WARNING));
+        #[test]
+        fn does_not_warn_for_tool_commands() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file(".prototools", format!("protostar = \"1.0.0\"\n{CONFIG}"));
+
+            // Tools are executed many times by scripts and editors
+            let assert = run(&sandbox, Path::new(""), &["bin", "protostar"], &[]);
+
+            assert!(!assert.stderr().contains(WARNING));
         }
 
         #[test]
@@ -191,17 +207,15 @@ customtool = "file://./custom.wasm"
 "#,
             );
 
-            let assert = run(
+            run(
                 &sandbox,
                 Path::new(""),
                 &["install", "customtool", "1.0.0"],
                 &[],
-            );
-
-            assert
-                .failure()
-                .stderr(predicate::str::contains("which has not been trusted"))
-                .stderr(predicate::str::contains("proto trust"));
+            )
+            .failure()
+            .stderr(predicate::str::contains("which has not been trusted"))
+            .stderr(predicate::str::contains("proto trust"));
         }
 
         #[test]
@@ -249,6 +263,23 @@ customtool = "file://./custom.wasm"
         }
 
         #[test]
+        fn ignores_trusted_paths_set_by_a_previous_activation() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file(".prototools", CONFIG);
+
+            let activation = activate_in(
+                &sandbox,
+                Path::new(""),
+                &[
+                    ("PROTO_TRUSTED_PATHS", sandbox.path().to_str().unwrap()),
+                    ("_PROTO_ACTIVATED_ENV", "OTHER,PROTO_TRUSTED_PATHS"),
+                ],
+            );
+
+            assert_untrusted(&activation);
+        }
+
+        #[test]
         fn removes_tracking_when_deactivating() {
             let sandbox = create_empty_proto_sandbox();
 
@@ -256,7 +287,7 @@ customtool = "file://./custom.wasm"
                 &sandbox,
                 Path::new(""),
                 &["deactivate", "nu", "--reporter", "json"],
-                &[("_PROTO_ACTIVATED_UNTRUSTED", "/some/.prototools")],
+                &[("_PROTO_ACTIVATED_UNTRUSTED", "0123456789abcdef")],
             );
             let stdout = assert.stdout();
 
@@ -283,14 +314,15 @@ customtool = "file://./custom.wasm"
 
             trust(&sandbox, &[])
                 .success()
-                .stdout(predicate::str::contains("Trusted config"))
+                .stdout(predicate::str::contains("Trusted directory"))
+                .stdout(predicate::str::contains(".prototools"))
                 .stdout(predicate::str::contains("shell.aliases"));
 
             assert_trusted(&activate(&sandbox));
         }
 
         #[test]
-        fn requires_trust_again_when_sensitive_settings_change() {
+        fn keeps_trust_when_sensitive_settings_change() {
             let sandbox = create_empty_proto_sandbox();
             sandbox.create_file(".prototools", CONFIG);
 
@@ -298,78 +330,98 @@ customtool = "file://./custom.wasm"
 
             sandbox.create_file(".prototools", CONFIG.replace("value", "changed"));
 
-            assert_untrusted(&activate(&sandbox));
+            let activation = activate(&sandbox);
+
+            assert_eq!(activation.env.get("KEY").unwrap(), "changed");
+            assert!(!activation.stderr.contains(WARNING));
         }
 
         #[test]
-        fn keeps_trust_when_safe_settings_change() {
+        fn trusts_nested_configs() {
             let sandbox = create_empty_proto_sandbox();
-            sandbox.create_file(".prototools", CONFIG);
+            sandbox.create_file(".prototools", "");
+            sandbox.create_file("packages/child/.prototools", CONFIG);
 
             trust(&sandbox, &[]).success();
 
-            sandbox.create_file(
-                ".prototools",
-                format!("node = \"20\"\n\n# Comment\n{CONFIG}\n[settings]\nlockfile = true\n"),
-            );
-
-            let assert = run(&sandbox, Path::new(""), &["debug", "config", "--json"], &[]);
-            let stdout = assert.stdout();
-
-            assert.success();
-
-            let output: serde_json::Value = serde_json::from_str(&stdout).unwrap();
-
-            assert_eq!(output.pointer("/config/env/KEY").unwrap(), "value");
+            assert_trusted(&activate_in(&sandbox, Path::new("packages/child"), &[]));
         }
 
         #[test]
-        fn can_trust_a_config_file() {
+        fn trusts_env_configs() {
             let sandbox = create_empty_proto_sandbox();
-            sandbox.create_file("child/.prototools", CONFIG);
+            sandbox.create_file(".prototools", CONFIG);
+            sandbox.create_file(".prototools.prod", "[env]\nOTHER = \"value\"\n");
 
-            trust(&sandbox, &["child/.prototools"]).success();
-
-            assert_trusted(&activate_in(&sandbox, Path::new("child"), &[]));
-        }
-
-        #[test]
-        fn can_trust_a_directory_including_env_configs() {
-            let sandbox = create_empty_proto_sandbox();
-            sandbox.create_file("child/.prototools", CONFIG);
-            sandbox.create_file("child/.prototools.prod", "[env]\nOTHER = \"value\"\n");
-
-            trust(&sandbox, &["child"])
+            trust(&sandbox, &[])
                 .success()
                 .stdout(predicate::str::contains(".prototools.prod"));
 
-            let activation = activate_in(&sandbox, Path::new("child"), &[("PROTO_ENV", "prod")]);
+            let activation = activate_in(&sandbox, Path::new(""), &[("PROTO_ENV", "prod")]);
 
             assert_trusted(&activation);
             assert_eq!(activation.env.get("OTHER").unwrap(), "value");
         }
 
         #[test]
-        fn is_not_required_without_sensitive_settings() {
+        fn can_trust_a_config_file() {
             let sandbox = create_empty_proto_sandbox();
-            sandbox.create_file(".prototools", "node = \"20\"\n");
+            sandbox.create_file("child/.prototools", CONFIG);
+            sandbox.create_file("child/.prototools.prod", "[env]\nOTHER = \"value\"\n");
 
-            trust(&sandbox, &[])
+            trust(&sandbox, &["child/.prototools"])
                 .success()
-                .stdout(predicate::str::contains("does not need to be trusted"));
+                .stdout(predicate::str::contains("Trusted config"))
+                .stdout(predicate::str::contains("shell.aliases"));
 
-            assert!(!sandbox.path().join(".proto/trust").exists());
+            // Only that file, not its siblings
+            let activation = activate_in(&sandbox, Path::new("child"), &[("PROTO_ENV", "prod")]);
+
+            assert_eq!(activation.env.get("KEY").unwrap(), "value");
+            assert!(activation.env.get("OTHER").is_none());
+            assert!(activation.stderr.contains(".prototools.prod"));
+            assert_eq!(tracked_untrusted(&activation).len(), 16);
         }
 
         #[test]
-        fn fails_when_no_configs_found() {
+        fn fails_when_config_file_does_not_exist() {
             let sandbox = create_empty_proto_sandbox();
 
-            trust(&sandbox, &[])
+            trust(&sandbox, &["child/.prototools"])
                 .failure()
-                .stderr(predicate::str::contains(
-                    "No .prototools config files found",
-                ));
+                .stderr(predicate::str::contains("does not exist"));
+        }
+
+        #[test]
+        fn rejects_files_that_are_not_configs() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file("README.md", "");
+
+            trust(&sandbox, &["README.md"])
+                .failure()
+                .stderr(predicate::str::contains("is not a .prototools config file"));
+        }
+
+        #[test]
+        fn can_trust_a_directory_without_configs() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file("child/.gitkeep", "");
+
+            trust(&sandbox, &["child"]).success();
+
+            // Added later, for example by cloning a repository
+            sandbox.create_file("child/.prototools", CONFIG);
+
+            assert_trusted(&activate_in(&sandbox, Path::new("child"), &[]));
+        }
+
+        #[test]
+        fn fails_when_directory_does_not_exist() {
+            let sandbox = create_empty_proto_sandbox();
+
+            trust(&sandbox, &["missing"])
+                .failure()
+                .stderr(predicate::str::contains("does not exist"));
         }
 
         #[test]
@@ -379,15 +431,60 @@ customtool = "file://./custom.wasm"
 
             trust(&sandbox, &[]).success();
 
-            run(&sandbox, Path::new(""), &["untrust"], &[])
+            untrust(&sandbox, &[])
+                .success()
+                .stdout(predicate::str::contains("Untrusted directory"));
+
+            assert_untrusted(&activate(&sandbox));
+
+            untrust(&sandbox, &[])
+                .success()
+                .stdout(predicate::str::contains("was not trusted"));
+        }
+
+        #[test]
+        fn untrust_reports_parent_directory_still_trusted() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file("child/.prototools", CONFIG);
+
+            trust(&sandbox, &[]).success();
+
+            untrust(&sandbox, &["child"])
+                .success()
+                .stdout(predicate::str::contains("was not trusted"))
+                .stderr(predicate::str::contains("is trusted. Untrust it with"));
+
+            assert_trusted(&activate_in(&sandbox, Path::new("child"), &[]));
+        }
+
+        #[test]
+        fn can_untrust_a_config_file() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file(".prototools", CONFIG);
+
+            trust(&sandbox, &[".prototools"]).success();
+
+            untrust(&sandbox, &[".prototools"])
                 .success()
                 .stdout(predicate::str::contains("Untrusted config"));
 
             assert_untrusted(&activate(&sandbox));
+        }
 
-            run(&sandbox, Path::new(""), &["untrust"], &[])
+        #[test]
+        fn untrust_file_reports_directory_still_trusted() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file(".prototools", CONFIG);
+
+            trust(&sandbox, &[]).success();
+
+            untrust(&sandbox, &[".prototools"])
                 .success()
-                .stdout(predicate::str::contains("was not trusted"));
+                .stdout(predicate::str::contains("Config"))
+                .stdout(predicate::str::contains("was not trusted"))
+                .stderr(predicate::str::contains("The config is still trusted"));
+
+            assert_trusted(&activate(&sandbox));
         }
     }
 
@@ -414,7 +511,28 @@ customtool = "file://./custom.wasm"
         }
 
         #[test]
-        fn trusts_changes_made_by_proto_to_trusted_configs() {
+        fn trusts_only_the_changed_config() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file(".prototools", "node = \"20\"\n");
+            sandbox.create_file(".prototools.prod", "[env]\nOTHER = \"value\"\n");
+
+            run(
+                &sandbox,
+                Path::new(""),
+                &["plugin", "add", "customtool", "file://./custom.wasm"],
+                &[],
+            )
+            .success();
+
+            let activation = activate_in(&sandbox, Path::new(""), &[("PROTO_ENV", "prod")]);
+
+            assert!(activation.env.get("OTHER").is_none());
+            assert!(activation.stderr.contains(".prototools.prod"));
+            assert!(!activation.stderr.contains(".prototools has not"));
+        }
+
+        #[test]
+        fn keeps_trusted_configs_trusted_after_changes() {
             let sandbox = create_empty_proto_sandbox();
             sandbox.create_file(".prototools", CONFIG);
 

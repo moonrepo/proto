@@ -422,8 +422,8 @@ pub enum Commands {
 
     #[command(
         name = "trust",
-        about = "Trust the security-sensitive settings of a config file.",
-        long_about = "Trust the security-sensitive settings of a config file, like environment variables, shell aliases, and plugins, so that they are applied. Local configs are untrusted by default, as they may come from a cloned repository.\n\nTrust is tied to the current value of these settings, so the config must be trusted again when they change.\nLearn more: https://moonrepo.dev/docs/proto/config#trust"
+        about = "Trust a config file, or the config files within a directory.",
+        long_about = "Trust a config file, or the config files within a directory, so that their security-sensitive settings, like environment variables, shell aliases, and plugins, are applied. Local configs are untrusted by default, as they may come from a cloned repository.\n\nTrusting a directory also trusts its sub-directories. Trust is not affected by changes to the configs.\nLearn more: https://moonrepo.dev/docs/proto/config#trust"
     )]
     Trust(TrustArgs),
 
@@ -447,7 +447,7 @@ pub enum Commands {
 
     #[command(
         name = "untrust",
-        about = "Remove trust from a config file, so that its security-sensitive settings are ignored."
+        about = "Remove trust from a config file or directory, so that the security-sensitive settings of the config files are ignored."
     )]
     Untrust(UntrustArgs),
 
