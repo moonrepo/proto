@@ -93,12 +93,12 @@ impl ProtoEnvironment {
     pub fn get_config_dir(&self, pin: PinLocation) -> Result<&Path, ProtoConfigError> {
         match pin {
             PinLocation::Closest => {
-                for file in self.load_file_manager()?.get_config_files() {
-                    if file.exists
-                        && let Some(dir) = file.path.parent()
-                        && dir != self.working_dir
+                // Only project directories, never the user or global configs
+                for entry in &self.load_file_manager()?.entries {
+                    if entry.location == PinLocation::Local
+                        && entry.configs.iter().any(|file| file.exists)
                     {
-                        return Ok(dir);
+                        return Ok(&entry.path);
                     }
                 }
 

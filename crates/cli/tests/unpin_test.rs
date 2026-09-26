@@ -270,3 +270,134 @@ mod unpin_user {
         }
     }
 }
+
+mod unpin_closest {
+    use super::*;
+
+    #[test]
+    fn removes_from_closest_parent_config() {
+        let sandbox = create_empty_proto_sandbox();
+        let config_file = sandbox.path().join("a/.prototools");
+
+        sandbox.create_file(
+            "a/.prototools",
+            r#"protostar = "1.0.0"
+moonstone = "2.0.0"
+"#,
+        );
+        sandbox.create_file("a/b/c/file.txt", "");
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("unpin")
+                    .arg("protostar")
+                    .arg("--from")
+                    .arg("closest")
+                    .current_dir(sandbox.path().join("a/b/c"));
+            })
+            .success();
+
+        assert!(!sandbox.path().join("a/b/c/.prototools").exists());
+        assert_eq!(
+            fs::read_to_string(config_file).unwrap(),
+            "moonstone = \"2.0.0\"\n"
+        );
+    }
+
+    #[test]
+    fn prefers_local_config_over_parent() {
+        let sandbox = create_empty_proto_sandbox();
+
+        sandbox.create_file("a/.prototools", "protostar = \"1.0.0\"\n");
+        sandbox.create_file("a/b/c/.prototools", "protostar = \"2.0.0\"\n");
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("unpin")
+                    .arg("protostar")
+                    .arg("--from")
+                    .arg("closest")
+                    .current_dir(sandbox.path().join("a/b/c"));
+            })
+            .success();
+
+        assert_eq!(
+            fs::read_to_string(sandbox.path().join("a/b/c/.prototools")).unwrap(),
+            ""
+        );
+        assert_eq!(
+            fs::read_to_string(sandbox.path().join("a/.prototools")).unwrap(),
+            "protostar = \"1.0.0\"\n"
+        );
+    }
+
+    #[test]
+    fn ignores_global_config() {
+        let sandbox = create_empty_proto_sandbox();
+
+        sandbox.create_file(".proto/.prototools", "protostar = \"1.0.0\"\n");
+        sandbox.create_file("a/b/c/file.txt", "");
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("unpin")
+                    .arg("protostar")
+                    .arg("--from")
+                    .arg("closest")
+                    .current_dir(sandbox.path().join("a/b/c"));
+            })
+            .failure();
+
+        assert_eq!(
+            fs::read_to_string(sandbox.path().join(".proto/.prototools")).unwrap(),
+            "protostar = \"1.0.0\"\n"
+        );
+    }
+
+    #[test]
+    fn is_the_default_location() {
+        let sandbox = create_empty_proto_sandbox();
+        let config_file = sandbox.path().join("a/.prototools");
+
+        sandbox.create_file("a/.prototools", "protostar = \"1.0.0\"\n");
+        sandbox.create_file("a/b/c/file.txt", "");
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("unpin")
+                    .arg("protostar")
+                    .current_dir(sandbox.path().join("a/b/c"));
+            })
+            .success();
+
+        assert_eq!(fs::read_to_string(config_file).unwrap(), "");
+    }
+
+    mod tool_native {
+        use super::*;
+
+        #[test]
+        #[ignore = "WASM plugins can't access ancestors of the working directory"]
+        fn removes_file_next_to_closest_config() {
+            let sandbox = create_empty_proto_sandbox();
+            let version_file = sandbox.path().join("a/.protostar-version");
+
+            sandbox.create_file("a/.prototools", "");
+            sandbox.create_file("a/.protostar-version", "1.0.0");
+            sandbox.create_file("a/b/c/file.txt", "");
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("unpin")
+                        .arg("protostar")
+                        .arg("--from")
+                        .arg("closest")
+                        .arg("--tool-native")
+                        .current_dir(sandbox.path().join("a/b/c"));
+                })
+                .success();
+
+            assert!(!version_file.exists());
+        }
+    }
+}
