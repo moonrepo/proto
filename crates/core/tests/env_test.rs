@@ -74,8 +74,41 @@ mod get_config_dir {
         }
 
         #[test]
-        fn returns_parent_dir_with_only_an_env_config() {
+        fn ignores_env_config_when_env_active() {
             let sandbox = create_empty_sandbox();
+            sandbox.create_file("a/.prototools.prod", "");
+
+            let cwd = sandbox.path().join("a/b/c");
+            let mut env = create_env(sandbox.path(), &cwd);
+            env.env_mode = Some("prod".into());
+
+            assert_eq!(env.get_config_dir(PinLocation::Closest).unwrap(), cwd);
+        }
+
+        #[test]
+        fn returns_same_dir_regardless_of_env() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file("a/.prototools", "");
+            sandbox.create_file("a/b/.prototools.prod", "");
+
+            let cwd = sandbox.path().join("a/b/c");
+
+            for env_mode in [None, Some("prod".to_owned())] {
+                let mut env = create_env(sandbox.path(), &cwd);
+                env.env_mode = env_mode;
+
+                assert_eq!(
+                    env.get_config_dir(PinLocation::Closest).unwrap(),
+                    sandbox.path().join("a")
+                );
+            }
+        }
+
+        #[test]
+        fn returns_dir_with_both_base_and_env_configs() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "");
+            sandbox.create_file("a/.prototools", "");
             sandbox.create_file("a/.prototools.prod", "");
 
             let mut env = create_env(sandbox.path(), &sandbox.path().join("a/b/c"));

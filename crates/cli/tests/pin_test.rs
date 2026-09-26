@@ -654,6 +654,34 @@ protostar = "1.0.0"
     }
 
     #[test]
+    fn ignores_env_only_version_file() {
+        let sandbox = create_empty_proto_sandbox();
+        let version_file = sandbox.path().join("a/.prototools");
+
+        sandbox.create_file("a/.prototools", "");
+        sandbox.create_file("a/b/.prototools.prod", "moonstone = \"3.0.0\"\n");
+        sandbox.create_file("a/b/c/file.txt", "");
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("pin")
+                    .arg("protostar")
+                    .arg("1.0.0")
+                    .arg("--to")
+                    .arg("closest")
+                    .env("PROTO_ENV", "prod")
+                    .current_dir(sandbox.path().join("a/b/c"));
+            })
+            .success();
+
+        assert!(!sandbox.path().join("a/b/.prototools").exists());
+        assert_eq!(
+            fs::read_to_string(version_file).unwrap(),
+            "protostar = \"1.0.0\"\n"
+        );
+    }
+
+    #[test]
     fn is_the_default_location() {
         let sandbox = create_empty_proto_sandbox();
         let version_file = sandbox.path().join("a/.prototools");

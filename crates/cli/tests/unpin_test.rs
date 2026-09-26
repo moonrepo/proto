@@ -355,6 +355,30 @@ moonstone = "2.0.0"
     }
 
     #[test]
+    fn ignores_env_only_config() {
+        let sandbox = create_empty_proto_sandbox();
+        let config_file = sandbox.path().join("a/.prototools");
+
+        sandbox.create_file("a/.prototools", "protostar = \"1.0.0\"\n");
+        sandbox.create_file("a/b/.prototools.prod", "moonstone = \"3.0.0\"\n");
+        sandbox.create_file("a/b/c/file.txt", "");
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("unpin")
+                    .arg("protostar")
+                    .arg("--from")
+                    .arg("closest")
+                    .env("PROTO_ENV", "prod")
+                    .current_dir(sandbox.path().join("a/b/c"));
+            })
+            .success();
+
+        assert!(!sandbox.path().join("a/b/.prototools").exists());
+        assert_eq!(fs::read_to_string(config_file).unwrap(), "");
+    }
+
+    #[test]
     fn is_the_default_location() {
         let sandbox = create_empty_proto_sandbox();
         let config_file = sandbox.path().join("a/.prototools");
