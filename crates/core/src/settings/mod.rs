@@ -55,7 +55,7 @@ impl ConfigMode {
 }
 
 derive_enum!(
-    #[derive(ConfigEnum, Default)]
+    #[derive(ConfigEnum, Copy, Default)]
     pub enum DetectStrategy {
         #[default]
         FirstAvailable,
@@ -65,13 +65,14 @@ derive_enum!(
 );
 
 derive_enum!(
-    #[derive(Copy, ConfigEnum, Default)]
+    #[derive(ConfigEnum, Copy, Default)]
     #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
     pub enum PinLocation {
+        #[default]
+        Closest,
         #[serde(alias = "store")]
         #[cfg_attr(feature = "clap", value(alias("store")))]
         Global,
-        #[default]
         #[serde(alias = "cwd")]
         #[cfg_attr(feature = "clap", value(alias("cwd")))]
         Local,

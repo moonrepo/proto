@@ -20,6 +20,14 @@
 - [Zig](https://github.com/moonrepo/plugins/blob/master/tools/zig/CHANGELOG.md)
 - [ZLS](https://github.com/moonrepo/plugins/blob/master/tools/zig-ls/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added a `closest` pin location, which targets the closest directory with a `.prototools`, starting from the current directory and traversing upwards. When none is found, the current directory is used. Directories with only an environment config (`.prototools.<env>`), and the user (`~/.prototools`) and global (`~/.proto/.prototools`) configs, are never targeted.
+  - This is now the default location for `proto pin`, `proto unpin`, `proto alias`, `proto unalias`, `proto plugin add`, `proto plugin remove`, and `proto install --pin`, instead of `local`. Pass `--to local` (or `--from local`) for the previous behavior.
+  - The `install` MCP tool now pins to the closest config as well.
+
 ## 0.62.3
 
 #### 🚀 Updates

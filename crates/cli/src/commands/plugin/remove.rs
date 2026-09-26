@@ -19,7 +19,7 @@ pub struct PluginRemoveArgs {
 
 #[instrument(skip(session))]
 pub async fn remove(session: ProtoSession, args: PluginRemoveArgs) -> SessionResult {
-    let config_dir = session.env.get_config_dir(args.from);
+    let config_dir = session.env.get_config_dir(args.from)?;
     let config_path = config_dir.join(PROTO_CONFIG_NAME);
 
     if !config_path.exists() {

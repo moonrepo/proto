@@ -13,9 +13,8 @@ use schematic::{
 use serde::Serialize;
 use starbase_styles::color;
 use starbase_utils::envx::bool_var;
-use starbase_utils::fs::FsError;
-use starbase_utils::toml::TomlValue;
-use starbase_utils::{fs, toml};
+use starbase_utils::fs::{self, FsError};
+use starbase_utils::toml::{self, TomlValue};
 use std::collections::BTreeMap;
 use std::env;
 use std::ffi::OsStr;

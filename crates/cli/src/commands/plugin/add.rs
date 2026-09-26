@@ -21,7 +21,7 @@ pub struct PluginAddArgs {
 
 #[instrument(skip(session))]
 pub async fn add(session: ProtoSession, args: PluginAddArgs) -> SessionResult {
-    let config_path = ProtoConfig::update_document(session.env.get_config_dir(args.to), |doc| {
+    let config_path = ProtoConfig::update_document(session.env.get_config_dir(args.to)?, |doc| {
         let key = if args.ty == PluginType::Backend {
             "backends"
         } else {
