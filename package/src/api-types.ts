@@ -36,8 +36,6 @@ export interface HostLogInput {
 	target?: HostLogTarget;
 }
 
-export type VirtualPath = string;
-
 /** Input passed to the `exec_command` host function. */
 export interface ExecCommandInput {
 	/** Arguments to pass to the command. */
@@ -125,6 +123,8 @@ export interface TestEnvironment {
 }
 
 export type PluginLocator = string;
+
+export type VirtualPath = string;
 
 export type Version = string;
 
@@ -288,8 +288,6 @@ export interface GitSource {
 	url: string;
 }
 
-export type SourceLocation = ArchiveSource | GitSource;
-
 /** Output returned by the `register_backend` function. */
 export interface RegisterBackendOutput {
 	/**
@@ -418,7 +416,7 @@ export interface DownloadPrebuiltOutput {
 	 */
 	download_name?: string | null;
 	/** A secure URL to download the tool/archive. */
-	download_url: string;
+	download_url?: string;
 	/**
 	 * A map of HTTP headers to include in all requests
 	 * during the download phase.
@@ -662,13 +660,7 @@ export interface RunHookResult {
 	paths?: string[] | null;
 }
 
-/** Input passed to the `build_instructions` function. */
-export interface BuildInstructionsInput {
-	/** Current tool context. */
-	context: PluginContext;
-	/** Virtual directory to install to. */
-	install_dir: VirtualPath;
-}
+export type SourceLocation = ArchiveSource | GitSource;
 
 export type BuildInstruction = {
 	/** A builder and its parameters for installing the builder. */
@@ -792,4 +784,12 @@ export interface BuildInstructionsOutput {
 	 * If a dependency does not exist, it will be installed.
 	 */
 	system_dependencies?: SystemDependency[];
+}
+
+/** Input passed to the `build_instructions` function. */
+export interface BuildInstructionsInput {
+	/** Current tool context. */
+	context: PluginContext;
+	/** Virtual directory to install to. */
+	install_dir: VirtualPath;
 }

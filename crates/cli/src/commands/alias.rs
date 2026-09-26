@@ -41,7 +41,7 @@ pub async fn alias(session: ProtoSession, args: AliasArgs) -> SessionResult {
 
     let tool = session.load_tool(&args.context).await?;
 
-    let config_path = ProtoConfig::update_document(tool.proto.get_config_dir(args.to), |doc| {
+    let config_path = ProtoConfig::update_document(tool.proto.get_config_dir(args.to)?, |doc| {
         let tools = doc["tools"].or_insert(cfg::implicit_table());
         let record = tools[tool.context.as_str()].or_insert(cfg::implicit_table());
         let aliases = record["aliases"].or_insert(cfg::implicit_table());

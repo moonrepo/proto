@@ -26,7 +26,7 @@ pub struct UnpinArgs {
 pub async fn unpin(session: ProtoSession, args: UnpinArgs) -> SessionResult {
     let tool = session.load_tool(&args.context).await?;
     let mut value = None;
-    let config_dir = tool.proto.get_config_dir(args.from);
+    let config_dir = tool.proto.get_config_dir(args.from)?;
     let config_path;
 
     if args.tool_native {

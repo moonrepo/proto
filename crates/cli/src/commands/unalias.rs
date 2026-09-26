@@ -22,7 +22,7 @@ pub async fn unalias(session: ProtoSession, args: UnaliasArgs) -> SessionResult 
     let tool = session.load_tool(&args.context).await?;
     let mut value = None;
 
-    let config_path = ProtoConfig::update_document(tool.proto.get_config_dir(args.from), |doc| {
+    let config_path = ProtoConfig::update_document(tool.proto.get_config_dir(args.from)?, |doc| {
         if let Some(tools) = doc.get_mut("tools").and_then(|item| item.as_table_mut()) {
             if let Some(record) = tools
                 .get_mut(tool.context.as_str())
