@@ -90,11 +90,23 @@ impl ProtoEnvironment {
         MetricTimer::start(self.otel_enabled)
     }
 
-    pub fn get_config_dir(&self, pin: PinLocation) -> &Path {
+    pub fn get_config_dir(&self, pin: PinLocation) -> Result<&Path, ProtoConfigError> {
         match pin {
-            PinLocation::Global => &self.store.dir,
-            PinLocation::Local => &self.working_dir,
-            PinLocation::User => &self.home_dir,
+            PinLocation::Closest => {
+                for file in self.load_file_manager()?.get_config_files() {
+                    if file.exists
+                        && let Some(dir) = file.path.parent()
+                        && dir != self.working_dir
+                    {
+                        return Ok(dir);
+                    }
+                }
+
+                Ok(&self.working_dir)
+            }
+            PinLocation::Global => Ok(&self.store.dir),
+            PinLocation::Local => Ok(&self.working_dir),
+            PinLocation::User => Ok(&self.home_dir),
         }
     }
 

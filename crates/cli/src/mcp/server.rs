@@ -172,7 +172,7 @@ impl ProtoMcp {
                         multiple: false,
                         passthrough_args: vec![],
                         pin_to: if req.pin {
-                            Some(PinLocation::Local)
+                            Some(PinLocation::Closest)
                         } else {
                             None
                         },

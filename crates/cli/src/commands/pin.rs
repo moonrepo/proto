@@ -44,7 +44,7 @@ pub async fn internal_pin(
         None => spec.req.to_string(),
     };
 
-    let config_dir = tool.proto.get_config_dir(pin_to);
+    let config_dir = tool.proto.get_config_dir(pin_to)?;
     let mut previous_spec = None;
 
     let config_path = ProtoConfig::update_document(config_dir, |doc| {
@@ -120,7 +120,7 @@ pub async fn pin(session: ProtoSession, args: PinArgs) -> SessionResult {
                     PluginFunction::PinVersion,
                     PinVersionInput {
                         context: tool.create_plugin_unresolved_context(),
-                        dir: tool.to_virtual_path(tool.proto.get_config_dir(args.to)),
+                        dir: tool.to_virtual_path(tool.proto.get_config_dir(args.to)?),
                         version: spec.to_unresolved_spec(),
                     },
                 )
