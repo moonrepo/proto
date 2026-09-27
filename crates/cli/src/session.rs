@@ -386,22 +386,31 @@ impl AppSession for ProtoSession {
         load_proto_configs(&self.env)?;
 
         // Activation tracks and warns about untrusted configs itself, as its
-        // hook runs on every prompt. Tool commands are executed many times by
-        // scripts and editors (through shims), so they stay quiet, and fail
-        // with a trust error when the tool itself is affected. The remaining
-        // commands don't load configs.
-        if !matches!(
-            self.cli.command,
-            Commands::Activate(_)
-                | Commands::Bin(_)
-                | Commands::Completions(_)
-                | Commands::Deactivate(_)
-                | Commands::Exec(_)
-                | Commands::Run(_)
-                | Commands::Shell(_)
-                | Commands::Trust(_)
-                | Commands::Untrust(_)
-        ) {
+        // hook runs on every prompt, `diagnose` reports them as warnings, and
+        // `status` renders them (except for JSON, which has no place for them).
+        // Tool commands are executed many times by scripts and editors (through
+        // shims), so they stay quiet, and fail with a trust error when the tool
+        // itself is affected. The remaining commands don't load configs.
+        let renders_trust = match self.cli.command {
+            Commands::Diagnose(_) => true,
+            Commands::Status(_) => !self.is_json_format(),
+            _ => false,
+        };
+
+        if !renders_trust
+            && !matches!(
+                self.cli.command,
+                Commands::Activate(_)
+                    | Commands::Bin(_)
+                    | Commands::Completions(_)
+                    | Commands::Deactivate(_)
+                    | Commands::Exec(_)
+                    | Commands::Run(_)
+                    | Commands::Shell(_)
+                    | Commands::Trust(_)
+                    | Commands::Untrust(_)
+            )
+        {
             warn_untrusted_configs(&self.env)?;
         }
 

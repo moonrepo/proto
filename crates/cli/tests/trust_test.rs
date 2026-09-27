@@ -592,4 +592,181 @@ customtool = "file://./custom.wasm"
             assert_untrusted(&activate(&sandbox));
         }
     }
+
+    mod review {
+        use super::*;
+
+        #[test]
+        fn trust_prints_the_sensitive_settings() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                format!("node = \"20\"\n\n[settings]\nlockfile = true\n{CONFIG}"),
+            );
+
+            let assert = trust(&sandbox, &[".prototools"]);
+            let stdout = assert.stdout();
+
+            assert.success();
+
+            assert!(stdout.contains("[env]"));
+            assert!(stdout.contains("KEY = \"value\""));
+            assert!(stdout.contains("[shell.aliases]"));
+
+            // Safe settings are not part of the review
+            assert!(!stdout.contains("node = "));
+            assert!(!stdout.contains("lockfile"));
+        }
+
+        #[test]
+        fn trust_does_not_print_settings_for_json() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file(".prototools", CONFIG);
+
+            let assert = trust(&sandbox, &["--json"]);
+            let stdout = assert.stdout();
+
+            assert.success();
+
+            serde_json::from_str::<serde_json::Value>(&stdout).unwrap();
+        }
+    }
+
+    mod clean {
+        use super::*;
+
+        #[test]
+        fn prunes_records_for_removed_paths() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file("kept/.prototools", CONFIG);
+            sandbox.create_file("removed/.prototools", CONFIG);
+
+            trust(&sandbox, &["kept"]).success();
+            trust(&sandbox, &["removed"]).success();
+
+            std::fs::remove_dir_all(sandbox.path().join("removed")).unwrap();
+
+            let assert = run(&sandbox, Path::new(""), &["clean", "trust", "--json"], &[]);
+            let stdout = assert.stdout();
+
+            assert.success();
+
+            let output: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+            let pruned = output.get("trust").unwrap().as_array().unwrap();
+
+            assert_eq!(pruned.len(), 1);
+            assert!(pruned[0].as_str().unwrap().ends_with("removed"));
+
+            // Cloned again at the same path
+            sandbox.create_file("removed/.prototools", CONFIG);
+
+            assert_untrusted(&activate_in(&sandbox, Path::new("removed"), &[]));
+            assert_trusted(&activate_in(&sandbox, Path::new("kept"), &[]));
+        }
+
+        #[test]
+        fn reports_pruned_records() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file("removed/.prototools", CONFIG);
+
+            trust(&sandbox, &["removed"]).success();
+
+            std::fs::remove_dir_all(sandbox.path().join("removed")).unwrap();
+
+            run(&sandbox, Path::new(""), &["clean", "trust"], &[])
+                .success()
+                .stdout(predicate::str::contains(
+                    "1 trust records for paths that no longer exist",
+                ));
+        }
+    }
+
+    mod reporting {
+        use super::*;
+
+        #[test]
+        fn status_renders_untrusted_configs() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file(".prototools", format!("protostar = \"1.0.0\"\n{CONFIG}"));
+
+            let assert = run(&sandbox, Path::new(""), &["status"], &[]);
+            let stderr = assert.stderr();
+
+            assert.success();
+
+            assert!(stderr.contains("UNTRUSTED CONFIGS"));
+            assert!(stderr.contains("shell.aliases"));
+            assert!(stderr.contains("proto trust [path]"));
+
+            // Rendered instead of logged
+            assert!(!stderr.contains(WARNING));
+        }
+
+        #[test]
+        fn status_logs_untrusted_configs_for_json() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file(".prototools", format!("protostar = \"1.0.0\"\n{CONFIG}"));
+
+            let assert = run(&sandbox, Path::new(""), &["status", "--json"], &[]);
+            let stdout = assert.stdout();
+            let stderr = assert.stderr();
+
+            assert.success();
+
+            // The output shape is unchanged
+            let output: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+
+            assert!(output.get("protostar").is_some());
+            assert!(stderr.contains(WARNING));
+        }
+
+        #[test]
+        fn status_explains_missing_tools() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file(".prototools", "sometool = \"1.0.0\"\n");
+
+            // The only pin requires trust, so there are no tools
+            run(&sandbox, Path::new(""), &["status"], &[])
+                .failure()
+                .stderr(predicate::str::contains("UNTRUSTED CONFIGS"))
+                .stderr(predicate::str::contains("sometool"));
+        }
+
+        #[test]
+        fn diagnose_reports_untrusted_configs() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file(".prototools", CONFIG);
+
+            let assert = run(&sandbox, Path::new(""), &["diagnose", "--json"], &[]);
+            let stdout = assert.stdout();
+            let stderr = assert.stderr();
+
+            let output: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+            let warnings = output.get("warnings").unwrap().as_array().unwrap();
+
+            let issue = warnings
+                .iter()
+                .find(|warning| {
+                    warning
+                        .get("issue")
+                        .unwrap()
+                        .as_str()
+                        .unwrap()
+                        .contains("has not been trusted")
+                })
+                .expect("missing untrusted config warning");
+
+            assert!(
+                issue
+                    .get("resolution")
+                    .unwrap()
+                    .as_str()
+                    .unwrap()
+                    .contains("proto trust")
+            );
+
+            // Reported as a warning instead of logged
+            assert!(!stderr.contains(WARNING));
+        }
+    }
 }

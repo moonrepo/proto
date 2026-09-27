@@ -4,7 +4,7 @@ use crate::helpers::fetch_latest_version;
 use crate::session::{ProtoSession, SessionResult};
 use clap::Args;
 use iocraft::prelude::{FlexDirection, View, element};
-use proto_core::{Id, ToolContext};
+use proto_core::{Id, ProtoConfigTrust, ToolContext};
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 use starbase_console::ui::*;
@@ -288,6 +288,59 @@ async fn gather_warnings(
 
     if !warnings.is_empty() {
         tips.push("Run <shell>proto setup</shell> to resolve some of these issues!".into());
+    }
+
+    // After the tip, as these can't be resolved by `proto setup`
+    warnings.extend(gather_trust_warnings(session)?);
+
+    Ok(warnings)
+}
+
+fn gather_trust_warnings(session: &ProtoSession) -> Result<Vec<Issue>, ProtoCliError> {
+    let mut warnings = vec![];
+
+    let files = session
+        .env
+        .load_config_files()
+        .map_err(|error| ProtoCliError::Config(Box::new(error)))?;
+
+    for file in files {
+        if file.trust != ProtoConfigTrust::Untrusted {
+            continue;
+        }
+
+        warnings.push(Issue {
+            issue: format!(
+                "Config <path>{}</path> has not been trusted, so its security-sensitive settings ({}) are ignored",
+                file.path.display(),
+                file.sensitive
+                    .iter()
+                    .map(|field| format!("<property>{field}</property>"))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+            resolution: Some(format!(
+                "Review the config, then trust it with <shell>proto trust {}</shell>",
+                file.path.display()
+            )),
+            comment: None,
+        });
+    }
+
+    // CI is detected from environment variables, so a variable that leaked
+    // into an interactive shell (for example from a profile) trusts every config
+    if session.env.trust.trust_all && session.is_tty() {
+        warnings.push(Issue {
+            issue: "All configs are trusted, as a CI environment was detected".into(),
+            resolution: Some(
+                "If this is not a CI environment, remove <property>CI</property> (or the CI provider's variables) from your shell"
+                    .into(),
+            ),
+            comment: Some(
+                "Configs in any directory, including cloned repositories, can execute code on this machine"
+                    .into(),
+            ),
+        });
     }
 
     Ok(warnings)

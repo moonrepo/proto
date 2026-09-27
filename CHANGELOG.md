@@ -28,7 +28,7 @@
   - Security-sensitive settings are `[env]` (including `.env` files), `[shell]`, `[plugins]`, `[backends]`, `[tools.*]` (except `aliases`), the `proto` version pin, and all `[settings]` except `detect-strategy`, `lockfile`, `pin-latest`, and `telemetry`.
   - Version pins for built-in tools (and the `npm` and `cargo` backends), version aliases, and the remaining settings are always applied. Pins for other tools also require trust, as loading them downloads and executes a third-party plugin (from the community registry, or an asdf plugin).
   - User (`~/.prototools`) and global (`~/.proto/.prototools`) configs are always trusted.
-  - All configs are trusted in CI, and within the directories listed in the `PROTO_TRUSTED_PATHS` environment variable.
+  - All configs are trusted in CI, and within the directories listed in the `PROTO_TRUSTED_PATHS` environment variable. CI is detected from the `CI` environment variable (or a CI provider's variables), so avoid setting it in your shell profile.
 
 #### 🚀 Updates
 
@@ -38,6 +38,9 @@
 - Added `proto trust [path]` and `proto untrust [path]` commands, where the path is a config file, or a directory (including its sub-directories). Defaults to the current directory.
   - Trust is not affected by changes to the configs.
   - When proto adds security-sensitive settings to a config that had none, like `proto plugin add`, the config is trusted.
+- Added a `trust` target to `proto clean`, which removes trust records for config files and directories that no longer exist, so a repository cloned later at the same path is not trusted. Also included in the default `all` target.
+- Updated `proto trust` to print the security-sensitive settings that it applies, for review.
+- Updated `proto status` and `proto diagnose` to report untrusted configs, and `proto diagnose` to warn when every config is trusted because a CI environment was detected in an interactive terminal.
 - Updated `proto activate` to warn about untrusted configs once per shell session. Other commands warn about them too, except tool commands (`run`, `exec`, `bin`, `shell`), which are executed by scripts and editors.
 
 ## 0.62.3

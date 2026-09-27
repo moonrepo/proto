@@ -37,10 +37,12 @@ pub enum ProtoConfigTrust {
     Untrusted,
 }
 
-/// Return the paths of the security-sensitive settings configured in the
-/// provided config, for display purposes. Returns an empty list if the
-/// config has none, in which case it does not need to be trusted.
-pub fn get_sensitive_fields(config: &PartialProtoConfig) -> Result<Vec<String>, ProtoConfigError> {
+/// Return the security-sensitive settings configured in the provided config,
+/// with unconfigured settings removed, for display purposes. Returns `None`
+/// if the config has none, in which case it does not need to be trusted.
+pub fn get_sensitive_config(
+    config: &PartialProtoConfig,
+) -> Result<Option<JsonValue>, ProtoConfigError> {
     let (_, sensitive) = split_config(config.to_owned());
 
     let value = json::serde_json::to_value(&sensitive).map_err(|error| {
@@ -49,7 +51,14 @@ pub fn get_sensitive_fields(config: &PartialProtoConfig) -> Result<Vec<String>, 
         })
     })?;
 
-    Ok(prune_json(value)
+    Ok(prune_json(value))
+}
+
+/// Return the paths of the security-sensitive settings configured in the
+/// provided config, like `env` or `plugins.tools`, for display purposes.
+/// Returns an empty list if the config has none.
+pub fn get_sensitive_fields(config: &PartialProtoConfig) -> Result<Vec<String>, ProtoConfigError> {
+    Ok(get_sensitive_config(config)?
         .map(|value| collect_fields(&value))
         .unwrap_or_default())
 }
@@ -307,15 +316,22 @@ impl ProtoTrustStore {
     /// directory and its sub-directories. Returns the normalized path.
     pub fn trust(&self, path: &Path) -> Result<PathBuf, ProtoConfigError> {
         let path = normalize_path(path);
+        let record_path = self.get_record_path(&path);
 
         debug!(path = ?path, "Trusting path");
 
-        json::write_file(
-            self.get_record_path(&path),
-            &ProtoTrustRecord { path: path.clone() },
-            true,
-        )
-        .map_err(Box::new)?;
+        // Write to a temporary file and move it into place, so that a
+        // concurrent reader never observes a partially written record
+        let temp_path = record_path.with_extension(format!("{}.tmp", std::process::id()));
+
+        json::write_file(&temp_path, &ProtoTrustRecord { path: path.clone() }, true)
+            .map_err(Box::new)?;
+
+        if let Err(error) = fs::rename(&temp_path, &record_path) {
+            let _ = fs::remove_file(&temp_path);
+
+            return Err(error.into());
+        }
 
         Ok(path)
     }
@@ -335,6 +351,40 @@ impl ProtoTrustStore {
         fs::remove_file(record_path)?;
 
         Ok(true)
+    }
+
+    /// Remove records for paths that no longer exist, and records that can't be
+    /// read. Otherwise a repository cloned later at a previously trusted path
+    /// would inherit its trust. Returns the paths that are no longer trusted.
+    pub fn prune(&self) -> Result<Vec<PathBuf>, ProtoConfigError> {
+        let mut pruned = vec![];
+
+        if !self.dir.is_dir() {
+            return Ok(pruned);
+        }
+
+        for entry in fs::read_dir(&self.dir)? {
+            let record_path = entry.path();
+
+            if record_path.extension().is_none_or(|ext| ext != "json") {
+                continue;
+            }
+
+            let path = match json::read_file::<ProtoTrustRecord>(&record_path) {
+                Ok(record) if record.path.exists() => continue,
+                Ok(record) => record.path,
+                Err(_) => record_path.clone(),
+            };
+
+            debug!(path = ?path, record = ?record_path, "Pruning trust record");
+
+            fs::remove_file(&record_path)?;
+            pruned.push(path);
+        }
+
+        pruned.sort();
+
+        Ok(pruned)
     }
 
     fn has_record(&self, path: &Path) -> bool {
@@ -762,6 +812,76 @@ lockfile = true
                 Some(ProtoTrustSource::TrustedPath(_))
             ));
             assert!(!store.is_trusted(&sandbox.path().join("trusted-sibling/.prototools")));
+        }
+
+        #[test]
+        fn writes_records_without_leaving_temp_files() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file("a/.prototools", "");
+
+            let store = create_store(sandbox.path());
+
+            store.trust(&sandbox.path().join("a")).unwrap();
+            store.trust(&sandbox.path().join("a")).unwrap();
+
+            let files = std::fs::read_dir(&store.dir)
+                .unwrap()
+                .map(|entry| entry.unwrap().file_name().to_string_lossy().to_string())
+                .collect::<Vec<_>>();
+
+            assert_eq!(files.len(), 1);
+            assert!(files[0].ends_with(".json"));
+        }
+
+        #[test]
+        fn prunes_records_for_missing_paths() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file("kept/.prototools", "");
+            sandbox.create_file("removed/.prototools", "");
+
+            let store = create_store(sandbox.path());
+            let kept = store.trust(&sandbox.path().join("kept")).unwrap();
+            let removed = store.trust(&sandbox.path().join("removed")).unwrap();
+
+            // A config file that doesn't exist (yet), is also pruned
+            let missing_file = store.trust(&kept.join(".prototools.prod")).unwrap();
+
+            std::fs::remove_dir_all(&removed).unwrap();
+
+            let mut expected = vec![missing_file, removed.clone()];
+            expected.sort();
+
+            assert_eq!(store.prune().unwrap(), expected);
+            assert!(store.is_trusted(&kept.join(".prototools")));
+
+            // A repository cloned later at the same path is not trusted
+            sandbox.create_file("removed/.prototools", "");
+
+            assert!(!store.is_trusted(&removed.join(".prototools")));
+            assert!(store.prune().unwrap().is_empty());
+        }
+
+        #[test]
+        fn prunes_corrupt_records() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "");
+
+            let store = create_store(sandbox.path());
+            let dir = store.trust(sandbox.path()).unwrap();
+            let record_path = store.get_record_path(&dir);
+
+            std::fs::write(&record_path, "{").unwrap();
+
+            assert_eq!(store.prune().unwrap(), vec![record_path.clone()]);
+            assert!(!record_path.exists());
+        }
+
+        #[test]
+        fn prunes_nothing_without_records() {
+            let sandbox = create_empty_sandbox();
+            let store = create_store(sandbox.path());
+
+            assert!(store.prune().unwrap().is_empty());
         }
 
         #[test]

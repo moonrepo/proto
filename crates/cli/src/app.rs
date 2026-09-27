@@ -423,7 +423,7 @@ pub enum Commands {
     #[command(
         name = "trust",
         about = "Trust a config file, or the config files within a directory.",
-        long_about = "Trust a config file, or the config files within a directory, so that their security-sensitive settings, like environment variables, shell aliases, and plugins, are applied. Local configs are untrusted by default, as they may come from a cloned repository.\n\nTrusting a directory also trusts its sub-directories. Trust is not affected by changes to the configs.\nLearn more: https://moonrepo.dev/docs/proto/config#trust"
+        long_about = "Trust a config file, or the config files within a directory, so that their security-sensitive settings, like environment variables, shell aliases, and plugins, are applied. Local configs are untrusted by default, as they may come from a cloned repository.\n\nTrusting a directory also trusts its sub-directories. Trust is not affected by changes to the configs.\n\nAll configs are trusted when running in CI (detected from the CI environment variable, or a CI provider's variables), and within the directories listed in the PROTO_TRUSTED_PATHS environment variable.\nLearn more: https://moonrepo.dev/docs/proto/config#trust"
     )]
     Trust(TrustArgs),
 

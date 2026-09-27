@@ -26,6 +26,8 @@ pub enum CleanTarget {
     Plugins,
     Temp,
     Tools,
+    /// Trust records for config files and directories that no longer exist
+    Trust,
 }
 
 #[derive(Args, Clone, Debug, Default)]
@@ -47,6 +49,7 @@ pub struct CleanResult {
     plugins: Vec<StaleFile>,
     temp: Vec<StaleFile>,
     tools: Vec<StaleTool>,
+    trust: Vec<PathBuf>,
 }
 
 #[derive(Serialize)]
@@ -384,6 +387,14 @@ pub async fn internal_clean(
         result.cache = clean_dir(&session.env.store.cache_dir, days, true)?;
     }
 
+    if matches!(args.target, CleanTarget::All | CleanTarget::Trust) {
+        debug!("Cleaning trust records...");
+
+        // Not based on age, as a record for a path that no longer exists would
+        // trust a different repository cloned at that path in the future
+        result.trust = session.env.trust.prune()?;
+    }
+
     Ok(result)
 }
 
@@ -397,8 +408,11 @@ pub async fn clean(session: ProtoSession, args: CleanArgs) -> SessionResult {
         return Ok(None);
     }
 
-    let remove_count =
-        result.cache.len() + result.plugins.len() + result.temp.len() + result.tools.len();
+    let remove_count = result.cache.len()
+        + result.plugins.len()
+        + result.temp.len()
+        + result.tools.len()
+        + result.trust.len();
 
     if remove_count == 0 {
         session.console.notice(
@@ -437,6 +451,13 @@ pub async fn clean(session: ProtoSession, args: CleanArgs) -> SessionResult {
 
         if !result.tools.is_empty() {
             items.push(format!("{} installed tool versions", result.tools.len()));
+        }
+
+        if !result.trust.is_empty() {
+            items.push(format!(
+                "{} trust records for paths that no longer exist",
+                result.trust.len()
+            ));
         }
 
         session.console.notice_with(NoticeOutput {

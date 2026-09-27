@@ -1,11 +1,14 @@
+use crate::components::CodeBlock;
 use crate::session::{ProtoSession, SessionResult};
 use clap::Args;
+use iocraft::prelude::element;
 use proto_core::reporter::NoticeOutput;
 use proto_core::{
-    PROTO_CONFIG_NAME, ProtoConfig, ProtoTrustSource, get_sensitive_fields, normalize_path,
+    PROTO_CONFIG_NAME, ProtoConfig, ProtoTrustSource, get_sensitive_config, get_sensitive_fields,
+    normalize_path,
 };
 use starbase_console::ui::*;
-use starbase_utils::fs;
+use starbase_utils::{fs, toml};
 use std::path::{Path, PathBuf};
 use tracing::instrument;
 
@@ -129,6 +132,35 @@ fn find_config_files(dir: &Path) -> miette::Result<Vec<PathBuf>> {
     Ok(files)
 }
 
+/// Render the security-sensitive settings of the provided config files, so
+/// that the user can review exactly what is now applied.
+fn render_sensitive_settings(session: &ProtoSession, files: &[PathBuf]) -> miette::Result<()> {
+    // Notices are structured in JSON formats, but rendered elements are not
+    if session.is_json_format() {
+        return Ok(());
+    }
+
+    for file in files {
+        let Some(settings) = get_sensitive_config(&ProtoConfig::parse(file, true)?)? else {
+            continue;
+        };
+
+        let code = toml::format(&settings, true)?;
+
+        session.console.render(element! {
+            Container {
+                Section(
+                    title: file.to_string_lossy(),
+                    title_color: style_to_color(Style::Path)
+                )
+                CodeBlock(code, format: "toml")
+            }
+        })?;
+    }
+
+    Ok(())
+}
+
 fn format_fields(fields: &[String]) -> String {
     fields
         .iter()
@@ -168,6 +200,14 @@ pub async fn trust(session: ProtoSession, args: TrustArgs) -> SessionResult {
     }
 
     let path = session.env.trust.trust(target.path())?;
+
+    render_sensitive_settings(
+        &session,
+        &match &target {
+            TrustTarget::File(file) => vec![file.clone()],
+            TrustTarget::Dir(dir) => find_config_files(dir)?,
+        },
+    )?;
 
     match target {
         TrustTarget::File(file) => {
