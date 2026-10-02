@@ -22,6 +22,7 @@ mod trust;
 mod unalias;
 mod uninstall;
 mod unpin;
+mod untrust;
 mod upgrade;
 mod versions;
 
@@ -47,5 +48,6 @@ pub use trust::*;
 pub use unalias::*;
 pub use uninstall::*;
 pub use unpin::*;
+pub use untrust::*;
 pub use upgrade::*;
 pub use versions::*;
