@@ -5,6 +5,7 @@ use crate::config::{
 use crate::config_error::ProtoConfigError;
 use crate::tool_context::ToolContext;
 use rustc_hash::FxHashMap;
+use schematic::derive_enum;
 use serde::{Deserialize, Serialize};
 use starbase_utils::json::{self, JsonError, JsonValue};
 use starbase_utils::{fs, hash};
@@ -14,28 +15,29 @@ use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 use tracing::{debug, trace};
 
-/// The trust state of a config file.
-///
-/// A config that is not owned by the user, like one in a cloned repository,
-/// can execute code on the host through its security-sensitive settings:
-/// environment variables and shell aliases that are applied to the shell,
-/// plugins that are loaded and executed, and settings that change where
-/// plugins and tools are downloaded from. These settings are only applied
-/// once the directory of the config has been trusted.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum ProtoConfigTrust {
-    /// The config is owned by the user (user or global config),
-    /// or does not contain security-sensitive settings.
-    #[default]
-    NotRequired,
+derive_enum!(
+    /// The trust state of a config file.
+    ///
+    /// A config that is not owned by the user, like one in a cloned repository,
+    /// can execute code on the host through its security-sensitive settings:
+    /// environment variables and shell aliases that are applied to the shell,
+    /// plugins that are loaded and executed, and settings that change where
+    /// plugins and tools are downloaded from. These settings are only applied
+    /// once the directory of the config has been trusted.
+    #[derive(Copy, Default)]
+    pub enum TrustState {
+        /// The config is owned by the user (user or global config),
+        /// or does not contain security-sensitive settings.
+        #[default]
+        NotRequired,
 
-    /// The security-sensitive settings are applied.
-    Trusted,
+        /// The security-sensitive settings are applied.
+        Trusted,
 
-    /// The security-sensitive settings have been ignored.
-    Untrusted,
-}
+        /// The security-sensitive settings have been ignored.
+        Untrusted,
+    }
+);
 
 /// Return the security-sensitive settings configured in the provided config,
 /// with unconfigured settings removed, for display purposes. Returns `None`
@@ -195,7 +197,7 @@ fn collect_fields(value: &JsonValue) -> Vec<String> {
 
 /// Why a config file is trusted.
 #[derive(Clone, Debug, PartialEq)]
-pub enum ProtoTrustSource {
+pub enum TrustSource {
     /// All configs are trusted, as we're running in CI.
     Ci,
 
@@ -210,7 +212,7 @@ pub enum ProtoTrustSource {
 /// A record that a config file, or the configs within a directory,
 /// have been trusted by the user.
 #[derive(Deserialize, Serialize)]
-struct ProtoTrustRecord {
+struct TrustRecord {
     path: PathBuf,
 }
 
@@ -219,7 +221,7 @@ struct ProtoTrustRecord {
 /// `proto trust`), when it's within a directory listed in
 /// `PROTO_TRUSTED_PATHS`, or when running in CI.
 #[derive(Clone, Debug, Default)]
-pub struct ProtoTrustStore {
+pub struct TrustStore {
     /// Directory of trust records: `~/.proto/trust`.
     pub dir: PathBuf,
 
@@ -230,7 +232,7 @@ pub struct ProtoTrustStore {
     pub trusted_paths: Vec<PathBuf>,
 }
 
-impl ProtoTrustStore {
+impl TrustStore {
     pub fn new(dir: PathBuf) -> Self {
         // Variables applied to the shell by a previous activation must not
         // influence trust, otherwise a trusted config could trust the next
@@ -265,11 +267,11 @@ impl ProtoTrustStore {
     }
 
     /// Return why the provided config file is trusted, or `None` if it's not.
-    pub fn get_trust_source(&self, config_path: &Path) -> Option<ProtoTrustSource> {
+    pub fn get_trust_source(&self, config_path: &Path) -> Option<TrustSource> {
         if self.trust_all {
             trace!(config = ?config_path, "Trusting config as all configs are trusted (CI)");
 
-            return Some(ProtoTrustSource::Ci);
+            return Some(TrustSource::Ci);
         }
 
         let config_path = normalize_path(config_path);
@@ -281,14 +283,14 @@ impl ProtoTrustStore {
         {
             trace!(config = ?config_path, "Trusting config as it's within a trusted path");
 
-            return Some(ProtoTrustSource::TrustedPath(dir.to_owned()));
+            return Some(TrustSource::TrustedPath(dir.to_owned()));
         }
 
         // The file itself may be trusted
         if self.has_record(&config_path) {
             trace!(config = ?config_path, "Trusting config as the file is trusted");
 
-            return Some(ProtoTrustSource::Record(config_path));
+            return Some(TrustSource::Record(config_path));
         }
 
         // Otherwise trust applies to a directory and everything within it
@@ -298,7 +300,7 @@ impl ProtoTrustStore {
             if self.has_record(dir) {
                 trace!(config = ?config_path, dir = ?dir, "Trusting config as its directory is trusted");
 
-                return Some(ProtoTrustSource::Record(dir.to_owned()));
+                return Some(TrustSource::Record(dir.to_owned()));
             }
 
             current = dir.parent();
@@ -324,7 +326,7 @@ impl ProtoTrustStore {
         // concurrent reader never observes a partially written record
         let temp_path = record_path.with_extension(format!("{}.tmp", std::process::id()));
 
-        json::write_file(&temp_path, &ProtoTrustRecord { path: path.clone() }, true)
+        json::write_file(&temp_path, &TrustRecord { path: path.clone() }, true)
             .map_err(Box::new)?;
 
         if let Err(error) = fs::rename(&temp_path, &record_path) {
@@ -370,7 +372,7 @@ impl ProtoTrustStore {
                 continue;
             }
 
-            let path = match json::read_file::<ProtoTrustRecord>(&record_path) {
+            let path = match json::read_file::<TrustRecord>(&record_path) {
                 Ok(record) if record.path.exists() => continue,
                 Ok(record) => record.path,
                 Err(_) => record_path.clone(),
@@ -395,7 +397,7 @@ impl ProtoTrustStore {
         }
 
         // Treat unreadable records as untrusted
-        match json::read_file::<ProtoTrustRecord>(&record_path) {
+        match json::read_file::<TrustRecord>(&record_path) {
             Ok(record) => record.path == path,
             Err(error) => {
                 debug!(
@@ -642,8 +644,8 @@ lockfile = true
     mod store {
         use super::*;
 
-        fn create_store(sandbox: &Path) -> ProtoTrustStore {
-            ProtoTrustStore {
+        fn create_store(sandbox: &Path) -> TrustStore {
+            TrustStore {
                 dir: sandbox.join("trust"),
                 trust_all: false,
                 trusted_paths: vec![],
@@ -674,7 +676,7 @@ lockfile = true
 
             assert_eq!(
                 store.get_trust_source(&sandbox.path().join("a/.prototools")),
-                Some(ProtoTrustSource::Record(dir))
+                Some(TrustSource::Record(dir))
             );
             assert!(!store.is_trusted(&sandbox.path().join("b/.prototools")));
         }
@@ -704,7 +706,7 @@ lockfile = true
 
             assert_eq!(
                 store.get_trust_source(&sandbox.path().join(".prototools")),
-                Some(ProtoTrustSource::Record(file))
+                Some(TrustSource::Record(file))
             );
 
             // Only that file
@@ -726,7 +728,7 @@ lockfile = true
             assert!(store.untrust(&file).unwrap());
             assert!(matches!(
                 store.get_trust_source(&file),
-                Some(ProtoTrustSource::Record(dir)) if dir.is_dir()
+                Some(TrustSource::Record(dir)) if dir.is_dir()
             ));
 
             assert!(store.untrust(sandbox.path()).unwrap());
@@ -794,7 +796,7 @@ lockfile = true
 
             assert_eq!(
                 store.get_trust_source(&sandbox.path().join(".prototools")),
-                Some(ProtoTrustSource::Ci)
+                Some(TrustSource::Ci)
             );
         }
 
@@ -809,7 +811,7 @@ lockfile = true
 
             assert!(matches!(
                 store.get_trust_source(&sandbox.path().join("trusted/nested/.prototools")),
-                Some(ProtoTrustSource::TrustedPath(_))
+                Some(TrustSource::TrustedPath(_))
             ));
             assert!(!store.is_trusted(&sandbox.path().join("trusted-sibling/.prototools")));
         }

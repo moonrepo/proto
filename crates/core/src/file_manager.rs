@@ -28,7 +28,7 @@ pub struct ProtoConfigFile {
     pub locked: bool,
 
     /// Whether the security-sensitive settings of this config are applied.
-    pub trust: ProtoConfigTrust,
+    pub trust: TrustState,
 
     /// Paths of the security-sensitive settings in this config,
     /// like `env` or `plugins.tools`. Empty when it has none.
@@ -169,7 +169,7 @@ impl ProtoFileManager {
                     exists: config_path.exists(),
                     path: config_path,
                     locked: false,
-                    trust: ProtoConfigTrust::default(),
+                    trust: TrustState::default(),
                     sensitive,
                     untrusted_config: None,
                 };
@@ -301,7 +301,7 @@ impl ProtoFileManager {
         self.entries
             .iter()
             .flat_map(|dir| &dir.configs)
-            .filter(|file| file.trust == ProtoConfigTrust::Untrusted)
+            .filter(|file| file.trust == TrustState::Untrusted)
             .collect()
     }
 
@@ -402,7 +402,7 @@ impl ProtoFileManager {
     /// working directory is within the proto store.
     pub(crate) fn apply_trust(
         &mut self,
-        store: &ProtoTrustStore,
+        store: &TrustStore,
         is_owned_by_user: impl Fn(&Path) -> bool,
     ) {
         for dir in &mut self.entries {
@@ -416,7 +416,7 @@ impl ProtoFileManager {
                 }
 
                 if store.is_trusted(&file.path) {
-                    file.trust = ProtoConfigTrust::Trusted;
+                    file.trust = TrustState::Trusted;
 
                     continue;
                 }
@@ -431,7 +431,7 @@ impl ProtoFileManager {
 
                 file.config = safe;
                 file.untrusted_config = Some(untrusted);
-                file.trust = ProtoConfigTrust::Untrusted;
+                file.trust = TrustState::Untrusted;
             }
         }
     }

@@ -4,7 +4,7 @@ use crate::helpers::fetch_latest_version;
 use crate::session::{ProtoSession, SessionResult};
 use clap::Args;
 use iocraft::prelude::{FlexDirection, View, element};
-use proto_core::{Id, ProtoConfigTrust, ToolContext};
+use proto_core::{Id, TrustState, ToolContext};
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 use starbase_console::ui::*;
@@ -305,7 +305,7 @@ fn gather_trust_warnings(session: &ProtoSession) -> Result<Vec<Issue>, ProtoCliE
         .map_err(|error| ProtoCliError::Config(Box::new(error)))?;
 
     for file in files {
-        if file.trust != ProtoConfigTrust::Untrusted {
+        if file.trust != TrustState::Untrusted {
             continue;
         }
 

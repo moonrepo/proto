@@ -1,6 +1,6 @@
 use crate::config::{ConfigMode, PROTO_CONFIG_NAME, PinLocation, ProtoConfig};
 use crate::config_error::ProtoConfigError;
-use crate::config_trust::{ProtoConfigTrust, ProtoTrustStore, get_sensitive_fields};
+use crate::config_trust::{TrustState, TrustStore, get_sensitive_fields};
 use crate::env_error::ProtoEnvError;
 use crate::file_manager::{ProtoConfigFile, ProtoDirEntry, ProtoFileManager};
 use crate::helpers::is_offline;
@@ -31,7 +31,7 @@ pub struct ProtoEnvironment {
     pub otel_enabled: bool,
     pub store: Store,
     pub test_only: bool,
-    pub trust: ProtoTrustStore,
+    pub trust: TrustStore,
     pub working_dir: PathBuf,
 
     pub os: SystemOS,
@@ -92,7 +92,7 @@ impl ProtoEnvironment {
             plugin_loader: Arc::new(OnceCell::new()),
             registry: Arc::new(OnceCell::new()),
             test_only: env::var("PROTO_TEST").is_ok(),
-            trust: ProtoTrustStore::new(root.join("trust")),
+            trust: TrustStore::new(root.join("trust")),
             store: Store::new(root),
             os: SystemOS::default(),
             arch: SystemArch::default(),
@@ -329,7 +329,7 @@ impl ProtoEnvironment {
                     path,
                     config: ProtoConfig::load_from(&self.store.dir, true)?,
                     locked: false,
-                    trust: ProtoConfigTrust::NotRequired,
+                    trust: TrustState::NotRequired,
                     sensitive: vec![],
                     untrusted_config: None,
                 }],

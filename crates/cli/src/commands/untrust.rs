@@ -1,7 +1,7 @@
 use super::trust::{TrustTarget, resolve_target};
 use crate::session::{ProtoSession, SessionResult};
 use clap::Args;
-use proto_core::ProtoTrustSource;
+use proto_core::TrustSource;
 use starbase_console::ui::*;
 use std::path::PathBuf;
 use tracing::instrument;
@@ -64,14 +64,14 @@ pub async fn untrust(session: ProtoSession, args: UntrustArgs) -> SessionResult 
         };
 
         let message = match source {
-            ProtoTrustSource::Ci => {
+            TrustSource::Ci => {
                 format!("{subject} still trusted, as all configs are trusted in CI")
             }
-            ProtoTrustSource::TrustedPath(path) => format!(
+            TrustSource::TrustedPath(path) => format!(
                 "{subject} still trusted, as within <path>{}</path> from <property>PROTO_TRUSTED_PATHS</property>",
                 path.display()
             ),
-            ProtoTrustSource::Record(path) => format!(
+            TrustSource::Record(path) => format!(
                 "{subject} still trusted, as <path>{}</path> is trusted. Untrust it with <shell>proto untrust {}</shell>",
                 path.display(),
                 path.display()

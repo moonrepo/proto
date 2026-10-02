@@ -1,7 +1,7 @@
 use crate::app::{App as CLI, Commands};
 use crate::helpers::fetch_latest_version;
 use proto_core::{
-    ConfigMode, ProtoConfigFile, ProtoConfigTrust, ProtoEnvironment, Version, is_offline, now,
+    ConfigMode, ProtoConfigFile, TrustState, ProtoEnvironment, Version, is_offline, now,
     reporter::ProtoConsole,
 };
 use proto_shim::get_exe_file_name;
@@ -83,7 +83,7 @@ pub fn format_untrusted_config_warning(file: &ProtoConfigFile) -> String {
 pub fn warn_untrusted_configs(env: &ProtoEnvironment) -> miette::Result<()> {
     // Only the configs that apply to the current config mode
     for file in env.load_config_files()? {
-        if file.trust == ProtoConfigTrust::Untrusted {
+        if file.trust == TrustState::Untrusted {
             warn!("{}", format_untrusted_config_warning(file));
         }
     }

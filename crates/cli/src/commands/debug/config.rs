@@ -2,7 +2,7 @@ use crate::components::CodeBlock;
 use crate::session::{ProtoSession, SessionResult};
 use clap::Args;
 use iocraft::prelude::*;
-use proto_core::{PartialProtoConfig, ProtoConfig, ProtoConfigTrust, ProtoLock};
+use proto_core::{PartialProtoConfig, ProtoConfig, ProtoLock, TrustState};
 use serde::Serialize;
 use starbase_console::ui::*;
 use starbase_utils::toml;
@@ -69,7 +69,7 @@ pub async fn config(session: ProtoSession, args: DebugConfigArgs) -> SessionResu
             let mut title = file.path.to_string_lossy().to_string();
 
             // The config has been rendered without its sensitive settings
-            if file.trust == ProtoConfigTrust::Untrusted {
+            if file.trust == TrustState::Untrusted {
                 title.push_str(" (untrusted)");
             }
 

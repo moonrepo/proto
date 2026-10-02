@@ -4,7 +4,7 @@ use clap::Args;
 use iocraft::prelude::Size;
 use proto_core::flow::resolve::Resolver;
 use proto_core::reporter::NoticeOutput;
-use proto_core::{ProtoConfigTrust, ToolContext, ToolSpec, VersionSpec};
+use proto_core::{TrustState, ToolContext, ToolSpec, VersionSpec};
 use serde::Serialize;
 use starbase_console::ui::*;
 use starbase_styles::encode_style_tags;
@@ -162,7 +162,7 @@ fn render_untrusted_configs(session: &ProtoSession) -> miette::Result<()> {
         .env
         .load_config_files()?
         .into_iter()
-        .filter(|file| file.trust == ProtoConfigTrust::Untrusted)
+        .filter(|file| file.trust == TrustState::Untrusted)
         .map(|file| {
             format!(
                 "<path>{}</path> <mutedlight>({})</mutedlight>",

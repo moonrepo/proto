@@ -4,9 +4,7 @@ use crate::systems::format_untrusted_config_warning;
 use crate::workflows::{ExecWorkflow, ExecWorkflowParams};
 use clap::Args;
 use indexmap::IndexMap;
-use proto_core::{
-    Id, PROTO_PLUGIN_KEY, ProtoConfigTrust, ToolContext, UnresolvedVersionSpec, hash_path,
-};
+use proto_core::{Id, PROTO_PLUGIN_KEY, ToolContext, TrustState, UnresolvedVersionSpec, hash_path};
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 use starbase_shell::{Hook, ShellType, Statement};
@@ -190,7 +188,7 @@ fn warn_untrusted_configs(session: &ProtoSession) -> miette::Result<Option<Strin
 
     // Only the configs that apply to the current config mode
     for file in session.env.load_config_files()? {
-        if file.trust != ProtoConfigTrust::Untrusted {
+        if file.trust != TrustState::Untrusted {
             continue;
         }
 
