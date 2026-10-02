@@ -1,7 +1,7 @@
 use crate::app::{App as CLI, Commands};
 use crate::helpers::fetch_latest_version;
 use proto_core::{
-    ConfigMode, ProtoConfigFile, TrustState, ProtoEnvironment, Version, is_offline, now,
+    ConfigMode, ProtoConfigFile, ProtoEnvironment, TrustState, Version, is_offline, now,
     reporter::ProtoConsole,
 };
 use proto_shim::get_exe_file_name;

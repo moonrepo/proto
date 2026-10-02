@@ -4,7 +4,7 @@ use clap::Args;
 use iocraft::prelude::Size;
 use proto_core::flow::resolve::Resolver;
 use proto_core::reporter::NoticeOutput;
-use proto_core::{TrustState, ToolContext, ToolSpec, VersionSpec};
+use proto_core::{ToolContext, ToolSpec, TrustState, VersionSpec};
 use serde::Serialize;
 use starbase_console::ui::*;
 use starbase_styles::encode_style_tags;

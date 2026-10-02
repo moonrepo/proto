@@ -4,7 +4,7 @@ use crate::helpers::fetch_latest_version;
 use crate::session::{ProtoSession, SessionResult};
 use clap::Args;
 use iocraft::prelude::{FlexDirection, View, element};
-use proto_core::{Id, TrustState, ToolContext};
+use proto_core::{Id, ToolContext, TrustState};
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 use starbase_console::ui::*;
