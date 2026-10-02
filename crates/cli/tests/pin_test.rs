@@ -508,3 +508,254 @@ mod pin_user {
         }
     }
 }
+
+mod pin_closest {
+    use super::*;
+
+    #[test]
+    fn writes_closest_parent_version_file() {
+        let sandbox = create_empty_proto_sandbox();
+        let version_file = sandbox.path().join("a/.prototools");
+
+        sandbox.create_file("a/.prototools", "moonstone = \"2.0.0\"\n");
+        sandbox.create_file("a/b/c/file.txt", "");
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("pin")
+                    .arg("protostar")
+                    .arg("1.0.0")
+                    .arg("--to")
+                    .arg("closest")
+                    .current_dir(sandbox.path().join("a/b/c"));
+            })
+            .success();
+
+        assert!(!sandbox.path().join("a/b/c/.prototools").exists());
+        assert_eq!(
+            fs::read_to_string(version_file).unwrap(),
+            r#"moonstone = "2.0.0"
+protostar = "1.0.0"
+"#
+        )
+    }
+
+    #[test]
+    fn writes_nearest_of_multiple_parent_version_files() {
+        let sandbox = create_empty_proto_sandbox();
+        let version_file = sandbox.path().join("a/b/.prototools");
+
+        sandbox.create_file(".prototools", "");
+        sandbox.create_file("a/b/.prototools", "");
+        sandbox.create_file("a/b/c/file.txt", "");
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("pin")
+                    .arg("protostar")
+                    .arg("1.0.0")
+                    .arg("--to")
+                    .arg("closest")
+                    .current_dir(sandbox.path().join("a/b/c"));
+            })
+            .success();
+
+        assert_eq!(
+            fs::read_to_string(version_file).unwrap(),
+            "protostar = \"1.0.0\"\n"
+        );
+        assert_eq!(
+            fs::read_to_string(sandbox.path().join(".prototools")).unwrap(),
+            ""
+        );
+    }
+
+    #[test]
+    fn prefers_local_version_file_over_parent() {
+        let sandbox = create_empty_proto_sandbox();
+        let version_file = sandbox.path().join("a/b/c/.prototools");
+
+        sandbox.create_file("a/.prototools", "");
+        sandbox.create_file("a/b/c/.prototools", "");
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("pin")
+                    .arg("protostar")
+                    .arg("1.0.0")
+                    .arg("--to")
+                    .arg("closest")
+                    .current_dir(sandbox.path().join("a/b/c"));
+            })
+            .success();
+
+        assert_eq!(
+            fs::read_to_string(version_file).unwrap(),
+            "protostar = \"1.0.0\"\n"
+        );
+        assert_eq!(
+            fs::read_to_string(sandbox.path().join("a/.prototools")).unwrap(),
+            ""
+        );
+    }
+
+    #[test]
+    fn writes_local_version_file_when_no_parent() {
+        let sandbox = create_empty_proto_sandbox();
+        let version_file = sandbox.path().join("a/b/c/.prototools");
+
+        sandbox.create_file("a/b/c/file.txt", "");
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("pin")
+                    .arg("protostar")
+                    .arg("1.0.0")
+                    .arg("--to")
+                    .arg("closest")
+                    .current_dir(sandbox.path().join("a/b/c"));
+            })
+            .success();
+
+        assert!(version_file.exists());
+        assert_eq!(
+            fs::read_to_string(version_file).unwrap(),
+            "protostar = \"1.0.0\"\n"
+        )
+    }
+
+    #[test]
+    fn ignores_global_version_file() {
+        let sandbox = create_empty_proto_sandbox();
+        let version_file = sandbox.path().join("a/b/c/.prototools");
+
+        sandbox.create_file(".proto/.prototools", "");
+        sandbox.create_file("a/b/c/file.txt", "");
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("pin")
+                    .arg("protostar")
+                    .arg("1.0.0")
+                    .arg("--to")
+                    .arg("closest")
+                    .current_dir(sandbox.path().join("a/b/c"));
+            })
+            .success();
+
+        assert_eq!(
+            fs::read_to_string(version_file).unwrap(),
+            "protostar = \"1.0.0\"\n"
+        );
+        assert_eq!(
+            fs::read_to_string(sandbox.path().join(".proto/.prototools")).unwrap(),
+            ""
+        );
+    }
+
+    #[test]
+    fn ignores_env_only_version_file() {
+        let sandbox = create_empty_proto_sandbox();
+        let version_file = sandbox.path().join("a/.prototools");
+
+        sandbox.create_file("a/.prototools", "");
+        sandbox.create_file("a/b/.prototools.prod", "moonstone = \"3.0.0\"\n");
+        sandbox.create_file("a/b/c/file.txt", "");
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("pin")
+                    .arg("protostar")
+                    .arg("1.0.0")
+                    .arg("--to")
+                    .arg("closest")
+                    .env("PROTO_ENV", "prod")
+                    .current_dir(sandbox.path().join("a/b/c"));
+            })
+            .success();
+
+        assert!(!sandbox.path().join("a/b/.prototools").exists());
+        assert_eq!(
+            fs::read_to_string(version_file).unwrap(),
+            "protostar = \"1.0.0\"\n"
+        );
+    }
+
+    #[test]
+    fn is_the_default_location() {
+        let sandbox = create_empty_proto_sandbox();
+        let version_file = sandbox.path().join("a/.prototools");
+
+        sandbox.create_file("a/.prototools", "");
+        sandbox.create_file("a/b/c/file.txt", "");
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("pin")
+                    .arg("protostar")
+                    .arg("1.0.0")
+                    .current_dir(sandbox.path().join("a/b/c"));
+            })
+            .success();
+
+        assert!(!sandbox.path().join("a/b/c/.prototools").exists());
+        assert_eq!(
+            fs::read_to_string(version_file).unwrap(),
+            "protostar = \"1.0.0\"\n"
+        )
+    }
+
+    #[test]
+    fn can_set_proto() {
+        let sandbox = create_empty_proto_sandbox();
+        let version_file = sandbox.path().join("a/.prototools");
+
+        sandbox.create_file("a/.prototools", "");
+        sandbox.create_file("a/b/c/file.txt", "");
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("pin")
+                    .arg("proto")
+                    .arg("0.45.0")
+                    .arg("--to")
+                    .arg("closest")
+                    .current_dir(sandbox.path().join("a/b/c"));
+            })
+            .success();
+
+        assert_eq!(
+            fs::read_to_string(version_file).unwrap(),
+            "proto = \"0.45.0\"\n"
+        )
+    }
+
+    mod tool_native {
+        use super::*;
+
+        #[test]
+        #[ignore = "WASM plugins can't access ancestors of the working directory"]
+        fn writes_file_next_to_closest_config() {
+            let sandbox = create_empty_proto_sandbox();
+            let version_file = sandbox.path().join("a/.protostar-version");
+
+            sandbox.create_file("a/.prototools", "");
+            sandbox.create_file("a/b/c/file.txt", "");
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("pin")
+                        .arg("protostar")
+                        .arg("1.0.0")
+                        .arg("--to")
+                        .arg("closest")
+                        .arg("--tool-native")
+                        .current_dir(sandbox.path().join("a/b/c"));
+                })
+                .success();
+
+            assert!(!sandbox.path().join("a/b/c/.protostar-version").exists());
+            assert_eq!(fs::read_to_string(version_file).unwrap(), "1.0.0")
+        }
+    }
+}

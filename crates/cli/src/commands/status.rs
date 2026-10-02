@@ -3,7 +3,8 @@ use crate::session::{LoadToolOptions, ProtoSession, SessionResult};
 use clap::Args;
 use iocraft::prelude::Size;
 use proto_core::flow::resolve::Resolver;
-use proto_core::{ToolContext, ToolSpec, VersionSpec};
+use proto_core::reporter::NoticeOutput;
+use proto_core::{ToolContext, ToolSpec, TrustState, VersionSpec};
 use serde::Serialize;
 use starbase_console::ui::*;
 use starbase_styles::encode_style_tags;
@@ -66,6 +67,12 @@ pub async fn status(session: ProtoSession, _args: StatusArgs) -> SessionResult {
             .and_then(|record| record.version.clone());
         item.config_version = spec;
         item.config_source = tool.detected_source;
+    }
+
+    // Explain why tools or settings may be missing, before erroring when
+    // there are no tools, as untrusted configs may be the reason
+    if !session.is_json_format() {
+        render_untrusted_configs(&session)?;
     }
 
     if items.is_empty() {
@@ -148,4 +155,39 @@ pub async fn status(session: ProtoSession, _args: StatusArgs) -> SessionResult {
     )?;
 
     Ok(None)
+}
+
+fn render_untrusted_configs(session: &ProtoSession) -> miette::Result<()> {
+    let items = session
+        .env
+        .load_config_files()?
+        .into_iter()
+        .filter(|file| file.trust == TrustState::Untrusted)
+        .map(|file| {
+            format!(
+                "<path>{}</path> <mutedlight>({})</mutedlight>",
+                file.path.display(),
+                file.sensitive
+                    .iter()
+                    .map(|field| format!("<property>{field}</property>"))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
+        })
+        .collect::<Vec<_>>();
+
+    if items.is_empty() {
+        return Ok(());
+    }
+
+    session.console.notice_with(NoticeOutput {
+        variant: Variant::Caution,
+        title: Some("Untrusted configs".into()),
+        messages: vec![
+            "The security-sensitive settings of these configs were ignored, so some tools or settings may be missing. Review them, then trust each with <shell>proto trust [path]</shell>".into(),
+        ],
+        items,
+    })?;
+
+    Ok(())
 }

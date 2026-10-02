@@ -8,6 +8,7 @@ use starbase_styles::{Style, Stylize};
 use starbase_utils::json::JsonError;
 use starbase_utils::toml::TomlError;
 use starbase_utils::yaml::YamlError;
+use std::path::PathBuf;
 use thiserror::Error;
 use tokio::task::JoinError;
 use warpgate::{IdError, WarpgateLoaderError, WarpgatePluginError};
@@ -64,6 +65,19 @@ pub enum ProtoLoaderError {
         format!("proto plugin search {}", .context).style(Style::Shell),
     )]
     UnknownTool { context: ToolContext },
+
+    #[diagnostic(code(proto::tool::untrusted_plugin))]
+    #[error(
+        "Unable to proceed, the plugin for {} is configured in {}, which has not been trusted, so it was not loaded.\n\nReview the config, then trust it with {}\nLearn more about trust: {}",
+        .context.to_string().style(Style::Id),
+        .config.style(Style::Path),
+        format!("proto trust {}", .config.display()).style(Style::Shell),
+        "https://moonrepo.dev/docs/proto/config#trust".style(Style::Url),
+    )]
+    UntrustedPlugin {
+        context: ToolContext,
+        config: PathBuf,
+    },
 
     #[diagnostic(code(proto::loader::failed_join))]
     #[error("Failed to load a tool in the background.")]
