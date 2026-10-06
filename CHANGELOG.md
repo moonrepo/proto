@@ -51,6 +51,7 @@
 
 - Fixed a regression where `proto outdated` would report an installed version as the newest, when it satisfied the configured version's range, instead of the newest available version.
 - Fixed `proto install` failing to resolve version aliases defined in config (`[tools.*.aliases]`).
+- Fixed plugin downloads (from OCI registries, GitHub, and URLs) failing with "An internet connection is required" when the hosts used to detect an internet connection were unreachable or slow, but the plugin's source was reachable. The download is now always attempted, and the internet connection check is only used to explain a failed download, which now also includes the underlying error.
 
 #### ⚙️ Internal
 

@@ -373,21 +373,23 @@ impl PluginLoader {
 
         trace!(id = id.as_str(), "Plugin not cached, acquiring");
 
-        if loader.requires_online() && self.is_offline() {
-            return Err(WarpgateLoaderError::RequiredInternetConnection {
-                message: "Unable to download plugin.".into(),
-                locator: locator.to_string(),
-            });
+        match loader.load(id, locator).await {
+            Ok(source) => Ok(LoadedPlugin {
+                cached: false,
+                path: self.save_to_cache(id, hash, is_latest, source).await?,
+            }),
+            // The offline check probes hosts that are not the plugin's source,
+            // and those hosts may be blocked or slow while the source is reachable,
+            // so only use it to explain a failure, instead of skipping the download
+            Err(error) if loader.requires_online() && self.is_offline() => {
+                Err(WarpgateLoaderError::RequiredInternetConnection {
+                    message: "Unable to download plugin.".into(),
+                    locator: locator.to_string(),
+                    error: Box::new(error),
+                })
+            }
+            Err(error) => Err(error),
         }
-
-        let cache_path = self
-            .save_to_cache(id, hash, is_latest, loader.load(id, locator).await?)
-            .await?;
-
-        Ok(LoadedPlugin {
-            cached: false,
-            path: cache_path,
-        })
     }
 
     fn determine_cache_extension(&self, value: &str) -> Option<&str> {
