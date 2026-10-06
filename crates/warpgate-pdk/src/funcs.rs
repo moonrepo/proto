@@ -119,7 +119,8 @@ where
 }
 
 /// Load all Git tags from the provided remote URL.
-/// The `git` executable must exist on the host machine.
+/// The `git` executable must exist on the host machine,
+/// and an error is returned if the tags could not be loaded.
 pub fn load_git_tags<U>(url: U) -> AnyResult<Vec<String>>
 where
     U: AsRef<str>,
@@ -134,10 +135,20 @@ where
         ["ls-remote", "--tags", "--sort", "version:refname", url],
     )?;
 
+    // Return an error instead of an empty list, so that the underlying
+    // reason (network, authentication, etc) is surfaced to the user
     if output.exit_code != 0 {
-        debug!("Failed to load Git tags");
+        let mut message = format!(
+            "Failed to load Git tags from <url>{url}</url>, as <shell>git ls-remote</shell> returned a {} exit code.",
+            output.exit_code
+        );
+        let stderr = output.stderr.trim();
 
-        return Ok(tags);
+        if !stderr.is_empty() {
+            message.push_str(&format!("\n<mutedlight>{stderr}</mutedlight>"));
+        }
+
+        return Err(anyhow!(message));
     }
 
     for line in output.stdout.split('\n') {
