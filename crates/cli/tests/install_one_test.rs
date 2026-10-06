@@ -360,6 +360,30 @@ mod install_one {
     }
 
     #[test]
+    fn resolves_config_aliases() {
+        let sandbox = create_empty_proto_sandbox();
+        sandbox.create_file(
+            ".prototools",
+            r#"[tools.protostar.aliases]
+work = "~2.5"
+"#,
+        );
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install").arg("protostar").arg("work");
+            })
+            .success();
+
+        assert!(
+            sandbox
+                .path()
+                .join(".proto/tools/protostar/2.5.15")
+                .exists()
+        );
+    }
+
+    #[test]
     fn doesnt_install_tool_if_exists() {
         let sandbox = create_empty_proto_sandbox();
 

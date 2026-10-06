@@ -86,6 +86,77 @@ mod outdated {
         assert!(predicate::str::contains("moonbase").eval(&output));
     }
 
+    fn get_versions(sandbox: &ProtoSandbox, tool: &str) -> (String, String, String) {
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.arg("outdated").arg("--json");
+        });
+        let stdout = assert.stdout();
+        assert.success();
+
+        let output: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+        let item = &output[tool];
+        let get = |key: &str| item[key].as_str().unwrap().to_owned();
+
+        (
+            get("current_version"),
+            get("newest_version"),
+            get("latest_version"),
+        )
+    }
+
+    // https://github.com/moonrepo/proto/issues/1120
+    #[test]
+    fn newest_ignores_installed_versions_for_requirement() {
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
+        sandbox.create_file(".prototools", r#"protostar = "^4.2.0""#);
+        sandbox.create_file(
+            ".proto/tools/protostar/manifest.json",
+            r#"{ "installed_versions": ["4.2.0"] }"#,
+        );
+
+        assert_eq!(
+            get_versions(&sandbox, "protostar"),
+            ("4.2.0".into(), "4.10.15".into(), "5.10.15".into())
+        );
+    }
+
+    #[test]
+    fn newest_ignores_installed_versions_for_explicit_version() {
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
+        sandbox.create_file(".prototools", r#"protostar = "4.2.0""#);
+        sandbox.create_file(
+            ".proto/tools/protostar/manifest.json",
+            r#"{ "installed_versions": ["4.2.0"] }"#,
+        );
+
+        assert_eq!(
+            get_versions(&sandbox, "protostar"),
+            ("4.2.0".into(), "4.10.15".into(), "5.10.15".into())
+        );
+    }
+
+    #[test]
+    fn newest_resolves_config_aliases() {
+        let sandbox = create_empty_proto_sandbox_with_shared_plugins();
+        sandbox.create_file(
+            ".prototools",
+            r#"protostar = "work"
+
+[tools.protostar.aliases]
+work = "^4.2.0"
+"#,
+        );
+        sandbox.create_file(
+            ".proto/tools/protostar/manifest.json",
+            r#"{ "installed_versions": ["4.2.0"] }"#,
+        );
+
+        assert_eq!(
+            get_versions(&sandbox, "protostar"),
+            ("4.2.0".into(), "4.10.15".into(), "5.10.15".into())
+        );
+    }
+
     #[test]
     fn global_doesnt_overwrite_local() {
         let sandbox = create_empty_proto_sandbox_with_shared_plugins();

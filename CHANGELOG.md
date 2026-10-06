@@ -42,6 +42,11 @@
 - Updated `proto status` and `proto diagnose` to report untrusted configs, and `proto diagnose` to warn when every config is trusted because a CI environment was detected in an interactive terminal.
 - Updated `proto activate` to warn about untrusted configs once per shell session. Other commands warn about them too, except tool commands (`run`, `exec`, `bin`, `shell`), which are executed by scripts and editors.
 
+#### 🐞 Fixes
+
+- Fixed a regression where `proto outdated` would report an installed version as the newest, when it satisfied the configured version's range, instead of the newest available version.
+- Fixed `proto install` failing to resolve version aliases defined in config (`[tools.*.aliases]`).
+
 #### ⚙️ Internal
 
 - Updated Rust to v1.99.0.
