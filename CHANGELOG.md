@@ -29,6 +29,8 @@
   - Version pins for built-in tools (and the `npm` and `cargo` backends), version aliases, and the remaining settings are always applied. Pins for other tools also require trust, as loading them downloads and executes a third-party plugin (from the community registry, or an asdf plugin).
   - User (`~/.prototools`) and global (`~/.proto/.prototools`) configs are always trusted.
   - All configs are trusted in CI, and within the directories listed in the `PROTO_TRUSTED_PATHS` environment variable. CI is detected from the `CI` environment variable (or a CI provider's variables), so avoid setting it in your shell profile.
+- `proto install --immutable-lockfile` (and `PROTO_IMMUTABLE_LOCKFILE`) now errors when the lockfile only has a record for a version from other operating systems or architectures. Previously, the version was inherited from that record, and since the other platform's checksum is not valid here, the download was installed without being verified against the lockfile.
+  - Run `proto install` without `--immutable-lockfile` on each platform to record its checksum. Installs without `--immutable-lockfile` still inherit the version locked by another platform.
 
 #### 🚀 Updates
 
@@ -49,6 +51,7 @@
 
 - Fixed a regression where `proto outdated` would report an installed version as the newest, when it satisfied the configured version's range, instead of the newest available version.
 - Fixed `proto install` failing to resolve version aliases defined in config (`[tools.*.aliases]`).
+- Fixed plugin downloads (from OCI registries, GitHub, and URLs) failing with "An internet connection is required" when the hosts used to detect an internet connection were unreachable or slow, but the plugin's source was reachable. The download is now always attempted, and the internet connection check is only used to explain a failed download, which now also includes the underlying error.
 
 #### ⚙️ Internal
 

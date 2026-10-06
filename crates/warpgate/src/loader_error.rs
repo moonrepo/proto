@@ -105,7 +105,12 @@ pub enum WarpgateLoaderError {
         "{message} An internet connection is required for {}.",
         .locator.style(Style::Url),
     )]
-    RequiredInternetConnection { message: String, locator: String },
+    RequiredInternetConnection {
+        message: String,
+        locator: String,
+        #[source]
+        error: Box<WarpgateLoaderError>,
+    },
 
     #[cfg_attr(
         feature = "miette",

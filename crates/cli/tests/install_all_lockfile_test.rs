@@ -1,6 +1,7 @@
 use proto_core::test_utils::*;
 use proto_core::{ProtoLock, UnresolvedVersionSpec, VersionSpec};
 use proto_pdk_api::ChecksumAlgorithm;
+use starbase_sandbox::predicates::prelude::*;
 use system_env::{SystemArch, SystemOS};
 
 macro_rules! assert_record {
@@ -425,7 +426,7 @@ version = "{version}"
         }
 
         #[test]
-        fn installs_all_from_records_authored_on_another_platform() {
+        fn errors_when_records_were_only_authored_on_another_platform() {
             let sandbox = create_sandbox();
 
             // A teammate on another platform bumped the versions and
@@ -439,16 +440,22 @@ os = "solaris"
 arch = "sparc64"
 spec = "1"
 version = "1.10.15"
+checksum = "sha256:0000000000000000000000000000000000000000000000000000000000000000"
 {}"#,
                     record("protoform", "2.1", "2.1.15"),
                 ),
             );
 
-            sandbox
+            let assert = sandbox
                 .run_bin(|cmd| {
                     cmd.arg("install").arg("--immutable-lockfile");
                 })
-                .success();
+                .failure();
+
+            // The other platform's checksum can't verify this download
+            assert.stderr(predicate::str::contains(
+                "Only other platforms have locked this version",
+            ));
 
             // And the other platform's record is left untouched
             let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
