@@ -55,6 +55,13 @@
   - Updated `HostLibc` to deserialize unsupported values as `unknown`, instead of failing, so that plugins built with this version continue to work when a future version of proto adds a libc.
   - Updated the `ConfigBuilder::host` test utility to require a `HostPlatform`, instead of an operating system and architecture, so that the libc can be configured. For example, `.host(HostPlatform::parse("x64-linux-musl")?)`. The libc is no longer detected from the current machine, and defaults to `gnu` for Linux.
 
+#### 🧩 Plugins
+
+- **Schema (config based)**
+  - Added a new v2 schema format, enabled with `format = "2"`. Settings mirror proto's plugin API types, and support version specific `[[overrides]]`.
+  - Secondary executable paths now support tokens (`{version}`, etc), like the primary executable.
+  - Fixed a configured `latest` alias being replaced with the highest stable version.
+
 #### 🐞 Fixes
 
 - Fixed a regression where `proto outdated` would report an installed version as the newest, when it satisfied the configured version's range, instead of the newest available version.
@@ -63,6 +70,7 @@
 
 #### ⚙️ Internal
 
+- Updated `schema_tool` to v0.19.0.
 - Updated Rust to v1.99.0.
 - Updated dependencies.
 
