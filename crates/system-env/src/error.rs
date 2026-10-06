@@ -9,6 +9,18 @@ pub enum Error {
     #[error("A system package manager is required for this operation.")]
     RequiredPackageManager,
 
+    #[error(
+        "Invalid platform `{0}`, expected the format `<arch>-<os>`, `<arch>-<os>-<libc>`, or a Rust target triple."
+    )]
+    InvalidPlatform(String),
+
+    #[error("Unknown {kind} `{value}` in platform `{platform}`.")]
+    UnknownPlatformPart {
+        kind: String,
+        value: String,
+        platform: String,
+    },
+
     #[error("Unknown or unsupported system package manager `{0}`.")]
     UnknownPackageManager(String),
 }
