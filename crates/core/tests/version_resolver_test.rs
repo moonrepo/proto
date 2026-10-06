@@ -1,5 +1,6 @@
 use proto_core::{
-    ProtoToolConfig, ToolManifest, UnresolvedVersionSpec, Version, VersionSpec, resolve_version,
+    ProtoToolConfig, ToolManifest, UnresolvedVersionSpec, Version, VersionResolver, VersionSpec,
+    resolve_version,
 };
 use std::collections::BTreeMap;
 
@@ -128,6 +129,43 @@ mod version_resolver {
             )
             .unwrap(),
             Version::new(10, 0, 0)
+        );
+    }
+
+    #[test]
+    fn resolves_without_manifest_but_with_config() {
+        let mut manifest = ToolManifest::default();
+        manifest
+            .installed_versions
+            .insert(VersionSpec::parse("1.2.3").unwrap());
+
+        let mut config = ProtoToolConfig::default();
+        config.aliases.insert(
+            "work".into(),
+            UnresolvedVersionSpec::parse("^1.2").unwrap().into(),
+        );
+
+        let mut resolver = VersionResolver::default();
+        resolver.versions = create_versions();
+        resolver.aliases = create_aliases();
+        resolver.with_manifest(&manifest);
+        resolver.with_config(&config);
+
+        let work = UnresolvedVersionSpec::Alias("work".into());
+        let req = UnresolvedVersionSpec::parse("^1.2").unwrap();
+
+        // Prefers the installed version
+        assert_eq!(resolver.resolve(&work).unwrap(), Version::new(1, 2, 3));
+        assert_eq!(resolver.resolve(&req).unwrap(), Version::new(1, 2, 3));
+
+        // Ignores the installed version, but still applies config aliases
+        assert_eq!(
+            resolver.resolve_without_manifest(&work).unwrap(),
+            Version::new(1, 10, 5)
+        );
+        assert_eq!(
+            resolver.resolve_without_manifest(&req).unwrap(),
+            Version::new(1, 10, 5)
         );
     }
 
