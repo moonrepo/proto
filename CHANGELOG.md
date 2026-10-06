@@ -7,6 +7,7 @@
 - [Go](https://github.com/moonrepo/plugins/blob/master/tools/go/CHANGELOG.md)
 - [moon](https://github.com/moonrepo/plugins/blob/master/tools/moon/CHANGELOG.md)
 - [Java](https://github.com/moonrepo/plugins/blob/master/tools/java/CHANGELOG.md)
+- [Kotlin](https://github.com/moonrepo/plugins/blob/master/tools/kotlin/CHANGELOG.md)
 - [Node](https://github.com/moonrepo/plugins/blob/master/tools/node/CHANGELOG.md)
 - [npm, pnpm, yarn](https://github.com/moonrepo/plugins/blob/master/tools/node-depman/CHANGELOG.md)
 - [Nub](https://github.com/moonrepo/plugins/blob/master/tools/node-depman/CHANGELOG.md)
@@ -34,6 +35,7 @@
 
 #### 🚀 Updates
 
+- Added unstable Kotlin support: `proto install kotlin`. Requires a Java runtime, which can be installed with `proto install java`.
 - Added a `closest` pin location, which targets the closest directory with a `.prototools`, starting from the current directory and traversing upwards. When none is found, the current directory is used. Directories with only an environment config (`.prototools.<env>`), and the user (`~/.prototools`) and global (`~/.proto/.prototools`) configs, are never targeted.
   - This is now the default location for `proto pin`, `proto unpin`, `proto alias`, `proto unalias`, `proto plugin add`, `proto plugin remove`, and `proto install --pin`, instead of `local`. Pass `--to local` (or `--from local`) for the previous behavior.
   - The `install` MCP tool now pins to the closest config as well.

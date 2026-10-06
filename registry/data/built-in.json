@@ -119,6 +119,30 @@
       ]
     },
     {
+      "id": "kotlin",
+      "locator": "github://moonrepo/plugins/kotlin_tool",
+      "format": "wasm",
+      "name": "Kotlin",
+      "description": "Kotlin is a concise, multiplatform, and statically typed programming language that runs on the JVM.",
+      "author": "moonrepo",
+      "homepageUrl": "https://kotlinlang.org/",
+      "repositoryUrl": "https://github.com/moonrepo/plugins",
+      "devicon": "kotlin",
+      "bins": [
+        "kotlin",
+        "kotlinc"
+      ],
+      "detectionSources": [
+        {
+          "file": ".kotlin-version"
+        },
+        {
+          "file": ".sdkmanrc",
+          "url": "https://sdkman.io/"
+        }
+      ]
+    },
+    {
       "id": "moon",
       "locator": "github://moonrepo/plugins/moon_tool",
       "format": "wasm",

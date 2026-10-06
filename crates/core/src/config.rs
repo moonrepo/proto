@@ -198,6 +198,13 @@ impl ProtoConfig {
             }
         }
 
+        if !tools.contains_key("kotlin") && is_tool_allowed("kotlin") {
+            tools.insert(
+                Id::raw("kotlin"),
+                find_debug_locator_with_fallback("kotlin_tool", "0.1.0"),
+            );
+        }
+
         if !tools.contains_key("moon") && is_tool_allowed("moon") {
             tools.insert(
                 Id::raw("moon"),
