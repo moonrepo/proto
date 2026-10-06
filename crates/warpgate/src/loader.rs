@@ -470,7 +470,7 @@ impl PluginLoader {
                 );
 
                 // Now download the file to the temporary location
-                download_from_url_to_file(
+                if let Err(error) = download_from_url_to_file(
                     &url,
                     &temp_file,
                     DownloadOptions {
@@ -478,7 +478,20 @@ impl PluginLoader {
                         ..Default::default()
                     },
                 )
-                .await?;
+                .await
+                {
+                    // Like in `check_cache_or_save`, only use the offline
+                    // check to explain a failed download
+                    return Err(if self.is_offline() {
+                        WarpgateLoaderError::RequiredInternetConnection {
+                            message: "Unable to download plugin.".into(),
+                            locator: url.to_string(),
+                            error: Box::new(error),
+                        }
+                    } else {
+                        error
+                    });
+                }
             }
             LoadFrom::File(_) => {
                 unimplemented!();
