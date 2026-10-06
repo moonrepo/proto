@@ -1203,12 +1203,18 @@ version = "{version}"
         }
 
         #[test]
-        fn inherits_locked_version_from_another_platform() {
+        fn errors_when_only_another_platform_locked_the_version() {
             let sandbox = create_proto_sandbox("lockfile");
 
-            // The version was locked by a machine on another platform,
-            // for example when a teammate bumped the version and committed
-            sandbox.create_file(".protolock", create_other_platform_record("5.0.0", "5.0.0"));
+            // The version was locked by a machine on another platform, with
+            // a checksum that would never match this platform's download
+            sandbox.create_file(
+                ".protolock",
+                format!(
+                    "{}checksum = \"sha256:0000000000000000000000000000000000000000000000000000000000000000\"\n",
+                    create_other_platform_record("5.0.0", "5.0.0")
+                ),
+            );
 
             let assert = sandbox
                 .run_bin(|cmd| {
@@ -1217,10 +1223,11 @@ version = "{version}"
                         .arg("5.0.0")
                         .arg("--immutable-lockfile");
                 })
-                .success();
+                .failure();
 
-            assert.stdout(predicate::str::contains(
-                "protostar 5.0.0 has been installed",
+            // Inheriting would install without verifying a checksum
+            assert.stderr(predicate::str::contains(
+                "Only other platforms have locked this version",
             ));
 
             // And the lockfile is still untouched
@@ -1233,14 +1240,13 @@ version = "{version}"
         }
 
         #[test]
-        fn inherits_locked_version_from_another_platform_range() {
+        fn errors_when_only_another_platform_locked_the_version_range() {
             let sandbox = create_proto_sandbox("lockfile");
             sandbox.create_file(
                 ".protolock",
                 create_other_platform_record("^5.10", "5.10.10"),
             );
 
-            // 5.10.15 is the latest, but the other platform pins 5.10.10
             let assert = sandbox
                 .run_bin(|cmd| {
                     cmd.arg("install")
@@ -1248,10 +1254,10 @@ version = "{version}"
                         .arg("^5.10")
                         .arg("--immutable-lockfile");
                 })
-                .success();
+                .failure();
 
-            assert.stdout(predicate::str::contains(
-                "protostar 5.10.10 has been installed",
+            assert.stderr(predicate::str::contains(
+                "Only other platforms have locked this version",
             ));
         }
 

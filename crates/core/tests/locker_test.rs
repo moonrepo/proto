@@ -1,6 +1,7 @@
 use proto_core::{
     Id, LockRecord, ProtoConfig, ProtoEnvironment, ProtoLock, Tool, ToolContext, ToolSpec,
-    flow::lock::Locker, load_tool_from_locator,
+    flow::lock::{Locker, ProtoLockError},
+    load_tool_from_locator,
 };
 use proto_pdk_api::Checksum;
 use starbase_sandbox::create_empty_sandbox;
@@ -177,6 +178,63 @@ mod locker {
             assert_eq!(record.checksum, None);
             assert_eq!(record.source, None);
             assert!(record.metadata.is_empty());
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn errors_when_immutable_and_only_another_platform() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+            let mut record =
+                make_record("20.0.0", "^20", Some(other_os()), Some(SystemArch::Sparc64));
+            record.checksum = Some(Checksum::sha256("abcdef".into()));
+
+            let mut lock = ProtoLock::default();
+            lock.tools.entry(Id::raw("node")).or_default().push(record);
+            lock.path = sandbox.path().join(".protolock");
+            lock.save().unwrap();
+
+            let tool = create_tool_in_sandbox(sandbox.path()).await;
+            let locker = Locker::new(&tool);
+
+            let mut spec = ToolSpec::parse("^20").unwrap();
+            spec.immutable = true;
+
+            // The other platform's checksum can't verify this platform's
+            // download, so inheriting would silently skip verification
+            assert!(matches!(
+                locker.resolve_locked_record(&spec),
+                Err(ProtoLockError::ImmutableMissingPlatformRecord { .. })
+            ));
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn prefers_record_for_current_platform_when_immutable() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+            let mut lock = ProtoLock::default();
+            lock.tools.entry(Id::raw("node")).or_default().extend([
+                make_record("20.5.0", "^20", Some(other_os()), Some(SystemArch::Sparc64)),
+                make_record(
+                    "20.0.0",
+                    "^20",
+                    Some(SystemOS::default()),
+                    Some(SystemArch::default()),
+                ),
+            ]);
+            lock.path = sandbox.path().join(".protolock");
+            lock.save().unwrap();
+
+            let tool = create_tool_in_sandbox(sandbox.path()).await;
+            let locker = Locker::new(&tool);
+
+            let mut spec = ToolSpec::parse("^20").unwrap();
+            spec.immutable = true;
+
+            let record = locker.resolve_locked_record(&spec).unwrap().unwrap();
+
+            assert_eq!(record.version, Some(VersionSpec::parse("20.0.0").unwrap()));
         }
 
         #[tokio::test(flavor = "multi_thread")]

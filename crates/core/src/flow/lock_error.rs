@@ -56,6 +56,24 @@ pub enum ProtoLockError {
     )]
     ImmutableMissingRecord { tool: String, spec: String },
 
+    #[diagnostic(
+        code(proto::install::immutable_lockfile),
+        help = "Run `proto install` without `--immutable-lockfile` on this platform to record its checksum, then commit the changes."
+    )]
+    #[error(
+        "Lockfile is immutable, but is missing a record for {} {} on {} {}. Only other platforms have locked this version, so the download cannot be verified.",
+        .tool.style(Style::Id),
+        .spec.style(Style::Hash),
+        .os,
+        .arch,
+    )]
+    ImmutableMissingPlatformRecord {
+        tool: String,
+        spec: String,
+        os: String,
+        arch: String,
+    },
+
     #[diagnostic(code(proto::install::mismatched_arch))]
     #[error(
         "System architecture mismatch! Received {} but expected {}.",

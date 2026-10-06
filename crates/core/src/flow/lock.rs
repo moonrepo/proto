@@ -364,7 +364,8 @@ impl<'tool> Locker<'tool> {
     /// created by another platform, as a resolved version applies to every
     /// machine. Only the version is inherited, as the platform specific data
     /// of that record, like the checksum, is not valid here, and is
-    /// repopulated when this platform installs.
+    /// repopulated when this platform installs. However, when the lockfile is
+    /// immutable, error instead, as the download could not be verified.
     #[instrument(skip(self))]
     pub fn resolve_locked_record(
         &self,
@@ -412,6 +413,18 @@ impl<'tool> Locker<'tool> {
         }
 
         if let Some(record) = other_platform {
+            // When immutable, every download must be verified against a
+            // checksum in the lockfile, but the checksum of another platform's
+            // record is not valid here, so inheriting would skip verification
+            if spec.immutable {
+                return Err(ProtoLockError::ImmutableMissingPlatformRecord {
+                    tool: self.tool.get_name().to_owned(),
+                    spec: spec.req.to_string(),
+                    os: proto.os.to_string(),
+                    arch: proto.arch.to_string(),
+                });
+            }
+
             debug!(
                 tool = self.tool.context.as_str(),
                 spec = spec.req.to_string(),

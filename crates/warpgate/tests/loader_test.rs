@@ -339,7 +339,42 @@ mod loader {
             loader.set_offline_checker(|| true);
 
             loader
+                .load_plugin(
+                    Id::raw("test"),
+                    make_locator("http://127.0.0.1:9/plugin.wasm"),
+                )
+                .await
+                .unwrap();
+        }
+
+        // The offline check probes hosts other than the plugin's source, so it
+        // must not prevent a download from a source that is reachable.
+        #[tokio::test]
+        async fn downloads_when_offline_check_fails_but_source_is_reachable() {
+            let (_sandbox, mut loader) = create_loader();
+            loader.set_offline_checker(|| true);
+
+            let path = loader
                 .load_plugin(Id::raw("test"), make_locator(SYSTEM_TOOLCHAIN_URL))
+                .await
+                .unwrap();
+
+            assert!(path.exists());
+        }
+
+        // When online, a failed download reports the actual error, rather
+        // than claiming that an internet connection is required.
+        #[tokio::test]
+        #[should_panic(expected = "Http")]
+        async fn online_reports_the_download_error() {
+            let (_sandbox, mut loader) = create_loader();
+            loader.set_offline_checker(|| false);
+
+            loader
+                .load_plugin(
+                    Id::raw("test"),
+                    make_locator("http://127.0.0.1:9/plugin.wasm"),
+                )
                 .await
                 .unwrap();
         }
@@ -704,6 +739,34 @@ mod loader {
                 registry: FIXTURE_HOST.into(),
                 namespace: Some(FIXTURE_NAMESPACE.into()),
             }]);
+
+            let path = loader
+                .load_plugin(
+                    Id::raw("test"),
+                    make_locator(
+                        Some(FIXTURE_HOST),
+                        Some(FIXTURE_NAMESPACE),
+                        FIXTURE_IMAGE,
+                        Some(FIXTURE_TAG),
+                    ),
+                )
+                .await
+                .unwrap();
+
+            assert_wasm(&path);
+        }
+
+        // The offline check probes public hosts, not the registry, so a failed
+        // probe must not prevent pulling from a registry that is reachable.
+        #[tokio::test]
+        async fn pulls_when_offline_check_fails_but_registry_is_reachable() {
+            let (_sandbox, mut loader) = create_loader_with_registries(vec![RegistryConfig {
+                auth: false,
+                default: false,
+                registry: FIXTURE_HOST.into(),
+                namespace: Some(FIXTURE_NAMESPACE.into()),
+            }]);
+            loader.set_offline_checker(|| true);
 
             let path = loader
                 .load_plugin(
