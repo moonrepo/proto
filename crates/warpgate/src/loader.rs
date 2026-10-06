@@ -373,10 +373,15 @@ impl PluginLoader {
 
         trace!(id = id.as_str(), "Plugin not cached, acquiring");
 
-        match loader.load(id, locator).await {
-            Ok(source) => Ok(LoadedPlugin {
+        let result = match loader.load(id, locator).await {
+            Ok(source) => self.save_to_cache(id, hash, is_latest, source).await,
+            Err(error) => Err(error),
+        };
+
+        match result {
+            Ok(cache_path) => Ok(LoadedPlugin {
                 cached: false,
-                path: self.save_to_cache(id, hash, is_latest, source).await?,
+                path: cache_path,
             }),
             // The offline check probes hosts that are not the plugin's source,
             // and those hosts may be blocked or slow while the source is reachable,
@@ -470,7 +475,7 @@ impl PluginLoader {
                 );
 
                 // Now download the file to the temporary location
-                if let Err(error) = download_from_url_to_file(
+                download_from_url_to_file(
                     &url,
                     &temp_file,
                     DownloadOptions {
@@ -478,20 +483,7 @@ impl PluginLoader {
                         ..Default::default()
                     },
                 )
-                .await
-                {
-                    // Like in `check_cache_or_save`, only use the offline
-                    // check to explain a failed download
-                    return Err(if self.is_offline() {
-                        WarpgateLoaderError::RequiredInternetConnection {
-                            message: "Unable to download plugin.".into(),
-                            locator: url.to_string(),
-                            error: Box::new(error),
-                        }
-                    } else {
-                        error
-                    });
-                }
+                .await?;
             }
             LoadFrom::File(_) => {
                 unimplemented!();
