@@ -236,3 +236,71 @@ mod send_request {
         assert!(result.is_err());
     }
 }
+
+mod load_git_tags {
+    use super::*;
+    use std::path::Path;
+    use std::process::Command;
+
+    fn git(dir: &Path, args: &[&str]) {
+        let output = Command::new("git")
+            .args([
+                "-c",
+                "user.name=proto",
+                "-c",
+                "user.email=proto@moonrepo.dev",
+            ])
+            .args(["-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false"])
+            .args(args)
+            .current_dir(dir)
+            .output()
+            .unwrap();
+
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn loads_tags_from_remote() {
+        let sandbox = create_empty_sandbox();
+        let repo = sandbox.path().join("repo");
+
+        fs::create_dir_all(&repo).unwrap();
+        git(&repo, &["init", "--quiet"]);
+        git(&repo, &["commit", "--allow-empty", "--quiet", "-m", "init"]);
+        git(&repo, &["tag", "v1.0.0"]);
+        // Annotated tags are also listed as dereferenced (^{}), which are filtered
+        git(&repo, &["tag", "--annotate", "v1.1.0", "-m", "annotated"]);
+
+        let container = create_container(sandbox.path());
+
+        let tags: Vec<String> = container
+            .call_func_with("testing_load_git_tags", repo.to_string_lossy())
+            .await
+            .unwrap();
+
+        assert_eq!(tags, ["v1.0.0", "v1.1.0"]);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn errors_with_stderr_when_command_fails() {
+        let sandbox = create_empty_sandbox();
+        let container = create_container(sandbox.path());
+
+        let error = container
+            .call_func_with::<_, _, Vec<String>>(
+                "testing_load_git_tags",
+                sandbox.path().join("missing").to_string_lossy(),
+            )
+            .await
+            .unwrap_err()
+            .to_string();
+
+        assert!(error.contains("Failed to load Git tags from"), "{error}");
+        assert!(error.contains("returned a 128 exit code"), "{error}");
+        assert!(error.contains("fatal:"), "{error}");
+    }
+}
