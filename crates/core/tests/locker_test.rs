@@ -1827,3 +1827,259 @@ mod locker {
         }
     }
 }
+
+mod locker_libc {
+    use super::*;
+    use system_env::SystemLibc;
+
+    /// Create a tool as if running on Linux x64 with the provided libc.
+    async fn create_tool_with_libc(sandbox_path: &Path, libc: SystemLibc) -> Tool {
+        let mut proto = ProtoEnvironment::new_testing(sandbox_path).unwrap();
+        proto.working_dir = sandbox_path.to_path_buf();
+        proto.os = SystemOS::Linux;
+        proto.arch = SystemArch::X64;
+        proto.set_libc(Some(libc));
+
+        load_tool_from_locator(
+            ToolContext::parse("node").unwrap(),
+            proto,
+            ProtoConfig::default()
+                .builtin_plugins()
+                .tools
+                .get("node")
+                .unwrap(),
+        )
+        .await
+        .unwrap()
+    }
+
+    fn make_linux_record(version: &str, spec: &str, libc: Option<SystemLibc>) -> LockRecord {
+        LockRecord {
+            libc,
+            ..make_record(version, spec, Some(SystemOS::Linux), Some(SystemArch::X64))
+        }
+    }
+
+    fn save_lock(sandbox_path: &Path, records: impl IntoIterator<Item = LockRecord>) {
+        let mut lock = ProtoLock::default();
+        lock.tools
+            .entry(Id::raw("node"))
+            .or_default()
+            .extend(records);
+        lock.path = sandbox_path.join(".protolock");
+        lock.save().unwrap();
+    }
+
+    fn load_records(sandbox_path: &Path) -> Vec<LockRecord> {
+        ProtoLock::load_from(sandbox_path)
+            .unwrap()
+            .tools
+            .remove(&Id::raw("node"))
+            .unwrap_or_default()
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn creates_locked_record_with_libc() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".prototools", "");
+
+        let tool = create_tool_with_libc(sandbox.path(), SystemLibc::Musl).await;
+        let record = tool.create_locked_record();
+
+        assert_eq!(record.os, Some(SystemOS::Linux));
+        assert_eq!(record.arch, Some(SystemArch::X64));
+        assert_eq!(record.libc, Some(SystemLibc::Musl));
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn resolves_record_for_current_libc() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+        save_lock(
+            sandbox.path(),
+            [
+                make_linux_record("20.5.0", "^20", Some(SystemLibc::Gnu)),
+                make_linux_record("20.0.0", "^20", Some(SystemLibc::Musl)),
+            ],
+        );
+
+        let tool = create_tool_with_libc(sandbox.path(), SystemLibc::Musl).await;
+        let spec = ToolSpec::parse("^20").unwrap();
+        let record = Locker::new(&tool)
+            .resolve_locked_record(&spec)
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(record.version, Some(VersionSpec::parse("20.0.0").unwrap()));
+        assert_eq!(record.libc, Some(SystemLibc::Musl));
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn resolves_record_without_libc_for_backwards_compat() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+        let mut record = make_linux_record("20.0.0", "^20", None);
+        record.checksum = Some(Checksum::sha256("abcdef".into()));
+
+        save_lock(sandbox.path(), [record]);
+
+        let tool = create_tool_with_libc(sandbox.path(), SystemLibc::Musl).await;
+        let mut spec = ToolSpec::parse("^20").unwrap();
+        spec.immutable = true;
+
+        let record = Locker::new(&tool)
+            .resolve_locked_record(&spec)
+            .unwrap()
+            .unwrap();
+
+        // The record is used as-is, including its checksum
+        assert_eq!(record.checksum, Some(Checksum::sha256("abcdef".into())));
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn inherits_version_from_another_libc() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+        let mut record = make_linux_record("20.0.0", "^20", Some(SystemLibc::Gnu));
+        record.checksum = Some(Checksum::sha256("abcdef".into()));
+
+        save_lock(sandbox.path(), [record]);
+
+        let tool = create_tool_with_libc(sandbox.path(), SystemLibc::Musl).await;
+        let spec = ToolSpec::parse("^20").unwrap();
+        let record = Locker::new(&tool)
+            .resolve_locked_record(&spec)
+            .unwrap()
+            .unwrap();
+
+        // The gnu checksum is not valid for musl
+        assert_eq!(record.version, Some(VersionSpec::parse("20.0.0").unwrap()));
+        assert_eq!(record.libc, None);
+        assert_eq!(record.checksum, None);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn errors_when_immutable_and_only_another_libc() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+        save_lock(
+            sandbox.path(),
+            [make_linux_record("20.0.0", "^20", Some(SystemLibc::Gnu))],
+        );
+
+        let tool = create_tool_with_libc(sandbox.path(), SystemLibc::Musl).await;
+        let mut spec = ToolSpec::parse("^20").unwrap();
+        spec.immutable = true;
+
+        let error = Locker::new(&tool).resolve_locked_record(&spec).unwrap_err();
+
+        assert!(matches!(
+            &error,
+            ProtoLockError::ImmutableMissingPlatformRecord { platform, .. }
+                if platform == "linux x64 (musl)"
+        ));
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn inserts_separate_record_per_libc() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+        save_lock(
+            sandbox.path(),
+            [make_linux_record("20.0.0", "20.0.0", Some(SystemLibc::Gnu))],
+        );
+
+        let tool = create_tool_with_libc(sandbox.path(), SystemLibc::Musl).await;
+
+        Locker::new(&tool)
+            .insert_record_into_lockfile(&make_linux_record(
+                "20.0.0",
+                "20.0.0",
+                Some(SystemLibc::Musl),
+            ))
+            .unwrap();
+
+        let records = load_records(sandbox.path());
+
+        assert_eq!(records.len(), 2);
+        assert_eq!(records[0].libc, Some(SystemLibc::Gnu));
+        assert_eq!(records[1].libc, Some(SystemLibc::Musl));
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn backfills_libc_into_record_without_one() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+        save_lock(
+            sandbox.path(),
+            [make_linux_record("20.0.0", "20.0.0", None)],
+        );
+
+        let tool = create_tool_with_libc(sandbox.path(), SystemLibc::Musl).await;
+
+        Locker::new(&tool)
+            .insert_record_into_lockfile(&make_linux_record("20.0.0", "20.0.0", None))
+            .unwrap();
+
+        let records = load_records(sandbox.path());
+
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0].libc, Some(SystemLibc::Musl));
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn removes_version_only_for_current_libc() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+        save_lock(
+            sandbox.path(),
+            [
+                make_linux_record("20.0.0", "20.0.0", Some(SystemLibc::Gnu)),
+                make_linux_record("20.0.0", "20.0.0", Some(SystemLibc::Musl)),
+            ],
+        );
+
+        let tool = create_tool_with_libc(sandbox.path(), SystemLibc::Musl).await;
+
+        Locker::new(&tool)
+            .remove_version_from_lockfile(&VersionSpec::parse("20.0.0").unwrap())
+            .unwrap();
+
+        let records = load_records(sandbox.path());
+
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0].libc, Some(SystemLibc::Gnu));
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn verify_fails_on_libc_mismatch() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".prototools", "");
+
+        let tool = create_tool_in_sandbox(sandbox.path()).await;
+        let locker = Locker::new(&tool);
+
+        let mut spec = ToolSpec::parse("20.0.0").unwrap();
+        spec.version_locked = Some(LockRecord {
+            libc: Some(SystemLibc::Gnu),
+            ..Default::default()
+        });
+
+        let install_record = LockRecord {
+            libc: Some(SystemLibc::Musl),
+            ..Default::default()
+        };
+
+        assert!(matches!(
+            locker.verify_locked_record(&spec, &install_record),
+            Err(ProtoLockError::MismatchedLibc { .. })
+        ));
+    }
+}

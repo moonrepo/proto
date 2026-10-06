@@ -43,6 +43,9 @@
 - Added a `trust` target to `proto clean`, which removes trust records for config files and directories that no longer exist, so a repository cloned later at the same path is not trusted. Also included in the default `all` target.
 - Updated `proto status` and `proto diagnose` to report untrusted configs, and `proto diagnose` to warn when every config is trusted because a CI environment was detected in an interactive terminal.
 - Updated `proto activate` to warn about untrusted configs once per shell session. Other commands warn about them too, except tool commands (`run`, `exec`, `bin`, `shell`), which are executed by scripts and editors.
+- Added a `libc` field to `.protolock` records created on Linux (`gnu` or `musl`), so that machines with different libcs (for example, Alpine and Debian) no longer share a record, and fail each other's checksum verification.
+  - Existing records without a `libc` continue to match every libc, and are backfilled with the current libc on the next install that updates the record.
+  - When only another libc has locked a version, the version is inherited like it is for other operating systems and architectures, or errors with `--immutable-lockfile`.
 - **WASM API**
   - Updated the `load_git_tags` PDK function to return an error, which includes the exit code and stderr of `git ls-remote`, when the tags fail to load, instead of an empty list. Previously, the cause (like an unreachable remote, or an unaccepted Xcode license on macOS) was hidden behind a misleading "Failed to resolve version" error, and previously cached versions were not used as a fallback.
     - Plugins that should continue without the tags must now handle the error, for example with `.unwrap_or_default()`.

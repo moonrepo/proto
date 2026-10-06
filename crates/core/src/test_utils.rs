@@ -1,10 +1,11 @@
-use crate::{ProtoConfig, ProtoFileManager};
+use crate::{ProtoConfig, ProtoEnvironment, ProtoFileManager};
 use proto_shim::get_exe_file_name;
 use starbase_sandbox::{Sandbox, assert_cmd};
 use std::collections::HashMap;
 use std::fs;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
+use system_env::SystemLibc;
 
 pub struct ProtoSandbox {
     pub sandbox: Sandbox,
@@ -149,6 +150,10 @@ pub fn create_proto_sandbox_with_shared_plugins<N: AsRef<str>>(fixture: N) -> Pr
     apply_shared_plugins(&mut sandbox);
 
     ProtoSandbox::new(sandbox)
+}
+
+pub fn host_libc() -> Option<SystemLibc> {
+    ProtoEnvironment::default().get_libc()
 }
 
 pub fn load_config<T: AsRef<Path>>(dir: T) -> ProtoConfig {

@@ -8,7 +8,7 @@ use starbase_utils::toml::{self, TomlError};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
-use system_env::{SystemArch, SystemOS};
+use system_env::{SystemArch, SystemLibc, SystemOS};
 use tracing::{debug, instrument};
 use version_spec::{UnresolvedVersionSpec, VersionSpec};
 
@@ -22,6 +22,10 @@ pub struct LockRecord {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub arch: Option<SystemArch>,
+
+    /// Only set on Linux, where artifacts are distributed per libc.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub libc: Option<SystemLibc>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub backend: Option<Id>,
@@ -59,7 +63,7 @@ impl LockRecord {
     }
 
     /// Create a copy of this record that only retains the information that
-    /// is valid on every operating system and architecture. The resolved
+    /// is valid on every operating system, architecture, and libc. The resolved
     /// version applies to all machines, while the checksum, source, and
     /// metadata are derived from a platform specific artifact, so they are
     /// removed, and are repopulated when the current platform installs.
@@ -67,6 +71,7 @@ impl LockRecord {
         let mut record = self.clone();
         record.os = None;
         record.arch = None;
+        record.libc = None;
         record.checksum = None;
         record.source = None;
         record.metadata = FxHashMap::default();
@@ -79,6 +84,7 @@ impl LockRecord {
             other.spec.as_ref(),
             other.os.as_ref(),
             other.arch.as_ref(),
+            other.libc.as_ref(),
             options,
         )
     }
@@ -89,6 +95,7 @@ impl LockRecord {
         spec: Option<&UnresolvedVersionSpec>,
         os: Option<&SystemOS>,
         arch: Option<&SystemArch>,
+        libc: Option<&SystemLibc>,
         options: &ToolLockOptions,
     ) -> bool {
         if self.backend.as_ref() != backend || self.spec.as_ref() != spec {
@@ -97,16 +104,17 @@ impl LockRecord {
 
         if options.ignore_os_arch {
             // If the tool is ignoring os/arch but this record (in the lockfile)
-            // has an os/arch, then it shouldn't match
-            if self.os.is_some() || self.arch.is_some() {
+            // has an os/arch/libc, then it shouldn't match
+            if self.os.is_some() || self.arch.is_some() || self.libc.is_some() {
                 return false;
             }
         } else {
-            // If thet tool is matching os/arch, then we need to ensure that this
+            // If the tool is matching os/arch, then we need to ensure that this
             // record (in the lockfile) matches the values, except for none,
             // as none entries exist for backwards compatibility
             if self.os.is_some() && self.os.as_ref() != os
                 || self.arch.is_some() && self.arch.as_ref() != arch
+                || self.libc.is_some() && self.libc.as_ref() != libc
             {
                 return false;
             }
@@ -233,6 +241,7 @@ impl ProtoLock {
                     record.backend.clone(),
                     record.os,
                     record.arch,
+                    record.libc,
                 )
             });
         }

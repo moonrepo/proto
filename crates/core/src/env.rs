@@ -18,7 +18,7 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLockReadGuard, RwLockWriteGuard};
 use std::time::Duration;
-use system_env::{SystemArch, SystemOS};
+use system_env::{SystemArch, SystemLibc, SystemOS};
 use toml_edit::DocumentMut;
 use tracing::{debug, instrument};
 use warpgate::PluginLoader;
@@ -38,6 +38,7 @@ pub struct ProtoEnvironment {
     pub arch: SystemArch,
 
     file_manager: Arc<OnceCell<ProtoFileManager>>,
+    libc: Arc<OnceCell<Option<SystemLibc>>>,
     plugin_loader: Arc<OnceCell<PluginLoader>>,
     registry: Arc<OnceCell<ProtoRegistry>>,
 }
@@ -89,6 +90,7 @@ impl ProtoEnvironment {
             home_dir: home.to_owned(),
             otel_enabled: false,
             file_manager: Arc::new(OnceCell::new()),
+            libc: Arc::new(OnceCell::new()),
             plugin_loader: Arc::new(OnceCell::new()),
             registry: Arc::new(OnceCell::new()),
             test_only: env::var("PROTO_TEST").is_ok(),
@@ -129,6 +131,28 @@ impl ProtoEnvironment {
             PinLocation::Local => Ok(&self.working_dir),
             PinLocation::User => Ok(&self.home_dir),
         }
+    }
+
+    /// Return the libc of the current platform. A libc is only returned for
+    /// Linux, as it's the only operating system where artifacts are commonly
+    /// distributed for multiple libcs (GNU and musl). Detection requires
+    /// executing a command, so it's deferred until first requested.
+    pub fn get_libc(&self) -> Option<SystemLibc> {
+        *self.libc.get_or_init(|| {
+            if self.os != SystemOS::Linux {
+                return None;
+            }
+
+            match SystemLibc::detect(self.os) {
+                SystemLibc::Unknown => None,
+                libc => Some(libc),
+            }
+        })
+    }
+
+    /// Explicitly set the libc of the current platform, bypassing detection.
+    pub fn set_libc(&mut self, libc: Option<SystemLibc>) {
+        self.libc = Arc::new(OnceCell::with_value(libc));
     }
 
     pub fn get_plugin_loader(&self) -> Result<&PluginLoader, ProtoConfigError> {
@@ -359,6 +383,7 @@ impl ProtoEnvironment {
             os: self.os,
             arch: self.arch,
             file_manager: Arc::new(OnceCell::new()),
+            libc: self.libc.clone(),
             plugin_loader: Arc::new(OnceCell::new()),
             registry: Arc::new(OnceCell::new()),
         }

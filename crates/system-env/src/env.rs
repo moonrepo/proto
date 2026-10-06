@@ -199,7 +199,9 @@ impl fmt::Display for SystemOS {
 }
 
 /// Libc being used in the system environment.
-#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(
+    Clone, Copy, Debug, Default, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize,
+)]
 #[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
 #[serde(rename_all = "lowercase")]
 pub enum SystemLibc {

@@ -150,13 +150,15 @@ impl<'tool> Locker<'tool> {
                     *existing = record;
                 }
 
-                // Backwards compatibility for records without an os/arch
+                // Backwards compatibility for records without an os/arch/libc
                 if self.tool.metadata.lock_options.ignore_os_arch {
                     existing.os = None;
                     existing.arch = None;
+                    existing.libc = None;
                 } else {
                     existing.os.get_or_insert(proto.os);
                     existing.arch.get_or_insert(proto.arch);
+                    existing.libc = existing.libc.or(proto.get_libc());
                 }
             }
             None => {
@@ -208,6 +210,7 @@ impl<'tool> Locker<'tool> {
                 Some(&spec),
                 Some(&proto.os),
                 Some(&proto.arch),
+                proto.get_libc().as_ref(),
                 &self.tool.metadata.lock_options,
             );
 
@@ -381,6 +384,7 @@ impl<'tool> Locker<'tool> {
             return Ok(None);
         };
 
+        let libc = proto.get_libc();
         let mut other_platform: Option<&LockRecord> = None;
 
         for record in records {
@@ -393,6 +397,7 @@ impl<'tool> Locker<'tool> {
                 Some(&spec.req),
                 Some(&proto.os),
                 Some(&proto.arch),
+                libc.as_ref(),
                 &self.tool.metadata.lock_options,
             ) {
                 return Ok(Some(record.clone()));
@@ -420,8 +425,10 @@ impl<'tool> Locker<'tool> {
                 return Err(ProtoLockError::ImmutableMissingPlatformRecord {
                     tool: self.tool.get_name().to_owned(),
                     spec: spec.req.to_string(),
-                    os: proto.os.to_string(),
-                    arch: proto.arch.to_string(),
+                    platform: match libc {
+                        Some(libc) => format!("{} {} ({libc})", proto.os, proto.arch),
+                        None => format!("{} {}", proto.os, proto.arch),
+                    },
                 });
             }
 
@@ -430,6 +437,7 @@ impl<'tool> Locker<'tool> {
                 spec = spec.req.to_string(),
                 os = record.os.map(|os| os.to_string()),
                 arch = record.arch.map(|arch| arch.to_string()),
+                libc = record.libc.map(|libc| libc.to_string()),
                 "No record in lock file for the current platform, inheriting the version locked by another platform",
             );
 
@@ -510,6 +518,16 @@ impl<'tool> Locker<'tool> {
             return Err(ProtoLockError::MismatchedArch {
                 arch: l_arch.to_string(),
                 lockfile_arch: r_arch.to_string(),
+            });
+        }
+
+        if let Some(l_libc) = install_record.libc
+            && let Some(r_libc) = locked_record.libc
+            && l_libc != r_libc
+        {
+            return Err(ProtoLockError::MismatchedLibc {
+                libc: l_libc.to_string(),
+                lockfile_libc: r_libc.to_string(),
             });
         }
 

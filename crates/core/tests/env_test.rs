@@ -187,3 +187,45 @@ mod get_config_dir {
         );
     }
 }
+
+mod get_libc {
+    use super::*;
+    use system_env::{SystemLibc, SystemOS};
+
+    #[test]
+    fn returns_none_for_non_linux() {
+        let sandbox = create_empty_sandbox();
+
+        for os in [SystemOS::MacOS, SystemOS::Windows, SystemOS::FreeBSD] {
+            let mut env = create_env(sandbox.path(), sandbox.path());
+            env.os = os;
+
+            assert_eq!(env.get_libc(), None);
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn detects_libc_on_linux() {
+        let sandbox = create_empty_sandbox();
+        let env = create_env(sandbox.path(), sandbox.path());
+
+        assert!(matches!(
+            env.get_libc(),
+            Some(SystemLibc::Gnu | SystemLibc::Musl)
+        ));
+    }
+
+    #[test]
+    fn can_override_libc() {
+        let sandbox = create_empty_sandbox();
+        let mut env = create_env(sandbox.path(), sandbox.path());
+        env.os = SystemOS::Linux;
+        env.set_libc(Some(SystemLibc::Musl));
+
+        assert_eq!(env.get_libc(), Some(SystemLibc::Musl));
+
+        // Is preserved when reloading
+        assert_eq!(env.reload().get_libc(), Some(SystemLibc::Musl));
+    }
+}
