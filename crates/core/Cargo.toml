@@ -30,7 +30,7 @@ dotenv-ng = { version = "1.0.0", default-features = false }
 indexmap = { workspace = true }
 iocraft = { workspace = true }
 miette = { workspace = true }
-minisign-verify = "0.2.5"
+minisign-verify = "0.3.0"
 oci-client = { workspace = true }
 once_cell = { workspace = true }
 opentelemetry = { workspace = true, optional = true }

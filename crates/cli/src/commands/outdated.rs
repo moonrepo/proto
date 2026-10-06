@@ -162,8 +162,10 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> SessionResul
                 "Resolving newest version"
             );
 
+            // Don't resolve from the manifest, otherwise an installed version
+            // that satisfies the range will be chosen over a newer remote one
             let newest_version = Resolver::new(&tool)
-                .resolve_version_candidate(&newest_range, false, true)
+                .resolve_version_candidate(&newest_range, false, false)
                 .await?;
 
             debug!(tool = tool.context.as_str(), "Resolving latest version");

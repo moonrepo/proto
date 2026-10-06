@@ -62,11 +62,13 @@ impl<'tool> VersionResolver<'tool> {
         )
     }
 
+    /// Resolve without preferring locally installed versions. Config aliases
+    /// are still applied, as they are user-defined and not installed state.
     pub fn resolve_without_manifest(
         &self,
         candidate: &UnresolvedVersionSpec,
     ) -> Option<VersionSpec> {
-        resolve_version(candidate, &self.versions, &self.aliases, None, None)
+        resolve_version(candidate, &self.versions, &self.aliases, None, self.config)
     }
 }
 
