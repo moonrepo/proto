@@ -1,11 +1,51 @@
-use proto_core::{Id, LockRecord, ProtoLock};
+use proto_core::{Id, LockRecord, ProtoLock, get_lockable_libc};
 use proto_pdk_api::ToolLockOptions;
 use starbase_sandbox::create_empty_sandbox;
-use system_env::{SystemArch, SystemOS};
+use system_env::{SystemArch, SystemLibc, SystemOS, SystemPlatform};
 use version_spec::{UnresolvedVersionSpec, VersionSpec};
 
 mod lockfile {
     use super::*;
+
+    mod lockable_libc {
+        use super::*;
+
+        #[test]
+        fn returns_libc_for_linux() {
+            for libc in [SystemLibc::Gnu, SystemLibc::Musl] {
+                assert_eq!(
+                    get_lockable_libc(
+                        &SystemPlatform::new(SystemOS::Linux, SystemArch::X64).with_libc(libc)
+                    ),
+                    Some(libc)
+                );
+            }
+        }
+
+        #[test]
+        fn returns_none_for_unknown_libc() {
+            assert_eq!(
+                get_lockable_libc(
+                    &SystemPlatform::new(SystemOS::Linux, SystemArch::X64)
+                        .with_libc(SystemLibc::Unknown)
+                ),
+                None
+            );
+        }
+
+        #[test]
+        fn returns_none_for_non_linux() {
+            // Libc detection reports GNU for some non-Linux systems, like FreeBSD
+            for os in [SystemOS::FreeBSD, SystemOS::MacOS, SystemOS::Windows] {
+                assert_eq!(
+                    get_lockable_libc(
+                        &SystemPlatform::new(os, SystemArch::X64).with_libc(SystemLibc::Gnu)
+                    ),
+                    None
+                );
+            }
+        }
+    }
 
     mod lock_record_matching {
         use super::*;
@@ -143,6 +183,116 @@ mod lockfile {
             assert!(!record.is_match(&query, &options));
         }
 
+        fn linux_record(libc: Option<SystemLibc>) -> LockRecord {
+            LockRecord {
+                libc,
+                ..record_with(
+                    Some("1.2.3"),
+                    None,
+                    Some(SystemOS::Linux),
+                    Some(SystemArch::X64),
+                )
+            }
+        }
+
+        #[test]
+        fn matches_when_record_libc_none_backwards_compat() {
+            // Record in lockfile has no libc (old format) — should match any libc query
+            let record = linux_record(None);
+
+            assert!(record.is_match(&linux_record(Some(SystemLibc::Gnu)), &default_options()));
+            assert!(record.is_match(&linux_record(Some(SystemLibc::Musl)), &default_options()));
+        }
+
+        #[test]
+        fn matches_same_libc() {
+            let record = linux_record(Some(SystemLibc::Musl));
+            let query = linux_record(Some(SystemLibc::Musl));
+
+            assert!(record.is_match(&query, &default_options()));
+        }
+
+        #[test]
+        fn no_match_different_libc() {
+            let record = linux_record(Some(SystemLibc::Gnu));
+            let query = linux_record(Some(SystemLibc::Musl));
+
+            assert!(!record.is_match(&query, &default_options()));
+        }
+
+        #[test]
+        fn no_match_when_record_has_libc_but_query_doesnt() {
+            let record = linux_record(Some(SystemLibc::Gnu));
+            let query = linux_record(None);
+
+            assert!(!record.is_match(&query, &default_options()));
+        }
+
+        #[test]
+        fn no_match_ignore_os_arch_but_record_has_libc() {
+            let record = LockRecord {
+                libc: Some(SystemLibc::Gnu),
+                ..record_with(Some("1.2.3"), None, None, None)
+            };
+            let query = record_with(Some("1.2.3"), None, None, None);
+            let options = ToolLockOptions {
+                ignore_os_arch: true,
+                ..Default::default()
+            };
+
+            assert!(!record.is_match(&query, &options));
+        }
+
+        #[test]
+        fn matches_with_platform() {
+            let mut record = record_with(Some("1.2.3"), Some("asdf"), None, None);
+            record.set_platform(
+                &SystemPlatform::new(SystemOS::Linux, SystemArch::X64).with_libc(SystemLibc::Musl),
+            );
+
+            let backend = Id::raw("asdf");
+            let spec = UnresolvedVersionSpec::parse("1.2.3").unwrap();
+            let matches = |platform: &str| {
+                record.is_match_with(
+                    Some(&backend),
+                    Some(&spec),
+                    &SystemPlatform::parse(platform).unwrap(),
+                    &default_options(),
+                )
+            };
+
+            assert!(matches("x64-linux-musl"));
+            assert!(!matches("x64-linux-gnu"));
+            assert!(!matches("arm64-linux-musl"));
+            assert!(!matches("x64-macos"));
+
+            // Backend and spec must also match
+            assert!(!record.is_match_with(
+                None,
+                Some(&spec),
+                &SystemPlatform::parse("x64-linux-musl").unwrap(),
+                &default_options(),
+            ));
+        }
+
+        #[test]
+        fn matches_with_platform_ignores_libc_on_non_linux() {
+            let record = LockRecord {
+                spec: Some(UnresolvedVersionSpec::parse("1.2.3").unwrap()),
+                os: Some(SystemOS::FreeBSD),
+                arch: Some(SystemArch::X64),
+                ..Default::default()
+            };
+
+            // Libc detection reports GNU on FreeBSD, but it's never recorded
+            assert!(record.is_match_with(
+                None,
+                record.spec.as_ref(),
+                &SystemPlatform::new(SystemOS::FreeBSD, SystemArch::X64).with_libc(SystemLibc::Gnu),
+                &default_options(),
+            ));
+        }
+
         #[test]
         fn matches_with_backend_and_spec_both_none() {
             let a = LockRecord::default();
@@ -195,6 +345,56 @@ mod lockfile {
             assert!(lockfile_record.spec.is_some());
             assert!(lockfile_record.version.is_some());
         }
+
+        #[test]
+        fn set_platform_only_sets_libc_on_linux() {
+            let mut record = LockRecord::default();
+
+            record.set_platform(
+                &SystemPlatform::new(SystemOS::Linux, SystemArch::Arm64)
+                    .with_libc(SystemLibc::Musl),
+            );
+
+            assert_eq!(record.os, Some(SystemOS::Linux));
+            assert_eq!(record.arch, Some(SystemArch::Arm64));
+            assert_eq!(record.libc, Some(SystemLibc::Musl));
+
+            record.set_platform(
+                &SystemPlatform::new(SystemOS::FreeBSD, SystemArch::X64).with_libc(SystemLibc::Gnu),
+            );
+
+            assert_eq!(record.os, Some(SystemOS::FreeBSD));
+            assert_eq!(record.arch, Some(SystemArch::X64));
+            assert_eq!(record.libc, None);
+        }
+
+        #[test]
+        fn for_other_platform_strips_libc() {
+            let record = LockRecord {
+                version: Some(VersionSpec::parse("1.2.3").unwrap()),
+                os: Some(SystemOS::Linux),
+                arch: Some(SystemArch::X64),
+                libc: Some(SystemLibc::Musl),
+                ..Default::default()
+            };
+
+            let other_record = record.for_other_platform();
+
+            assert!(other_record.os.is_none());
+            assert!(other_record.arch.is_none());
+            assert!(other_record.libc.is_none());
+            assert!(other_record.version.is_some());
+        }
+
+        #[test]
+        fn for_manifest_preserves_libc() {
+            let record = LockRecord {
+                libc: Some(SystemLibc::Musl),
+                ..Default::default()
+            };
+
+            assert_eq!(record.for_manifest().libc, Some(SystemLibc::Musl));
+        }
     }
 
     mod proto_lock_io {
@@ -241,6 +441,42 @@ mod lockfile {
             assert_eq!(records[0].version, record.version);
             assert_eq!(records[0].os, record.os);
             assert_eq!(records[0].arch, record.arch);
+        }
+
+        #[test]
+        fn save_and_load_roundtrip_with_libc() {
+            let sandbox = create_empty_sandbox();
+
+            let mut lock = ProtoLock::load_from(sandbox.path()).unwrap();
+
+            lock.tools.entry(Id::raw("node")).or_default().extend([
+                LockRecord {
+                    spec: Some(UnresolvedVersionSpec::parse("1.2.3").unwrap()),
+                    os: Some(SystemOS::Linux),
+                    arch: Some(SystemArch::X64),
+                    libc: Some(SystemLibc::Musl),
+                    ..Default::default()
+                },
+                LockRecord {
+                    spec: Some(UnresolvedVersionSpec::parse("1.2.3").unwrap()),
+                    os: Some(SystemOS::MacOS),
+                    arch: Some(SystemArch::Arm64),
+                    ..Default::default()
+                },
+            ]);
+
+            lock.save().unwrap();
+
+            let contents = std::fs::read_to_string(&lock.path).unwrap();
+
+            assert_eq!(contents.matches("libc = \"musl\"").count(), 1);
+            assert!(!contents.contains("libc = \"unknown\""));
+
+            let loaded = ProtoLock::load_from(sandbox.path()).unwrap();
+            let records = loaded.tools.get(&Id::raw("node")).unwrap();
+
+            assert_eq!(records[0].libc, Some(SystemLibc::Musl));
+            assert_eq!(records[1].libc, None);
         }
 
         #[test]
@@ -314,6 +550,35 @@ mod lockfile {
                 sorted[2].spec,
                 Some(UnresolvedVersionSpec::parse("2.0.0").unwrap())
             );
+        }
+
+        #[test]
+        fn sort_records_orders_by_libc_after_os_and_arch() {
+            let mut lock = ProtoLock::default();
+
+            let record = |libc| LockRecord {
+                spec: Some(UnresolvedVersionSpec::parse("1.0.0").unwrap()),
+                os: Some(SystemOS::Linux),
+                arch: Some(SystemArch::X64),
+                libc,
+                ..Default::default()
+            };
+
+            lock.tools.insert(
+                Id::raw("node"),
+                vec![
+                    record(Some(SystemLibc::Musl)),
+                    record(Some(SystemLibc::Gnu)),
+                    record(None),
+                ],
+            );
+            lock.sort_records();
+
+            let sorted = lock.tools.get(&Id::raw("node")).unwrap();
+
+            assert_eq!(sorted[0].libc, None);
+            assert_eq!(sorted[1].libc, Some(SystemLibc::Gnu));
+            assert_eq!(sorted[2].libc, Some(SystemLibc::Musl));
         }
 
         #[test]

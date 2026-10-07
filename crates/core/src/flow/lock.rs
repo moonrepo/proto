@@ -1,6 +1,6 @@
 pub use super::lock_error::ProtoLockError;
 use crate::ProtoEnvironment;
-use crate::lockfile::{LockRecord, ProtoLock};
+use crate::lockfile::{LockRecord, ProtoLock, get_lockable_libc};
 use crate::tool::Tool;
 use crate::tool_spec::ToolSpec;
 use std::collections::BTreeSet;
@@ -150,13 +150,17 @@ impl<'tool> Locker<'tool> {
                     *existing = record;
                 }
 
-                // Backwards compatibility for records without an os/arch
+                // Backwards compatibility for records without an os/arch/libc
                 if self.tool.metadata.lock_options.ignore_os_arch {
                     existing.os = None;
                     existing.arch = None;
+                    existing.libc = None;
                 } else {
-                    existing.os.get_or_insert(proto.os);
-                    existing.arch.get_or_insert(proto.arch);
+                    let platform = proto.get_host_platform();
+
+                    existing.os.get_or_insert(platform.os);
+                    existing.arch.get_or_insert(platform.arch);
+                    existing.libc = existing.libc.or(get_lockable_libc(platform));
                 }
             }
             None => {
@@ -189,7 +193,7 @@ impl<'tool> Locker<'tool> {
         &self,
         version: &VersionSpec,
     ) -> Result<(), ProtoLockError> {
-        let proto = &self.tool.proto;
+        let platform = self.tool.proto.get_host_platform();
 
         let Some(mut lock) = self.load_lock_mut()? else {
             return Ok(());
@@ -206,8 +210,7 @@ impl<'tool> Locker<'tool> {
             let matched = record.is_match_with(
                 self.tool.context.backend.as_ref(),
                 Some(&spec),
-                Some(&proto.os),
-                Some(&proto.arch),
+                platform,
                 &self.tool.metadata.lock_options,
             );
 
@@ -294,11 +297,15 @@ impl<'tool> Locker<'tool> {
 
             // If a record already exists for the new spec, for example from
             // an ad-hoc install, keep the existing record instead, as it may
-            // contain a checksum from a real install
-            if !kept
-                .iter()
-                .any(|existing| existing.is_match(&record, &self.tool.metadata.lock_options))
-            {
+            // contain a checksum from a real install. Records without a libc
+            // (created before libcs were recorded) match every libc, so
+            // compare in both directions, otherwise a migrated record without
+            // a libc would duplicate an existing record for the same platform
+            let options = &self.tool.metadata.lock_options;
+
+            if !kept.iter().any(|existing| {
+                existing.is_match(&record, options) || record.is_match(existing, options)
+            }) {
                 kept.push(record);
             }
         }
@@ -381,6 +388,9 @@ impl<'tool> Locker<'tool> {
             return Ok(None);
         };
 
+        let platform = proto.get_host_platform();
+        let libc = get_lockable_libc(platform);
+        let mut any_libc: Option<&LockRecord> = None;
         let mut other_platform: Option<&LockRecord> = None;
 
         for record in records {
@@ -391,11 +401,17 @@ impl<'tool> Locker<'tool> {
             if record.is_match_with(
                 self.tool.context.backend.as_ref(),
                 Some(&spec.req),
-                Some(&proto.os),
-                Some(&proto.arch),
+                platform,
                 &self.tool.metadata.lock_options,
             ) {
-                return Ok(Some(record.clone()));
+                // Records without a libc (created before libcs were recorded)
+                // match every libc, so prefer a record for the current libc
+                if record.libc == libc {
+                    return Ok(Some(record.clone()));
+                }
+
+                any_libc.get_or_insert(record);
+                continue;
             }
 
             if record.backend.as_ref() != self.tool.context.backend.as_ref()
@@ -412,6 +428,10 @@ impl<'tool> Locker<'tool> {
             }
         }
 
+        if let Some(record) = any_libc {
+            return Ok(Some(record.clone()));
+        }
+
         if let Some(record) = other_platform {
             // When immutable, every download must be verified against a
             // checksum in the lockfile, but the checksum of another platform's
@@ -420,8 +440,7 @@ impl<'tool> Locker<'tool> {
                 return Err(ProtoLockError::ImmutableMissingPlatformRecord {
                     tool: self.tool.get_name().to_owned(),
                     spec: spec.req.to_string(),
-                    os: proto.os.to_string(),
-                    arch: proto.arch.to_string(),
+                    platform: platform.to_string(),
                 });
             }
 
@@ -430,6 +449,7 @@ impl<'tool> Locker<'tool> {
                 spec = spec.req.to_string(),
                 os = record.os.map(|os| os.to_string()),
                 arch = record.arch.map(|arch| arch.to_string()),
+                libc = record.libc.map(|libc| libc.to_string()),
                 "No record in lock file for the current platform, inheriting the version locked by another platform",
             );
 
@@ -510,6 +530,16 @@ impl<'tool> Locker<'tool> {
             return Err(ProtoLockError::MismatchedArch {
                 arch: l_arch.to_string(),
                 lockfile_arch: r_arch.to_string(),
+            });
+        }
+
+        if let Some(l_libc) = install_record.libc
+            && let Some(r_libc) = locked_record.libc
+            && l_libc != r_libc
+        {
+            return Err(ProtoLockError::MismatchedLibc {
+                libc: l_libc.to_string(),
+                lockfile_libc: r_libc.to_string(),
             });
         }
 
