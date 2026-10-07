@@ -9,7 +9,7 @@ use tracing::instrument;
 #[derive(Args, Clone, Debug)]
 pub struct UntrustArgs {
     #[arg(
-        help = "Config file, or directory of config files, to untrust. Defaults to the current directory"
+        help = "Config file, or directory of config files, to untrust. Either absolute, or relative to the current directory. Defaults to the current directory"
     )]
     path: Option<PathBuf>,
 }

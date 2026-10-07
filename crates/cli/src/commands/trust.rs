@@ -14,7 +14,7 @@ use tracing::instrument;
 #[derive(Args, Clone, Debug)]
 pub struct TrustArgs {
     #[arg(
-        help = "Config file, or directory of config files, to trust. Defaults to the current directory"
+        help = "Config file, or directory of config files, to trust. Either absolute, or relative to the current directory. Defaults to the current directory"
     )]
     path: Option<PathBuf>,
 }
@@ -59,6 +59,7 @@ pub fn resolve_target(
     path: Option<&Path>,
     must_exist: bool,
 ) -> miette::Result<Option<TrustTarget>> {
+    // Joining an absolute path replaces the working directory
     let path = match path {
         Some(path) => session.env.working_dir.join(path),
         None => session.env.working_dir.clone(),

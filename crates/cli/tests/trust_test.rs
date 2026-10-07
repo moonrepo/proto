@@ -443,6 +443,56 @@ customtool = "file://./custom.wasm"
         }
 
         #[test]
+        fn can_trust_a_directory_with_an_absolute_path() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file("child/.prototools", CONFIG);
+            sandbox.create_file("other/.gitkeep", "");
+
+            let path = sandbox.path().join("child");
+
+            run(
+                &sandbox,
+                Path::new("other"),
+                &["trust", path.to_str().unwrap()],
+                &[],
+            )
+            .success()
+            .stdout(predicate::str::contains("Trusted directory"));
+
+            assert_trusted(&activate_in(&sandbox, Path::new("child"), &[]));
+        }
+
+        #[test]
+        fn can_trust_a_config_file_with_an_absolute_path() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file("child/.prototools", CONFIG);
+            sandbox.create_file("other/.gitkeep", "");
+
+            let path = sandbox.path().join("child/.prototools");
+
+            run(
+                &sandbox,
+                Path::new("other"),
+                &["trust", path.to_str().unwrap()],
+                &[],
+            )
+            .success()
+            .stdout(predicate::str::contains("Trusted config"));
+
+            assert_trusted(&activate_in(&sandbox, Path::new("child"), &[]));
+        }
+
+        #[test]
+        fn fails_when_absolute_path_does_not_exist() {
+            let sandbox = create_empty_proto_sandbox();
+            let path = sandbox.path().join("missing");
+
+            trust(&sandbox, &[path.to_str().unwrap()])
+                .failure()
+                .stderr(predicate::str::contains("does not exist"));
+        }
+
+        #[test]
         fn fails_when_directory_does_not_exist() {
             let sandbox = create_empty_proto_sandbox();
 
@@ -467,6 +517,28 @@ customtool = "file://./custom.wasm"
             untrust(&sandbox, &[])
                 .success()
                 .stdout(predicate::str::contains("was not trusted"));
+        }
+
+        #[test]
+        fn can_untrust_with_an_absolute_path() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file("child/.prototools", CONFIG);
+            sandbox.create_file("other/.gitkeep", "");
+
+            let dir = sandbox.path().join("child");
+            let file = dir.join(".prototools");
+
+            for path in [&dir, &file] {
+                let path = path.to_str().unwrap();
+
+                trust(&sandbox, &[path]).success();
+
+                run(&sandbox, Path::new("other"), &["untrust", path], &[])
+                    .success()
+                    .stdout(predicate::str::contains("Untrusted"));
+
+                assert_untrusted(&activate_in(&sandbox, Path::new("child"), &[]));
+            }
         }
 
         #[test]

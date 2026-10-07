@@ -37,7 +37,7 @@
 - Added a `closest` pin location, which targets the closest directory with a `.prototools`, starting from the current directory and traversing upwards. When none is found, the current directory is used. Directories with only an environment config (`.prototools.<env>`), and the user (`~/.prototools`) and global (`~/.proto/.prototools`) configs, are never targeted.
   - This is now the default location for `proto pin`, `proto unpin`, `proto alias`, `proto unalias`, `proto plugin add`, `proto plugin remove`, and `proto install --pin`, instead of `local`. Pass `--to local` (or `--from local`) for the previous behavior.
   - The `install` MCP tool now pins to the closest config as well.
-- Added `proto trust [path]` and `proto untrust [path]` commands, where the path is a config file, or a directory (including its sub-directories). Defaults to the current directory.
+- Added `proto trust [path]` and `proto untrust [path]` commands, where the path is a config file, or a directory (including its sub-directories), either absolute or relative to the current directory. Defaults to the current directory.
   - Trust is not affected by changes to the configs.
   - When proto adds security-sensitive settings to a config that had none, like `proto plugin add`, the config is trusted.
 - Added a `trust` target to `proto clean`, which removes trust records for config files and directories that no longer exist, so a repository cloned later at the same path is not trusted. Also included in the default `all` target.
