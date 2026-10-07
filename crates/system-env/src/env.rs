@@ -225,7 +225,11 @@ pub enum SystemLibc {
     // #[serde(alias = "ucrt")]
     // Msvc,
 
+    /// Unknown or unsupported libc. Values that are not supported by this
+    /// version (for example, a libc added in a future version of proto) will
+    /// deserialize to this variant instead of failing.
     #[default]
+    #[serde(other)]
     Unknown,
 }
 
@@ -427,11 +431,10 @@ fn parse_platform_libc(os: SystemOS, value: Option<&str>) -> Option<(SystemOS, S
         return Some((os, SystemPlatform::default_libc(os)));
     };
 
-    if let Some(libc) = parse_enum(value) {
-        return Some((os, libc));
-    }
-
+    // Don't parse with serde, as unsupported values deserialize to unknown
     Some(match value {
+        "glibc" => (os, SystemLibc::Gnu),
+        "unknown" => (os, SystemLibc::Unknown),
         env if env.starts_with("gnu") => (os, SystemLibc::Gnu),
         env if env.starts_with("musl") => (os, SystemLibc::Musl),
         // Android is a Linux target in Rust triples (`aarch64-linux-android`)

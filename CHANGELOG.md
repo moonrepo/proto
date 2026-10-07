@@ -50,6 +50,7 @@
   - Updated the `load_git_tags` PDK function to return an error, which includes the exit code and stderr of `git ls-remote`, when the tags fail to load, instead of an empty list. Previously, the cause (like an unreachable remote, or an unaccepted Xcode license on macOS) was hidden behind a misleading "Failed to resolve version" error, and previously cached versions were not used as a fallback.
     - Plugins that should continue without the tags must now handle the error, for example with `.unwrap_or_default()`.
   - Added a `HostPlatform` type, which represents an architecture, operating system, and libc, and can be parsed from `<arch>-<os>[-<libc>]` (for example, `arm64-linux-musl`) or a Rust target triple (for example, `aarch64-unknown-linux-musl`).
+  - Updated `HostLibc` to deserialize unsupported values as `unknown`, instead of failing, so that plugins built with this version continue to work when a future version of proto adds a libc.
   - Updated the `ConfigBuilder::host` test utility to require a `HostPlatform`, instead of an operating system and architecture, so that the libc can be configured. For example, `.host(HostPlatform::parse("x64-linux-musl")?)`. The libc is no longer detected from the current machine, and defaults to `gnu` for Linux.
 
 #### 🐞 Fixes

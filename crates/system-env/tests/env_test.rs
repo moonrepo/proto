@@ -385,3 +385,39 @@ mod system_platform {
         assert_eq!(platform.libc, SystemLibc::detect(platform.os));
     }
 }
+
+mod system_libc {
+    use super::*;
+
+    #[test]
+    fn deserializes_known_values() {
+        assert_eq!(
+            serde_json::from_str::<SystemLibc>(r#""gnu""#).unwrap(),
+            SystemLibc::Gnu
+        );
+        assert_eq!(
+            serde_json::from_str::<SystemLibc>(r#""glibc""#).unwrap(),
+            SystemLibc::Gnu
+        );
+        assert_eq!(
+            serde_json::from_str::<SystemLibc>(r#""musl""#).unwrap(),
+            SystemLibc::Musl
+        );
+        assert_eq!(
+            serde_json::from_str::<SystemLibc>(r#""unknown""#).unwrap(),
+            SystemLibc::Unknown
+        );
+    }
+
+    // A newer version of proto may send a libc that this version doesn't support
+    #[test]
+    fn deserializes_unsupported_values_as_unknown() {
+        for value in [r#""msvc""#, r#""bionic""#, r#""libsystem""#] {
+            assert_eq!(
+                serde_json::from_str::<SystemLibc>(value).unwrap(),
+                SystemLibc::Unknown,
+                "{value}"
+            );
+        }
+    }
+}
