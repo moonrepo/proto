@@ -1989,6 +1989,70 @@ mod locker_libc {
     }
 
     #[tokio::test(flavor = "multi_thread")]
+    async fn resolves_record_for_current_libc_over_record_without_libc() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+        // Both exist, for example after merging branches that used different
+        // versions of proto, and the record without a libc is sorted first
+        let mut record = make_record("20.0.0", "^20", Some(linux_x64(SystemLibc::Gnu)));
+        record.checksum = Some(Checksum::sha256("abcdef".into()));
+
+        save_lock(
+            sandbox.path(),
+            [
+                make_record("20.0.0", "^20", Some(linux_x64(SystemLibc::Unknown))),
+                record,
+            ],
+        );
+
+        let tool = create_tool_for_platform(sandbox.path(), linux_x64(SystemLibc::Gnu)).await;
+        let spec = ToolSpec::parse("^20").unwrap();
+        let record = Locker::new(&tool)
+            .resolve_locked_record(&spec)
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(record.libc, Some(SystemLibc::Gnu));
+        assert_eq!(record.checksum, Some(Checksum::sha256("abcdef".into())));
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn migrates_record_without_libc_into_existing_record() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+        // A record created before libcs were recorded, and a record for the
+        // new spec that was just installed (with a libc)
+        let mut installed = make_record("21.0.0", "21.0.0", Some(linux_x64(SystemLibc::Gnu)));
+        installed.checksum = Some(Checksum::sha256("abcdef".into()));
+
+        save_lock(
+            sandbox.path(),
+            [
+                make_record("20.0.0", "^20", Some(linux_x64(SystemLibc::Unknown))),
+                installed,
+            ],
+        );
+
+        let tool = create_tool_for_platform(sandbox.path(), linux_x64(SystemLibc::Gnu)).await;
+
+        Locker::new(&tool)
+            .update_spec_in_lockfile(
+                &UnresolvedVersionSpec::parse("^20").unwrap(),
+                &UnresolvedVersionSpec::parse("21.0.0").unwrap(),
+                &VersionSpec::parse("21.0.0").unwrap(),
+            )
+            .unwrap();
+
+        let records = load_records(sandbox.path());
+
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0].libc, Some(SystemLibc::Gnu));
+        assert_eq!(records[0].checksum, Some(Checksum::sha256("abcdef".into())));
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
     async fn verify_fails_on_libc_mismatch() {
         let sandbox = create_empty_sandbox();
         sandbox.create_file(".prototools", "");

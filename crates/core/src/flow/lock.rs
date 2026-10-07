@@ -297,11 +297,15 @@ impl<'tool> Locker<'tool> {
 
             // If a record already exists for the new spec, for example from
             // an ad-hoc install, keep the existing record instead, as it may
-            // contain a checksum from a real install
-            if !kept
-                .iter()
-                .any(|existing| existing.is_match(&record, &self.tool.metadata.lock_options))
-            {
+            // contain a checksum from a real install. Records without a libc
+            // (created before libcs were recorded) match every libc, so
+            // compare in both directions, otherwise a migrated record without
+            // a libc would duplicate an existing record for the same platform
+            let options = &self.tool.metadata.lock_options;
+
+            if !kept.iter().any(|existing| {
+                existing.is_match(&record, options) || record.is_match(existing, options)
+            }) {
                 kept.push(record);
             }
         }
@@ -385,6 +389,8 @@ impl<'tool> Locker<'tool> {
         };
 
         let platform = proto.get_host_platform();
+        let libc = get_lockable_libc(platform);
+        let mut any_libc: Option<&LockRecord> = None;
         let mut other_platform: Option<&LockRecord> = None;
 
         for record in records {
@@ -398,7 +404,14 @@ impl<'tool> Locker<'tool> {
                 platform,
                 &self.tool.metadata.lock_options,
             ) {
-                return Ok(Some(record.clone()));
+                // Records without a libc (created before libcs were recorded)
+                // match every libc, so prefer a record for the current libc
+                if record.libc == libc {
+                    return Ok(Some(record.clone()));
+                }
+
+                any_libc.get_or_insert(record);
+                continue;
             }
 
             if record.backend.as_ref() != self.tool.context.backend.as_ref()
@@ -413,6 +426,10 @@ impl<'tool> Locker<'tool> {
             if other_platform.is_none_or(|current| record.version > current.version) {
                 other_platform = Some(record);
             }
+        }
+
+        if let Some(record) = any_libc {
+            return Ok(Some(record.clone()));
         }
 
         if let Some(record) = other_platform {

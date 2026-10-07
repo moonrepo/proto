@@ -421,3 +421,19 @@ mod system_libc {
         }
     }
 }
+
+mod system_abi {
+    use super::*;
+
+    #[test]
+    fn deserializes_unsupported_values_as_unknown() {
+        assert_eq!(
+            serde_json::from_str::<SystemABI>(r#""eabihf""#).unwrap(),
+            SystemABI::Eabihf
+        );
+        assert_eq!(
+            serde_json::from_str::<SystemABI>(r#""gnuabi64""#).unwrap(),
+            SystemABI::Unknown
+        );
+    }
+}

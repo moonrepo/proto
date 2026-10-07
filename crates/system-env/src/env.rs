@@ -309,7 +309,11 @@ pub enum SystemABI {
     Eabihf,
     Llvm,
 
+    /// Unknown or unsupported ABI. Values that are not supported by this
+    /// version (for example, an ABI added in a future version of proto) will
+    /// deserialize to this variant instead of failing.
     #[default]
+    #[serde(other)]
     Unknown,
 }
 
