@@ -9,8 +9,8 @@ repository = "https://github.com/moonrepo/proto"
 rust-version = "1.85.0"
 
 [dependencies]
-system_env = { version = "0.10.4", path = "../system-env" }
-version_spec = { version = "0.11.6", path = "../version-spec" }
+system_env = { version = "0.10.5", path = "../system-env" }
+version_spec = { version = "0.11.7", path = "../version-spec" }
 warpgate_api = { version = "0.19.4", path = "../warpgate-api" }
 derive_setters = { workspace = true }
 rustc-hash = { workspace = true }
