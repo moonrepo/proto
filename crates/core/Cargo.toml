@@ -1,6 +1,6 @@
 [package]
 name = "proto_core"
-version = "0.62.2"
+version = "0.63.0"
 edition = "2024"
 license = "MIT"
 description = "Core proto APIs."
@@ -9,15 +9,15 @@ repository = "https://github.com/moonrepo/proto"
 rust-version = "1.89.0"
 
 [dependencies]
-proto_pdk_api = { version = "0.34.5", path = "../pdk-api", features = [
+proto_pdk_api = { version = "0.35.0", path = "../pdk-api", features = [
     "schematic",
 ] }
-proto_shim = { version = "0.8.5", path = "../shim" }
+proto_shim = { version = "0.9.0", path = "../shim" }
 system_env = { version = "0.10.5", path = "../system-env" }
 version_spec = { version = "0.11.7", path = "../version-spec", features = [
     "schematic",
 ] }
-warpgate = { version = "0.36.4", path = "../warpgate", features = [
+warpgate = { version = "0.37.0", path = "../warpgate", features = [
     "miette",
     "schematic",
 ] }
