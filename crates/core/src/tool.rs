@@ -305,9 +305,7 @@ impl Tool {
         };
 
         if !self.metadata.lock_options.ignore_os_arch {
-            record.os = Some(self.proto.os);
-            record.arch = Some(self.proto.arch);
-            record.libc = self.proto.get_libc();
+            record.set_platform(self.proto.get_host_platform());
         }
 
         record

@@ -6,7 +6,9 @@ use starbase_utils::fs;
 use std::collections::HashMap;
 use std::env;
 use std::path::{Path, PathBuf};
-use warpgate_api::{HostArch, HostEnvironment, HostLibc, HostOS, TestEnvironment, VirtualPath};
+use warpgate_api::{
+    HostArch, HostEnvironment, HostLibc, HostOS, HostPlatform, TestEnvironment, VirtualPath,
+};
 
 fn traverse_target_dir<T: AsRef<Path>, F: AsRef<str>>(
     search_dir: T,
@@ -149,7 +151,7 @@ impl ConfigBuilder {
     /// and `test_environment` values when not defined.
     pub fn build(mut self) -> HashMap<String, String> {
         if !self.config.contains_key("host_environment") {
-            self.host(HostOS::from_env(), HostArch::from_env());
+            self.host(HostPlatform::from_env());
         }
 
         if !self.config.contains_key("test_environment") {
@@ -170,13 +172,13 @@ impl ConfigBuilder {
     }
 
     /// Set the `host_environment` config setting with the provided
-    /// operating system and architecture.
-    pub fn host(&mut self, os: HostOS, arch: HostArch) -> &mut Self {
+    /// platform (architecture, operating system, and libc).
+    pub fn host(&mut self, platform: HostPlatform) -> &mut Self {
         self.host_environment(HostEnvironment {
-            arch,
+            arch: platform.arch,
             ci: is_ci(),
-            libc: HostLibc::detect(os),
-            os,
+            libc: platform.libc,
+            os: platform.os,
             home_dir: VirtualPath::default(),
         })
     }

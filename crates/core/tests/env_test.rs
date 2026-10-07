@@ -188,20 +188,16 @@ mod get_config_dir {
     }
 }
 
-mod get_libc {
+mod get_host_platform {
     use super::*;
-    use system_env::{SystemLibc, SystemOS};
+    use system_env::{SystemArch, SystemLibc, SystemOS, SystemPlatform};
 
     #[test]
-    fn returns_none_for_non_linux() {
+    fn detects_current_platform() {
         let sandbox = create_empty_sandbox();
+        let env = create_env(sandbox.path(), sandbox.path());
 
-        for os in [SystemOS::MacOS, SystemOS::Windows, SystemOS::FreeBSD] {
-            let mut env = create_env(sandbox.path(), sandbox.path());
-            env.os = os;
-
-            assert_eq!(env.get_libc(), None);
-        }
+        assert_eq!(env.get_host_platform(), &SystemPlatform::from_env());
     }
 
     #[cfg(target_os = "linux")]
@@ -211,21 +207,39 @@ mod get_libc {
         let env = create_env(sandbox.path(), sandbox.path());
 
         assert!(matches!(
-            env.get_libc(),
-            Some(SystemLibc::Gnu | SystemLibc::Musl)
+            env.get_host_platform().libc,
+            SystemLibc::Gnu | SystemLibc::Musl
         ));
     }
 
     #[test]
-    fn can_override_libc() {
+    fn can_override_platform() {
         let sandbox = create_empty_sandbox();
         let mut env = create_env(sandbox.path(), sandbox.path());
-        env.os = SystemOS::Linux;
-        env.set_libc(Some(SystemLibc::Musl));
+        let platform = SystemPlatform {
+            os: SystemOS::Linux,
+            arch: SystemArch::Riscv64,
+            libc: SystemLibc::Musl,
+        };
 
-        assert_eq!(env.get_libc(), Some(SystemLibc::Musl));
+        env.set_host_platform(platform);
 
-        // Is preserved when reloading
-        assert_eq!(env.reload().get_libc(), Some(SystemLibc::Musl));
+        assert_eq!(env.get_host_platform(), &platform);
+
+        // Is preserved when cloning and reloading
+        assert_eq!(env.clone().get_host_platform(), &platform);
+        assert_eq!(env.reload().get_host_platform(), &platform);
+    }
+
+    #[test]
+    fn overriding_doesnt_affect_clones() {
+        let sandbox = create_empty_sandbox();
+        let env = create_env(sandbox.path(), sandbox.path());
+        let mut other = env.clone();
+
+        other.set_host_platform(SystemPlatform::new(SystemOS::Solaris, SystemArch::Sparc64));
+
+        assert_eq!(env.get_host_platform(), &SystemPlatform::from_env());
+        assert_eq!(other.get_host_platform().os, SystemOS::Solaris);
     }
 }

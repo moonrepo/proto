@@ -8,11 +8,18 @@ use starbase_utils::toml::{self, TomlError};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
-use system_env::{SystemArch, SystemLibc, SystemOS};
+use system_env::{SystemArch, SystemLibc, SystemOS, SystemPlatform};
 use tracing::{debug, instrument};
 use version_spec::{UnresolvedVersionSpec, VersionSpec};
 
 pub const PROTO_LOCK_NAME: &str = ".protolock";
+
+/// Return the libc to record in the lockfile for the provided platform. A libc
+/// is only recorded for Linux, as it's the only operating system where artifacts
+/// are commonly distributed for multiple libcs (GNU and musl).
+pub fn get_lockable_libc(platform: &SystemPlatform) -> Option<SystemLibc> {
+    (platform.os.is_linux() && platform.libc != SystemLibc::Unknown).then_some(platform.libc)
+}
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(default)]
@@ -78,27 +85,18 @@ impl LockRecord {
         record
     }
 
-    pub fn is_match(&self, other: &Self, options: &ToolLockOptions) -> bool {
-        self.is_match_with(
-            other.backend.as_ref(),
-            other.spec.as_ref(),
-            other.os.as_ref(),
-            other.arch.as_ref(),
-            other.libc.as_ref(),
-            options,
-        )
+    /// Set the operating system, architecture, and libc from the provided
+    /// platform. The libc is only set for Linux, see [`get_lockable_libc`].
+    pub fn set_platform(&mut self, platform: &SystemPlatform) {
+        self.os = Some(platform.os);
+        self.arch = Some(platform.arch);
+        self.libc = get_lockable_libc(platform);
     }
 
-    pub fn is_match_with(
-        &self,
-        backend: Option<&Id>,
-        spec: Option<&UnresolvedVersionSpec>,
-        os: Option<&SystemOS>,
-        arch: Option<&SystemArch>,
-        libc: Option<&SystemLibc>,
-        options: &ToolLockOptions,
-    ) -> bool {
-        if self.backend.as_ref() != backend || self.spec.as_ref() != spec {
+    /// Return true if this record (in the lockfile) matches the other record,
+    /// by comparing the backend, spec, and platform.
+    pub fn is_match(&self, other: &Self, options: &ToolLockOptions) -> bool {
+        if self.backend != other.backend || self.spec != other.spec {
             return false;
         }
 
@@ -112,15 +110,34 @@ impl LockRecord {
             // If the tool is matching os/arch, then we need to ensure that this
             // record (in the lockfile) matches the values, except for none,
             // as none entries exist for backwards compatibility
-            if self.os.is_some() && self.os.as_ref() != os
-                || self.arch.is_some() && self.arch.as_ref() != arch
-                || self.libc.is_some() && self.libc.as_ref() != libc
+            if self.os.is_some() && self.os != other.os
+                || self.arch.is_some() && self.arch != other.arch
+                || self.libc.is_some() && self.libc != other.libc
             {
                 return false;
             }
         }
 
         true
+    }
+
+    /// Return true if this record (in the lockfile) matches the provided
+    /// backend, spec, and platform.
+    pub fn is_match_with(
+        &self,
+        backend: Option<&Id>,
+        spec: Option<&UnresolvedVersionSpec>,
+        platform: &SystemPlatform,
+        options: &ToolLockOptions,
+    ) -> bool {
+        let mut other = LockRecord {
+            backend: backend.cloned(),
+            spec: spec.cloned(),
+            ..Default::default()
+        };
+        other.set_platform(platform);
+
+        self.is_match(&other, options)
     }
 }
 

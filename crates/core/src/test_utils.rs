@@ -1,3 +1,4 @@
+use crate::lockfile::get_lockable_libc;
 use crate::{ProtoConfig, ProtoEnvironment, ProtoFileManager};
 use proto_shim::get_exe_file_name;
 use starbase_sandbox::{Sandbox, assert_cmd};
@@ -153,7 +154,7 @@ pub fn create_proto_sandbox_with_shared_plugins<N: AsRef<str>>(fixture: N) -> Pr
 }
 
 pub fn host_libc() -> Option<SystemLibc> {
-    ProtoEnvironment::default().get_libc()
+    get_lockable_libc(ProtoEnvironment::default().get_host_platform())
 }
 
 pub fn load_config<T: AsRef<Path>>(dir: T) -> ProtoConfig {

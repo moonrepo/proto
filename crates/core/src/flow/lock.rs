@@ -1,6 +1,6 @@
 pub use super::lock_error::ProtoLockError;
 use crate::ProtoEnvironment;
-use crate::lockfile::{LockRecord, ProtoLock};
+use crate::lockfile::{LockRecord, ProtoLock, get_lockable_libc};
 use crate::tool::Tool;
 use crate::tool_spec::ToolSpec;
 use std::collections::BTreeSet;
@@ -156,9 +156,11 @@ impl<'tool> Locker<'tool> {
                     existing.arch = None;
                     existing.libc = None;
                 } else {
-                    existing.os.get_or_insert(proto.os);
-                    existing.arch.get_or_insert(proto.arch);
-                    existing.libc = existing.libc.or(proto.get_libc());
+                    let platform = proto.get_host_platform();
+
+                    existing.os.get_or_insert(platform.os);
+                    existing.arch.get_or_insert(platform.arch);
+                    existing.libc = existing.libc.or(get_lockable_libc(platform));
                 }
             }
             None => {
@@ -191,7 +193,7 @@ impl<'tool> Locker<'tool> {
         &self,
         version: &VersionSpec,
     ) -> Result<(), ProtoLockError> {
-        let proto = &self.tool.proto;
+        let platform = self.tool.proto.get_host_platform();
 
         let Some(mut lock) = self.load_lock_mut()? else {
             return Ok(());
@@ -208,9 +210,7 @@ impl<'tool> Locker<'tool> {
             let matched = record.is_match_with(
                 self.tool.context.backend.as_ref(),
                 Some(&spec),
-                Some(&proto.os),
-                Some(&proto.arch),
-                proto.get_libc().as_ref(),
+                platform,
                 &self.tool.metadata.lock_options,
             );
 
@@ -384,7 +384,7 @@ impl<'tool> Locker<'tool> {
             return Ok(None);
         };
 
-        let libc = proto.get_libc();
+        let platform = proto.get_host_platform();
         let mut other_platform: Option<&LockRecord> = None;
 
         for record in records {
@@ -395,9 +395,7 @@ impl<'tool> Locker<'tool> {
             if record.is_match_with(
                 self.tool.context.backend.as_ref(),
                 Some(&spec.req),
-                Some(&proto.os),
-                Some(&proto.arch),
-                libc.as_ref(),
+                platform,
                 &self.tool.metadata.lock_options,
             ) {
                 return Ok(Some(record.clone()));
@@ -425,10 +423,7 @@ impl<'tool> Locker<'tool> {
                 return Err(ProtoLockError::ImmutableMissingPlatformRecord {
                     tool: self.tool.get_name().to_owned(),
                     spec: spec.req.to_string(),
-                    platform: match libc {
-                        Some(libc) => format!("{} {} ({libc})", proto.os, proto.arch),
-                        None => format!("{} {}", proto.os, proto.arch),
-                    },
+                    platform: platform.to_string(),
                 });
             }
 

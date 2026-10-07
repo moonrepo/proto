@@ -1,11 +1,51 @@
-use proto_core::{Id, LockRecord, ProtoLock};
+use proto_core::{Id, LockRecord, ProtoLock, get_lockable_libc};
 use proto_pdk_api::ToolLockOptions;
 use starbase_sandbox::create_empty_sandbox;
-use system_env::{SystemArch, SystemLibc, SystemOS};
+use system_env::{SystemArch, SystemLibc, SystemOS, SystemPlatform};
 use version_spec::{UnresolvedVersionSpec, VersionSpec};
 
 mod lockfile {
     use super::*;
+
+    mod lockable_libc {
+        use super::*;
+
+        #[test]
+        fn returns_libc_for_linux() {
+            for libc in [SystemLibc::Gnu, SystemLibc::Musl] {
+                assert_eq!(
+                    get_lockable_libc(
+                        &SystemPlatform::new(SystemOS::Linux, SystemArch::X64).with_libc(libc)
+                    ),
+                    Some(libc)
+                );
+            }
+        }
+
+        #[test]
+        fn returns_none_for_unknown_libc() {
+            assert_eq!(
+                get_lockable_libc(
+                    &SystemPlatform::new(SystemOS::Linux, SystemArch::X64)
+                        .with_libc(SystemLibc::Unknown)
+                ),
+                None
+            );
+        }
+
+        #[test]
+        fn returns_none_for_non_linux() {
+            // Libc detection reports GNU for some non-Linux systems, like FreeBSD
+            for os in [SystemOS::FreeBSD, SystemOS::MacOS, SystemOS::Windows] {
+                assert_eq!(
+                    get_lockable_libc(
+                        &SystemPlatform::new(os, SystemArch::X64).with_libc(SystemLibc::Gnu)
+                    ),
+                    None
+                );
+            }
+        }
+    }
 
     mod lock_record_matching {
         use super::*;
@@ -204,6 +244,56 @@ mod lockfile {
         }
 
         #[test]
+        fn matches_with_platform() {
+            let mut record = record_with(Some("1.2.3"), Some("asdf"), None, None);
+            record.set_platform(
+                &SystemPlatform::new(SystemOS::Linux, SystemArch::X64).with_libc(SystemLibc::Musl),
+            );
+
+            let backend = Id::raw("asdf");
+            let spec = UnresolvedVersionSpec::parse("1.2.3").unwrap();
+            let matches = |platform: &str| {
+                record.is_match_with(
+                    Some(&backend),
+                    Some(&spec),
+                    &SystemPlatform::parse(platform).unwrap(),
+                    &default_options(),
+                )
+            };
+
+            assert!(matches("x64-linux-musl"));
+            assert!(!matches("x64-linux-gnu"));
+            assert!(!matches("arm64-linux-musl"));
+            assert!(!matches("x64-macos"));
+
+            // Backend and spec must also match
+            assert!(!record.is_match_with(
+                None,
+                Some(&spec),
+                &SystemPlatform::parse("x64-linux-musl").unwrap(),
+                &default_options(),
+            ));
+        }
+
+        #[test]
+        fn matches_with_platform_ignores_libc_on_non_linux() {
+            let record = LockRecord {
+                spec: Some(UnresolvedVersionSpec::parse("1.2.3").unwrap()),
+                os: Some(SystemOS::FreeBSD),
+                arch: Some(SystemArch::X64),
+                ..Default::default()
+            };
+
+            // Libc detection reports GNU on FreeBSD, but it's never recorded
+            assert!(record.is_match_with(
+                None,
+                record.spec.as_ref(),
+                &SystemPlatform::new(SystemOS::FreeBSD, SystemArch::X64).with_libc(SystemLibc::Gnu),
+                &default_options(),
+            ));
+        }
+
+        #[test]
         fn matches_with_backend_and_spec_both_none() {
             let a = LockRecord::default();
             let b = LockRecord::default();
@@ -254,6 +344,28 @@ mod lockfile {
             // Other fields preserved
             assert!(lockfile_record.spec.is_some());
             assert!(lockfile_record.version.is_some());
+        }
+
+        #[test]
+        fn set_platform_only_sets_libc_on_linux() {
+            let mut record = LockRecord::default();
+
+            record.set_platform(
+                &SystemPlatform::new(SystemOS::Linux, SystemArch::Arm64)
+                    .with_libc(SystemLibc::Musl),
+            );
+
+            assert_eq!(record.os, Some(SystemOS::Linux));
+            assert_eq!(record.arch, Some(SystemArch::Arm64));
+            assert_eq!(record.libc, Some(SystemLibc::Musl));
+
+            record.set_platform(
+                &SystemPlatform::new(SystemOS::FreeBSD, SystemArch::X64).with_libc(SystemLibc::Gnu),
+            );
+
+            assert_eq!(record.os, Some(SystemOS::FreeBSD));
+            assert_eq!(record.arch, Some(SystemArch::X64));
+            assert_eq!(record.libc, None);
         }
 
         #[test]
