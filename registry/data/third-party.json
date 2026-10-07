@@ -1291,6 +1291,25 @@
       ]
     },
     {
+      "id": "upm",
+      "locator": "github://Moshyfawn/proto-upm-plugin",
+      "format": "wasm",
+      "name": "upm",
+      "description": "A fast, tiny package manager for the npm registry, written in TypeScript.",
+      "author": "moshyfawn",
+      "homepageUrl": "https://github.com/unjs/upm",
+      "repositoryUrl": "https://github.com/Moshyfawn/proto-upm-plugin",
+      "bins": [
+        "upm",
+        "upx"
+      ],
+      "detectionSources": [
+        {
+          "file": "package.json"
+        }
+      ]
+    },
+    {
       "id": "vale",
       "locator": "https://raw.githubusercontent.com/risk1996/proto-plugins/refs/heads/main/vale/plugin.toml",
       "format": "toml",
