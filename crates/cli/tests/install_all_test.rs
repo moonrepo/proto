@@ -212,6 +212,7 @@ moonbase = "3.0.0"
                 LockRecord {
                     os: Some(SystemOS::default()),
                     arch: Some(SystemArch::default()),
+                    libc: host_libc(),
                     // spec: Some(UnresolvedVersionSpec::parse("1.0.0").unwrap()),
                     // version: Some(VersionSpec::parse("1.0.0").unwrap()),
                     checksum: Some(Checksum::sha256(
@@ -229,6 +230,7 @@ moonbase = "3.0.0"
                 LockRecord {
                     os: Some(SystemOS::default()),
                     arch: Some(SystemArch::default()),
+                    libc: host_libc(),
                     // spec: Some(UnresolvedVersionSpec::parse("2.0.0").unwrap()),
                     // version: Some(VersionSpec::parse("2.0.0").unwrap()),
                     checksum: Some(Checksum::sha256(
@@ -246,6 +248,7 @@ moonbase = "3.0.0"
                 LockRecord {
                     os: Some(SystemOS::default()),
                     arch: Some(SystemArch::default()),
+                    libc: host_libc(),
                     // spec: Some(UnresolvedVersionSpec::parse("3.0.0").unwrap()),
                     // version: Some(VersionSpec::parse("3.0.0").unwrap()),
                     checksum: Some(Checksum::sha256(

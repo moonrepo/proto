@@ -6,7 +6,7 @@ use proto_core::{
 use proto_pdk_api::Checksum;
 use starbase_sandbox::create_empty_sandbox;
 use std::path::Path;
-use system_env::{SystemArch, SystemOS};
+use system_env::{SystemArch, SystemOS, SystemPlatform};
 use version_spec::{UnresolvedVersionSpec, VersionSpec};
 
 async fn create_tool_in_sandbox(sandbox_path: &Path) -> Tool {
@@ -26,6 +26,19 @@ async fn create_tool_in_sandbox_with_env(
     proto.working_dir = working_dir.to_path_buf();
     proto.env_mode = env_mode.map(|env| env.to_owned());
 
+    load_node_tool(proto).await
+}
+
+/// Create a tool as if running on the provided platform.
+async fn create_tool_for_platform(sandbox_path: &Path, platform: SystemPlatform) -> Tool {
+    let mut proto = ProtoEnvironment::new_testing(sandbox_path).unwrap();
+    proto.working_dir = sandbox_path.to_path_buf();
+    proto.set_host_platform(platform);
+
+    load_node_tool(proto).await
+}
+
+async fn load_node_tool(proto: ProtoEnvironment) -> Tool {
     load_tool_from_locator(
         ToolContext::parse("node").unwrap(),
         proto,
@@ -45,19 +58,23 @@ fn other_os() -> SystemOS {
     SystemOS::Solaris
 }
 
-fn make_record(
-    version: &str,
-    spec: &str,
-    os: Option<SystemOS>,
-    arch: Option<SystemArch>,
-) -> LockRecord {
-    LockRecord {
+/// The platform that records are created with on the current machine.
+fn host_platform() -> SystemPlatform {
+    *ProtoEnvironment::default().get_host_platform()
+}
+
+fn make_record(version: &str, spec: &str, platform: Option<SystemPlatform>) -> LockRecord {
+    let mut record = LockRecord {
         version: Some(VersionSpec::parse(version).unwrap()),
         spec: Some(UnresolvedVersionSpec::parse(spec).unwrap()),
-        os,
-        arch,
         ..Default::default()
+    };
+
+    if let Some(platform) = platform {
+        record.set_platform(&platform);
     }
+
+    record
 }
 
 mod locker {
@@ -150,8 +167,11 @@ mod locker {
 
             // The record was created on another platform, and includes data
             // that is only valid for that platform
-            let mut record =
-                make_record("20.0.0", "^20", Some(other_os()), Some(SystemArch::Sparc64));
+            let mut record = make_record(
+                "20.0.0",
+                "^20",
+                Some(SystemPlatform::new(other_os(), SystemArch::Sparc64)),
+            );
             record.checksum = Some(Checksum::sha256("abcdef".into()));
             record.source = Some("https://example.com/node.tar.xz".into());
             record
@@ -185,8 +205,11 @@ mod locker {
             let sandbox = create_empty_sandbox();
             sandbox.create_file(".prototools", "[settings]\nlockfile = true");
 
-            let mut record =
-                make_record("20.0.0", "^20", Some(other_os()), Some(SystemArch::Sparc64));
+            let mut record = make_record(
+                "20.0.0",
+                "^20",
+                Some(SystemPlatform::new(other_os(), SystemArch::Sparc64)),
+            );
             record.checksum = Some(Checksum::sha256("abcdef".into()));
 
             let mut lock = ProtoLock::default();
@@ -215,13 +238,12 @@ mod locker {
 
             let mut lock = ProtoLock::default();
             lock.tools.entry(Id::raw("node")).or_default().extend([
-                make_record("20.5.0", "^20", Some(other_os()), Some(SystemArch::Sparc64)),
                 make_record(
-                    "20.0.0",
+                    "20.5.0",
                     "^20",
-                    Some(SystemOS::default()),
-                    Some(SystemArch::default()),
+                    Some(SystemPlatform::new(other_os(), SystemArch::Sparc64)),
                 ),
+                make_record("20.0.0", "^20", Some(host_platform())),
             ]);
             lock.path = sandbox.path().join(".protolock");
             lock.save().unwrap();
@@ -244,13 +266,12 @@ mod locker {
 
             let mut lock = ProtoLock::default();
             lock.tools.entry(Id::raw("node")).or_default().extend([
-                make_record("20.5.0", "^20", Some(other_os()), Some(SystemArch::Sparc64)),
                 make_record(
-                    "20.0.0",
+                    "20.5.0",
                     "^20",
-                    Some(SystemOS::default()),
-                    Some(SystemArch::default()),
+                    Some(SystemPlatform::new(other_os(), SystemArch::Sparc64)),
                 ),
+                make_record("20.0.0", "^20", Some(host_platform())),
             ]);
             lock.path = sandbox.path().join(".protolock");
             lock.save().unwrap();
@@ -273,8 +294,16 @@ mod locker {
             // Two other platforms locked different versions for the same spec
             let mut lock = ProtoLock::default();
             lock.tools.entry(Id::raw("node")).or_default().extend([
-                make_record("20.5.0", "^20", Some(other_os()), Some(SystemArch::Sparc64)),
-                make_record("20.9.0", "^20", Some(other_os()), Some(SystemArch::Mips64)),
+                make_record(
+                    "20.5.0",
+                    "^20",
+                    Some(SystemPlatform::new(other_os(), SystemArch::Sparc64)),
+                ),
+                make_record(
+                    "20.9.0",
+                    "^20",
+                    Some(SystemPlatform::new(other_os(), SystemArch::Mips64)),
+                ),
             ]);
             lock.path = sandbox.path().join(".protolock");
             lock.save().unwrap();
@@ -300,8 +329,7 @@ mod locker {
                 .push(make_record(
                     "18.0.0",
                     "^18",
-                    Some(other_os()),
-                    Some(SystemArch::Sparc64),
+                    Some(SystemPlatform::new(other_os(), SystemArch::Sparc64)),
                 ));
             lock.path = sandbox.path().join(".protolock");
             lock.save().unwrap();
@@ -326,12 +354,7 @@ mod locker {
             let tool = create_tool_in_sandbox(sandbox.path()).await;
             let locker = Locker::new(&tool);
 
-            let record = make_record(
-                "20.0.0",
-                "20.0.0",
-                Some(SystemOS::default()),
-                Some(SystemArch::default()),
-            );
+            let record = make_record("20.0.0", "20.0.0", Some(host_platform()));
 
             locker.insert_record_into_lockfile(&record).unwrap();
 
@@ -371,7 +394,7 @@ mod locker {
             let locker = Locker::new(&tool);
 
             // Insert higher version with same spec
-            let record = make_record("20.1.0", "20.0.0", Some(os), Some(arch));
+            let record = make_record("20.1.0", "20.0.0", Some(host_platform()));
             locker.insert_record_into_lockfile(&record).unwrap();
 
             // Should have replaced (still 1 record)
@@ -392,12 +415,7 @@ mod locker {
             let tool = create_tool_in_sandbox(sandbox.path()).await;
             let locker = Locker::new(&tool);
 
-            let record = make_record(
-                "20.0.0",
-                "20.0.0",
-                Some(SystemOS::default()),
-                Some(SystemArch::default()),
-            );
+            let record = make_record("20.0.0", "20.0.0", Some(host_platform()));
 
             // Should not error, just no-op
             locker.insert_record_into_lockfile(&record).unwrap();
@@ -419,24 +437,21 @@ mod locker {
             let mut linux_record = make_record(
                 "20.0.0",
                 "^20",
-                Some(SystemOS::Linux),
-                Some(SystemArch::X64),
+                Some(SystemPlatform::new(SystemOS::Linux, SystemArch::X64)),
             );
             linux_record.checksum = Some(Checksum::sha256("linux_hash".into()));
 
             let mut macos_record = make_record(
                 "20.0.0",
                 "^20",
-                Some(SystemOS::MacOS),
-                Some(SystemArch::Arm64),
+                Some(SystemPlatform::new(SystemOS::MacOS, SystemArch::Arm64)),
             );
             macos_record.checksum = Some(Checksum::sha256("macos_hash".into()));
 
             let other_record = make_record(
                 "18.0.0",
                 "18.0.0",
-                Some(SystemOS::Linux),
-                Some(SystemArch::X64),
+                Some(SystemPlatform::new(SystemOS::Linux, SystemArch::X64)),
             );
 
             let mut lock = ProtoLock::default();
@@ -506,13 +521,10 @@ mod locker {
             let sandbox = create_empty_sandbox();
             sandbox.create_file(".prototools", "[settings]\nlockfile = true");
 
-            let os = SystemOS::default();
-            let arch = SystemArch::default();
-
-            let old_record = make_record("20.0.0", "^20", Some(os), Some(arch));
+            let old_record = make_record("20.0.0", "^20", Some(host_platform()));
 
             // An ad-hoc install already exists for the new spec, with a checksum
-            let mut new_record = make_record("21.1.0", "21.1.0", Some(os), Some(arch));
+            let mut new_record = make_record("21.1.0", "21.1.0", Some(host_platform()));
             new_record.checksum = Some(Checksum::sha256("real_hash".into()));
 
             let mut lock = ProtoLock::default();
@@ -552,12 +564,7 @@ mod locker {
             let sandbox = create_empty_sandbox();
             sandbox.create_file(".prototools", "[settings]\nlockfile = true");
 
-            let mut record = make_record(
-                "20.0.0",
-                "^20",
-                Some(SystemOS::default()),
-                Some(SystemArch::default()),
-            );
+            let mut record = make_record("20.0.0", "^20", Some(host_platform()));
             record.checksum = Some(Checksum::sha256("keep_me".into()));
 
             let mut lock = ProtoLock::default();
@@ -596,12 +603,7 @@ mod locker {
             let sandbox = create_empty_sandbox();
             sandbox.create_file(".prototools", "[settings]\nlockfile = true");
 
-            let record = make_record(
-                "18.0.0",
-                "18.0.0",
-                Some(SystemOS::default()),
-                Some(SystemArch::default()),
-            );
+            let record = make_record("18.0.0", "18.0.0", Some(host_platform()));
 
             let mut lock = ProtoLock::default();
             lock.tools.insert(Id::raw("node"), vec![record]);
@@ -634,12 +636,7 @@ mod locker {
             let sandbox = create_empty_sandbox();
             sandbox.create_file(".prototools", "[settings]\nlockfile = true");
 
-            let mut record = make_record(
-                "20.0.0",
-                "20.0.0",
-                Some(SystemOS::default()),
-                Some(SystemArch::default()),
-            );
+            let mut record = make_record("20.0.0", "20.0.0", Some(host_platform()));
             record.checksum = Some(Checksum::sha256("keep_me".into()));
 
             let mut lock = ProtoLock::default();
@@ -704,20 +701,17 @@ mod locker {
                     make_record(
                         "20.0.0",
                         "^20",
-                        Some(SystemOS::Linux),
-                        Some(SystemArch::X64),
+                        Some(SystemPlatform::new(SystemOS::Linux, SystemArch::X64)),
                     ),
                     make_record(
                         "20.0.0",
                         "^20",
-                        Some(SystemOS::MacOS),
-                        Some(SystemArch::Arm64),
+                        Some(SystemPlatform::new(SystemOS::MacOS, SystemArch::Arm64)),
                     ),
                     make_record(
                         "18.0.0",
                         "18.0.0",
-                        Some(SystemOS::Linux),
-                        Some(SystemArch::X64),
+                        Some(SystemPlatform::new(SystemOS::Linux, SystemArch::X64)),
                     ),
                 ],
             );
@@ -749,21 +743,11 @@ mod locker {
             let mut lock = ProtoLock::default();
             lock.tools.insert(
                 Id::raw("node"),
-                vec![make_record(
-                    "20.0.0",
-                    "^20",
-                    Some(SystemOS::default()),
-                    Some(SystemArch::default()),
-                )],
+                vec![make_record("20.0.0", "^20", Some(host_platform()))],
             );
             lock.tools.insert(
                 Id::raw("bun"),
-                vec![make_record(
-                    "1.0.0",
-                    "1.0.0",
-                    Some(SystemOS::default()),
-                    Some(SystemArch::default()),
-                )],
+                vec![make_record("1.0.0", "1.0.0", Some(host_platform()))],
             );
             lock.path = sandbox.path().join(".protolock");
             lock.save().unwrap();
@@ -789,12 +773,7 @@ mod locker {
             let mut lock = ProtoLock::default();
             lock.tools.insert(
                 Id::raw("node"),
-                vec![make_record(
-                    "18.0.0",
-                    "18.0.0",
-                    Some(SystemOS::default()),
-                    Some(SystemArch::default()),
-                )],
+                vec![make_record("18.0.0", "18.0.0", Some(host_platform()))],
             );
             lock.path = sandbox.path().join(".protolock");
             lock.save().unwrap();
@@ -847,16 +826,15 @@ mod locker {
                 Id::raw("node"),
                 vec![
                     // Current platform
-                    make_record(
-                        "20.0.0",
-                        "^20",
-                        Some(SystemOS::default()),
-                        Some(SystemArch::default()),
-                    ),
+                    make_record("20.0.0", "^20", Some(host_platform())),
                     // Other platform
-                    make_record("21.0.0", "^21", Some(other_os), Some(SystemArch::default())),
+                    make_record(
+                        "21.0.0",
+                        "^21",
+                        Some(SystemPlatform::new(other_os, SystemArch::default())),
+                    ),
                     // Backwards compatible record without os/arch
-                    make_record("18.0.0", "18.0.0", None, None),
+                    make_record("18.0.0", "18.0.0", None),
                 ],
             );
             lock.path = sandbox.path().join(".protolock");
@@ -926,7 +904,7 @@ mod locker {
             assert!(result.is_none());
 
             // And inserting a record is a no-op
-            let record = make_record("21.0.0", "21.0.0", Some(os), Some(arch));
+            let record = make_record("21.0.0", "21.0.0", Some(host_platform()));
             locker.insert_record_into_lockfile(&record).unwrap();
 
             let lock = ProtoLock::load_from(sandbox.path()).unwrap();
@@ -954,12 +932,7 @@ mod locker {
 
             // Node is pinned in the locked root, so records are written there,
             // even when running from within the nested config's directory
-            let record = make_record(
-                "20.0.0",
-                "20.0.0",
-                Some(SystemOS::default()),
-                Some(SystemArch::default()),
-            );
+            let record = make_record("20.0.0", "20.0.0", Some(host_platform()));
 
             locker.insert_record_into_lockfile(&record).unwrap();
 
@@ -983,12 +956,7 @@ mod locker {
 
             // Node isn't pinned anywhere, so it's owned by the closest
             // config (nested), which isn't locked
-            let record = make_record(
-                "20.0.0",
-                "20.0.0",
-                Some(SystemOS::default()),
-                Some(SystemArch::default()),
-            );
+            let record = make_record("20.0.0", "20.0.0", Some(host_platform()));
 
             locker.insert_record_into_lockfile(&record).unwrap();
 
@@ -1007,12 +975,7 @@ mod locker {
                     .await;
             let locker = Locker::new(&tool);
 
-            let record = make_record(
-                "20.0.0",
-                "20.0.0",
-                Some(SystemOS::default()),
-                Some(SystemArch::default()),
-            );
+            let record = make_record("20.0.0", "20.0.0", Some(host_platform()));
 
             locker.insert_record_into_lockfile(&record).unwrap();
 
@@ -1039,12 +1002,7 @@ mod locker {
 
             // The nested config defines node and is locked itself,
             // so records are written to its own lockfile
-            let record = make_record(
-                "22.0.0",
-                "22.0.0",
-                Some(SystemOS::default()),
-                Some(SystemArch::default()),
-            );
+            let record = make_record("22.0.0", "22.0.0", Some(host_platform()));
 
             locker.insert_record_into_lockfile(&record).unwrap();
 
@@ -1069,12 +1027,7 @@ mod locker {
             lock.tools
                 .entry(Id::raw("node"))
                 .or_default()
-                .push(make_record(
-                    version,
-                    version,
-                    Some(SystemOS::default()),
-                    Some(SystemArch::default()),
-                ));
+                .push(make_record(version, version, Some(host_platform())));
             lock.path = path.to_path_buf();
             lock.save().unwrap();
         }
@@ -1112,12 +1065,7 @@ mod locker {
             );
 
             // Records are written to the env lockfile
-            let record = make_record(
-                "22.1.0",
-                "22.1.0",
-                Some(SystemOS::default()),
-                Some(SystemArch::default()),
-            );
+            let record = make_record("22.1.0", "22.1.0", Some(host_platform()));
 
             locker.insert_record_into_lockfile(&record).unwrap();
 
@@ -1164,12 +1112,7 @@ mod locker {
 
             assert_eq!(record.version, Some(VersionSpec::parse("20.0.0").unwrap()));
 
-            let record = make_record(
-                "20.1.0",
-                "20.1.0",
-                Some(SystemOS::default()),
-                Some(SystemArch::default()),
-            );
+            let record = make_record("20.1.0", "20.1.0", Some(host_platform()));
 
             locker.insert_record_into_lockfile(&record).unwrap();
 
@@ -1202,12 +1145,7 @@ mod locker {
                     .is_none()
             );
 
-            let record = make_record(
-                "20.0.0",
-                "20.0.0",
-                Some(SystemOS::default()),
-                Some(SystemArch::default()),
-            );
+            let record = make_record("20.0.0", "20.0.0", Some(host_platform()));
 
             locker.insert_record_into_lockfile(&record).unwrap();
 
@@ -1425,7 +1363,7 @@ mod locker {
             let locker = Locker::new(&tool);
 
             let spec = ToolSpec::parse("20.0.0").unwrap();
-            let install_record = make_record("20.0.0", "20.0.0", None, None);
+            let install_record = make_record("20.0.0", "20.0.0", None);
 
             // No locked record means verification passes
             locker.verify_locked_record(&spec, &install_record).unwrap();
@@ -1825,5 +1763,317 @@ mod locker {
 
             assert_eq!(pruned, 0);
         }
+    }
+}
+
+mod locker_libc {
+    use super::*;
+    use system_env::SystemLibc;
+
+    fn linux_x64(libc: SystemLibc) -> SystemPlatform {
+        SystemPlatform::new(SystemOS::Linux, SystemArch::X64).with_libc(libc)
+    }
+
+    fn save_lock(sandbox_path: &Path, records: impl IntoIterator<Item = LockRecord>) {
+        let mut lock = ProtoLock::default();
+        lock.tools
+            .entry(Id::raw("node"))
+            .or_default()
+            .extend(records);
+        lock.path = sandbox_path.join(".protolock");
+        lock.save().unwrap();
+    }
+
+    fn load_records(sandbox_path: &Path) -> Vec<LockRecord> {
+        ProtoLock::load_from(sandbox_path)
+            .unwrap()
+            .tools
+            .remove(&Id::raw("node"))
+            .unwrap_or_default()
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn creates_locked_record_with_libc() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".prototools", "");
+
+        let tool = create_tool_for_platform(sandbox.path(), linux_x64(SystemLibc::Musl)).await;
+        let record = tool.create_locked_record();
+
+        assert_eq!(record.os, Some(SystemOS::Linux));
+        assert_eq!(record.arch, Some(SystemArch::X64));
+        assert_eq!(record.libc, Some(SystemLibc::Musl));
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn resolves_record_for_current_libc() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+        save_lock(
+            sandbox.path(),
+            [
+                make_record("20.5.0", "^20", Some(linux_x64(SystemLibc::Gnu))),
+                make_record("20.0.0", "^20", Some(linux_x64(SystemLibc::Musl))),
+            ],
+        );
+
+        let tool = create_tool_for_platform(sandbox.path(), linux_x64(SystemLibc::Musl)).await;
+        let spec = ToolSpec::parse("^20").unwrap();
+        let record = Locker::new(&tool)
+            .resolve_locked_record(&spec)
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(record.version, Some(VersionSpec::parse("20.0.0").unwrap()));
+        assert_eq!(record.libc, Some(SystemLibc::Musl));
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn resolves_record_without_libc_for_backwards_compat() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+        let mut record = make_record("20.0.0", "^20", Some(linux_x64(SystemLibc::Unknown)));
+        record.checksum = Some(Checksum::sha256("abcdef".into()));
+
+        save_lock(sandbox.path(), [record]);
+
+        let tool = create_tool_for_platform(sandbox.path(), linux_x64(SystemLibc::Musl)).await;
+        let mut spec = ToolSpec::parse("^20").unwrap();
+        spec.immutable = true;
+
+        let record = Locker::new(&tool)
+            .resolve_locked_record(&spec)
+            .unwrap()
+            .unwrap();
+
+        // The record is used as-is, including its checksum
+        assert_eq!(record.checksum, Some(Checksum::sha256("abcdef".into())));
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn inherits_version_from_another_libc() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+        let mut record = make_record("20.0.0", "^20", Some(linux_x64(SystemLibc::Gnu)));
+        record.checksum = Some(Checksum::sha256("abcdef".into()));
+
+        save_lock(sandbox.path(), [record]);
+
+        let tool = create_tool_for_platform(sandbox.path(), linux_x64(SystemLibc::Musl)).await;
+        let spec = ToolSpec::parse("^20").unwrap();
+        let record = Locker::new(&tool)
+            .resolve_locked_record(&spec)
+            .unwrap()
+            .unwrap();
+
+        // The gnu checksum is not valid for musl
+        assert_eq!(record.version, Some(VersionSpec::parse("20.0.0").unwrap()));
+        assert_eq!(record.libc, None);
+        assert_eq!(record.checksum, None);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn errors_when_immutable_and_only_another_libc() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+        save_lock(
+            sandbox.path(),
+            [make_record(
+                "20.0.0",
+                "^20",
+                Some(linux_x64(SystemLibc::Gnu)),
+            )],
+        );
+
+        let tool = create_tool_for_platform(sandbox.path(), linux_x64(SystemLibc::Musl)).await;
+        let mut spec = ToolSpec::parse("^20").unwrap();
+        spec.immutable = true;
+
+        let error = Locker::new(&tool).resolve_locked_record(&spec).unwrap_err();
+
+        assert!(matches!(
+            &error,
+            ProtoLockError::ImmutableMissingPlatformRecord { platform, .. }
+                if platform == "x64-linux-musl"
+        ));
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn inserts_separate_record_per_libc() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+        save_lock(
+            sandbox.path(),
+            [make_record(
+                "20.0.0",
+                "20.0.0",
+                Some(linux_x64(SystemLibc::Gnu)),
+            )],
+        );
+
+        let tool = create_tool_for_platform(sandbox.path(), linux_x64(SystemLibc::Musl)).await;
+
+        Locker::new(&tool)
+            .insert_record_into_lockfile(&make_record(
+                "20.0.0",
+                "20.0.0",
+                Some(linux_x64(SystemLibc::Musl)),
+            ))
+            .unwrap();
+
+        let records = load_records(sandbox.path());
+
+        assert_eq!(records.len(), 2);
+        assert_eq!(records[0].libc, Some(SystemLibc::Gnu));
+        assert_eq!(records[1].libc, Some(SystemLibc::Musl));
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn backfills_libc_into_record_without_one() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+        save_lock(
+            sandbox.path(),
+            [make_record(
+                "20.0.0",
+                "20.0.0",
+                Some(linux_x64(SystemLibc::Unknown)),
+            )],
+        );
+
+        let tool = create_tool_for_platform(sandbox.path(), linux_x64(SystemLibc::Musl)).await;
+
+        Locker::new(&tool)
+            .insert_record_into_lockfile(&make_record(
+                "20.0.0",
+                "20.0.0",
+                Some(linux_x64(SystemLibc::Unknown)),
+            ))
+            .unwrap();
+
+        let records = load_records(sandbox.path());
+
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0].libc, Some(SystemLibc::Musl));
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn removes_version_only_for_current_libc() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+        save_lock(
+            sandbox.path(),
+            [
+                make_record("20.0.0", "20.0.0", Some(linux_x64(SystemLibc::Gnu))),
+                make_record("20.0.0", "20.0.0", Some(linux_x64(SystemLibc::Musl))),
+            ],
+        );
+
+        let tool = create_tool_for_platform(sandbox.path(), linux_x64(SystemLibc::Musl)).await;
+
+        Locker::new(&tool)
+            .remove_version_from_lockfile(&VersionSpec::parse("20.0.0").unwrap())
+            .unwrap();
+
+        let records = load_records(sandbox.path());
+
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0].libc, Some(SystemLibc::Gnu));
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn resolves_record_for_current_libc_over_record_without_libc() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+        // Both exist, for example after merging branches that used different
+        // versions of proto, and the record without a libc is sorted first
+        let mut record = make_record("20.0.0", "^20", Some(linux_x64(SystemLibc::Gnu)));
+        record.checksum = Some(Checksum::sha256("abcdef".into()));
+
+        save_lock(
+            sandbox.path(),
+            [
+                make_record("20.0.0", "^20", Some(linux_x64(SystemLibc::Unknown))),
+                record,
+            ],
+        );
+
+        let tool = create_tool_for_platform(sandbox.path(), linux_x64(SystemLibc::Gnu)).await;
+        let spec = ToolSpec::parse("^20").unwrap();
+        let record = Locker::new(&tool)
+            .resolve_locked_record(&spec)
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(record.libc, Some(SystemLibc::Gnu));
+        assert_eq!(record.checksum, Some(Checksum::sha256("abcdef".into())));
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn migrates_record_without_libc_into_existing_record() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+        // A record created before libcs were recorded, and a record for the
+        // new spec that was just installed (with a libc)
+        let mut installed = make_record("21.0.0", "21.0.0", Some(linux_x64(SystemLibc::Gnu)));
+        installed.checksum = Some(Checksum::sha256("abcdef".into()));
+
+        save_lock(
+            sandbox.path(),
+            [
+                make_record("20.0.0", "^20", Some(linux_x64(SystemLibc::Unknown))),
+                installed,
+            ],
+        );
+
+        let tool = create_tool_for_platform(sandbox.path(), linux_x64(SystemLibc::Gnu)).await;
+
+        Locker::new(&tool)
+            .update_spec_in_lockfile(
+                &UnresolvedVersionSpec::parse("^20").unwrap(),
+                &UnresolvedVersionSpec::parse("21.0.0").unwrap(),
+                &VersionSpec::parse("21.0.0").unwrap(),
+            )
+            .unwrap();
+
+        let records = load_records(sandbox.path());
+
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0].libc, Some(SystemLibc::Gnu));
+        assert_eq!(records[0].checksum, Some(Checksum::sha256("abcdef".into())));
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn verify_fails_on_libc_mismatch() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".prototools", "");
+
+        let tool = create_tool_in_sandbox(sandbox.path()).await;
+        let locker = Locker::new(&tool);
+
+        let mut spec = ToolSpec::parse("20.0.0").unwrap();
+        spec.version_locked = Some(LockRecord {
+            libc: Some(SystemLibc::Gnu),
+            ..Default::default()
+        });
+
+        let install_record = LockRecord {
+            libc: Some(SystemLibc::Musl),
+            ..Default::default()
+        };
+
+        assert!(matches!(
+            locker.verify_locked_record(&spec, &install_record),
+            Err(ProtoLockError::MismatchedLibc { .. })
+        ));
     }
 }

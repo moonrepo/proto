@@ -1,7 +1,10 @@
 use crate::api_struct;
 use crate::virtual_path::VirtualPath;
 
-pub use system_env::{SystemArch as HostArch, SystemLibc as HostLibc, SystemOS as HostOS};
+pub use system_env::{
+    SystemArch as HostArch, SystemLibc as HostLibc, SystemOS as HostOS,
+    SystemPlatform as HostPlatform,
+};
 
 api_struct!(
     /// Information about the host environment (the current runtime).

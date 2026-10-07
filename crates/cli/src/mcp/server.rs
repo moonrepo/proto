@@ -105,8 +105,8 @@ impl ProtoMcp {
             env_files: config.get_env_files(&options),
             env_vars: config.get_env_vars(&options)?,
             proto_version: get_proto_version().to_string(),
-            system_arch: env.arch,
-            system_os: env.os,
+            system_arch: env.get_host_platform().arch,
+            system_os: env.get_host_platform().os,
         })
     }
 

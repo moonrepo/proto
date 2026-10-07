@@ -61,17 +61,15 @@ pub enum ProtoLockError {
         help = "Run `proto install` without `--immutable-lockfile` on this platform to record its checksum, then commit the changes."
     )]
     #[error(
-        "Lockfile is immutable, but is missing a record for {} {} on {} {}. Only other platforms have locked this version, so the download cannot be verified.",
+        "Lockfile is immutable, but is missing a record for {} {} on {}. Only other platforms have locked this version, so the download cannot be verified.",
         .tool.style(Style::Id),
         .spec.style(Style::Hash),
-        .os,
-        .arch,
+        .platform,
     )]
     ImmutableMissingPlatformRecord {
         tool: String,
         spec: String,
-        os: String,
-        arch: String,
+        platform: String,
     },
 
     #[diagnostic(code(proto::install::mismatched_arch))]
@@ -89,6 +87,14 @@ pub enum ProtoLockError {
         .lockfile_os.style(Style::Hash),
     )]
     MismatchedOs { os: String, lockfile_os: String },
+
+    #[diagnostic(code(proto::install::mismatched_libc))]
+    #[error(
+        "System libc mismatch! Received {} but expected {}.",
+        .libc.style(Style::Hash),
+        .lockfile_libc.style(Style::Hash),
+    )]
+    MismatchedLibc { libc: String, lockfile_libc: String },
 }
 
 impl From<ProtoConfigError> for ProtoLockError {
