@@ -141,6 +141,143 @@ next1 = "4.5.6"
 
         assert_eq!(value, get_expected());
     }
+
+    // Format 2 keys are snake_case in every file type, so nothing is converted,
+    // including maps that format 1 doesn't preserve (env vars, headers)
+    fn get_expected_v2(format: serde_json::Value) -> serde_json::Value {
+        json!({
+          "format": format,
+          "install": {
+            "download_url": "https://example.com/{download_name}",
+            "http_headers": {
+              "X-Api-Key": "secret"
+            }
+          },
+          "locate": {
+            "exes": {
+              "fooBar": {
+                "exe_path": "bin/fooBar",
+                "primary": true,
+                "shim_env_vars": {
+                  "FOO_BAR": "value"
+                }
+              }
+            }
+          },
+          "platform": {
+            "linux": {
+              "archive_prefix": "package",
+              "download_name": "linux.tgz"
+            }
+          },
+          "overrides": [
+            {
+              "range": ">=2",
+              "platform": {
+                "linux": {
+                  "download_name": "linux-v2.tgz"
+                }
+              }
+            }
+          ],
+          "source": {
+            "aliases": {
+              "fooBar": "1.2.3"
+            }
+          }
+        })
+    }
+
+    #[test]
+    fn doesnt_convert_keys_for_v2_json_files() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(
+            "schema.json",
+            r#"{
+  "format": "2",
+  "install": {
+    "download_url": "https://example.com/{download_name}",
+    "http_headers": {
+      "X-Api-Key": "secret"
+    }
+  },
+  "locate": {
+    "exes": {
+      "fooBar": {
+        "exe_path": "bin/fooBar",
+        "primary": true,
+        "shim_env_vars": {
+          "FOO_BAR": "value"
+        }
+      }
+    }
+  },
+  "platform": {
+    "linux": {
+      "archive_prefix": "package",
+      "download_name": "linux.tgz"
+    }
+  },
+  "overrides": [
+    {
+      "range": ">=2",
+      "platform": {
+        "linux": {
+          "download_name": "linux-v2.tgz"
+        }
+      }
+    }
+  ],
+  "source": {
+    "aliases": {
+      "fooBar": "1.2.3"
+    }
+  }
+}"#,
+        );
+
+        let value = load_schema_config(&sandbox.path().join("schema.json")).unwrap();
+
+        assert_eq!(value, get_expected_v2(json!("2")));
+    }
+
+    #[test]
+    fn doesnt_convert_keys_for_v2_yaml_files() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(
+            "schema.yaml",
+            r#"
+format: 2
+install:
+  download_url: 'https://example.com/{download_name}'
+  http_headers:
+    X-Api-Key: secret
+locate:
+  exes:
+    fooBar:
+      exe_path: 'bin/fooBar'
+      primary: true
+      shim_env_vars:
+        FOO_BAR: value
+platform:
+  linux:
+    archive_prefix: package
+    download_name: linux.tgz
+overrides:
+  - range: '>=2'
+    platform:
+      linux:
+        download_name: linux-v2.tgz
+source:
+  aliases:
+    fooBar: '1.2.3'
+"#,
+        );
+
+        let value = load_schema_config(&sandbox.path().join("schema.yaml")).unwrap();
+
+        assert_eq!(value, get_expected_v2(json!(2)));
+    }
 }
 
 mod locate_plugin {
