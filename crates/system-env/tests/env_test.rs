@@ -341,6 +341,157 @@ mod system_platform {
         }
     }
 
+    mod to_rust_platform {
+        use super::*;
+
+        #[test]
+        fn tier_1_and_2_hosts() {
+            for (platform, triple) in [
+                ("arm64-macos", "aarch64-apple-darwin"),
+                ("x64-macos", "x86_64-apple-darwin"),
+                ("x64-linux-gnu", "x86_64-unknown-linux-gnu"),
+                ("arm64-linux-gnu", "aarch64-unknown-linux-gnu"),
+                ("x64-linux-musl", "x86_64-unknown-linux-musl"),
+                ("arm64-linux-musl", "aarch64-unknown-linux-musl"),
+                ("x64-windows", "x86_64-pc-windows-msvc"),
+                ("arm64-windows", "aarch64-pc-windows-msvc"),
+                ("x64-windows-gnu", "x86_64-pc-windows-gnu"),
+                ("x86-linux", "i686-unknown-linux-gnu"),
+                ("x86-windows", "i686-pc-windows-msvc"),
+                ("longarm64-linux", "loongarch64-unknown-linux-gnu"),
+                ("riscv64-linux", "riscv64gc-unknown-linux-gnu"),
+                ("s390x-linux", "s390x-unknown-linux-gnu"),
+                ("x64-freebsd", "x86_64-unknown-freebsd"),
+            ] {
+                assert_eq!(
+                    SystemPlatform::parse(platform).unwrap().to_rust_platform(),
+                    triple
+                );
+            }
+        }
+
+        #[test]
+        fn defaults_to_gnu_on_linux() {
+            assert_eq!(
+                platform(SystemArch::X64, SystemOS::Linux, SystemLibc::Unknown).to_rust_platform(),
+                "x86_64-unknown-linux-gnu"
+            );
+        }
+
+        #[test]
+        fn ignores_libc_on_other_systems() {
+            assert_eq!(
+                platform(SystemArch::Arm64, SystemOS::MacOS, SystemLibc::Gnu).to_rust_platform(),
+                "aarch64-apple-darwin"
+            );
+            assert_eq!(
+                platform(SystemArch::X64, SystemOS::FreeBSD, SystemLibc::Gnu).to_rust_platform(),
+                "x86_64-unknown-freebsd"
+            );
+            assert_eq!(
+                platform(SystemArch::X64, SystemOS::Windows, SystemLibc::Musl).to_rust_platform(),
+                "x86_64-pc-windows-msvc"
+            );
+        }
+
+        #[test]
+        fn includes_abi() {
+            assert_eq!(
+                platform(SystemArch::Arm, SystemOS::Linux, SystemLibc::Gnu).to_rust_platform(),
+                "arm-unknown-linux-gnueabihf"
+            );
+            assert_eq!(
+                platform(SystemArch::Arm, SystemOS::Linux, SystemLibc::Musl).to_rust_platform(),
+                "arm-unknown-linux-musleabihf"
+            );
+            assert_eq!(
+                platform(SystemArch::Mips64, SystemOS::Linux, SystemLibc::Gnu).to_rust_platform(),
+                "mips64-unknown-linux-gnuabi64"
+            );
+            assert_eq!(
+                platform(SystemArch::Arm, SystemOS::Android, SystemLibc::Unknown)
+                    .to_rust_platform(),
+                "arm-linux-androideabi"
+            );
+        }
+
+        #[test]
+        fn uses_vendors() {
+            assert_eq!(
+                platform(SystemArch::Arm64, SystemOS::Android, SystemLibc::Unknown)
+                    .to_rust_platform(),
+                "aarch64-linux-android"
+            );
+            assert_eq!(
+                platform(SystemArch::Arm64, SystemOS::IOS, SystemLibc::Unknown).to_rust_platform(),
+                "aarch64-apple-ios"
+            );
+            assert_eq!(
+                platform(SystemArch::X64, SystemOS::Solaris, SystemLibc::Unknown)
+                    .to_rust_platform(),
+                "x86_64-pc-solaris"
+            );
+            assert_eq!(
+                platform(SystemArch::Sparc64, SystemOS::Solaris, SystemLibc::Unknown)
+                    .to_rust_platform(),
+                "sparcv9-sun-solaris"
+            );
+        }
+
+        #[test]
+        fn round_trips() {
+            let archs = [
+                SystemArch::X86,
+                SystemArch::X64,
+                SystemArch::Arm,
+                SystemArch::Arm64,
+                SystemArch::LongArm64,
+                SystemArch::M68k,
+                SystemArch::Mips,
+                SystemArch::Mips64,
+                SystemArch::Powerpc,
+                SystemArch::Powerpc64,
+                SystemArch::Riscv64,
+                SystemArch::S390x,
+                SystemArch::Sparc64,
+            ];
+            let oses = [
+                SystemOS::Android,
+                SystemOS::Dragonfly,
+                SystemOS::FreeBSD,
+                SystemOS::IOS,
+                SystemOS::Linux,
+                SystemOS::MacOS,
+                SystemOS::NetBSD,
+                SystemOS::OpenBSD,
+                SystemOS::Solaris,
+                SystemOS::Windows,
+            ];
+
+            for arch in archs {
+                for os in oses {
+                    let mut platforms = vec![SystemPlatform::new(os, arch)];
+
+                    if os.is_linux() {
+                        platforms.push(SystemPlatform::new(os, arch).with_libc(SystemLibc::Musl));
+                    } else if os.is_windows() {
+                        platforms.push(SystemPlatform::new(os, arch).with_libc(SystemLibc::Gnu));
+                    }
+
+                    for platform in platforms {
+                        let triple = platform.to_rust_platform();
+
+                        assert_eq!(
+                            SystemPlatform::parse(&triple).unwrap(),
+                            platform,
+                            "{triple}"
+                        );
+                    }
+                }
+            }
+        }
+    }
+
     mod serde {
         use super::*;
 

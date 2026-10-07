@@ -389,6 +389,66 @@ impl SystemPlatform {
         self.libc = libc;
         self
     }
+
+    /// Convert to a Rust target triple, for example, `aarch64-apple-darwin`,
+    /// `x86_64-unknown-linux-musl`, or `x86_64-pc-windows-msvc`.
+    ///
+    /// The libc only applies to Linux, which defaults to GNU when unknown, and
+    /// Windows, which uses MSVC unless the libc is GNU. 32-bit ARM targets the
+    /// hard-float ABI, for example, `arm-unknown-linux-gnueabihf`.
+    pub fn to_rust_platform(&self) -> String {
+        let arch = match (self.arch, self.os) {
+            (SystemArch::X86, _) => "i686".into(),
+            (SystemArch::Riscv64, _) => "riscv64gc".into(),
+            (SystemArch::Sparc64, SystemOS::Solaris) => "sparcv9".into(),
+            (arch, _) => arch.to_rust_arch(),
+        };
+
+        match self.os {
+            SystemOS::Android => format!(
+                "{arch}-linux-android{}",
+                if self.arch == SystemArch::Arm {
+                    "eabi"
+                } else {
+                    ""
+                }
+            ),
+            SystemOS::IOS => format!("{arch}-apple-ios"),
+            SystemOS::Linux => format!(
+                "{arch}-unknown-linux-{}{}",
+                if self.libc == SystemLibc::Musl {
+                    "musl"
+                } else {
+                    "gnu"
+                },
+                match self.arch {
+                    SystemArch::Arm => "eabihf",
+                    SystemArch::Mips64 => "abi64",
+                    _ => "",
+                }
+            ),
+            SystemOS::MacOS => format!("{arch}-apple-darwin"),
+            SystemOS::Solaris => format!(
+                "{arch}-{}-solaris",
+                if matches!(self.arch, SystemArch::X86 | SystemArch::X64) {
+                    "pc"
+                } else {
+                    "sun"
+                }
+            ),
+            SystemOS::Windows => format!(
+                "{arch}-pc-windows-{}",
+                if self.libc == SystemLibc::Gnu {
+                    "gnu"
+                } else {
+                    "msvc"
+                }
+            ),
+            SystemOS::Dragonfly | SystemOS::FreeBSD | SystemOS::NetBSD | SystemOS::OpenBSD => {
+                format!("{arch}-unknown-{}", self.os)
+            }
+        }
+    }
 }
 
 fn parse_enum<T: DeserializeOwned>(value: &str) -> Option<T> {
