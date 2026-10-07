@@ -69,9 +69,12 @@ assert_dir() {
   [[ -d "$1" ]] || fail "missing dir: $1"
 }
 
+# Git Bash only reports `-x` for `.exe`/`.com` files, or those starting with
+# `#!`/`MZ`, so Windows batch scripts (npm's `.cmd`, kotlin's `.bat`) need an
+# explicit allowance. Both are still runnable, as MSYS spawns them via cmd.exe.
 assert_executable() {
   [[ -n "$1" ]] || fail "empty path passed to assert_executable"
-  [[ -x "$1" || -f "$1.exe" || "$1" == *.cmd ]] || fail "not executable: $1"
+  [[ -x "$1" || -f "$1.exe" || "$1" == *.cmd || "$1" == *.bat ]] || fail "not executable: $1"
 }
 
 # Retry a command with backoff. Use only for network-bound install commands.

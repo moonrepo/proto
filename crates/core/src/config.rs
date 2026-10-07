@@ -131,7 +131,7 @@ impl ProtoConfig {
     }
 
     pub fn builtin_schema_plugin(&self) -> PluginLocator {
-        find_debug_locator_with_fallback("schema_tool", "0.18.2")
+        find_debug_locator_with_fallback("schema_tool", "0.19.0")
     }
 
     pub fn inherit_builtin_plugins(&mut self) {
@@ -196,6 +196,13 @@ impl ProtoConfig {
                     find_debug_locator_with_fallback("java_tool", "0.1.1"),
                 );
             }
+        }
+
+        if !tools.contains_key("kotlin") && is_tool_allowed("kotlin") {
+            tools.insert(
+                Id::raw("kotlin"),
+                find_debug_locator_with_fallback("kotlin_tool", "0.1.0"),
+            );
         }
 
         if !tools.contains_key("moon") && is_tool_allowed("moon") {
