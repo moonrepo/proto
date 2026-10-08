@@ -322,18 +322,10 @@ impl TrustStore {
 
         debug!(path = ?path, "Trusting path");
 
-        // Write to a temporary file and move it into place, so that a
-        // concurrent reader never observes a partially written record
-        let temp_path = record_path.with_extension(format!("{}.tmp", std::process::id()));
-
-        json::write_file(&temp_path, &TrustRecord { path: path.clone() }, true)
-            .map_err(Box::new)?;
-
-        if let Err(error) = fs::rename(&temp_path, &record_path) {
-            let _ = fs::remove_file(&temp_path);
-
-            return Err(error.into());
-        }
+        fs::write_file_atomic(
+            &record_path,
+            json::format(&TrustRecord { path: path.clone() }, true)?,
+        )?;
 
         Ok(path)
     }

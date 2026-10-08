@@ -25,6 +25,7 @@
 
 #### 🚀 Updates
 
+- Improved our atomic file writing implementation.
 - Improved the performance of concurrent plugin calls. Cached function outputs and function existence checks are now read with a shared lock, instead of an exclusive one, so many concurrent calls to the same plugin no longer serialize on the cache. Under heavy CPU contention, this serialization could stall all calls for seconds.
   - With 100 concurrent tasks calling the same plugin, cached calls are 45-76% faster (up to 4x the throughput). Under CPU contention, they are 31-66% faster, and the slowest samples dropped from up to 25ms to around 1ms.
   - In moon's 1000 project graph benchmark under CPU contention, the slowest builds dropped from up to 500ms to 310ms, and builds that took over 2x the median dropped from 11 to 1 (across 400 builds).
