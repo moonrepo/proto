@@ -14,6 +14,9 @@ clap_complete = "4.6.11"
 compact_str = { version = "0.10.0", default-features = false, features = [
     "serde",
 ] }
+criterion = { package = "codspeed-criterion-compat", version = "5.0.2", default-features = false, features = [
+    "async_tokio",
+] }
 derive_setters = "0.1.9"
 dirs = "7.0.0"
 docker_credential = { version = "1.4.0" }
