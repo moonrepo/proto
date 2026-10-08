@@ -317,9 +317,15 @@ impl<'tool> Builder<'tool> {
 
     pub async fn acquire_lock(&self, pm: &SystemPackageManager) -> OwnedMutexGuard<()> {
         let locks = BUILD_LOCKS.get_or_init(scc::HashMap::default);
-        let entry = locks.entry_async(pm.to_string()).await.or_default();
+        // Clone the mutex out, so the map entry isn't held while waiting for the lock
+        let mutex = locks
+            .entry_async(pm.to_string())
+            .await
+            .or_default()
+            .get()
+            .clone();
 
-        entry.get().clone().lock_owned().await
+        mutex.lock_owned().await
     }
 }
 

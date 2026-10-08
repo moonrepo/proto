@@ -100,6 +100,11 @@ pub fn testing_send_request(
 }
 
 #[plugin_fn]
+pub fn testing_echo(Json(input): Json<String>) -> FnResult<Json<String>> {
+    Ok(Json(input))
+}
+
+#[plugin_fn]
 pub fn testing_load_git_tags(Json(url): Json<String>) -> FnResult<Json<Vec<String>>> {
     Ok(Json(load_git_tags(url)?))
 }

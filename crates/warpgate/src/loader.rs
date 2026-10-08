@@ -337,9 +337,16 @@ impl PluginLoader {
     {
         // Create a lock before checking the cache, so that subsequent requests for
         // the same plugin will wait for the first one to finish loading, and will
-        // then hit the cache instead of loading again
-        let entry = self.locks.entry_async(hash.clone()).await.or_default();
-        let _lock = entry.lock().await;
+        // then hit the cache instead of loading again. The mutex is cloned out so that
+        // the map entry (and its bucket lock) isn't held for the entire load
+        let mutex = self
+            .locks
+            .entry_async(hash.clone())
+            .await
+            .or_default()
+            .get()
+            .clone();
+        let _lock = mutex.lock().await;
 
         // Find a cache file with the provided hash. We need to check all possible
         // file extensions, because certain loaders and archives may produce a different

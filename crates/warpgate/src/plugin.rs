@@ -1,6 +1,5 @@
 use crate::plugin_error::WarpgatePluginError;
 use extism::{Error, Function, Manifest, Plugin};
-use scc::hash_map::Entry;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use starbase_styles::{apply_style_tags, color};
@@ -118,7 +117,8 @@ pub struct PluginContainer {
     cache: bool,
     debug: bool,
 
-    func_cache: Arc<scc::HashMap<String, Vec<u8>>>,
+    func_call_cache: Arc<scc::HashMap<String, Vec<u8>>>,
+    func_check_cache: Arc<scc::HashMap<String, bool>>,
     on_call_func: Arc<OnceLock<OnCallFn>>,
     plugin: Arc<RwLock<Plugin>>,
 }
@@ -165,7 +165,8 @@ impl PluginContainer {
             manifest,
             plugin: Arc::new(RwLock::new(plugin)),
             id,
-            func_cache: Arc::new(scc::HashMap::new()),
+            func_call_cache: Arc::new(scc::HashMap::new()),
+            func_check_cache: Arc::new(scc::HashMap::new()),
             on_call_func: Arc::new(OnceLock::new()),
             cache: !bool_var("WARPGATE_NO_FUNC_CACHE"),
             debug: bool_var("WARPGATE_DEBUG_CALL"),
@@ -208,19 +209,28 @@ impl PluginContainer {
         let input = self.format_input(func, input)?;
         let cache_key = format!("{func}-{}", hash::base64::from_bytes(&input));
 
-        match self.func_cache.entry_async(cache_key).await {
-            // Check if cache exists already
-            Entry::Occupied(entry) => self.parse_output(func, entry.get()),
-            // Otherwise call the function and cache the result
-            Entry::Vacant(entry) => {
-                let data = self.call(func, input).await?;
-                let output: O = self.parse_output(func, &data)?;
-
-                entry.insert_entry(data);
-
-                Ok(output)
-            }
+        // Check if cache exists already. This only takes a shared lock on the
+        // map's bucket, so concurrent calls for cached inputs don't serialize
+        if let Some(output) = self
+            .func_call_cache
+            .read_async(&cache_key, |_, data| self.parse_output(func, data))
+            .await
+        {
+            return output;
         }
+
+        // Otherwise call the function and cache the result. A map entry must
+        // not be held while calling, as that holds an exclusive lock on the
+        // bucket for the duration of the call, and blocks all other reads.
+        // Because of this, concurrent misses for the same input will each call
+        // the function, but the cached functions are deterministic for a given
+        // input, so the result is the same either way
+        let data = self.call(func, input).await?;
+        let output: O = self.parse_output(func, &data)?;
+
+        let _ = self.func_call_cache.insert_async(cache_key, data).await;
+
+        Ok(output)
     }
 
     /// Call a function on the plugin with no input and return the output.
@@ -363,14 +373,23 @@ impl PluginContainer {
     {
         let func = func.as_ref();
 
-        match self.func_cache.entry_async(func.into()).await {
-            Entry::Occupied(entry) => entry.get()[0] == 1,
-            Entry::Vacant(entry) => {
-                let exists = self.plugin.read().await.function_exists(func);
-                entry.insert_entry(vec![exists as u8]);
-                exists
-            }
+        // Read with a shared lock first, and don't hold a map entry while
+        // waiting for the plugin lock (see `cache_func_with`)
+        if let Some(exists) = self
+            .func_check_cache
+            .read_async(func, |_, data| *data)
+            .await
+        {
+            return exists;
         }
+
+        let exists = self.plugin.read().await.function_exists(func);
+        let _ = self
+            .func_check_cache
+            .insert_async(func.into(), exists)
+            .await;
+
+        exists
     }
 
     /// Convert the provided virtual guest path to an absolute host path.

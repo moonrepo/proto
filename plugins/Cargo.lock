@@ -3834,7 +3834,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.62.2"
+version = "0.63.1"
 dependencies = [
  "ai_env",
  "ci_env",
@@ -3888,7 +3888,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.35.5"
+version = "0.36.0"
 dependencies = [
  "extism-pdk",
  "proto_pdk_api",
@@ -3899,7 +3899,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.34.5"
+version = "0.35.0"
 dependencies = [
  "derive_setters",
  "rustc-hash",
@@ -3914,7 +3914,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.50.2"
+version = "0.51.0"
 dependencies = [
  "extism",
  "proto_core",
@@ -3927,7 +3927,7 @@ dependencies = [
 
 [[package]]
 name = "proto_shim"
-version = "0.8.5"
+version = "0.9.0"
 dependencies = [
  "dirs 7.0.0",
  "windows-sys 0.61.2",
@@ -5334,7 +5334,7 @@ dependencies = [
 
 [[package]]
 name = "system_env"
-version = "0.10.4"
+version = "0.10.5"
 dependencies = [
  "regex",
  "schematic",
@@ -5997,7 +5997,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "version_spec"
-version = "0.11.6"
+version = "0.11.7"
 dependencies = [
  "compact_str 0.10.0",
  "pest",
@@ -6038,7 +6038,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.36.4"
+version = "0.37.0"
 dependencies = [
  "async-trait",
  "compact_str 0.10.0",
@@ -6073,7 +6073,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_api"
-version = "0.19.4"
+version = "0.20.0"
 dependencies = [
  "anyhow",
  "derive_setters",
@@ -6088,7 +6088,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_pdk"
-version = "0.18.4"
+version = "0.19.0"
 dependencies = [
  "extism-pdk",
  "serde",
