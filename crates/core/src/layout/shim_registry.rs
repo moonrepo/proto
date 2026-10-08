@@ -1,5 +1,4 @@
 use super::layout_error::ProtoLayoutError;
-use crate::helpers::write_json_file_atomic;
 use crate::tool_context::ToolContext;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -97,7 +96,7 @@ impl ShimRegistry {
         }
 
         if dirty {
-            write_json_file_atomic(&self.path, &shims)?;
+            fs::write_file_atomic(&self.path, json::format(&shims, true)?)?;
         }
 
         self.shims = shims;
