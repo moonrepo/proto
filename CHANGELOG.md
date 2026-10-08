@@ -21,6 +21,16 @@
 - [Zig](https://github.com/moonrepo/plugins/blob/master/tools/zig/CHANGELOG.md)
 - [ZLS](https://github.com/moonrepo/plugins/blob/master/tools/zig-ls/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Improved the performance of concurrent plugin calls. Cached function outputs and function existence checks are now read with a shared lock, instead of an exclusive one, so many concurrent calls to the same plugin no longer serialize on the cache. Under heavy CPU contention, this serialization could stall all calls for seconds.
+
+#### ⚙️ Internal
+
+- Plugin loading and system dependency builds no longer hold an internal map lock while waiting for another load or build to finish, which blocked unrelated plugins or package managers that shared the same map bucket.
+
 ## 0.63.0
 
 #### 🛡️ Security
