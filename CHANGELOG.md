@@ -21,7 +21,7 @@
 - [Zig](https://github.com/moonrepo/plugins/blob/master/tools/zig/CHANGELOG.md)
 - [ZLS](https://github.com/moonrepo/plugins/blob/master/tools/zig-ls/CHANGELOG.md)
 
-## Unreleased
+## 0.63.1
 
 #### 🚀 Updates
 
