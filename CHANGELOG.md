@@ -34,6 +34,7 @@
 
 - Added benchmarks for concurrent plugin calls (`cargo bench -p warpgate`).
 - Plugin loading and system dependency builds no longer hold an internal map lock while waiting for another load or build to finish, which blocked unrelated plugins or package managers that shared the same map bucket.
+- Updated dependencies.
 
 ## 0.63.0
 
