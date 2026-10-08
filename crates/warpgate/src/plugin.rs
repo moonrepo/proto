@@ -117,7 +117,8 @@ pub struct PluginContainer {
     cache: bool,
     debug: bool,
 
-    func_cache: Arc<scc::HashMap<String, Vec<u8>>>,
+    func_call_cache: Arc<scc::HashMap<String, Vec<u8>>>,
+    func_check_cache: Arc<scc::HashMap<String, bool>>,
     on_call_func: Arc<OnceLock<OnCallFn>>,
     plugin: Arc<RwLock<Plugin>>,
 }
@@ -164,7 +165,8 @@ impl PluginContainer {
             manifest,
             plugin: Arc::new(RwLock::new(plugin)),
             id,
-            func_cache: Arc::new(scc::HashMap::new()),
+            func_call_cache: Arc::new(scc::HashMap::new()),
+            func_check_cache: Arc::new(scc::HashMap::new()),
             on_call_func: Arc::new(OnceLock::new()),
             cache: !bool_var("WARPGATE_NO_FUNC_CACHE"),
             debug: bool_var("WARPGATE_DEBUG_CALL"),
@@ -210,7 +212,7 @@ impl PluginContainer {
         // Check if cache exists already. This only takes a shared lock on the
         // map's bucket, so concurrent calls for cached inputs don't serialize
         if let Some(output) = self
-            .func_cache
+            .func_call_cache
             .read_async(&cache_key, |_, data| self.parse_output(func, data))
             .await
         {
@@ -226,7 +228,7 @@ impl PluginContainer {
         let data = self.call(func, input).await?;
         let output: O = self.parse_output(func, &data)?;
 
-        let _ = self.func_cache.insert_async(cache_key, data).await;
+        let _ = self.func_call_cache.insert_async(cache_key, data).await;
 
         Ok(output)
     }
@@ -374,8 +376,8 @@ impl PluginContainer {
         // Read with a shared lock first, and don't hold a map entry while
         // waiting for the plugin lock (see `cache_func_with`)
         if let Some(exists) = self
-            .func_cache
-            .read_async(func, |_, data| data[0] == 1)
+            .func_check_cache
+            .read_async(func, |_, data| *data)
             .await
         {
             return exists;
@@ -383,8 +385,8 @@ impl PluginContainer {
 
         let exists = self.plugin.read().await.function_exists(func);
         let _ = self
-            .func_cache
-            .insert_async(func.into(), vec![exists as u8])
+            .func_check_cache
+            .insert_async(func.into(), exists)
             .await;
 
         exists
