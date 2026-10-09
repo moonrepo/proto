@@ -570,8 +570,8 @@
     },
     {
       "id": "hk",
-      "locator": "github://Hebilicious/proto-plugins/hk",
-      "format": "wasm",
+      "locator": "https://raw.githubusercontent.com/Hebilicious/proto-plugins/main/plugins/hk/hk.toml",
+      "format": "toml",
       "name": "HK",
       "description": "Git hook manager with a focus on speed and shareable configuration.",
       "author": "Hebilicious",
@@ -841,8 +841,8 @@
     },
     {
       "id": "nu",
-      "locator": "github://Hebilicious/proto-plugins/nu",
-      "format": "wasm",
+      "locator": "https://raw.githubusercontent.com/Hebilicious/proto-plugins/main/plugins/nu/nu.toml",
+      "format": "toml",
       "name": "Nushell",
       "description": "A modern shell written in Rust with structured data pipelines.",
       "author": "Hebilicious",
