@@ -22,6 +22,12 @@ use tracing::{debug, instrument, trace, warn};
 // ${ENV_VAR}
 static ENV_VAR: LazyLock<Regex> = LazyLock::new(|| Regex::new("\\$\\{([A-Z0-9_]+)\\}").unwrap());
 
+// hyper's default HTTP/2 windows (2 MiB per stream) cap a download at about
+// 2 MiB per round trip, which is slow on high-latency links. 16 MiB matches the
+// ceiling of hyper's adaptive window, and the connection fits two such streams.
+const HTTP2_STREAM_WINDOW_SIZE: u32 = 16 * 1024 * 1024;
+const HTTP2_CONNECTION_WINDOW_SIZE: u32 = HTTP2_STREAM_WINDOW_SIZE * 2;
+
 /// A downloader that uses our internal HTTP(S) client.
 #[derive(Clone, Debug)]
 pub struct HttpDownloader {
@@ -175,7 +181,9 @@ pub fn build_http_client(
 ) -> Result<reqwest::ClientBuilder, WarpgateHttpClientError> {
     let mut client_builder = reqwest::Client::builder()
         .user_agent(format!("warpgate@{}", env!("CARGO_PKG_VERSION")))
-        .use_rustls_tls();
+        .use_rustls_tls()
+        .http2_initial_stream_window_size(HTTP2_STREAM_WINDOW_SIZE)
+        .http2_initial_connection_window_size(HTTP2_CONNECTION_WINDOW_SIZE);
 
     if let Some(user_agent) = &options.user_agent {
         trace!(user_agent, "Using a user provided user agent");

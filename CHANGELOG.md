@@ -21,6 +21,13 @@
 - [Zig](https://github.com/moonrepo/plugins/blob/master/tools/zig/CHANGELOG.md)
 - [ZLS](https://github.com/moonrepo/plugins/blob/master/tools/zig-ls/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Improved download throughput on high-latency connections by increasing the HTTP/2 flow-control windows. Previously, a single download over HTTP/2 was capped at about 2 MiB per round trip.
+  - Over a local link with 200ms or 400ms of added latency, a 64 MB download is about 5x faster (from 9 to 47 MB/s at 200ms).
+
 ## 0.63.1
 
 #### 🚀 Updates
