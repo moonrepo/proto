@@ -35,6 +35,17 @@ pub enum WarpgatePluginError {
 
     #[cfg_attr(
         feature = "miette",
+        diagnostic(code(plugin::wasm::foreign_platform_command))
+    )]
+    #[error(
+        "Unable to execute command {} from plugin, as it's targeting {} instead of the host machine. Commands only reflect the host, so they can't be used to inspect another platform.",
+        .command.style(Style::Shell),
+        .platform,
+    )]
+    ForeignPlatformCommand { command: String, platform: String },
+
+    #[cfg_attr(
+        feature = "miette",
         diagnostic(code(plugin::wasm::incompatible_runtime))
     )]
     #[error(

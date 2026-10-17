@@ -29,6 +29,11 @@ pub struct HostData {
     /// Location where cached files are stored.
     pub cache_dir: PathBuf,
 
+    /// The platform the plugin is targeting, when it's not the host machine.
+    /// Commands can't be executed while set, as their results only reflect
+    /// the host, and would be wrong for the targeted platform.
+    pub foreign_platform: Option<String>,
+
     /// Instance of our HTTP client, used for sending requests.
     pub http_client: Arc<HttpClient>,
 
@@ -155,6 +160,14 @@ fn exec_command(
 
     let data = user_data.get()?;
     let data = data.lock().unwrap();
+
+    if let Some(platform) = &data.foreign_platform {
+        return Err(WarpgatePluginError::ForeignPlatformCommand {
+            command: input.command.clone(),
+            platform: platform.to_owned(),
+        }
+        .into());
+    }
 
     let debug_output = env::var("WARPGATE_DEBUG_COMMAND").ok();
     let should_stream = input.stream

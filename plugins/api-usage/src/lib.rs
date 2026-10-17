@@ -105,6 +105,18 @@ pub fn testing_echo(Json(input): Json<String>) -> FnResult<Json<String>> {
 }
 
 #[plugin_fn]
+pub fn testing_exec_command(
+    Json(input): Json<ExecCommandInput>,
+) -> FnResult<Json<ExecCommandOutput>> {
+    Ok(Json(exec(input)?))
+}
+
+#[plugin_fn]
+pub fn testing_host_environment(_: ()) -> FnResult<Json<HostEnvironment>> {
+    Ok(Json(get_host_environment()?.to_owned()))
+}
+
+#[plugin_fn]
 pub fn testing_load_git_tags(Json(url): Json<String>) -> FnResult<Json<Vec<String>>> {
     Ok(Json(load_git_tags(url)?))
 }

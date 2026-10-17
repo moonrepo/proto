@@ -5,12 +5,14 @@ use crate::loader_error::ProtoLoaderError;
 use crate::tool::Tool;
 use crate::tool_context::ToolContext;
 use convert_case::{Case, Casing};
+use proto_pdk_api::HostEnvironment;
 use rustc_hash::FxHashSet;
+use starbase_utils::envx::is_ci;
 use starbase_utils::{json, toml, yaml};
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use tracing::{debug, instrument, trace, warn};
-use warpgate::{PluginLocator, PluginManifest, Wasm, inject_default_manifest_config};
+use warpgate::{PluginLocator, PluginManifest, VirtualPath, Wasm, inject_default_manifest_config};
 
 #[instrument(skip(manifest))]
 pub fn inject_proto_manifest_config(
@@ -19,6 +21,29 @@ pub fn inject_proto_manifest_config(
     manifest: &mut PluginManifest,
 ) -> Result<(), ProtoLoaderError> {
     let config = proto.load_config()?;
+
+    // Derive the host environment from proto's platform, instead of letting
+    // warpgate detect it when injecting its defaults (which must happen after
+    // this), so that a plugin can target another platform
+    if !manifest.config.contains_key("host_environment") {
+        let platform = proto.get_host_platform();
+        let value = json::format(
+            &HostEnvironment {
+                arch: platform.arch,
+                ci: is_ci(),
+                libc: platform.libc,
+                os: platform.os,
+                home_dir: VirtualPath::new("/userhome"),
+            },
+            false,
+        )?;
+
+        trace!(env = %value, "Storing host environment");
+
+        manifest
+            .config
+            .insert("host_environment".to_string(), value);
+    }
 
     if let Some(backend_id) = &context.backend {
         manifest
@@ -308,8 +333,8 @@ pub async fn load_tool_from_locator(
             _ => unimplemented!(),
         };
 
-        inject_default_manifest_config(&context.id, &proto.home_dir, &mut manifest)?;
         inject_proto_manifest_config(context, proto, &mut manifest)?;
+        inject_default_manifest_config(&context.id, &proto.home_dir, &mut manifest)?;
 
         let mut tool = Tool::load_from_manifest(context, proto, manifest).await?;
         tool.locator = Some(locator.to_owned());

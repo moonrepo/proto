@@ -23,9 +23,16 @@
 
 ## Next
 
+#### 🚀 Updates
+
+- **WASM API**
+  - Updated the `exec_command` host function to error when the plugin is targeting a platform other than the host machine, as a command's output only reflects the host. This applies to PDK functions that execute commands, like `command_exists`. Plugins are never targeted at another platform yet, but will be when locking other platforms (#1129).
+
 #### ⚙️ Internal
 
 - Updated wasmtime to v49 (from 43).
+- Plugins now receive their host environment from the platform proto has detected, instead of detecting it again for every plugin. On Linux, this avoids running `ldd --version` each time a plugin is loaded.
+- Added a `foreign_platform` field to warpgate's `HostData`, which denies the `exec_command` host function when set.
 
 ## Unreleased
 

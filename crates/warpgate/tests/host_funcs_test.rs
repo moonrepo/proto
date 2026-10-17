@@ -82,6 +82,13 @@ fn find_api_usage_wasm() -> PathBuf {
 }
 
 fn create_container(sandbox_path: &std::path::Path) -> PluginContainer {
+    create_container_for_platform(sandbox_path, None)
+}
+
+fn create_container_for_platform(
+    sandbox_path: &std::path::Path,
+    foreign_platform: Option<&str>,
+) -> PluginContainer {
     let id = Id::raw("test");
 
     let mut manifest = PluginManifest::new([Wasm::file(find_api_usage_wasm())]);
@@ -100,6 +107,7 @@ fn create_container(sandbox_path: &std::path::Path) -> PluginContainer {
         manifest,
         create_host_functions(HostData {
             cache_dir: sandbox_path.join("cache"),
+            foreign_platform: foreign_platform.map(|platform| platform.to_owned()),
             http_client: Arc::new(create_http_client().unwrap()),
             virtual_paths: vec![(sandbox_path.to_path_buf(), PathBuf::from("/sandbox"))],
             working_dir: sandbox_path.to_path_buf(),
@@ -302,5 +310,45 @@ mod load_git_tags {
         assert!(error.contains("Failed to load Git tags from"), "{error}");
         assert!(error.contains("returned a 128 exit code"), "{error}");
         assert!(error.contains("fatal:"), "{error}");
+    }
+}
+
+mod exec_command {
+    use super::*;
+    use warpgate::api::{ExecCommandInput, ExecCommandOutput};
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn executes_command_on_host() {
+        let sandbox = create_empty_sandbox();
+        let container = create_container(sandbox.path());
+
+        let output: ExecCommandOutput = container
+            .call_func_with(
+                "testing_exec_command",
+                ExecCommandInput::pipe("git", ["--version"]),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(output.exit_code, 0);
+        assert!(output.stdout.contains("git version"), "{}", output.stdout);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn errors_when_targeting_a_foreign_platform() {
+        let sandbox = create_empty_sandbox();
+        let container = create_container_for_platform(sandbox.path(), Some("x64-linux-musl"));
+
+        let error = container
+            .call_func_with::<_, _, ExecCommandOutput>(
+                "testing_exec_command",
+                ExecCommandInput::pipe("git", ["--version"]),
+            )
+            .await
+            .unwrap_err()
+            .to_string();
+
+        assert!(error.contains("Unable to execute command"), "{error}");
+        assert!(error.contains("x64-linux-musl"), "{error}");
     }
 }

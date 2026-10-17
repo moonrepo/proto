@@ -41,6 +41,7 @@ fn create_container(sandbox: &Sandbox) -> Arc<PluginContainer> {
             manifest,
             create_host_functions(HostData {
                 cache_dir: sandbox.path().join("cache"),
+                foreign_platform: None,
                 http_client: Arc::new(create_http_client().unwrap()),
                 virtual_paths: vec![],
                 working_dir: sandbox.path().to_path_buf(),

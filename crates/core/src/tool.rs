@@ -107,6 +107,9 @@ impl Tool {
                 manifest,
                 create_host_functions(HostData {
                     cache_dir: proto.store.cache_dir.clone(),
+                    foreign_platform: proto
+                        .is_foreign_platform()
+                        .then(|| proto.get_host_platform().to_string()),
                     http_client: Arc::clone(proto.get_plugin_loader()?.get_http_client()?),
                     virtual_paths: proto.get_virtual_paths(),
                     working_dir: proto.working_dir.clone(),
