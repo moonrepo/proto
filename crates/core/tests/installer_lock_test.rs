@@ -259,9 +259,8 @@ mod installer_lock {
         assert_eq!(server.requests(), 1);
     }
 
-    // The download may be served from the HTTP cache, like installs
     #[tokio::test(flavor = "multi_thread")]
-    async fn force_downloads_and_verifies_the_record() {
+    async fn force_redownloads_and_verifies_the_record() {
         let server = spawn_prebuilt_server();
         let sandbox = create_sandbox(&server, true);
         let proto = create_proto(&sandbox);
@@ -284,6 +283,9 @@ mod installer_lock {
 
         assert_eq!(first.checksum, second.checksum);
         assert_eq!(load_records(&sandbox).len(), 1);
+
+        // Forced downloads are never served from the HTTP cache
+        assert_eq!(server.requests(), 2);
     }
 
     #[tokio::test(flavor = "multi_thread")]

@@ -25,7 +25,9 @@
 
 #### 🚀 Updates
 
+- Updated `proto install --force` to download the pre-built archive and its checksum file as they currently exist upstream, instead of copies from the HTTP request cache, which are kept for up to 7 days.
 - **WASM API**
+  - Updated `HostPlatform` to also parse the operating system first, in the format of `<os>-<arch>` or `<os>-<arch>-<libc>` (for example, `linux-x64-musl`). Platforms are still formatted with the architecture first.
   - Updated the `exec_command` host function to error when the plugin is targeting a platform other than the host machine, as a command's output only reflects the host. This applies to PDK functions that execute commands, like `command_exists`. Plugins are never targeted at another platform yet, but will be when locking other platforms (#1129).
 
 #### ⚙️ Internal
@@ -33,6 +35,7 @@
 - Updated wasmtime to v49 (from 43).
 - Plugins now receive their host environment from the platform proto has detected, instead of detecting it again for every plugin. On Linux, this avoids running `ldd --version` each time a plugin is loaded.
 - Added a `foreign_platform` field to warpgate's `HostData`, which denies the `exec_command` host function when set.
+- Added `HttpDownloader::without_cache` to warpgate, which never reads from or writes to the HTTP cache.
 
 ## Unreleased
 

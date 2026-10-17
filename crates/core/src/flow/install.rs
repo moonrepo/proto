@@ -457,6 +457,18 @@ impl<'tool> Installer<'tool> {
 
         let mut record = self.tool.create_locked_record();
 
+        // When forced, download the files as they currently exist upstream,
+        // instead of copies from the HTTP cache
+        let create_downloader = || {
+            let downloader = client.create_downloader_with_headers(output.http_headers.clone());
+
+            if options.force {
+                downloader.without_cache()
+            } else {
+                downloader
+            }
+        };
+
         // Download the prebuilt
         let download_url = config.rewrite_url(&output.download_url);
         let download_name = output
@@ -488,9 +500,7 @@ impl<'tool> Installer<'tool> {
                 &download_url,
                 &download_file,
                 DownloadOptions {
-                    downloader: Some(Box::new(
-                        client.create_downloader_with_headers(output.http_headers.clone()),
-                    )),
+                    downloader: Some(Box::new(create_downloader())),
                     on_chunk: options.on_download_chunk.clone(),
                     ..Default::default()
                 },
@@ -525,9 +535,7 @@ impl<'tool> Installer<'tool> {
                 net::download_from_url_with_options(
                     &checksum_url,
                     &checksum_file,
-                    DownloadOptions::new(
-                        client.create_downloader_with_headers(output.http_headers.clone()),
-                    ),
+                    DownloadOptions::new(create_downloader()),
                 )
                 .await,
             )?;
