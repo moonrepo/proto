@@ -52,6 +52,21 @@ pub struct InstallOptions {
     pub strategy: InstallStrategy,
 }
 
+/// A pre-built that has been downloaded and verified, but not unpacked.
+pub struct PreparedPrebuilt {
+    /// Absolute path to the downloaded file, within the temp directory.
+    pub download_file: PathBuf,
+
+    /// File name of the downloaded file.
+    pub download_name: String,
+
+    /// Output returned by the plugin's `download_prebuilt` function.
+    pub output: DownloadPrebuiltOutput,
+
+    /// Lock record with the checksum and source of the download.
+    pub record: LockRecord,
+}
+
 /// Installs a tool into proto's store.
 pub struct Installer<'tool> {
     tool: &'tool Tool,
@@ -280,18 +295,15 @@ impl<'tool> Installer<'tool> {
         Ok(record)
     }
 
-    /// Download the tool (as an archive) from its distribution registry
-    /// into the `~/.proto/tools/<version>` folder, and optionally verify checksums.
+    /// Download the tool (as an archive) from its distribution registry into
+    /// the temp directory, and verify it against a checksum, or generate one
+    /// when none is available. The download is not unpacked, so the returned
+    /// lock record can be created without installing the tool.
     #[instrument(skip(self, options))]
-    async fn install_from_prebuilt(
+    pub async fn prepare_prebuilt(
         &self,
-        options: InstallOptions,
-    ) -> Result<LockRecord, ProtoInstallError> {
-        debug!(
-            tool = self.tool.context.as_str(),
-            "Installing tool by downloading a pre-built archive"
-        );
-
+        options: &InstallOptions,
+    ) -> Result<PreparedPrebuilt, ProtoInstallError> {
         if !self
             .tool
             .plugin
@@ -325,17 +337,21 @@ impl<'tool> Installer<'tool> {
         let mut record = self.tool.create_locked_record();
 
         // Download the prebuilt
-        let download_url = config.rewrite_url(output.download_url);
-        let download_filename = output
+        let download_url = config.rewrite_url(&output.download_url);
+        let download_name = output
             .download_name
+            .clone()
             .unwrap_or_else(|| extract_file_name_from_url(&download_url));
-        let download_file = self.temp_dir.join(&download_filename);
+        let download_file = self.temp_dir.join(&download_name);
+
+        // Already created when installing, but not when preparing standalone
+        fs::create_dir_all(&self.temp_dir)?;
 
         record.source = Some(download_url.clone());
         options.on_phase_change.as_ref().inspect(|func| {
             func(InstallPhase::Download {
                 url: download_url.clone(),
-                file: download_filename.clone(),
+                file: download_name.clone(),
             });
         });
 
@@ -362,10 +378,11 @@ impl<'tool> Installer<'tool> {
         )?;
 
         // Verify against a URL that contains the checksum
-        if let Some(checksum_url) = output.checksum_url {
+        if let Some(checksum_url) = &output.checksum_url {
             let checksum_url = config.rewrite_url(checksum_url);
             let checksum_filename = output
                 .checksum_name
+                .clone()
                 .unwrap_or_else(|| extract_file_name_from_url(&checksum_url));
             let checksum_file = self.temp_dir.join(&checksum_filename);
 
@@ -388,7 +405,7 @@ impl<'tool> Installer<'tool> {
                     &checksum_url,
                     &checksum_file,
                     DownloadOptions::new(
-                        client.create_downloader_with_headers(output.http_headers),
+                        client.create_downloader_with_headers(output.http_headers.clone()),
                     ),
                 )
                 .await,
@@ -404,7 +421,7 @@ impl<'tool> Installer<'tool> {
             );
         }
         // Verify against an explicitly provided checksum
-        else if let Some(checksum) = output.checksum {
+        else if let Some(checksum) = &output.checksum {
             let checksum_file = self
                 .temp_dir
                 .join(format!("CHECKSUM.{:?}", checksum.algo).to_lowercase());
@@ -440,6 +457,35 @@ impl<'tool> Installer<'tool> {
             ));
         }
 
+        Ok(PreparedPrebuilt {
+            download_file,
+            download_name,
+            output,
+            record,
+        })
+    }
+
+    /// Download and verify the tool (as an archive) with [`Installer::prepare_prebuilt`],
+    /// then unpack it into the `~/.proto/tools/<version>` folder.
+    #[instrument(skip(self, options))]
+    async fn install_from_prebuilt(
+        &self,
+        options: InstallOptions,
+    ) -> Result<LockRecord, ProtoInstallError> {
+        debug!(
+            tool = self.tool.context.as_str(),
+            "Installing tool by downloading a pre-built archive"
+        );
+
+        let PreparedPrebuilt {
+            download_file,
+            download_name,
+            output,
+            record,
+        } = self.prepare_prebuilt(&options).await?;
+
+        let proto = &self.tool.proto;
+
         // Attempt to unpack the archive
         debug!(
             tool = self.tool.context.as_str(),
@@ -456,7 +502,7 @@ impl<'tool> Installer<'tool> {
         {
             options.on_phase_change.as_ref().inspect(|func| {
                 func(InstallPhase::Unpack {
-                    file: download_filename.clone(),
+                    file: download_name.clone(),
                 });
             });
 
@@ -480,7 +526,7 @@ impl<'tool> Installer<'tool> {
         else if is_archive_file(&download_file) {
             options.on_phase_change.as_ref().inspect(|func| {
                 func(InstallPhase::Unpack {
-                    file: download_filename.clone(),
+                    file: download_name.clone(),
                 });
             });
 
