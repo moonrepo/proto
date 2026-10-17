@@ -85,6 +85,22 @@ impl LockRecord {
         record
     }
 
+    /// Return the platform that the record was created for, or none when it
+    /// has no operating system and architecture (created before they were
+    /// recorded, or for a tool that ignores them). Records without a libc use
+    /// the default libc for the operating system.
+    pub fn get_platform(&self) -> Option<SystemPlatform> {
+        let os = self.os?;
+
+        Some(SystemPlatform {
+            os,
+            arch: self.arch?,
+            libc: self
+                .libc
+                .unwrap_or_else(|| SystemPlatform::default_libc(os)),
+        })
+    }
+
     /// Set the operating system, architecture, and libc from the provided
     /// platform. The libc is only set for Linux, see [`get_lockable_libc`].
     pub fn set_platform(&mut self, platform: &SystemPlatform) {

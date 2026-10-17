@@ -122,6 +122,15 @@ pub fn testing_load_git_tags(Json(url): Json<String>) -> FnResult<Json<Vec<Strin
     Ok(Json(load_git_tags(url)?))
 }
 
+#[plugin_fn]
+pub fn load_versions(Json(_): Json<LoadVersionsInput>) -> FnResult<Json<LoadVersionsOutput>> {
+    Ok(Json(LoadVersionsOutput::from(vec![
+        "1.0.0".into(),
+        "1.1.0".into(),
+        "2.0.0".into(),
+    ])?))
+}
+
 // Each platform and version downloads a different file, from the
 // URL configured with the `prebuilt-url` setting
 #[plugin_fn]

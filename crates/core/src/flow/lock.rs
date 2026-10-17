@@ -3,9 +3,11 @@ use crate::ProtoEnvironment;
 use crate::lockfile::{LockRecord, ProtoLock, get_lockable_libc};
 use crate::tool::Tool;
 use crate::tool_spec::ToolSpec;
+use serde::Serialize;
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::sync::{RwLockReadGuard, RwLockWriteGuard};
+use system_env::SystemPlatform;
 use tracing::{debug, instrument};
 use version_spec::{UnresolvedVersionSpec, VersionSpec};
 
@@ -38,7 +40,8 @@ use version_spec::{UnresolvedVersionSpec, VersionSpec};
 //      [x] add locked label to table
 
 /// The reason a tool was not locked, see [`LockOutcome::Skipped`].
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum LockSkipReason {
     /// The tool is built from source, which can only be verified by installing.
     BuildFromSource,
@@ -196,6 +199,28 @@ impl<'tool> Locker<'tool> {
         lock.save()?;
 
         Ok(())
+    }
+
+    /// Return the platforms that have a record for the tool in the lockfile,
+    /// across all specifications. Records without a platform are ignored.
+    pub fn get_locked_platforms(&self) -> Result<BTreeSet<SystemPlatform>, ProtoLockError> {
+        let mut platforms = BTreeSet::default();
+
+        let Some(lock) = self.load_lock()? else {
+            return Ok(platforms);
+        };
+
+        if let Some(records) = lock.tools.get(self.tool.get_id()) {
+            for record in records {
+                if record.backend.as_ref() == self.tool.context.backend.as_ref()
+                    && let Some(platform) = record.get_platform()
+                {
+                    platforms.insert(platform);
+                }
+            }
+        }
+
+        Ok(platforms)
     }
 
     /// Return true if a lockfile has been enabled for the tool.
