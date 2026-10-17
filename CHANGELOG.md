@@ -21,6 +21,12 @@
 - [Zig](https://github.com/moonrepo/plugins/blob/master/tools/zig/CHANGELOG.md)
 - [ZLS](https://github.com/moonrepo/plugins/blob/master/tools/zig-ls/CHANGELOG.md)
 
+## Next
+
+#### ⚙️ Internal
+
+- Updated wasmtime to v49 (from 43).
+
 ## Unreleased
 
 #### 🚀 Updates

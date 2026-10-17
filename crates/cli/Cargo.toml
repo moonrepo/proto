@@ -79,10 +79,8 @@ tracing = { workspace = true }
 rust_json = "0.1.6"
 
 # For extism/wasmtime
-extism = "1.30.0"
-wasmtime = "~43.0.2"
-wasi-common = "~43.0.2"
-wiggle = "~43.0.2"
+extism = "1.41.0"
+wasmtime = "~49.0.3"
 
 # Overrides
 liblzma = { version = "0.4.8", features = ["static"] }
