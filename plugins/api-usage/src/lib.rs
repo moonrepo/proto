@@ -22,6 +22,7 @@ struct WasmTestConfig {
     unknown: Option<usize>,
     list: Vec<String>,
     map: HashMap<String, usize>,
+    prebuilt_url: String,
 }
 
 #[plugin_fn]
@@ -119,6 +120,24 @@ pub fn testing_host_environment(_: ()) -> FnResult<Json<HostEnvironment>> {
 #[plugin_fn]
 pub fn testing_load_git_tags(Json(url): Json<String>) -> FnResult<Json<Vec<String>>> {
     Ok(Json(load_git_tags(url)?))
+}
+
+// Each platform and version downloads a different file, from the
+// URL configured with the `prebuilt-url` setting
+#[plugin_fn]
+pub fn download_prebuilt(
+    Json(input): Json<DownloadPrebuiltInput>,
+) -> FnResult<Json<DownloadPrebuiltOutput>> {
+    let env = get_host_environment()?;
+    let config = get_tool_config::<WasmTestConfig>()?;
+
+    Ok(Json(DownloadPrebuiltOutput {
+        download_url: format!(
+            "{}/{}/{}-{}-{}.txt",
+            config.prebuilt_url, input.context.version, env.arch, env.os, env.libc
+        ),
+        ..Default::default()
+    }))
 }
 
 #[plugin_fn]

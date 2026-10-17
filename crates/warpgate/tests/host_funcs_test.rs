@@ -259,6 +259,9 @@ mod load_git_tags {
                 "user.email=proto@moonrepo.dev",
             ])
             .args(["-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false"])
+            // A global fsmonitor spawns a daemon for every sandbox repo,
+            // and a commit can hang waiting on the daemon to respond
+            .args(["-c", "core.fsmonitor=false"])
             .args(args)
             .current_dir(dir)
             .output()

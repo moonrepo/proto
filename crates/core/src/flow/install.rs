@@ -2,7 +2,7 @@ use super::build::*;
 pub use super::build_error::ProtoBuildError;
 pub use super::install_error::ProtoInstallError;
 use crate::checksum::*;
-use crate::flow::lock::Locker;
+use crate::flow::lock::{LockOutcome, LockSkipReason, Locker, ProtoLockError};
 use crate::helpers::{is_archive_file, is_offline};
 use crate::lockfile::*;
 use crate::reporter::ProtoConsole;
@@ -15,7 +15,7 @@ use starbase_archive::get_compression_extensions;
 use starbase_shell::{ShellType, join_exe_args};
 use starbase_styles::color;
 use starbase_utils::net::DownloadOptions;
-use starbase_utils::{fs, net, path};
+use starbase_utils::{fs, hash, net, path};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use system_env::System;
@@ -207,6 +207,126 @@ impl<'tool> Installer<'tool> {
         Ok(Some(record))
     }
 
+    /// Lock the tool without installing it, by downloading and verifying the
+    /// pre-built for the tool's platform, and writing its record to the lockfile.
+    /// Tools that can only be verified by installing them (native installs and
+    /// builds from source) are skipped.
+    ///
+    /// When a record with a checksum already exists for the version and
+    /// platform, nothing is downloaded, unless `force` is enabled, in which
+    /// case the download must match the record's checksum.
+    ///
+    /// This *requires* the spec to have been resolved before hand.
+    #[instrument(skip(self, options))]
+    pub async fn lock(&self, options: InstallOptions) -> Result<LockOutcome, ProtoInstallError> {
+        debug_assert!(self.spec.is_resolved(), "Spec must be resolved to lock!");
+
+        let locker = Locker::new(self.tool);
+        let plugin = &self.tool.plugin;
+
+        let skip_reason = if self.tool.metadata.lock_options.no_record {
+            Some(LockSkipReason::NoRecord)
+        } else if !locker.has_lockfile()? {
+            Some(LockSkipReason::NoLockfile)
+        } else if plugin.has_func(PluginFunction::NativeInstall).await {
+            Some(LockSkipReason::NativeInstall)
+        } else if matches!(options.strategy, InstallStrategy::BuildFromSource) {
+            Some(LockSkipReason::BuildFromSource)
+        } else if !plugin.has_func(PluginFunction::DownloadPrebuilt).await {
+            Some(LockSkipReason::NoPrebuilt)
+        } else {
+            None
+        };
+
+        if let Some(reason) = skip_reason {
+            debug!(
+                tool = self.tool.context.as_str(),
+                reason = ?reason,
+                "Unable to lock tool without installing it, skipping",
+            );
+
+            return Ok(LockOutcome::Skipped(reason));
+        }
+
+        let version = self.spec.get_resolved_version();
+        let platform = self.tool.get_platform();
+
+        let mut record = self.tool.create_locked_record();
+        record.version = Some(version.clone());
+        record.spec = Some(self.spec.req.clone());
+        record.metadata = self.tool.metadata.lock_options.metadata.clone();
+
+        // Only a record for the same platform can verify the download, as other
+        // platforms download different artifacts. The record that the spec was
+        // resolved with can't be used, as it's for the host machine
+        let existing = locker
+            .find_platform_record(&record)?
+            .filter(|existing| existing.version == record.version && existing.checksum.is_some());
+
+        if let Some(existing) = &existing
+            && !options.force
+        {
+            debug!(
+                tool = self.tool.context.as_str(),
+                platform = platform.to_string(),
+                "Tool has already been locked for this version and platform, skipping",
+            );
+
+            return Ok(LockOutcome::AlreadyLocked(existing.to_owned()));
+        }
+
+        if is_offline() {
+            return Err(ProtoInstallError::RequiredInternetConnection);
+        }
+
+        debug!(
+            tool = self.tool.context.as_str(),
+            platform = platform.to_string(),
+            "Locking tool by downloading a pre-built archive",
+        );
+
+        // The version's temp directory is owned by installs, which remove it
+        // when they finish, so stage downloads in a directory unique to the
+        // platform and this process instead
+        let lock_dir = self.tool.get_temp_dir().join("lock");
+        let temp_dir = lock_dir.join(hash::base64::from_bytes(format!(
+            "{platform}-{version}-{}",
+            std::process::id()
+        )));
+
+        let result = self.prepare_prebuilt(&temp_dir, &options).await;
+
+        let _ = fs::remove_dir_all(&temp_dir);
+        let _ = std::fs::remove_dir(&lock_dir);
+
+        let prepared = result?;
+
+        record.checksum = prepared.record.checksum;
+        record.source = prepared.record.source;
+
+        if let Some(existing) = existing
+            && let (Some(checksum), Some(locked_checksum)) = (&record.checksum, &existing.checksum)
+            && checksum != locked_checksum
+        {
+            return Err(match &record.source {
+                Some(source) => ProtoLockError::MismatchedChecksumWithSource {
+                    checksum: checksum.to_string(),
+                    lockfile_checksum: locked_checksum.to_string(),
+                    source_url: source.to_owned(),
+                },
+                None => ProtoLockError::MismatchedChecksum {
+                    checksum: checksum.to_string(),
+                    lockfile_checksum: locked_checksum.to_string(),
+                },
+            }
+            .into());
+        }
+
+        locker.replace_record_in_lockfile(&record)?;
+
+        Ok(LockOutcome::Locked(record))
+    }
+
     /// Build the tool from source using a set of requirements and instructions
     /// into the `~/.proto/tools/<version>` folder.
     #[instrument(skip(self, options))]
@@ -296,12 +416,13 @@ impl<'tool> Installer<'tool> {
     }
 
     /// Download the tool (as an archive) from its distribution registry into
-    /// the temp directory, and verify it against a checksum, or generate one
-    /// when none is available. The download is not unpacked, so the returned
+    /// the provided temp directory, and verify it against a checksum, or generate
+    /// one when none is available. The download is not unpacked, so the returned
     /// lock record can be created without installing the tool.
     #[instrument(skip(self, options))]
     pub async fn prepare_prebuilt(
         &self,
+        temp_dir: &Path,
         options: &InstallOptions,
     ) -> Result<PreparedPrebuilt, ProtoInstallError> {
         if !self
@@ -342,10 +463,10 @@ impl<'tool> Installer<'tool> {
             .download_name
             .clone()
             .unwrap_or_else(|| extract_file_name_from_url(&download_url));
-        let download_file = self.temp_dir.join(&download_name);
+        let download_file = temp_dir.join(&download_name);
 
-        // Already created when installing, but not when preparing standalone
-        fs::create_dir_all(&self.temp_dir)?;
+        // Already created when installing, but not when locking
+        fs::create_dir_all(temp_dir)?;
 
         record.source = Some(download_url.clone());
         options.on_phase_change.as_ref().inspect(|func| {
@@ -384,7 +505,7 @@ impl<'tool> Installer<'tool> {
                 .checksum_name
                 .clone()
                 .unwrap_or_else(|| extract_file_name_from_url(&checksum_url));
-            let checksum_file = self.temp_dir.join(&checksum_filename);
+            let checksum_file = temp_dir.join(&checksum_filename);
 
             options.on_phase_change.as_ref().inspect(|func| {
                 func(InstallPhase::Verify {
@@ -422,9 +543,8 @@ impl<'tool> Installer<'tool> {
         }
         // Verify against an explicitly provided checksum
         else if let Some(checksum) = &output.checksum {
-            let checksum_file = self
-                .temp_dir
-                .join(format!("CHECKSUM.{:?}", checksum.algo).to_lowercase());
+            let checksum_file =
+                temp_dir.join(format!("CHECKSUM.{:?}", checksum.algo).to_lowercase());
 
             fs::write_file(&checksum_file, checksum.hash.as_deref().unwrap_or_default())?;
 
@@ -482,7 +602,7 @@ impl<'tool> Installer<'tool> {
             download_name,
             output,
             record,
-        } = self.prepare_prebuilt(&options).await?;
+        } = self.prepare_prebuilt(&self.temp_dir, &options).await?;
 
         let proto = &self.tool.proto;
 
