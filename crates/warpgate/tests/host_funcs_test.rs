@@ -337,21 +337,20 @@ mod exec_command {
         assert!(output.stdout.contains("git version"), "{}", output.stdout);
     }
 
+    // Only a warning is logged, as plugins decide with `HostEnvironment.foreign`
     #[tokio::test(flavor = "multi_thread")]
-    async fn errors_when_targeting_a_foreign_platform() {
+    async fn executes_command_when_targeting_a_foreign_platform() {
         let sandbox = create_empty_sandbox();
         let container = create_container_for_platform(sandbox.path(), Some("x64-linux-musl"));
 
-        let error = container
-            .call_func_with::<_, _, ExecCommandOutput>(
+        let output: ExecCommandOutput = container
+            .call_func_with(
                 "testing_exec_command",
                 ExecCommandInput::pipe("git", ["--version"]),
             )
             .await
-            .unwrap_err()
-            .to_string();
+            .unwrap();
 
-        assert!(error.contains("Unable to execute command"), "{error}");
-        assert!(error.contains("x64-linux-musl"), "{error}");
+        assert_eq!(output.exit_code, 0);
     }
 }

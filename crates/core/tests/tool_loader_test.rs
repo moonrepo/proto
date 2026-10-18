@@ -669,10 +669,10 @@ mod load_tool_from_locator {
         let proto = create_proto(sandbox.path());
         let tool = load_tool(proto).await;
 
-        assert_platform(
-            &get_host_environment(&tool).await,
-            &SystemPlatform::from_env(),
-        );
+        let env = get_host_environment(&tool).await;
+
+        assert_platform(&env, &SystemPlatform::from_env());
+        assert!(!env.foreign);
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -681,7 +681,19 @@ mod load_tool_from_locator {
         let proto = create_proto(sandbox.path());
         let tool = load_tool(proto.for_platform(foreign_platform())).await;
 
-        assert_platform(&get_host_environment(&tool).await, &foreign_platform());
+        let env = get_host_environment(&tool).await;
+
+        assert_platform(&env, &foreign_platform());
+        assert!(env.foreign);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn plugin_isnt_foreign_when_targeting_host_platform() {
+        let sandbox = create_empty_sandbox();
+        let proto = create_proto(sandbox.path());
+        let tool = load_tool(proto.for_platform(SystemPlatform::from_env())).await;
+
+        assert!(!get_host_environment(&tool).await.foreign);
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -714,23 +726,22 @@ mod load_tool_from_locator {
         assert_eq!(output.exit_code, 0);
     }
 
+    // Plugins decide whether to execute commands with `HostEnvironment.foreign`
     #[tokio::test(flavor = "multi_thread")]
-    async fn plugin_cant_execute_commands_for_foreign_platform() {
+    async fn plugin_can_execute_commands_for_foreign_platform() {
         let sandbox = create_empty_sandbox();
         let proto = create_proto(sandbox.path());
         let tool = load_tool(proto.for_platform(foreign_platform())).await;
 
-        let error = tool
+        let output: ExecCommandOutput = tool
             .plugin
-            .call_func_with::<_, _, ExecCommandOutput>(
+            .call_func_with(
                 "testing_exec_command",
                 ExecCommandInput::pipe("git", ["--version"]),
             )
             .await
-            .unwrap_err()
-            .to_string();
+            .unwrap();
 
-        assert!(error.contains("Unable to execute command"), "{error}");
-        assert!(error.contains(&foreign_platform().to_string()), "{error}");
+        assert_eq!(output.exit_code, 0);
     }
 }

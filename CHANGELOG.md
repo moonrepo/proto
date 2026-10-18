@@ -29,17 +29,17 @@
   - Supports locking other platforms with `--platform` (for example, `--platform x64-linux,arm64-macos`), so that a lockfile created on one machine can verify installs on CI and other machines, including with `--immutable-lockfile`. The plugin receives the platform as its host environment, and downloads that platform's pre-built.
   - Without `--platform`, locks the current platform, and every platform that already has a record for the tool, for example, to fill in the checksums that `proto outdated --update` removes from other platforms.
   - Platforms that have already been locked are not downloaded again, unless `--force` is passed, which downloads them and verifies the lockfile's checksums.
-  - Tools that install natively (like backends) or build from source can only be verified by installing them, so are skipped. Plugins that execute commands to inspect the host can't be locked for other platforms, and fail.
+  - Tools that install natively (like backends) or build from source can only be verified by installing them, so are skipped. A warning is logged when a plugin executes a command while locking another platform, as the command's output reflects the current machine.
 - Updated `proto install --force` to download the pre-built archive and its checksum file as they currently exist upstream, instead of copies from the HTTP request cache, which are kept for up to 7 days.
 - **WASM API**
   - Updated `HostPlatform` to also parse the operating system first, in the format of `<os>-<arch>` or `<os>-<arch>-<libc>` (for example, `linux-x64-musl`). Platforms are still formatted with the architecture first.
-  - Updated the `exec_command` host function to error when the plugin is targeting a platform other than the host machine, as a command's output only reflects the host. This applies to PDK functions that execute commands, like `command_exists`, and happens when locking other platforms with `proto lock --platform`.
+  - Added a `HostEnvironment.foreign` field, which is true when the plugin is targeting a platform other than the machine it's running on, like when locking other platforms with `proto lock --platform`. The `arch`, `os`, and `libc` fields describe the targeted platform, but executed commands (including PDK functions like `command_exists`) and environment variables still reflect the machine, so plugins should not use them to inspect the platform when `foreign` is true.
 
 #### ⚙️ Internal
 
 - Updated wasmtime to v49 (from 43).
 - Plugins now receive their host environment from the platform proto has detected, instead of detecting it again for every plugin. On Linux, this avoids running `ldd --version` each time a plugin is loaded.
-- Added a `foreign_platform` field to warpgate's `HostData`, which denies the `exec_command` host function when set.
+- Added a `foreign_platform` field to warpgate's `HostData`, which logs a warning when the `exec_command` host function is called while set.
 - Added `HttpDownloader::without_cache` to warpgate, which never reads from or writes to the HTTP cache.
 
 ## Unreleased
