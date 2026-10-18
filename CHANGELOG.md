@@ -28,6 +28,10 @@
 - Improved download throughput on high-latency connections by increasing the HTTP/2 flow-control windows. Previously, a single download over HTTP/2 was capped at about 2 MiB per round trip.
   - Over a local link with 200ms or 400ms of added latency, a 64 MB download is about 5x faster (from 9 to 47 MB/s at 200ms).
 
+#### 🐞 Fixes
+
+- Fixed Git sources (for backends and build from source) failing to check out a `reference` that is not the default branch, like a tag, as the shallow clone did not fetch it.
+
 ## 0.63.1
 
 #### 🚀 Updates
