@@ -1449,6 +1449,94 @@ value = "root"
         }
 
         #[test]
+        fn can_set_requires() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[tools."npm:typescript"]
+requires = ["node", "npm:tsx"]
+value = "abc"
+"#,
+            );
+
+            let config =
+                ProtoConfig::from_partial(ProtoConfig::load_from(sandbox.path(), false).unwrap());
+            let tool_config = config
+                .get_tool_config(&ToolContext::parse("npm:typescript").unwrap())
+                .unwrap();
+
+            assert_eq!(
+                tool_config.requires,
+                vec![
+                    ToolContext::parse("node").unwrap(),
+                    ToolContext::parse("npm:tsx").unwrap(),
+                ]
+            );
+
+            // Must not be passed to the plugin as custom configuration
+            assert_eq!(
+                tool_config.config,
+                FxHashMap::from_iter([("value".to_owned(), JsonValue::String("abc".into()))])
+            );
+        }
+
+        #[test]
+        #[should_panic]
+        fn errors_for_invalid_requires() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[tools.node]
+requires = ["in valid"]
+"#,
+            );
+
+            ProtoConfig::load_from(sandbox.path(), false).unwrap();
+        }
+
+        #[test]
+        fn merges_requires_without_duplicates() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                "a/b/.prototools",
+                r#"
+[tools.npm]
+requires = ["bun", "node"]
+"#,
+            );
+            sandbox.create_file(
+                "a/.prototools",
+                r#"
+[tools.npm]
+value = true
+"#,
+            );
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[tools.npm]
+requires = ["node"]
+"#,
+            );
+
+            let config = ProtoFileManager::load(sandbox.path().join("a/b"), None, None)
+                .unwrap()
+                .get_merged_config()
+                .unwrap()
+                .to_owned();
+
+            assert_eq!(
+                config.tools.get("npm").unwrap().requires,
+                vec![
+                    ToolContext::parse("node").unwrap(),
+                    ToolContext::parse("bun").unwrap(),
+                ]
+            );
+        }
+
+        #[test]
         fn merges_aliases() {
             let sandbox = create_empty_sandbox();
             sandbox.create_file(
