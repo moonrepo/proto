@@ -113,6 +113,23 @@ where
     Ok(Some(prev))
 }
 
+pub(crate) fn merge_unique_vec<V>(
+    mut prev: Vec<V>,
+    next: Vec<V>,
+    _context: &(),
+) -> MergeResult<Vec<V>>
+where
+    V: PartialEq,
+{
+    for item in next {
+        if !prev.contains(&item) {
+            prev.push(item);
+        }
+    }
+
+    Ok(Some(prev))
+}
+
 pub(crate) fn merge_partials_iter<K, V>(
     mut prev: BTreeMap<K, V>,
     next: BTreeMap<K, V>,

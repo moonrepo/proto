@@ -7,7 +7,7 @@ use proto_core::flow::manage::ProtoManageError;
 use proto_core::flow::resolve::ProtoResolveError;
 use proto_core::layout::ProtoLayoutError;
 use proto_core::warpgate::WarpgatePluginError;
-use proto_core::{IdError, PROTO_CONFIG_NAME, ProtoConfigError};
+use proto_core::{IdError, PROTO_CONFIG_NAME, ProtoConfigError, ProtoToolError};
 use starbase_console::ConsoleError;
 use starbase_shell::ShellError;
 use starbase_styles::{Style, Stylize};
@@ -66,6 +66,10 @@ pub enum ProtoCliError {
     #[error(transparent)]
     Shell(#[from] Box<ShellError>),
 
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Tool(#[from] Box<ProtoToolError>),
+
     #[diagnostic(code(proto::no_configured_tools))]
     #[error("No tools have been configured in {}.", PROTO_CONFIG_NAME.style(Style::File))]
     NoConfiguredTools,
@@ -77,6 +81,13 @@ pub enum ProtoCliError {
         .path.style(Style::Path),
     )]
     MissingToolsConfigInCwd { path: PathBuf },
+
+    #[diagnostic(
+        code(proto::tool_requirements_cycle),
+        help = "Remove one of these tools from the requires setting of the other's [tools.*] config."
+    )]
+    #[error("Tool requirements form a cycle: {cycle}")]
+    ToolRequirementsCycle { cycle: String },
 
     // ALIAS
     #[diagnostic(code(proto::commands::alias::invalid))]
@@ -273,6 +284,12 @@ impl From<ProtoResolveError> for ProtoCliError {
 impl From<ProtoManageError> for ProtoCliError {
     fn from(e: ProtoManageError) -> ProtoCliError {
         ProtoCliError::Manage(Box::new(e))
+    }
+}
+
+impl From<ProtoToolError> for ProtoCliError {
+    fn from(e: ProtoToolError) -> ProtoCliError {
+        ProtoCliError::Tool(Box::new(e))
     }
 }
 
