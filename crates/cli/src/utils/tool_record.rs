@@ -1,3 +1,4 @@
+use crate::error::ProtoCliError;
 use indexmap::IndexSet;
 use proto_core::flow::detect::Detector;
 use proto_core::flow::resolve::{ProtoResolveError, Resolver};
@@ -96,45 +97,68 @@ impl DerefMut for ToolRecord {
 
 /// Given a list of `(context, requires)` pairs, return the contexts in
 /// dependency-first order (topological sort). Dependencies come before
-/// the tools that require them.
-fn sort_contexts_by_dependency(
-    items: Vec<(&ToolContext, &[String])>,
-) -> miette::Result<IndexSet<ToolContext>> {
+/// the tools that require them. Errors if the requirements form a cycle.
+pub fn sort_contexts_by_dependency(
+    items: &[(ToolContext, Vec<ToolContext>)],
+) -> Result<IndexSet<ToolContext>, ProtoCliError> {
+    let mut visiting = vec![];
     let mut visited = IndexSet::default();
 
     fn visit(
         context: &ToolContext,
-        items: &[(&ToolContext, &[String])],
+        items: &[(ToolContext, Vec<ToolContext>)],
+        visiting: &mut Vec<ToolContext>,
         visited: &mut IndexSet<ToolContext>,
-    ) -> miette::Result<()> {
-        if !visited.contains(context)
-            && let Some((_, requires)) = items.iter().find(|(ctx, _)| *ctx == context)
-        {
-            for dependency in *requires {
-                visit(&ToolContext::parse(dependency)?, items, visited)?;
-            }
-
-            visited.insert(context.clone());
+    ) -> Result<(), ProtoCliError> {
+        if visited.contains(context) {
+            return Ok(());
         }
+
+        let Some((_, requires)) = items.iter().find(|(ctx, _)| ctx == context) else {
+            return Ok(());
+        };
+
+        if let Some(index) = visiting.iter().position(|ctx| ctx == context) {
+            let mut cycle = visiting[index..]
+                .iter()
+                .map(|ctx| ctx.to_string())
+                .collect::<Vec<_>>();
+            cycle.push(context.to_string());
+
+            return Err(ProtoCliError::ToolRequirementsCycle {
+                cycle: cycle.join(" → "),
+            });
+        }
+
+        visiting.push(context.clone());
+
+        for dependency in requires {
+            visit(dependency, items, visiting, visited)?;
+        }
+
+        visiting.pop();
+        visited.insert(context.clone());
 
         Ok(())
     }
 
-    for (context, _) in &items {
-        visit(context, &items, &mut visited)?;
+    for (context, _) in items {
+        visit(context, items, &mut visiting, &mut visited)?;
     }
 
     Ok(visited)
 }
 
-pub fn sort_tools_by_dependency(mut tools: Vec<ToolRecord>) -> miette::Result<Vec<ToolRecord>> {
-    let sorted = sort_contexts_by_dependency(
-        tools
-            .iter()
-            .map(|tool| (&tool.context, tool.metadata.requires.as_slice()))
-            .collect(),
-    )?;
+pub fn sort_tools_by_dependency(
+    mut tools: Vec<ToolRecord>,
+) -> Result<Vec<ToolRecord>, ProtoCliError> {
+    let mut items = vec![];
 
+    for tool in &tools {
+        items.push((tool.context.clone(), tool.get_requires()?));
+    }
+
+    let sorted = sort_contexts_by_dependency(&items)?;
     let mut list = vec![];
 
     for context in sorted {
@@ -154,21 +178,27 @@ mod tests {
         ToolContext::parse(s).unwrap()
     }
 
-    fn sort(items: &[(&str, &[&str])]) -> Vec<String> {
-        let owned: Vec<(ToolContext, Vec<String>)> = items
+    fn try_sort(items: &[(&str, &[&str])]) -> Result<Vec<String>, ProtoCliError> {
+        let owned: Vec<(ToolContext, Vec<ToolContext>)> = items
             .iter()
-            .map(|(name, deps)| (ctx(name), deps.iter().map(|d| d.to_string()).collect()))
+            .map(|(name, deps)| (ctx(name), deps.iter().map(|d| ctx(d)).collect()))
             .collect();
 
-        let refs: Vec<(&ToolContext, &[String])> = owned
-            .iter()
-            .map(|(ctx, deps)| (ctx, deps.as_slice()))
-            .collect();
-
-        let visited = sort_contexts_by_dependency(refs).unwrap();
+        let visited = sort_contexts_by_dependency(&owned)?;
 
         // No reversal — dependency-first (topological) order
-        visited.into_iter().map(|c| c.to_string()).collect()
+        Ok(visited.into_iter().map(|c| c.to_string()).collect())
+    }
+
+    fn sort(items: &[(&str, &[&str])]) -> Vec<String> {
+        try_sort(items).unwrap()
+    }
+
+    fn sort_cycle(items: &[(&str, &[&str])]) -> String {
+        match try_sort(items) {
+            Err(ProtoCliError::ToolRequirementsCycle { cycle }) => cycle,
+            other => panic!("expected a cycle, got {other:?}"),
+        }
     }
 
     #[test]
@@ -225,6 +255,41 @@ mod tests {
         let result = sort(&[("a", &[]), ("b", &["c"])]);
         // c is not found, so visit(c) is a no-op; a and b visited in input order
         assert_eq!(result, vec!["a", "b"]);
+    }
+
+    #[test]
+    fn dep_ordering_with_backend_dependency() {
+        // "npm:typescript" depends on "npm:tsx", which is not "tsx"
+        let result = sort(&[
+            ("npm:typescript", &["npm:tsx"]),
+            ("tsx", &[]),
+            ("npm:tsx", &[]),
+        ]);
+        assert_eq!(result, vec!["npm:tsx", "npm:typescript", "tsx"]);
+    }
+
+    #[test]
+    fn errors_for_direct_cycle() {
+        assert_eq!(sort_cycle(&[("a", &["b"]), ("b", &["a"])]), "a → b → a");
+    }
+
+    #[test]
+    fn errors_for_indirect_cycle() {
+        assert_eq!(
+            sort_cycle(&[("x", &[]), ("a", &["b"]), ("b", &["c"]), ("c", &["b"])]),
+            "b → c → b"
+        );
+    }
+
+    #[test]
+    fn errors_for_self_cycle() {
+        assert_eq!(sort_cycle(&[("a", &["a"])]), "a → a");
+    }
+
+    #[test]
+    fn diamond_is_not_a_cycle() {
+        let result = sort(&[("a", &["b", "c"]), ("b", &["d"]), ("c", &["d"]), ("d", &[])]);
+        assert_eq!(result, vec!["d", "b", "c", "a"]);
     }
 
     #[test]

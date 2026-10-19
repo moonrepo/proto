@@ -27,6 +27,7 @@ struct PluginInfoOutput {
     metadata: ToolMetadata,
     name: String,
     plugin: PluginLocator,
+    requires: Vec<ToolContext>,
     shims: Vec<ExecutableLocation>,
 }
 
@@ -53,6 +54,7 @@ pub async fn info(session: ProtoSession, args: PluginInfoArgs) -> SessionResult 
         )
         .await?;
     let spec = tool.spec.clone();
+    let requires = tool.get_requires()?;
 
     let mut locator = LocatorFlow::new(&tool, &spec);
     let bins = locator.locate_bins(None).await?;
@@ -74,6 +76,7 @@ pub async fn info(session: ProtoSession, args: PluginInfoArgs) -> SessionResult 
             manifest: tool.inventory.manifest.clone(),
             metadata: tool.metadata.clone(),
             plugin: tool.locator.clone().unwrap(),
+            requires,
         })?;
 
         return Ok(None);
@@ -134,17 +137,17 @@ pub async fn info(session: ProtoSession, args: PluginInfoArgs) -> SessionResult 
                         Locator(value: loc)
                     }
                 }))
-                #(if tool.metadata.requires.is_empty() {
+                #(if requires.is_empty() {
                     None
                 } else {
                     Some(element! {
                         Entry(name: "Requires") {
                             List {
-                                #(tool.metadata.requires.iter().map(|req_id| {
+                                #(requires.iter().map(|req_context| {
                                     element! {
                                         ListItem {
                                             StyledText(
-                                                content: req_id,
+                                                content: req_context.to_string(),
                                                 style: Style::Id
                                             )
                                         }

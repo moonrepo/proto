@@ -598,6 +598,7 @@ KEY = "value"
 
 [tools.node]
 dist-url = "https://example.com"
+requires = ["asdf:foo"]
 
 [tools.node.aliases]
 work = "18"
@@ -625,6 +626,7 @@ lockfile = true
 
             assert!(tool.aliases.is_some());
             assert!(tool.config.is_none());
+            assert!(tool.requires.is_none());
 
             let settings = safe.settings.unwrap();
 

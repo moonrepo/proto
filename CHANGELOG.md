@@ -31,6 +31,12 @@
   - Platforms that have already been locked are not downloaded again, unless `--force` is passed, which downloads them and verifies the lockfile's checksums.
   - Tools that install natively (like backends) or build from source can only be verified by installing them, so are skipped. A warning is logged when a plugin executes a command while locking another platform, as the command's output reflects the current machine.
 - Updated `proto install --force` to download the pre-built archive and its checksum file as they currently exist upstream, instead of copies from the HTTP request cache, which are kept for up to 7 days.
+- Added a `[tools.*].requires` setting, which declares other tools that the tool depends on, in addition to those required by its plugin. For example, `requires = ["node"]`.
+  - When installing, the required tools must have a configured version, and are installed first.
+  - When running (including shims), the required tools are added to the environment.
+  - Requirements that form a cycle now error, instead of waiting forever when installing.
+  - `proto diagnose` warns about requirements without a configured version, and cycles.
+  - This setting is security-sensitive, and is ignored in untrusted configs.
 - **WASM API**
   - Updated `HostPlatform` to also parse the operating system first, in the format of `<os>-<arch>` or `<os>-<arch>-<libc>` (for example, `linux-x64-musl`). Platforms are still formatted with the architecture first.
   - Added a `HostEnvironment.foreign` field, which is true when the plugin is targeting a platform other than the machine it's running on, like when locking other platforms with `proto lock --platform`. The `arch`, `os`, and `libc` fields describe the targeted platform, but executed commands (including PDK functions like `command_exists`) and environment variables still reflect the machine, so plugins should not use them to inspect the platform when `foreign` is true.
@@ -41,6 +47,11 @@
 - Plugins now receive their host environment from the platform proto has detected, instead of detecting it again for every plugin. On Linux, this avoids running `ldd --version` each time a plugin is loaded.
 - Added a `foreign_platform` field to warpgate's `HostData`, which logs a warning when the `exec_command` host function is called while set.
 - Added `HttpDownloader::without_cache` to warpgate, which never reads from or writes to the HTTP cache.
+
+#### 🐞 Fixes
+
+- Fixed requirements on backend tools (for example, `npm:tsx`) being ignored when ordering installs, as they were matched by identifier only.
+- Fixed `proto mcp`'s install tool not checking requirements.
 
 ## Unreleased
 

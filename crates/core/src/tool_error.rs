@@ -63,6 +63,13 @@ pub enum ProtoToolError {
         .dir.style(Style::Path),
     )]
     RequiredAbsoluteInventoryDir { tool: String, dir: PathBuf },
+
+    #[diagnostic(
+        code(proto::tool::requires_itself),
+        help = "Remove it from the requires setting of its [tools.*] config."
+    )]
+    #[error("{} cannot require itself.", .tool.style(Style::Id))]
+    RequiresItself { tool: String },
 }
 
 impl From<ProtoArchiveError> for ProtoToolError {
