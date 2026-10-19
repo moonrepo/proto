@@ -102,6 +102,7 @@ async fn async_main() -> MainResult {
                 Commands::Diagnose(args) => commands::diagnose(session, args).await,
                 Commands::Exec(args) => commands::exec(session, args).await,
                 Commands::Install(args) => commands::install(session, args).await,
+                Commands::Lock(args) => commands::lock(session, args).await,
                 Commands::Mcp(args) => commands::mcp(session, args).await,
                 Commands::Migrate(args) => commands::migrate(session, args).await,
                 Commands::Outdated(args) => commands::outdated(session, args).await,

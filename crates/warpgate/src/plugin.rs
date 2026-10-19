@@ -56,6 +56,7 @@ pub fn inject_default_manifest_config(
         let env = serde_json::to_string(&HostEnvironment {
             arch: SystemArch::from_env(),
             ci: is_ci(),
+            foreign: false,
             libc: SystemLibc::detect(os),
             os,
             home_dir: VirtualPath::new("/userhome"),

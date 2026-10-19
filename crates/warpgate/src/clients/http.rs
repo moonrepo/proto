@@ -1,6 +1,7 @@
 use super::WarpgateHttpClientError;
 use async_trait::async_trait;
 use core::ops::Deref;
+use http_cache_reqwest::CacheMode;
 use netrc::Netrc;
 use regex::Regex;
 use reqwest::header::HeaderValue;
@@ -31,8 +32,17 @@ const HTTP2_CONNECTION_WINDOW_SIZE: u32 = HTTP2_STREAM_WINDOW_SIZE * 2;
 /// A downloader that uses our internal HTTP(S) client.
 #[derive(Clone, Debug)]
 pub struct HttpDownloader {
+    cache: bool,
     client: HttpClient,
     headers: FxHashMap<String, String>,
+}
+
+impl HttpDownloader {
+    /// Never read responses from, or write responses to, the HTTP cache.
+    pub fn without_cache(mut self) -> Self {
+        self.cache = false;
+        self
+    }
 }
 
 #[async_trait]
@@ -42,6 +52,10 @@ impl Downloader for HttpDownloader {
         let url_string = url.to_string();
 
         let mut request = self.client.get(url.clone());
+
+        if !self.cache {
+            request = request.with_extension(CacheMode::NoStore);
+        }
 
         if !self.headers.is_empty() {
             for (key, value) in &self.headers {
@@ -77,6 +91,7 @@ impl HttpClient {
     /// Create a downloader ([`HttpDownloader`]) that utilizes this client.
     pub fn create_downloader(&self) -> HttpDownloader {
         HttpDownloader {
+            cache: true,
             client: self.clone(),
             headers: FxHashMap::default(),
         }
@@ -89,6 +104,7 @@ impl HttpClient {
         headers: FxHashMap<String, String>,
     ) -> HttpDownloader {
         HttpDownloader {
+            cache: true,
             client: self.clone(),
             headers,
         }
@@ -311,7 +327,7 @@ pub fn build_http_middleware(
         && !envx::is_docker()
     {
         use http_cache_reqwest::{
-            CACacheManager, Cache, CacheMode, CacheOptions, HttpCache, HttpCacheOptions,
+            CACacheManager, Cache, CacheOptions, HttpCache, HttpCacheOptions,
         };
 
         trace!("Adding GET and HEAD request caching");

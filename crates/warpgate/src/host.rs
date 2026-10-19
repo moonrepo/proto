@@ -29,6 +29,11 @@ pub struct HostData {
     /// Location where cached files are stored.
     pub cache_dir: PathBuf,
 
+    /// The platform the plugin is targeting, when it's not the host machine.
+    /// Executing a command logs a warning while set, as its output only
+    /// reflects the host, and may be wrong for the targeted platform.
+    pub foreign_platform: Option<String>,
+
     /// Instance of our HTTP client, used for sending requests.
     pub http_client: Arc<HttpClient>,
 
@@ -155,6 +160,16 @@ fn exec_command(
 
     let data = user_data.get()?;
     let data = data.lock().unwrap();
+
+    // Plugins can check `HostEnvironment.foreign` themselves, but older
+    // plugins don't know about it, so call out a potentially wrong result
+    if let Some(platform) = &data.foreign_platform {
+        warn!(
+            plugin = &uuid,
+            "Plugin executed command {} while targeting {platform}, but the output reflects the host machine, not {platform}",
+            color::shell(&input.command),
+        );
+    }
 
     let debug_output = env::var("WARPGATE_DEBUG_COMMAND").ok();
     let should_stream = input.stream

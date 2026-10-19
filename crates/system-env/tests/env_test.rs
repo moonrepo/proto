@@ -112,13 +112,62 @@ mod system_platform {
             }
         }
 
-        // The OS is parsed first, so the old `<os>-<arch>` format is not supported
         #[test]
-        fn errors_for_os_first() {
-            assert!(matches!(
-                SystemPlatform::parse("linux-x64"),
-                Err(Error::UnknownPlatformPart { kind, .. }) if kind == "architecture"
-            ));
+        fn os_first() {
+            assert_eq!(
+                SystemPlatform::parse("linux-x64").unwrap(),
+                platform(SystemArch::X64, SystemOS::Linux, SystemLibc::Gnu)
+            );
+            assert_eq!(
+                SystemPlatform::parse("macos-arm64").unwrap(),
+                platform(SystemArch::Arm64, SystemOS::MacOS, SystemLibc::Unknown)
+            );
+            assert_eq!(
+                SystemPlatform::parse("linux-arm64-musl").unwrap(),
+                platform(SystemArch::Arm64, SystemOS::Linux, SystemLibc::Musl)
+            );
+            assert_eq!(
+                SystemPlatform::parse("mac-aarch64").unwrap(),
+                SystemPlatform::new(SystemOS::MacOS, SystemArch::Arm64)
+            );
+        }
+
+        #[test]
+        fn os_first_formats_arch_first() {
+            assert_eq!(
+                SystemPlatform::parse("linux-x64-musl").unwrap().to_string(),
+                "x64-linux-musl"
+            );
+        }
+
+        #[test]
+        fn errors_for_invalid_os_first_format() {
+            for value in ["linux-x64-musl-extra", "linux-x64-", "linux--musl"] {
+                assert!(
+                    matches!(SystemPlatform::parse(value), Err(Error::InvalidPlatform(_))),
+                    "{value}"
+                );
+            }
+        }
+
+        #[test]
+        fn errors_for_unknown_os_first_parts() {
+            for (value, expected_kind, expected_value) in [
+                ("linux-z80", "architecture", "z80"),
+                ("linux-x64-bionic", "libc", "bionic"),
+                ("linux-linux", "architecture", "linux"),
+            ] {
+                let result = SystemPlatform::parse(value);
+
+                assert!(
+                    matches!(
+                        &result,
+                        Err(Error::UnknownPlatformPart { kind, value, .. })
+                            if kind == expected_kind && value == expected_value
+                    ),
+                    "{value}: {result:?}"
+                );
+            }
         }
     }
 
