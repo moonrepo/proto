@@ -197,6 +197,36 @@ impl Tool {
         self.proto.get_host_platform()
     }
 
+    /// Return the tools that this tool requires, which are those required by
+    /// the plugin, followed by those configured with `[tools.*].requires`.
+    pub fn get_requires(&self) -> Result<Vec<ToolContext>, ProtoToolError> {
+        let mut requires = vec![];
+
+        for require in &self.metadata.requires {
+            requires.push(ToolContext::parse(require)?);
+        }
+
+        if let Some(tool_config) = self.proto.load_config()?.get_tool_config(&self.context) {
+            requires.extend(tool_config.requires.iter().cloned());
+        }
+
+        let mut list: Vec<ToolContext> = Vec::with_capacity(requires.len());
+
+        for context in requires {
+            if context == self.context {
+                return Err(ProtoToolError::RequiresItself {
+                    tool: self.context.to_string(),
+                });
+            }
+
+            if !list.contains(&context) {
+                list.push(context);
+            }
+        }
+
+        Ok(list)
+    }
+
     /// Return an absolute path to a temp directory solely for this tool.
     pub fn get_temp_dir(&self) -> &Path {
         &self.inventory.temp_dir

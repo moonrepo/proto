@@ -165,6 +165,83 @@ moonstone = "2.0.0"
                     .and(predicate::str::contains("moonbase 1.0.0 installed")),
             );
         }
+
+        #[test]
+        fn errors_if_configured_reqs_not_met() {
+            let sandbox = create_empty_proto_sandbox_with_shared_plugins();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+protostar = "1.0.0"
+
+[tools.protostar]
+requires = ["protoform"]
+"#,
+            );
+
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install");
+                })
+                .failure();
+
+            assert.stderr(predicate::str::contains(
+                "protostar requires protoform to function correctly",
+            ));
+        }
+
+        #[test]
+        fn passes_if_configured_reqs_met() {
+            let sandbox = create_empty_proto_sandbox_with_shared_plugins();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+protostar = "1.0.0"
+protoform = "1.0.0"
+
+[tools.protostar]
+requires = ["protoform"]
+"#,
+            );
+
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install");
+                })
+                .success();
+
+            assert.stdout(
+                predicate::str::contains("protoform 1.0.0 installed")
+                    .and(predicate::str::contains("protostar 1.0.0 installed")),
+            );
+        }
+
+        #[test]
+        fn errors_if_reqs_form_a_cycle() {
+            let sandbox = create_empty_proto_sandbox_with_shared_plugins();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+protostar = "1.0.0"
+protoform = "1.0.0"
+
+[tools.protostar]
+requires = ["protoform"]
+
+[tools.protoform]
+requires = ["protostar"]
+"#,
+            );
+
+            // Previously this would wait on the requirements forever
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install");
+                })
+                .failure();
+
+            assert.stderr(predicate::str::contains("Tool requirements form a cycle"));
+        }
     }
 
     mod manifest_lockfile {
