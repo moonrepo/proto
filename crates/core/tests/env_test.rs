@@ -243,3 +243,69 @@ mod get_host_platform {
         assert_eq!(other.get_host_platform().os, SystemOS::Solaris);
     }
 }
+
+mod for_platform {
+    use super::*;
+    use system_env::{SystemArch, SystemLibc, SystemOS, SystemPlatform};
+
+    fn foreign_platform() -> SystemPlatform {
+        SystemPlatform::new(SystemOS::Linux, SystemArch::Riscv64).with_libc(SystemLibc::Musl)
+    }
+
+    #[test]
+    fn targets_the_platform() {
+        let sandbox = create_empty_sandbox();
+        let env = create_env(sandbox.path(), sandbox.path());
+        let other = env.for_platform(foreign_platform());
+
+        assert_eq!(other.get_host_platform(), &foreign_platform());
+        assert!(other.is_foreign_platform());
+
+        // The original is not affected
+        assert_eq!(env.get_host_platform(), &SystemPlatform::from_env());
+        assert!(!env.is_foreign_platform());
+    }
+
+    #[test]
+    fn is_not_foreign_when_targeting_the_host() {
+        let sandbox = create_empty_sandbox();
+        let env = create_env(sandbox.path(), sandbox.path());
+        let other = env.for_platform(SystemPlatform::from_env());
+
+        assert!(!other.is_foreign_platform());
+    }
+
+    #[test]
+    fn remains_foreign_when_retargeting() {
+        let sandbox = create_empty_sandbox();
+        let env = create_env(sandbox.path(), sandbox.path());
+        let other = env
+            .for_platform(foreign_platform())
+            .for_platform(foreign_platform());
+
+        assert!(other.is_foreign_platform());
+    }
+
+    #[test]
+    fn is_preserved_when_cloning_and_reloading() {
+        let sandbox = create_empty_sandbox();
+        let env = create_env(sandbox.path(), sandbox.path()).for_platform(foreign_platform());
+
+        for other in [env.clone(), env.reload()] {
+            assert_eq!(other.get_host_platform(), &foreign_platform());
+            assert!(other.is_foreign_platform());
+        }
+    }
+
+    #[test]
+    fn shares_config_and_lockfile_state() {
+        let sandbox = create_empty_sandbox();
+        let env = create_env(sandbox.path(), sandbox.path());
+        let other = env.for_platform(foreign_platform());
+
+        assert!(std::ptr::eq(
+            env.load_file_manager().unwrap(),
+            other.load_file_manager().unwrap()
+        ));
+    }
+}

@@ -3,9 +3,11 @@ use crate::ProtoEnvironment;
 use crate::lockfile::{LockRecord, ProtoLock, get_lockable_libc};
 use crate::tool::Tool;
 use crate::tool_spec::ToolSpec;
+use serde::Serialize;
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::sync::{RwLockReadGuard, RwLockWriteGuard};
+use system_env::SystemPlatform;
 use tracing::{debug, instrument};
 use version_spec::{UnresolvedVersionSpec, VersionSpec};
 
@@ -36,6 +38,33 @@ use version_spec::{UnresolvedVersionSpec, VersionSpec};
 //      [x] resolve version from lockfile
 // [x] status
 //      [x] add locked label to table
+
+/// The reason a tool was not locked, see [`LockOutcome::Skipped`].
+#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum LockSkipReason {
+    /// The tool is built from source, which can only be verified by installing.
+    BuildFromSource,
+    /// The config that owns the tool's records has not enabled a lockfile.
+    NoLockfile,
+    /// The plugin does not support downloading a pre-built.
+    NoPrebuilt,
+    /// The plugin has opted out of lockfile records.
+    NoRecord,
+    /// The plugin installs natively, which can only be verified by installing.
+    NativeInstall,
+}
+
+/// The result of locking a tool without installing it.
+#[derive(Clone, Debug, PartialEq)]
+pub enum LockOutcome {
+    /// A record for the version and platform already exists with a checksum.
+    AlreadyLocked(LockRecord),
+    /// The pre-built was downloaded and verified, and its record was written.
+    Locked(LockRecord),
+    /// The tool can't be locked without installing it, or is not recorded.
+    Skipped(LockSkipReason),
+}
 
 /// Manages records in a lockfile.
 pub struct Locker<'tool> {
@@ -126,8 +155,6 @@ impl<'tool> Locker<'tool> {
             return Ok(());
         }
 
-        let proto = &self.tool.proto;
-
         let Some(mut lock) = self.load_lock_mut()? else {
             return Ok(());
         };
@@ -156,7 +183,7 @@ impl<'tool> Locker<'tool> {
                     existing.arch = None;
                     existing.libc = None;
                 } else {
-                    let platform = proto.get_host_platform();
+                    let platform = self.tool.get_platform();
 
                     existing.os.get_or_insert(platform.os);
                     existing.arch.get_or_insert(platform.arch);
@@ -167,6 +194,90 @@ impl<'tool> Locker<'tool> {
                 records.push(record);
             }
         };
+
+        lock.sort_records();
+        lock.save()?;
+
+        Ok(())
+    }
+
+    /// Return the platforms that have a record for the tool in the lockfile,
+    /// across all specifications. Records without a platform are ignored.
+    pub fn get_locked_platforms(&self) -> Result<BTreeSet<SystemPlatform>, ProtoLockError> {
+        let mut platforms = BTreeSet::default();
+
+        let Some(lock) = self.load_lock()? else {
+            return Ok(platforms);
+        };
+
+        if let Some(records) = lock.tools.get(self.tool.get_id()) {
+            for record in records {
+                if record.backend.as_ref() == self.tool.context.backend.as_ref()
+                    && let Some(platform) = record.get_platform()
+                {
+                    platforms.insert(platform);
+                }
+            }
+        }
+
+        Ok(platforms)
+    }
+
+    /// Return true if a lockfile has been enabled for the tool.
+    pub fn has_lockfile(&self) -> Result<bool, ProtoLockError> {
+        Ok(self.load_lock()?.is_some())
+    }
+
+    /// Find the record in the lockfile with the same backend, spec, and
+    /// platform (operating system, architecture, and libc) as the provided
+    /// record. Unlike [`LockRecord::is_match`], records without a platform
+    /// (created before platforms were recorded) don't match every platform.
+    pub fn find_platform_record(
+        &self,
+        record: &LockRecord,
+    ) -> Result<Option<LockRecord>, ProtoLockError> {
+        let Some(lock) = self.load_lock()? else {
+            return Ok(None);
+        };
+
+        Ok(lock.tools.get(self.tool.get_id()).and_then(|records| {
+            records
+                .iter()
+                .find(|existing| {
+                    existing.backend == record.backend
+                        && existing.spec == record.spec
+                        && existing.os == record.os
+                        && existing.arch == record.arch
+                        && existing.libc == record.libc
+                })
+                .cloned()
+        }))
+    }
+
+    /// Insert the record into the lockfile, replacing every record that it
+    /// matches, regardless of their version. Records without a platform (created
+    /// before platforms were recorded) match every platform, so are replaced as
+    /// well, like they are by [`Locker::insert_record_into_lockfile`].
+    ///
+    /// Unlike the insert, the replaced records may have a higher version, so
+    /// that every platform can be locked to the same version.
+    #[instrument(skip(self))]
+    pub fn replace_record_in_lockfile(&self, record: &LockRecord) -> Result<(), ProtoLockError> {
+        let options = &self.tool.metadata.lock_options;
+
+        if options.no_record {
+            return Ok(());
+        }
+
+        let Some(mut lock) = self.load_lock_mut()? else {
+            return Ok(());
+        };
+
+        let record = record.for_lockfile();
+        let records = lock.tools.entry(self.tool.get_id().to_owned()).or_default();
+
+        records.retain(|existing| !existing.is_match(&record, options));
+        records.push(record);
 
         lock.sort_records();
         lock.save()?;
@@ -193,7 +304,7 @@ impl<'tool> Locker<'tool> {
         &self,
         version: &VersionSpec,
     ) -> Result<(), ProtoLockError> {
-        let platform = self.tool.proto.get_host_platform();
+        let platform = self.tool.get_platform();
 
         let Some(mut lock) = self.load_lock_mut()? else {
             return Ok(());
@@ -378,8 +489,6 @@ impl<'tool> Locker<'tool> {
         &self,
         spec: &ToolSpec,
     ) -> Result<Option<LockRecord>, ProtoLockError> {
-        let proto = &self.tool.proto;
-
         let Some(lock) = self.load_lock()? else {
             return Ok(None);
         };
@@ -388,7 +497,7 @@ impl<'tool> Locker<'tool> {
             return Ok(None);
         };
 
-        let platform = proto.get_host_platform();
+        let platform = self.tool.get_platform();
         let libc = get_lockable_libc(platform);
         let mut any_libc: Option<&LockRecord> = None;
         let mut other_platform: Option<&LockRecord> = None;

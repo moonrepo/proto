@@ -622,3 +622,126 @@ default = true
         assert_eq!(registry.image, "foo");
     }
 }
+
+mod load_tool_from_locator {
+    use super::*;
+    use proto_core::{Tool, load_tool_from_locator};
+    use proto_pdk_api::{ExecCommandInput, ExecCommandOutput, HostEnvironment};
+    use system_env::{SystemArch, SystemLibc, SystemOS, SystemPlatform};
+
+    fn create_proto(sandbox_path: &std::path::Path) -> ProtoEnvironment {
+        let mut proto = ProtoEnvironment::new_testing(sandbox_path).unwrap();
+        proto.working_dir = sandbox_path.to_path_buf();
+        proto
+    }
+
+    fn foreign_platform() -> SystemPlatform {
+        SystemPlatform::new(SystemOS::Linux, SystemArch::Riscv64).with_libc(SystemLibc::Musl)
+    }
+
+    async fn load_tool(proto: ProtoEnvironment) -> Tool {
+        load_tool_from_locator(
+            ToolContext::parse("api-usage").unwrap(),
+            proto,
+            warpgate::find_debug_locator("proto_api_usage")
+                .expect("Test plugins not available. Run `just build-wasm` to build them!"),
+        )
+        .await
+        .unwrap()
+    }
+
+    async fn get_host_environment(tool: &Tool) -> HostEnvironment {
+        tool.plugin
+            .call_func("testing_host_environment")
+            .await
+            .unwrap()
+    }
+
+    fn assert_platform(env: &HostEnvironment, platform: &SystemPlatform) {
+        assert_eq!(env.os, platform.os);
+        assert_eq!(env.arch, platform.arch);
+        assert_eq!(env.libc, platform.libc);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn plugin_receives_host_platform() {
+        let sandbox = create_empty_sandbox();
+        let proto = create_proto(sandbox.path());
+        let tool = load_tool(proto).await;
+
+        let env = get_host_environment(&tool).await;
+
+        assert_platform(&env, &SystemPlatform::from_env());
+        assert!(!env.foreign);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn plugin_receives_targeted_platform() {
+        let sandbox = create_empty_sandbox();
+        let proto = create_proto(sandbox.path());
+        let tool = load_tool(proto.for_platform(foreign_platform())).await;
+
+        let env = get_host_environment(&tool).await;
+
+        assert_platform(&env, &foreign_platform());
+        assert!(env.foreign);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn plugin_isnt_foreign_when_targeting_host_platform() {
+        let sandbox = create_empty_sandbox();
+        let proto = create_proto(sandbox.path());
+        let tool = load_tool(proto.for_platform(SystemPlatform::from_env())).await;
+
+        assert!(!get_host_environment(&tool).await.foreign);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn creates_lock_records_for_targeted_platform() {
+        let sandbox = create_empty_sandbox();
+        let proto = create_proto(sandbox.path());
+        let tool = load_tool(proto.for_platform(foreign_platform())).await;
+        let record = tool.create_locked_record();
+
+        assert_eq!(record.os, Some(SystemOS::Linux));
+        assert_eq!(record.arch, Some(SystemArch::Riscv64));
+        assert_eq!(record.libc, Some(SystemLibc::Musl));
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn plugin_can_execute_commands_for_host_platform() {
+        let sandbox = create_empty_sandbox();
+        let proto = create_proto(sandbox.path());
+        let tool = load_tool(proto.for_platform(SystemPlatform::from_env())).await;
+
+        let output: ExecCommandOutput = tool
+            .plugin
+            .call_func_with(
+                "testing_exec_command",
+                ExecCommandInput::pipe("git", ["--version"]),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(output.exit_code, 0);
+    }
+
+    // Plugins decide whether to execute commands with `HostEnvironment.foreign`
+    #[tokio::test(flavor = "multi_thread")]
+    async fn plugin_can_execute_commands_for_foreign_platform() {
+        let sandbox = create_empty_sandbox();
+        let proto = create_proto(sandbox.path());
+        let tool = load_tool(proto.for_platform(foreign_platform())).await;
+
+        let output: ExecCommandOutput = tool
+            .plugin
+            .call_func_with(
+                "testing_exec_command",
+                ExecCommandInput::pipe("git", ["--version"]),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(output.exit_code, 0);
+    }
+}
