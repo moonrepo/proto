@@ -29,6 +29,7 @@ pub fn detect_proto_env(cli: &CLI) -> miette::Result<ProtoEnvironment> {
     env.config_mode = cli.config_mode.unwrap_or(match cli.command {
         Commands::Activate(_)
         | Commands::Install(_)
+        | Commands::Lock(_)
         | Commands::Outdated(_)
         | Commands::Status(_) => ConfigMode::Upwards,
         _ => ConfigMode::UpwardsGlobal,

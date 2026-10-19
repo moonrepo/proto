@@ -35,6 +35,7 @@ pub struct ProtoEnvironment {
     pub working_dir: PathBuf,
 
     file_manager: Arc<OnceCell<ProtoFileManager>>,
+    foreign_platform: bool,
     host_platform: Arc<OnceCell<SystemPlatform>>,
     plugin_loader: Arc<OnceCell<PluginLoader>>,
     registry: Arc<OnceCell<ProtoRegistry>>,
@@ -87,6 +88,7 @@ impl ProtoEnvironment {
             home_dir: home.to_owned(),
             otel_enabled: false,
             file_manager: Arc::new(OnceCell::new()),
+            foreign_platform: false,
             host_platform: Arc::new(OnceCell::new()),
             plugin_loader: Arc::new(OnceCell::new()),
             registry: Arc::new(OnceCell::new()),
@@ -137,6 +139,24 @@ impl ProtoEnvironment {
 
     pub fn set_host_platform(&mut self, platform: SystemPlatform) {
         self.host_platform = Arc::new(OnceCell::with_value(platform));
+    }
+
+    /// Return a copy of this environment that targets the provided platform
+    /// instead of the host machine. Tools loaded with the copy receive the
+    /// platform as their plugin's host environment, and create lock records
+    /// for it, while config, lockfile, and plugin state remain shared.
+    ///
+    /// When the platform differs from the host machine's, plugins are not
+    /// allowed to execute commands, as the results would only reflect the host.
+    pub fn for_platform(&self, platform: SystemPlatform) -> Self {
+        let mut env = self.clone();
+        env.foreign_platform = self.foreign_platform || &platform != self.get_host_platform();
+        env.set_host_platform(platform);
+        env
+    }
+
+    pub fn is_foreign_platform(&self) -> bool {
+        self.foreign_platform
     }
 
     pub fn get_plugin_loader(&self) -> Result<&PluginLoader, ProtoConfigError> {
@@ -365,6 +385,7 @@ impl ProtoEnvironment {
             trust: self.trust.clone(),
             working_dir: self.working_dir.clone(),
             file_manager: Arc::new(OnceCell::new()),
+            foreign_platform: self.foreign_platform,
             host_platform: self.host_platform.clone(),
             plugin_loader: Arc::new(OnceCell::new()),
             registry: Arc::new(OnceCell::new()),
@@ -383,6 +404,7 @@ impl fmt::Debug for ProtoEnvironment {
         f.debug_struct("ProtoEnvironment")
             .field("config_mode", &self.config_mode)
             .field("env_mode", &self.env_mode)
+            .field("foreign_platform", &self.foreign_platform)
             .field("home_dir", &self.home_dir)
             .field("otel_enabled", &self.otel_enabled)
             .field("store", &self.store)

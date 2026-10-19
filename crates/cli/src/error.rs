@@ -107,6 +107,21 @@ pub enum ProtoCliError {
     )]
     InstallRequirementsNotMet { tool: String, requires: String },
 
+    // LOCK
+    #[diagnostic(
+        code(proto::commands::lock::immutable_lockfile),
+        help = "Unset the PROTO_IMMUTABLE_LOCKFILE environment variable to lock tools."
+    )]
+    #[error("Unable to lock tools, as the lockfile is immutable.")]
+    LockImmutableLockfile,
+
+    #[diagnostic(
+        code(proto::commands::lock::missing_lockfile),
+        help = "Enable a lockfile with the lockfile setting in .prototools."
+    )]
+    #[error("Unable to lock tools, as a lockfile has not been enabled.")]
+    LockMissingLockfile,
+
     // MIGRATE
     #[diagnostic(code(proto::commands::migrate::unknown))]
     #[error("Unknown migration operation {}.", .op.style(Style::Symbol))]

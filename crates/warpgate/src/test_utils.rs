@@ -177,6 +177,7 @@ impl ConfigBuilder {
         self.host_environment(HostEnvironment {
             arch: platform.arch,
             ci: is_ci(),
+            foreign: false,
             libc: platform.libc,
             os: platform.os,
             home_dir: VirtualPath::default(),
@@ -190,6 +191,7 @@ impl ConfigBuilder {
         let mut host = HostEnvironment {
             arch: HostArch::default(),
             ci: is_ci(),
+            foreign: false,
             libc: HostLibc::detect(os),
             os,
             home_dir: VirtualPath::default(),

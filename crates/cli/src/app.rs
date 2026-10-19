@@ -1,7 +1,7 @@
 use crate::commands::{
     ActivateArgs, AliasArgs, BinArgs, CleanArgs, CompletionsArgs, DeactivateArgs, DiagnoseArgs,
-    ExecArgs, InstallArgs, McpArgs, MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs,
-    SetupArgs, ShellArgs, StatusArgs, TrustArgs, UnaliasArgs, UninstallArgs, UnpinArgs,
+    ExecArgs, InstallArgs, LockArgs, McpArgs, MigrateArgs, OutdatedArgs, PinArgs, RegenArgs,
+    RunArgs, SetupArgs, ShellArgs, StatusArgs, TrustArgs, UnaliasArgs, UninstallArgs, UnpinArgs,
     UntrustArgs, UpgradeArgs, VersionsArgs,
     debug::{DebugConfigArgs, DebugEnvArgs},
     plugin::{PluginAddArgs, PluginInfoArgs, PluginListArgs, PluginRemoveArgs, PluginSearchArgs},
@@ -352,6 +352,13 @@ pub enum Commands {
         long_about = "Download and install one or many tools by version into ~/.proto/tools.\n\nIf no arguments are provided, will install all tools configured in .prototools.\n\nIf a name argument is provided, will install a single tool by version."
     )]
     Install(InstallArgs),
+
+    #[command(
+        name = "lock",
+        about = "Lock tool versions and checksums without installing them.",
+        long_about = "Resolve the version of one or many tools, and record the checksum of their pre-built for one or many platforms in the lockfile, without installing them.\n\nIf no arguments are provided, will lock all tools configured in .prototools.\n\nIf a name argument is provided, will lock a single tool by version.\n\nBy default, tools are locked for the current platform, and every platform that already has a record for the tool. Use --platform to lock other platforms instead."
+    )]
+    Lock(LockArgs),
 
     #[command(
         name = "mcp",

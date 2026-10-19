@@ -22,6 +22,7 @@ struct WasmTestConfig {
     unknown: Option<usize>,
     list: Vec<String>,
     map: HashMap<String, usize>,
+    prebuilt_url: String,
 }
 
 #[plugin_fn]
@@ -105,8 +106,47 @@ pub fn testing_echo(Json(input): Json<String>) -> FnResult<Json<String>> {
 }
 
 #[plugin_fn]
+pub fn testing_exec_command(
+    Json(input): Json<ExecCommandInput>,
+) -> FnResult<Json<ExecCommandOutput>> {
+    Ok(Json(exec(input)?))
+}
+
+#[plugin_fn]
+pub fn testing_host_environment(_: ()) -> FnResult<Json<HostEnvironment>> {
+    Ok(Json(get_host_environment()?.to_owned()))
+}
+
+#[plugin_fn]
 pub fn testing_load_git_tags(Json(url): Json<String>) -> FnResult<Json<Vec<String>>> {
     Ok(Json(load_git_tags(url)?))
+}
+
+#[plugin_fn]
+pub fn load_versions(Json(_): Json<LoadVersionsInput>) -> FnResult<Json<LoadVersionsOutput>> {
+    Ok(Json(LoadVersionsOutput::from(vec![
+        "1.0.0".into(),
+        "1.1.0".into(),
+        "2.0.0".into(),
+    ])?))
+}
+
+// Each platform and version downloads a different file, from the
+// URL configured with the `prebuilt-url` setting
+#[plugin_fn]
+pub fn download_prebuilt(
+    Json(input): Json<DownloadPrebuiltInput>,
+) -> FnResult<Json<DownloadPrebuiltOutput>> {
+    let env = get_host_environment()?;
+    let config = get_tool_config::<WasmTestConfig>()?;
+
+    Ok(Json(DownloadPrebuiltOutput {
+        download_url: format!(
+            "{}/{}/{}-{}-{}.txt",
+            config.prebuilt_url, input.context.version, env.arch, env.os, env.libc
+        ),
+        ..Default::default()
+    }))
 }
 
 #[plugin_fn]
