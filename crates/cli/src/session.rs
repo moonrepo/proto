@@ -141,12 +141,10 @@ impl ProtoSession {
         parent: ToolRecord,
     ) -> Result<Vec<ToolRecord>, ProtoLoaderError> {
         let mut seen = FxHashSet::from_iter([parent.context.clone()]);
-        let mut queue = VecDeque::from(parent.metadata.requires.clone());
+        let mut queue = VecDeque::from(parent.get_requires()?);
         let mut tools = vec![parent];
 
-        while let Some(id) = queue.pop_front() {
-            let context = ToolContext::parse(&id)?;
-
+        while let Some(context) = queue.pop_front() {
             if !seen.insert(context.clone()) {
                 continue;
             }
@@ -190,7 +188,7 @@ impl ProtoSession {
             );
 
             tool.detected_version = Some(spec);
-            queue.extend(tool.metadata.requires.iter().cloned());
+            queue.extend(tool.get_requires()?);
             tools.push(tool);
         }
 

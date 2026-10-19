@@ -766,6 +766,62 @@ FOURTH = "ignores-$FIRST-$PARENT"
         }
     }
 
+    mod requirements {
+        use super::*;
+
+        #[test]
+        fn adds_configured_reqs_to_environment() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+node = "19.0.0"
+protostar = "1.0.0"
+
+[tools.node]
+requires = ["protostar"]
+"#,
+            );
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("protostar");
+                })
+                .success();
+
+            install_node(&sandbox);
+
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("run")
+                        .arg("node")
+                        .arg("--")
+                        .arg("-e")
+                        .arg("process.stdout.write(process.env.PROTO_PROTOSTAR_VERSION || '')")
+                        .env_remove("PROTO_PROTOSTAR_VERSION");
+                })
+                .success();
+
+            assert.stdout(predicate::eq("1.0.0"));
+
+            // Not added without the requirement
+            sandbox.create_file(".prototools", "node = \"19.0.0\"\nprotostar = \"1.0.0\"");
+
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("run")
+                        .arg("node")
+                        .arg("--")
+                        .arg("-e")
+                        .arg("process.stdout.write(process.env.PROTO_PROTOSTAR_VERSION || '')")
+                        .env_remove("PROTO_PROTOSTAR_VERSION");
+                })
+                .success();
+
+            assert.stdout(predicate::eq(""));
+        }
+    }
+
     mod alternate_bins {
         use super::*;
 

@@ -1,12 +1,13 @@
 use super::resources::*;
 use super::tools::*;
+use crate::commands::enforce_requirements;
 use crate::session::ProtoSession;
 use crate::workflows::*;
 use proto_core::flow::install::Installer;
 use proto_core::flow::resolve::Resolver;
 use proto_core::{
-    MatchesVersion, PinLocation, ProtoConfigEnvOptions, Requirement, ToolContext, ToolSpec,
-    UnresolvedVersionSpec, get_proto_version,
+    ConfigMode, MatchesVersion, PinLocation, ProtoConfigEnvOptions, Requirement, ToolContext,
+    ToolSpec, UnresolvedVersionSpec, get_proto_version,
 };
 use rmcp::{
     ErrorData as McpError, RoleServer, ServerHandler,
@@ -160,6 +161,15 @@ impl ProtoMcp {
         let mut spec = self.parse_spec(req.spec.as_deref().unwrap_or("latest"))?;
 
         let tool = handle_tool_error!(self.session.load_tool(&context).await);
+
+        // Include global versions, so that our requirements can be satisfied
+        let config = handle_tool_error!(
+            self.session
+                .load_config_with_mode(ConfigMode::UpwardsGlobal)
+        );
+
+        handle_tool_error!(enforce_requirements(&tool, &config.versions));
+
         let mut workflow = InstallWorkflow::new(tool, self.session.console.clone());
 
         let outcome = handle_tool_error!(

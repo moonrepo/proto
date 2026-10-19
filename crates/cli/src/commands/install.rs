@@ -2,7 +2,7 @@ use crate::error::ProtoCliError;
 use crate::helpers::join_list;
 use crate::session::{LoadToolOptions, ProtoSession, SessionResult};
 use crate::utils::install_graph::*;
-use crate::utils::tool_record::ToolRecord;
+use crate::utils::tool_record::{ToolRecord, sort_tools_by_dependency};
 use crate::workflows::{InstallOutcome, InstallWorkflowManager, InstallWorkflowParams};
 use clap::Args;
 use proto_core::flow::detect::{Detector, ProtoDetectError};
@@ -130,13 +130,11 @@ pub fn enforce_requirements(
     tool: &Tool,
     versions: &BTreeMap<ToolContext, ToolSpec>,
 ) -> Result<(), ProtoCliError> {
-    for require_id in &tool.metadata.requires {
-        let require_ctx = ToolContext::parse(require_id)?;
-
-        if !versions.contains_key(&require_ctx) {
+    for require_context in tool.get_requires()? {
+        if !versions.contains_key(&require_context) {
             return Err(ProtoCliError::InstallRequirementsNotMet {
                 tool: tool.get_name().to_owned(),
-                requires: require_id.to_owned(),
+                requires: require_context.to_string(),
             });
         }
     }
@@ -314,8 +312,12 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> SessionResult 
         return Ok(Some(1));
     }
 
+    // Requirements must be acyclic, otherwise the install graph
+    // would wait on them forever
+    let tools = sort_tools_by_dependency(tools)?;
+
     // Then install each tool in parallel!
-    let mut topo_graph = InstallGraph::new(&tools);
+    let mut topo_graph = InstallGraph::new(&tools)?;
     let mut workflow_manager = InstallWorkflowManager::new(session.console.clone(), args.quiet);
     let mut set = JoinSet::new();
     let started = Instant::now();
@@ -342,13 +344,13 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> SessionResult 
 
         let handle = set.spawn(Box::pin(async move {
             while let Some(status) = topo_graph
-                .check_install_status(workflow.tool.get_id())
+                .check_install_status(&workflow.tool.context)
                 .await
             {
                 match status {
-                    InstallStatus::ReqFailed(req_id) => {
+                    InstallStatus::ReqFailed(req_context) => {
                         workflow.progress_reporter.set_message(format!(
-                            "Requirement <id>{req_id}</id> failed to install"
+                            "Requirement <id>{req_context}</id> failed to install"
                         ));
 
                         // Abort since requirement failed
@@ -359,7 +361,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> SessionResult 
                             "Waiting on requirements: {}",
                             waiting_on
                                 .into_iter()
-                                .map(|req_id| format!("<id>{req_id}</id>"))
+                                .map(|req_context| format!("<id>{req_context}</id>"))
                                 .collect::<Vec<_>>()
                                 .join(", ")
                         ));
@@ -389,7 +391,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> SessionResult 
                 .await
             {
                 Ok(outcome) => {
-                    topo_graph.mark_installed(workflow.tool.get_id()).await;
+                    topo_graph.mark_installed(&workflow.tool.context).await;
                     outcome
                 }
                 Err(error) => {
@@ -398,7 +400,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> SessionResult 
                         color::id(workflow.tool.get_id())
                     );
 
-                    topo_graph.mark_not_installed(workflow.tool.get_id()).await;
+                    topo_graph.mark_not_installed(&workflow.tool.context).await;
                     InstallOutcome::FailedToInstall(workflow.tool.get_id().clone())
                 }
             }

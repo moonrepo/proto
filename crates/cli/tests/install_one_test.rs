@@ -916,6 +916,72 @@ work = "~2.5"
                 "moonbase 1.0.0 has been installed",
             ));
         }
+
+        #[test]
+        fn errors_if_configured_reqs_not_met() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[tools.protostar]
+requires = ["protoform"]
+"#,
+            );
+
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("protostar").arg("1.0.0");
+                })
+                .failure();
+
+            assert.stderr(predicate::str::contains(
+                "protostar requires protoform to function correctly",
+            ));
+        }
+
+        #[test]
+        fn passes_if_configured_reqs_met() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+protoform = "1.0.0"
+
+[tools.protostar]
+requires = ["protoform"]
+"#,
+            );
+
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("protostar").arg("1.0.0");
+                })
+                .success();
+
+            assert.stdout(predicate::str::contains(
+                "protostar 1.0.0 has been installed",
+            ));
+        }
+
+        #[test]
+        fn errors_if_tool_requires_itself() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[tools.protostar]
+requires = ["protostar"]
+"#,
+            );
+
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("protostar").arg("1.0.0");
+                })
+                .failure();
+
+            assert.stderr(predicate::str::contains("protostar cannot require itself"));
+        }
     }
 
     mod manifest_lockfile {
