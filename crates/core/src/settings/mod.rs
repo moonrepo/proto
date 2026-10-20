@@ -66,6 +66,15 @@ derive_enum!(
 
 derive_enum!(
     #[derive(ConfigEnum, Copy, Default)]
+    pub enum LoadToolVersionsSource {
+        #[default]
+        Git,
+        Manifest,
+    }
+);
+
+derive_enum!(
+    #[derive(ConfigEnum, Copy, Default)]
     #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
     pub enum PinLocation {
         #[default]

@@ -1,4 +1,4 @@
-use super::{DetectStrategy, PinLocation, merge_iter};
+use super::{DetectStrategy, LoadToolVersionsSource, PinLocation, merge_iter};
 use crate::helpers::get_builtin_registry;
 use indexmap::{IndexMap, IndexSet};
 use rustc_hash::FxHashMap;
@@ -36,12 +36,20 @@ pub struct ProtoOfflineConfig {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     #[setting(env = "PROTO_OFFLINE_HOSTS", parse_env = env::split_comma)]
     pub custom_hosts: Vec<String>,
-
     #[setting(env = "PROTO_OFFLINE_OVERRIDE_HOSTS", parse_env = env::parse_bool)]
     pub override_default_hosts: bool,
 
     #[setting(default = 750, env = "PROTO_OFFLINE_TIMEOUT")]
     pub timeout: u64,
+}
+
+// `[settings.load-tool-versions]`
+#[derive(Clone, Config, Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct ProtoLoadToolVersionsConfig {
+    pub source: LoadToolVersionsSource,
+
+    pub version_key: Option<String>,
 }
 
 #[derive(Clone, Config, Debug, Deserialize, PartialEq, Serialize)]
@@ -103,6 +111,9 @@ pub struct ProtoSettingsConfig {
     pub detect_strategy: DetectStrategy,
 
     pub http: HttpOptions,
+
+    #[setting(nested)]
+    pub load_tool_versions: ProtoLoadToolVersionsConfig,
 
     #[serde(alias = "unstable-lockfile")]
     pub lockfile: bool,
