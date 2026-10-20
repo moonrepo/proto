@@ -4,12 +4,20 @@ use extism_pdk::*;
 use serde::de::DeserializeOwned;
 use std::path::PathBuf;
 use std::sync::OnceLock;
-use std::vec;
 use warpgate_api::{
     AnyResult, DownloadFileInput, DownloadFileOutput, ExecCommandInput, ExecCommandOutput,
     HostEnvironment, HostOS, Id, SendRequestInput, SendRequestOutput, TestEnvironment, VirtualPath,
     anyhow,
 };
+
+mod tool_versions_host {
+    use extism_pdk::{Json, host_fn};
+
+    #[host_fn]
+    extern "ExtismHost" {
+        pub fn load_tool_versions(url: String) -> Json<Vec<String>>;
+    }
+}
 
 #[host_fn]
 extern "ExtismHost" {
@@ -118,59 +126,26 @@ where
     exec(ExecCommandInput::inherit(command, args))
 }
 
-/// Load all Git tags from the provided remote URL.
-/// The `git` executable must exist on the host machine,
-/// and an error is returned if the tags could not be loaded.
+/// Load tool versions from the provided remote URL.
+///
+/// This compatibility function delegates to [`load_tool_versions`], allowing
+/// existing plugins to use configured URL rewrites and manifest sources.
 pub fn load_git_tags<U>(url: U) -> AnyResult<Vec<String>>
 where
     U: AsRef<str>,
 {
-    let url = url.as_ref();
+    load_tool_versions(url)
+}
 
-    debug!("Loading Git tags from remote <url>{}</url>", url);
-
-    let mut tags: Vec<String> = vec![];
-    let output = exec_captured(
-        "git",
-        ["ls-remote", "--tags", "--sort", "version:refname", url],
-    )?;
-
-    // Return an error instead of an empty list, so that the underlying
-    // reason (network, authentication, etc) is surfaced to the user
-    if output.exit_code != 0 {
-        let mut message = format!(
-            "Failed to load Git tags from <url>{url}</url>, as <shell>git ls-remote</shell> returned a {} exit code.",
-            output.exit_code
-        );
-        let stderr = output.stderr.trim();
-
-        if !stderr.is_empty() {
-            message.push_str(&format!("\n<mutedlight>{stderr}</mutedlight>"));
-        }
-
-        return Err(anyhow!(message));
-    }
-
-    for line in output.stdout.split('\n') {
-        // https://superuser.com/questions/1445823/what-does-mean-in-the-tags
-        if line.ends_with("^{}") {
-            continue;
-        }
-
-        let parts = line.split('\t').collect::<Vec<_>>();
-
-        if parts.len() < 2 {
-            continue;
-        }
-
-        if let Some(tag) = parts[1].strip_prefix("refs/tags/") {
-            tags.push(tag.to_owned());
-        }
-    }
-
-    debug!("Loaded {} Git tags", tags.len());
-
-    Ok(tags)
+/// Load all available versions for a tool from the provided remote URL.
+///
+/// By default, versions are loaded from Git tags. The host may configure a
+/// JSON manifest source and URL rewrites through `.prototools`.
+pub fn load_tool_versions<U>(url: U) -> AnyResult<Vec<String>>
+where
+    U: AsRef<str>,
+{
+    Ok(unsafe { tool_versions_host::load_tool_versions(url.as_ref().to_owned())? }.0)
 }
 
 /// Check whether a command exists or not on the host machine.
