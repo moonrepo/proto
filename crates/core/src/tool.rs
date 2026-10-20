@@ -93,6 +93,7 @@ impl Tool {
     ) -> Result<Self, ProtoToolError> {
         let context = context.as_ref();
         let proto = proto.as_ref();
+        let config = proto.load_config()?;
 
         debug!(
             "Creating tool {} and instantiating plugin",
@@ -110,6 +111,21 @@ impl Tool {
                     http_client: Arc::clone(proto.get_plugin_loader()?.get_http_client()?),
                     virtual_paths: proto.get_virtual_paths(),
                     working_dir: proto.working_dir.clone(),
+                    url_rewrites: config
+                        .settings
+                        .url_rewrites
+                        .iter()
+                        .map(|(pattern, replacement)| (pattern.to_string(), replacement.clone()))
+                        .collect(),
+                    load_tool_versions_from_manifest: matches!(
+                        config.settings.load_tool_versions.source,
+                        crate::settings::LoadToolVersionsSource::Manifest
+                    ),
+                    load_tool_versions_version_key: config
+                        .settings
+                        .load_tool_versions
+                        .version_key
+                        .clone(),
                 }),
             )?),
         )

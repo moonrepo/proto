@@ -110,6 +110,11 @@ pub fn testing_load_git_tags(Json(url): Json<String>) -> FnResult<Json<Vec<Strin
 }
 
 #[plugin_fn]
+pub fn testing_load_tool_versions(Json(url): Json<String>) -> FnResult<Json<Vec<String>>> {
+    Ok(Json(load_tool_versions(url)?))
+}
+
+#[plugin_fn]
 pub fn register_tool(_: ()) -> FnResult<Json<RegisterToolOutput>> {
     initialize_tracing();
 

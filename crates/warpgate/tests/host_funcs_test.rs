@@ -82,6 +82,15 @@ fn find_api_usage_wasm() -> PathBuf {
 }
 
 fn create_container(sandbox_path: &std::path::Path) -> PluginContainer {
+    create_container_with_tool_version_config(sandbox_path, vec![], false, None)
+}
+
+fn create_container_with_tool_version_config(
+    sandbox_path: &std::path::Path,
+    url_rewrites: Vec<(String, String)>,
+    load_tool_versions_from_manifest: bool,
+    load_tool_versions_version_key: Option<String>,
+) -> PluginContainer {
     let id = Id::raw("test");
 
     let mut manifest = PluginManifest::new([Wasm::file(find_api_usage_wasm())]);
@@ -103,6 +112,9 @@ fn create_container(sandbox_path: &std::path::Path) -> PluginContainer {
             http_client: Arc::new(create_http_client().unwrap()),
             virtual_paths: vec![(sandbox_path.to_path_buf(), PathBuf::from("/sandbox"))],
             working_dir: sandbox_path.to_path_buf(),
+            url_rewrites,
+            load_tool_versions_from_manifest,
+            load_tool_versions_version_key,
         }),
     )
     .unwrap()
@@ -275,7 +287,16 @@ mod load_git_tags {
         // Annotated tags are also listed as dereferenced (^{}), which are filtered
         git(&repo, &["tag", "--annotate", "v1.1.0", "-m", "annotated"]);
 
-        let container = create_container(sandbox.path());
+        let repo_url = "https://github.com/example/tool";
+        let container = create_container_with_tool_version_config(
+            sandbox.path(),
+            vec![(
+                r"^https://github\.com/example/tool$".to_owned(),
+                repo.to_string_lossy().into_owned(),
+            )],
+            false,
+            None,
+        );
 
         let tags: Vec<String> = container
             .call_func_with("testing_load_git_tags", repo.to_string_lossy())
@@ -283,6 +304,13 @@ mod load_git_tags {
             .unwrap();
 
         assert_eq!(tags, ["v1.0.0", "v1.1.0"]);
+
+        let versions: Vec<String> = container
+            .call_func_with("testing_load_tool_versions", repo_url)
+            .await
+            .unwrap();
+
+        assert_eq!(versions, tags);
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -302,5 +330,37 @@ mod load_git_tags {
         assert!(error.contains("Failed to load Git tags from"), "{error}");
         assert!(error.contains("returned a 128 exit code"), "{error}");
         assert!(error.contains("fatal:"), "{error}");
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn loads_versions_from_rewritten_manifest_url() {
+        let sandbox = create_empty_sandbox();
+        let manifest_url = spawn_http_server("200 OK", r#"[{"name":"v1.0.0"},{"name":"v1.1.0"}]"#);
+        let container = create_container_with_tool_version_config(
+            sandbox.path(),
+            vec![(
+                r"^https://github\.com/example/tool$".to_owned(),
+                manifest_url,
+            )],
+            true,
+            Some("name".to_owned()),
+        );
+
+        let versions: Vec<String> = container
+            .call_func_with(
+                "testing_load_tool_versions",
+                "https://github.com/example/tool",
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(versions, ["v1.0.0", "v1.1.0"]);
+
+        let migrated_versions: Vec<String> = container
+            .call_func_with("testing_load_git_tags", "https://github.com/example/tool")
+            .await
+            .unwrap();
+
+        assert_eq!(migrated_versions, versions);
     }
 }
