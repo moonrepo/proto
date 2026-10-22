@@ -23,6 +23,12 @@
 
 ## Unreleased
 
+#### 🛡️ Security
+
+- Distrusted the 8 compromised eMudhra intermediate CA keys, and removed the "emSign ECC Root CA - G3" root from our bundled root certificates. Previously, anyone in a position to intercept a connection could use these keys to forge a certificate for any host, and proto would accept it on Linux, and on all platforms for plugins that make requests through Extism's built-in HTTP functions.
+  - Hosts with certificates that chain to "emSign ECC Root CA - G3" will now fail TLS verification.
+  - Requests to OCI registries on Linux still rely on the system certificate bundle, so update your `ca-certificates` package.
+
 #### 🚀 Updates
 
 - Improved download throughput on high-latency connections by increasing the HTTP/2 flow-control windows. Previously, a single download over HTTP/2 was capped at about 2 MiB per round trip.
