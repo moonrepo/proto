@@ -4366,7 +4366,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.63.1"
+version = "0.63.2"
 dependencies = [
  "ai_env",
  "anyhow",
@@ -4427,7 +4427,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.63.2"
+version = "0.63.3"
 dependencies = [
  "ai_env",
  "ci_env",
@@ -6949,7 +6949,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.37.1"
+version = "0.37.2"
 dependencies = [
  "async-trait",
  "codspeed-criterion-compat",
