@@ -37,6 +37,15 @@ pub struct HostData {
 
     /// Current working directory, in which commands are executed.
     pub working_dir: PathBuf,
+
+    /// Regex-based URL rewrites for tool version manifests and Git remotes.
+    pub url_rewrites: Vec<(String, String)>,
+
+    /// Whether tool versions should be loaded from a JSON manifest instead of Git tags.
+    pub load_tool_versions_from_manifest: bool,
+
+    /// Object field containing each version in a JSON manifest.
+    pub load_tool_versions_version_key: Option<String>,
 }
 
 /// Create a list of our built-in host functions.
@@ -63,6 +72,13 @@ pub fn create_host_functions(data: HostData) -> Vec<Function> {
             UserData::new(()),
             get_env_var,
         ),
+        Function::new(
+            "load_tool_versions",
+            [ValType::I64],
+            [ValType::I64],
+            UserData::new(data.clone()),
+            load_tool_versions,
+        ),
         Function::new("host_log", [ValType::I64], [], UserData::new(()), host_log),
         Function::new(
             "send_request",
@@ -79,6 +95,141 @@ pub fn create_host_functions(data: HostData) -> Vec<Function> {
             set_env_var,
         ),
     ]
+}
+
+#[instrument(name = "host_func_load_tool_versions", skip_all)]
+fn load_tool_versions(
+    plugin: &mut CurrentPlugin,
+    inputs: &[Val],
+    outputs: &mut [Val],
+    user_data: UserData<HostData>,
+) -> Result<(), Error> {
+    let input: String = plugin.memory_get_val(&inputs[0])?;
+    let data = user_data.get()?;
+    let data = data.lock().unwrap();
+    let mut url = input;
+
+    for (pattern, replacement) in &data.url_rewrites {
+        url = regex::Regex::new(pattern)
+            .map_err(|error| Error::msg(format!("Invalid URL rewrite regex: {error}")))?
+            .replace_all(&url, replacement.as_str())
+            .to_string();
+    }
+
+    let versions = if data.load_tool_versions_from_manifest {
+        load_tool_versions_from_manifest(
+            &data,
+            &url,
+            data.load_tool_versions_version_key
+                .as_deref()
+                .unwrap_or("name"),
+            plugin.time_remaining(),
+        )?
+    } else {
+        load_tool_versions_from_git(&data, &url)?
+    };
+
+    plugin.memory_set_val(&mut outputs[0], serde_json::to_string(&versions)?)?;
+
+    Ok(())
+}
+
+fn load_tool_versions_from_git(data: &HostData, url: &str) -> Result<Vec<String>, Error> {
+    let mut command = Command::new("git");
+    command
+        .args(["ls-remote", "--tags", "--sort", "version:refname", url])
+        .current_dir(&data.working_dir)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+
+    let output = command.output()?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(Error::msg(format!(
+            "Failed to load Git tags from <url>{url}</url>, as <shell>git ls-remote</shell> returned a {} exit code.{}",
+            output.status.code().unwrap_or(1),
+            if stderr.trim().is_empty() {
+                String::new()
+            } else {
+                format!("\n<mutedlight>{}</mutedlight>", stderr.trim())
+            }
+        )));
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let mut versions = vec![];
+
+    for line in stdout.lines() {
+        if line.ends_with("^{}") {
+            continue;
+        }
+
+        if let Some((_, reference)) = line.split_once('\t')
+            && let Some(version) = reference.strip_prefix("refs/tags/")
+        {
+            versions.push(version.to_owned());
+        }
+    }
+
+    Ok(versions)
+}
+
+fn load_tool_versions_from_manifest(
+    data: &HostData,
+    url: &str,
+    version_key: &str,
+    timeout: Option<std::time::Duration>,
+) -> Result<Vec<String>, Error> {
+    let (status, body) = Handle::current().block_on(async {
+        let mut request = data.http_client.get(url);
+
+        if let Some(timeout) = timeout {
+            request = request.timeout(timeout);
+        }
+
+        let response = request
+            .send()
+            .await
+            .map_err(|error| HttpClient::map_error(url.to_owned(), error))?;
+        let status = response.status();
+        let body = response
+            .bytes()
+            .await
+            .map_err(|error| WarpgateHttpClientError::Http {
+                url: url.to_owned(),
+                error: Box::new(error),
+            })?;
+
+        Ok::<_, WarpgateHttpClientError>((status, body))
+    })?;
+
+    if !status.is_success() {
+        return Err(Error::msg(format!(
+            "Failed to load tool versions from <url>{url}</url> <mutedlight>({})</mutedlight>",
+            status.as_u16()
+        )));
+    }
+
+    let manifest: serde_json::Value = serde_json::from_slice(&body)?;
+    let entries = manifest
+        .as_array()
+        .ok_or_else(|| Error::msg("Tool version manifest must be a JSON array"))?;
+    let mut versions = Vec::with_capacity(entries.len());
+
+    for entry in entries {
+        let version = entry
+            .get(version_key)
+            .and_then(serde_json::Value::as_str)
+            .ok_or_else(|| {
+                Error::msg(format!(
+                    "Tool version manifest entries must contain a string {version_key:?} field"
+                ))
+            })?;
+        versions.push(version.to_owned());
+    }
+
+    Ok(versions)
 }
 
 // Logging

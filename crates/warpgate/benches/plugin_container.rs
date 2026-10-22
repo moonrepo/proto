@@ -44,6 +44,9 @@ fn create_container(sandbox: &Sandbox) -> Arc<PluginContainer> {
                 http_client: Arc::new(create_http_client().unwrap()),
                 virtual_paths: vec![],
                 working_dir: sandbox.path().to_path_buf(),
+                url_rewrites: vec![],
+                load_tool_versions_from_manifest: false,
+                load_tool_versions_version_key: None,
             }),
         )
         .unwrap(),
