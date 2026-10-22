@@ -13,10 +13,15 @@ pub fn new_clone(git: &GitSource, cwd: &Path) -> Command {
     } else {
         vec!["clone"]
     })
-    .args(["--depth", "1"])
-    .arg(&git.url)
-    .arg(".")
-    .current_dir(cwd);
+    .args(["--depth", "1"]);
+
+    // A shallow clone only fetches the default branch, so the
+    // reference must be cloned directly to be checked out
+    if let Some(reference) = &git.reference {
+        cmd.args(["--branch", reference]);
+    }
+
+    cmd.arg(&git.url).arg(".").current_dir(cwd);
     cmd
 }
 
@@ -79,4 +84,66 @@ pub async fn clone_or_pull_repo(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use starbase_sandbox::create_empty_sandbox;
+    use std::process::Command as StdCommand;
+    use url::Url;
+
+    fn run_git(args: &[&str], cwd: &Path) -> String {
+        let output = StdCommand::new("git")
+            .args([
+                "-c",
+                "user.name=proto",
+                "-c",
+                "user.email=proto@moonrepo.dev",
+            ])
+            .args(["-c", "commit.gpgsign=false"])
+            .args(args)
+            .current_dir(cwd)
+            .output()
+            .unwrap();
+
+        assert!(output.status.success(), "{output:?}");
+
+        String::from_utf8(output.stdout).unwrap().trim().to_owned()
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn clones_reference_that_is_not_the_default_branch() {
+        let sandbox = create_empty_sandbox();
+        let remote_dir = sandbox.path().join("remote");
+        let target_dir = sandbox.path().join("target");
+
+        fs::create_dir_all(&remote_dir).unwrap();
+        run_git(&["init", "--initial-branch", "main"], &remote_dir);
+        run_git(&["commit", "--allow-empty", "-m", "first"], &remote_dir);
+        run_git(&["tag", "v1"], &remote_dir);
+        run_git(&["branch", "feature"], &remote_dir);
+        run_git(&["commit", "--allow-empty", "-m", "second"], &remote_dir);
+
+        let first = run_git(&["rev-parse", "v1"], &remote_dir);
+        // Local paths ignore `--depth`, so a file URL is required
+        let url = Url::from_file_path(&remote_dir).unwrap().to_string();
+
+        for reference in ["v1", "feature"] {
+            let dir = target_dir.join(reference);
+
+            clone_or_pull_repo(
+                &GitSource {
+                    url: url.clone(),
+                    reference: Some(reference.into()),
+                    submodules: false,
+                },
+                &dir,
+            )
+            .await
+            .unwrap();
+
+            assert_eq!(run_git(&["rev-parse", "HEAD"], &dir), first);
+        }
+    }
 }
