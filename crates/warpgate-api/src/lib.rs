@@ -21,6 +21,11 @@ pub use virtual_path::*;
 /// Wrap a struct with common derives and serde required attributes.
 #[macro_export]
 macro_rules! api_struct {
+    (no_default, $struct:item) => {
+        #[derive(Clone, Debug, serde::Deserialize, PartialEq, serde::Serialize)]
+        #[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
+        $struct
+    };
     ($struct:item) => {
         #[derive(Clone, Debug, Default, serde::Deserialize, PartialEq, serde::Serialize)]
         #[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
