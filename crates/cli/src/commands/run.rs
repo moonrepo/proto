@@ -270,8 +270,13 @@ fn run_global_tool(
     args: RunArgs,
     error: miette::Report,
 ) -> miette::Result<()> {
-    if let Some(global_exe) = get_global_executable(&session.env, args.context.id.as_str()) {
-        let id = args.context.id.to_string();
+    let id = args
+        .exe
+        .as_deref()
+        .unwrap_or(args.context.id.as_str())
+        .to_string();
+
+    if let Some(global_exe) = get_global_executable(&session.env, &id) {
         let guard = env::var(FALLBACK_GUARD_VAR).unwrap_or_default();
         let pid = std::process::id();
 
