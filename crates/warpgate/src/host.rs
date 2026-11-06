@@ -19,8 +19,8 @@ use tokio::runtime::Handle;
 use tracing::{debug, error, instrument, trace, warn};
 use warpgate_api::{
     DownloadFileInput, DownloadFileOutput, ExecCommandInput, ExecCommandOutput, HostLogInput,
-    HostLogTarget, SendRequestInput, SendRequestMethod, SendRequestOutput,
-    convert_to_real_native_path,
+    HostLogTarget, LoadToolVersionsInput, LoadToolVersionsOutput, SendRequestInput,
+    SendRequestMethod, SendRequestOutput, convert_to_real_native_path,
 };
 
 /// Data passed to each host function.
@@ -43,14 +43,15 @@ pub struct HostData {
     /// Current working directory, in which commands are executed.
     pub working_dir: PathBuf,
 
-    /// Regex-based URL rewrites for tool version manifests and Git remotes.
-    pub url_rewrites: Vec<(String, String)>,
+    /// Optional per-tool index to use instead of Git tags.
+    pub versions_source: Option<ToolVersionsSource>,
+}
 
-    /// Whether tool versions should be loaded from a JSON manifest instead of Git tags.
-    pub load_tool_versions_from_manifest: bool,
-
-    /// Object field containing each version in a JSON manifest.
-    pub load_tool_versions_version_key: Option<String>,
+/// Configured JSON index used to load a tool's versions.
+#[derive(Clone, Debug)]
+pub struct ToolVersionsSource {
+    pub index_url: String,
+    pub index_version_path: String,
 }
 
 /// Create a list of our built-in host functions.
@@ -109,32 +110,26 @@ fn load_tool_versions(
     outputs: &mut [Val],
     user_data: UserData<HostData>,
 ) -> Result<(), Error> {
-    let input: String = plugin.memory_get_val(&inputs[0])?;
+    let input_raw: String = plugin.memory_get_val(&inputs[0])?;
+    let input: LoadToolVersionsInput = serde_json::from_str(&input_raw)?;
     let data = user_data.get()?;
     let data = data.lock().unwrap();
-    let mut url = input;
 
-    for (pattern, replacement) in &data.url_rewrites {
-        url = regex::Regex::new(pattern)
-            .map_err(|error| Error::msg(format!("Invalid URL rewrite regex: {error}")))?
-            .replace_all(&url, replacement.as_str())
-            .to_string();
-    }
-
-    let versions = if data.load_tool_versions_from_manifest {
-        load_tool_versions_from_manifest(
+    let versions = if let Some(source) = &data.versions_source {
+        load_tool_versions_from_index(
             &data,
-            &url,
-            data.load_tool_versions_version_key
-                .as_deref()
-                .unwrap_or("name"),
+            &source.index_url,
+            &source.index_version_path,
             plugin.time_remaining(),
         )?
     } else {
-        load_tool_versions_from_git(&data, &url)?
+        load_tool_versions_from_git(&data, &input.url)?
     };
 
-    plugin.memory_set_val(&mut outputs[0], serde_json::to_string(&versions)?)?;
+    plugin.memory_set_val(
+        &mut outputs[0],
+        serde_json::to_string(&LoadToolVersionsOutput { versions })?,
+    )?;
 
     Ok(())
 }
@@ -180,10 +175,10 @@ fn load_tool_versions_from_git(data: &HostData, url: &str) -> Result<Vec<String>
     Ok(versions)
 }
 
-fn load_tool_versions_from_manifest(
+fn load_tool_versions_from_index(
     data: &HostData,
     url: &str,
-    version_key: &str,
+    version_path: &str,
     timeout: Option<std::time::Duration>,
 ) -> Result<Vec<String>, Error> {
     let (status, body) = Handle::current().block_on(async {
@@ -216,25 +211,88 @@ fn load_tool_versions_from_manifest(
         )));
     }
 
-    let manifest: serde_json::Value = serde_json::from_slice(&body)?;
-    let entries = manifest
-        .as_array()
-        .ok_or_else(|| Error::msg("Tool version manifest must be a JSON array"))?;
-    let mut versions = Vec::with_capacity(entries.len());
+    let index: serde_json::Value = serde_json::from_slice(&body)?;
+    let value = select_json_path(&index, version_path)?;
 
-    for entry in entries {
-        let version = entry
-            .get(version_key)
-            .and_then(serde_json::Value::as_str)
-            .ok_or_else(|| {
-                Error::msg(format!(
-                    "Tool version manifest entries must contain a string {version_key:?} field"
-                ))
-            })?;
-        versions.push(version.to_owned());
+    if let Some(version) = value.as_str() {
+        return Ok(vec![version.to_owned()]);
     }
 
-    Ok(versions)
+    value
+        .as_array()
+        .ok_or_else(|| {
+            Error::msg(format!(
+                "Tool versions at path {version_path:?} must be a string or an array of strings"
+            ))
+        })?
+        .iter()
+        .map(|value| {
+            value.as_str().map(str::to_owned).ok_or_else(|| {
+                Error::msg(format!(
+                    "Tool versions at path {version_path:?} must contain only strings"
+                ))
+            })
+        })
+        .collect()
+}
+
+fn select_json_path<'a>(
+    root: &'a serde_json::Value,
+    path: &str,
+) -> Result<&'a serde_json::Value, Error> {
+    let mut current = root;
+    let mut chars = path.chars().peekable();
+
+    if chars.peek() == Some(&'$') {
+        chars.next();
+    }
+
+    while let Some(character) = chars.next() {
+        match character {
+            '.' => {}
+            '[' => {
+                let mut index = String::new();
+
+                while let Some(&next) = chars.peek() {
+                    if next == ']' {
+                        break;
+                    }
+                    index.push(next);
+                    chars.next();
+                }
+
+                if chars.next() != Some(']') {
+                    return Err(Error::msg(format!("Invalid JSON path {path:?}")));
+                }
+
+                let index = index
+                    .parse::<usize>()
+                    .map_err(|_| Error::msg(format!("Invalid JSON path {path:?}")))?;
+                current = current
+                    .as_array()
+                    .and_then(|array| array.get(index))
+                    .ok_or_else(|| Error::msg(format!("JSON path {path:?} did not match")))?;
+            }
+            ']' => return Err(Error::msg(format!("Invalid JSON path {path:?}"))),
+            _ => {
+                let mut key = String::from(character);
+
+                while let Some(&next) = chars.peek() {
+                    if matches!(next, '.' | '[' | ']') {
+                        break;
+                    }
+                    key.push(next);
+                    chars.next();
+                }
+
+                current = current
+                    .get(&key)
+                    .ok_or_else(|| Error::msg(format!("JSON path {path:?} did not match")))?;
+            }
+        }
+    }
+
+    Ok(current)
 }
 
 // Logging

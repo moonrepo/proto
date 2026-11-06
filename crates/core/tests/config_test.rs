@@ -1,7 +1,7 @@
 use indexmap::IndexMap;
 use proto_core::{
-    DetectStrategy, EnvVar, LoadToolVersionsSource, PartialEnvVar, PartialProtoSettingsConfig,
-    PinLocation, ProtoConfig, ProtoConfigEnvOptions, ProtoFileManager, ToolContext, ToolSpec,
+    DetectStrategy, EnvVar, PartialEnvVar, PartialProtoSettingsConfig, PinLocation, ProtoConfig,
+    ProtoConfigEnvOptions, ProtoFileManager, ToolContext, ToolSpec,
 };
 use rustc_hash::FxHashMap;
 use schematic::RegexSetting;
@@ -1861,32 +1861,29 @@ vfox = "github://moonrepo/vfox"
         }
 
         #[test]
-        fn configures_manifest_tool_versions() {
+        fn configures_tool_versions_source() {
             let sandbox = create_empty_sandbox();
             sandbox.create_file(
                 ".prototools",
                 r#"
-[settings.load-tool-versions]
-source = "manifest"
-version-key = "name"
+    [tools.node.versions-source]
+    index-url = "https://versions.example.com/node.json"
+    index-version-path = "versions"
 "#,
             );
 
             let config =
                 ProtoConfig::from_partial(ProtoConfig::load_from(sandbox.path(), false).unwrap());
 
-            assert_eq!(
-                config.settings.load_tool_versions.source,
-                LoadToolVersionsSource::Manifest
-            );
-            assert_eq!(
-                config.settings.load_tool_versions.version_key.as_deref(),
-                Some("name")
-            );
-            assert_eq!(
-                ProtoConfig::default().settings.load_tool_versions.source,
-                LoadToolVersionsSource::Git
-            );
+            let source = config
+                .get_tool_config(&ToolContext::parse("node").unwrap())
+                .unwrap()
+                .versions_source
+                .as_ref()
+                .unwrap();
+
+            assert_eq!(source.index_url, "https://versions.example.com/node.json");
+            assert_eq!(source.index_version_path, "versions");
         }
     }
 }
