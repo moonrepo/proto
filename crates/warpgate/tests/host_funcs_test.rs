@@ -560,6 +560,36 @@ mod load_git_tags {
 
         assert_eq!(versions, ["v1.2.3"]);
     }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn loads_versions_from_wildcard_json_path() {
+        let sandbox = create_empty_sandbox();
+        let index_url = spawn_http_server(
+            "200 OK",
+            r#"[{"name":"v2.4.0"},{"name":"v2.4.1"},{"name":"v2.4.2"}]"#,
+        );
+
+        for version_path in ["*.name", "[*].name"] {
+            let container = create_container_with_tool_version_config(
+                sandbox.path(),
+                None,
+                Some(ToolVersionsSource {
+                    index_url: index_url.clone(),
+                    index_version_path: version_path.to_owned(),
+                }),
+            );
+
+            let versions: Vec<String> = container
+                .call_func_with(
+                    "testing_load_tool_versions",
+                    "https://github.com/example/tool",
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(versions, ["v2.4.0", "v2.4.1", "v2.4.2"]);
+        }
+    }
 }
 
 mod exec_command {
