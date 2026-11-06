@@ -8,6 +8,9 @@ homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 rust-version = "1.85.0"
 
+[package.metadata.docs.rs]
+all-features = true
+
 [dependencies]
 proto_pdk_api = { version = "0.35.0", path = "../pdk-api" }
 warpgate_pdk = { version = "0.19.0", path = "../warpgate-pdk" }
