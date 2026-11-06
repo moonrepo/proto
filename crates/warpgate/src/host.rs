@@ -212,24 +212,22 @@ fn load_tool_versions_from_index(
     }
 
     let index: serde_json::Value = serde_json::from_slice(&body)?;
-    let value = select_json_path(&index, version_path)?;
+    let values = select_json_path(&index, version_path)?;
+    let values = if values.len() == 1 {
+        values[0]
+            .as_array()
+            .map(|array| array.iter().collect())
+            .unwrap_or(values)
+    } else {
+        values
+    };
 
-    if let Some(version) = value.as_str() {
-        return Ok(vec![version.to_owned()]);
-    }
-
-    value
-        .as_array()
-        .ok_or_else(|| {
-            Error::msg(format!(
-                "Tool versions at path {version_path:?} must be a string or an array of strings"
-            ))
-        })?
+    values
         .iter()
         .map(|value| {
             value.as_str().map(str::to_owned).ok_or_else(|| {
                 Error::msg(format!(
-                    "Tool versions at path {version_path:?} must contain only strings"
+                    "Tool versions at path {version_path:?} must be a string or contain only strings"
                 ))
             })
         })
@@ -239,8 +237,14 @@ fn load_tool_versions_from_index(
 fn select_json_path<'a>(
     root: &'a serde_json::Value,
     path: &str,
-) -> Result<&'a serde_json::Value, Error> {
-    let mut current = root;
+) -> Result<Vec<&'a serde_json::Value>, Error> {
+    enum Segment {
+        Key(String),
+        Index(usize),
+        Wildcard,
+    }
+
+    let mut segments = vec![];
     let mut chars = path.chars().peekable();
 
     if chars.peek() == Some(&'$') {
@@ -249,15 +253,31 @@ fn select_json_path<'a>(
 
     while let Some(character) = chars.next() {
         match character {
-            '.' => {}
+            '.' => {
+                let mut key = String::new();
+
+                while let Some(&next) = chars.peek() {
+                    if matches!(next, '.' | '[' | ']') {
+                        break;
+                    }
+                    key.push(next);
+                    chars.next();
+                }
+
+                if key == "*" {
+                    segments.push(Segment::Wildcard);
+                } else if !key.is_empty() {
+                    segments.push(Segment::Key(key));
+                }
+            }
             '[' => {
-                let mut index = String::new();
+                let mut token = String::new();
 
                 while let Some(&next) = chars.peek() {
                     if next == ']' {
                         break;
                     }
-                    index.push(next);
+                    token.push(next);
                     chars.next();
                 }
 
@@ -265,13 +285,14 @@ fn select_json_path<'a>(
                     return Err(Error::msg(format!("Invalid JSON path {path:?}")));
                 }
 
-                let index = index
-                    .parse::<usize>()
-                    .map_err(|_| Error::msg(format!("Invalid JSON path {path:?}")))?;
-                current = current
-                    .as_array()
-                    .and_then(|array| array.get(index))
-                    .ok_or_else(|| Error::msg(format!("JSON path {path:?} did not match")))?;
+                if token == "*" {
+                    segments.push(Segment::Wildcard);
+                } else {
+                    let index = token
+                        .parse::<usize>()
+                        .map_err(|_| Error::msg(format!("Invalid JSON path {path:?}")))?;
+                    segments.push(Segment::Index(index));
+                }
             }
             ']' => return Err(Error::msg(format!("Invalid JSON path {path:?}"))),
             _ => {
@@ -285,11 +306,60 @@ fn select_json_path<'a>(
                     chars.next();
                 }
 
-                current = current
-                    .get(&key)
-                    .ok_or_else(|| Error::msg(format!("JSON path {path:?} did not match")))?;
+                if key == "*" {
+                    segments.push(Segment::Wildcard);
+                } else {
+                    segments.push(Segment::Key(key));
+                }
             }
         }
+    }
+
+    let mut current = vec![root];
+
+    for segment in segments {
+        let mut next = vec![];
+
+        match segment {
+            Segment::Key(key) => {
+                for value in current {
+                    next.push(
+                        value.get(&key).ok_or_else(|| {
+                            Error::msg(format!("JSON path {path:?} did not match"))
+                        })?,
+                    );
+                }
+            }
+            Segment::Index(index) => {
+                for value in current {
+                    next.push(
+                        value
+                            .as_array()
+                            .and_then(|array| array.get(index))
+                            .ok_or_else(|| {
+                                Error::msg(format!("JSON path {path:?} did not match"))
+                            })?,
+                    );
+                }
+            }
+            Segment::Wildcard => {
+                for value in current {
+                    if let Some(array) = value.as_array() {
+                        next.extend(array);
+                    } else if let Some(object) = value.as_object() {
+                        next.extend(object.values());
+                    } else {
+                        return Err(Error::msg(format!("JSON path {path:?} did not match")));
+                    }
+                }
+            }
+        }
+
+        if next.is_empty() {
+            return Err(Error::msg(format!("JSON path {path:?} did not match")));
+        }
+
+        current = next;
     }
 
     Ok(current)
