@@ -215,6 +215,37 @@ mod run {
         assert.stdout(predicate::str::contains("v0.0.0-fake"));
     }
 
+    // The `npx` shim runs `proto run npm --exe npx`. When npm isn't managed
+    // by proto, the fallback must run `npx`, not `npm`.
+    #[cfg(unix)]
+    #[test]
+    fn falls_back_to_the_alternate_executable() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let sandbox = create_empty_proto_sandbox();
+
+        sandbox.create_file("globals/npm", "#!/bin/sh\necho \"primary\"\n");
+        sandbox.create_file("globals/npx", "#!/bin/sh\necho \"alternate\"\n");
+
+        let globals_dir = sandbox.path().join("globals");
+
+        for name in ["npm", "npx"] {
+            fs::set_permissions(globals_dir.join(name), fs::Permissions::from_mode(0o755)).unwrap();
+        }
+
+        // Use a minimal `PATH` so that nothing from the machine leaks in.
+        let path_env = env::join_paths([globals_dir, "/usr/bin".into(), "/bin".into()]).unwrap();
+
+        let assert = sandbox
+            .run_bin(|cmd| {
+                cmd.args(["run", "npm", "--exe", "npx"])
+                    .env("PATH", &path_env);
+            })
+            .success();
+
+        assert.stdout(predicate::str::contains("alternate"));
+    }
+
     #[test]
     fn runs_a_tool() {
         let sandbox = create_empty_proto_sandbox();
