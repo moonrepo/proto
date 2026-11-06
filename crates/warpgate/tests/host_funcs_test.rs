@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::thread;
 use warpgate::api::{DownloadFileInput, DownloadFileOutput, SendRequestInput, SendRequestOutput};
-use warpgate::host::{HostData, create_host_functions};
+use warpgate::host::{HostData, ToolVersionsSource, create_host_functions};
 use warpgate::{
     Id, PluginContainer, PluginManifest, VirtualPath, Wasm, create_http_client,
     inject_default_manifest_config, test_utils,
@@ -89,6 +89,14 @@ fn create_container_for_platform(
     sandbox_path: &std::path::Path,
     foreign_platform: Option<&str>,
 ) -> PluginContainer {
+    create_container_with_tool_version_config(sandbox_path, foreign_platform, None)
+}
+
+fn create_container_with_tool_version_config(
+    sandbox_path: &std::path::Path,
+    foreign_platform: Option<&str>,
+    versions_source: Option<ToolVersionsSource>,
+) -> PluginContainer {
     let id = Id::raw("test");
 
     let mut manifest = PluginManifest::new([Wasm::file(find_api_usage_wasm())]);
@@ -111,6 +119,7 @@ fn create_container_for_platform(
             http_client: Arc::new(create_http_client().unwrap()),
             virtual_paths: vec![(sandbox_path.to_path_buf(), PathBuf::from("/sandbox"))],
             working_dir: sandbox_path.to_path_buf(),
+            versions_source,
         }),
     )
     .unwrap()
@@ -294,6 +303,13 @@ mod load_git_tags {
             .unwrap();
 
         assert_eq!(tags, ["v1.0.0", "v1.1.0"]);
+
+        let versions: Vec<String> = container
+            .call_func_with("testing_load_tool_versions", repo.to_string_lossy())
+            .await
+            .unwrap();
+
+        assert_eq!(versions, tags);
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -313,6 +329,94 @@ mod load_git_tags {
         assert!(error.contains("Failed to load Git tags from"), "{error}");
         assert!(error.contains("returned a 128 exit code"), "{error}");
         assert!(error.contains("fatal:"), "{error}");
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn loads_versions_from_configured_index() {
+        let sandbox = create_empty_sandbox();
+        let manifest_url = spawn_http_server(
+            "200 OK",
+            r#"{"versions":["v1.0.0","v1.1.0"],"release":{"version":"v2.0.0"}}"#,
+        );
+        let container = create_container_with_tool_version_config(
+            sandbox.path(),
+            None,
+            Some(ToolVersionsSource {
+                index_url: manifest_url,
+                index_version_path: "versions".to_owned(),
+            }),
+        );
+
+        let versions: Vec<String> = container
+            .call_func_with(
+                "testing_load_tool_versions",
+                "https://github.com/example/tool",
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(versions, ["v1.0.0", "v1.1.0"]);
+
+        let migrated_versions: Vec<String> = container
+            .call_func_with("testing_load_git_tags", "https://github.com/example/tool")
+            .await
+            .unwrap();
+
+        assert_eq!(migrated_versions, versions);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn loads_single_version_from_json_path() {
+        let sandbox = create_empty_sandbox();
+        let index_url = spawn_http_server("200 OK", r#"[{"version":"v1.2.3"}]"#);
+        let container = create_container_with_tool_version_config(
+            sandbox.path(),
+            None,
+            Some(ToolVersionsSource {
+                index_url,
+                index_version_path: ".[0].version".to_owned(),
+            }),
+        );
+
+        let versions: Vec<String> = container
+            .call_func_with(
+                "testing_load_tool_versions",
+                "https://github.com/example/tool",
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(versions, ["v1.2.3"]);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn loads_versions_from_wildcard_json_path() {
+        let sandbox = create_empty_sandbox();
+        let index_url = spawn_http_server(
+            "200 OK",
+            r#"[{"name":"v2.4.0"},{"name":"v2.4.1"},{"name":"v2.4.2"}]"#,
+        );
+
+        for version_path in ["*.name", "[*].name"] {
+            let container = create_container_with_tool_version_config(
+                sandbox.path(),
+                None,
+                Some(ToolVersionsSource {
+                    index_url: index_url.clone(),
+                    index_version_path: version_path.to_owned(),
+                }),
+            );
+
+            let versions: Vec<String> = container
+                .call_func_with(
+                    "testing_load_tool_versions",
+                    "https://github.com/example/tool",
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(versions, ["v2.4.0", "v2.4.1", "v2.4.2"]);
+        }
     }
 }
 

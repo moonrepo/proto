@@ -1859,5 +1859,31 @@ vfox = "github://moonrepo/vfox"
                 "https://replaced.com/lunarrepo/lunar/releases/download/v1.37.1/lunar-x86_64-apple-darwin",
             );
         }
+
+        #[test]
+        fn configures_tool_versions_source() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+    [tools.node.versions-source]
+    index-url = "https://versions.example.com/node.json"
+    index-version-path = "versions"
+"#,
+            );
+
+            let config =
+                ProtoConfig::from_partial(ProtoConfig::load_from(sandbox.path(), false).unwrap());
+
+            let source = config
+                .get_tool_config(&ToolContext::parse("node").unwrap())
+                .unwrap()
+                .versions_source
+                .as_ref()
+                .unwrap();
+
+            assert_eq!(source.index_url, "https://versions.example.com/node.json");
+            assert_eq!(source.index_version_path, "versions");
+        }
     }
 }

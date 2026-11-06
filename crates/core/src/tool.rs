@@ -23,7 +23,7 @@ use system_env::SystemPlatform;
 use tracing::{debug, instrument};
 use warpgate::{
     PluginContainer, PluginLocator, PluginManifest, VirtualPath, Wasm,
-    host::{HostData, create_host_functions},
+    host::{HostData, ToolVersionsSource, create_host_functions},
 };
 
 pub type ToolMetadata = RegisterToolOutput;
@@ -94,6 +94,14 @@ impl Tool {
     ) -> Result<Self, ProtoToolError> {
         let context = context.as_ref();
         let proto = proto.as_ref();
+        let config = proto.load_config()?;
+        let versions_source = config
+            .get_tool_config(context)
+            .and_then(|tool_config| tool_config.versions_source.as_ref())
+            .map(|source| ToolVersionsSource {
+                index_url: source.index_url.clone(),
+                index_version_path: source.index_version_path.clone(),
+            });
 
         debug!(
             "Creating tool {} and instantiating plugin",
@@ -114,6 +122,7 @@ impl Tool {
                     http_client: Arc::clone(proto.get_plugin_loader()?.get_http_client()?),
                     virtual_paths: proto.get_virtual_paths(),
                     working_dir: proto.working_dir.clone(),
+                    versions_source,
                 }),
             )?),
         )

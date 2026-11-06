@@ -19,8 +19,8 @@ use tokio::runtime::Handle;
 use tracing::{debug, error, instrument, trace, warn};
 use warpgate_api::{
     DownloadFileInput, DownloadFileOutput, ExecCommandInput, ExecCommandOutput, HostLogInput,
-    HostLogTarget, SendRequestInput, SendRequestMethod, SendRequestOutput,
-    convert_to_real_native_path,
+    HostLogTarget, LoadToolVersionsInput, LoadToolVersionsOutput, SendRequestInput,
+    SendRequestMethod, SendRequestOutput, convert_to_real_native_path,
 };
 
 /// Data passed to each host function.
@@ -42,6 +42,16 @@ pub struct HostData {
 
     /// Current working directory, in which commands are executed.
     pub working_dir: PathBuf,
+
+    /// Optional per-tool index to use instead of Git tags.
+    pub versions_source: Option<ToolVersionsSource>,
+}
+
+/// Configured JSON index used to load a tool's versions.
+#[derive(Clone, Debug)]
+pub struct ToolVersionsSource {
+    pub index_url: String,
+    pub index_version_path: String,
 }
 
 /// Create a list of our built-in host functions.
@@ -68,6 +78,13 @@ pub fn create_host_functions(data: HostData) -> Vec<Function> {
             UserData::new(()),
             get_env_var,
         ),
+        Function::new(
+            "load_tool_versions",
+            [ValType::I64],
+            [ValType::I64],
+            UserData::new(data.clone()),
+            load_tool_versions,
+        ),
         Function::new("host_log", [ValType::I64], [], UserData::new(()), host_log),
         Function::new(
             "send_request",
@@ -84,6 +101,268 @@ pub fn create_host_functions(data: HostData) -> Vec<Function> {
             set_env_var,
         ),
     ]
+}
+
+#[instrument(name = "host_func_load_tool_versions", skip_all)]
+fn load_tool_versions(
+    plugin: &mut CurrentPlugin,
+    inputs: &[Val],
+    outputs: &mut [Val],
+    user_data: UserData<HostData>,
+) -> Result<(), Error> {
+    let input_raw: String = plugin.memory_get_val(&inputs[0])?;
+    let input: LoadToolVersionsInput = serde_json::from_str(&input_raw)?;
+    let data = user_data.get()?;
+    let data = data.lock().unwrap();
+
+    let versions = if let Some(source) = &data.versions_source {
+        load_tool_versions_from_index(
+            &data,
+            &source.index_url,
+            &source.index_version_path,
+            plugin.time_remaining(),
+        )?
+    } else {
+        load_tool_versions_from_git(&data, &input.url)?
+    };
+
+    plugin.memory_set_val(
+        &mut outputs[0],
+        serde_json::to_string(&LoadToolVersionsOutput { versions })?,
+    )?;
+
+    Ok(())
+}
+
+fn load_tool_versions_from_git(data: &HostData, url: &str) -> Result<Vec<String>, Error> {
+    let mut command = Command::new("git");
+    command
+        .args(["ls-remote", "--tags", "--sort", "version:refname", url])
+        .current_dir(&data.working_dir)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+
+    let output = command.output()?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(Error::msg(format!(
+            "Failed to load Git tags from <url>{url}</url>, as <shell>git ls-remote</shell> returned a {} exit code.{}",
+            output.status.code().unwrap_or(1),
+            if stderr.trim().is_empty() {
+                String::new()
+            } else {
+                format!("\n<mutedlight>{}</mutedlight>", stderr.trim())
+            }
+        )));
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let mut versions = vec![];
+
+    for line in stdout.lines() {
+        if line.ends_with("^{}") {
+            continue;
+        }
+
+        if let Some((_, reference)) = line.split_once('\t')
+            && let Some(version) = reference.strip_prefix("refs/tags/")
+        {
+            versions.push(version.to_owned());
+        }
+    }
+
+    Ok(versions)
+}
+
+fn load_tool_versions_from_index(
+    data: &HostData,
+    url: &str,
+    version_path: &str,
+    timeout: Option<std::time::Duration>,
+) -> Result<Vec<String>, Error> {
+    let (status, body) = Handle::current().block_on(async {
+        let mut request = data.http_client.get(url);
+
+        if let Some(timeout) = timeout {
+            request = request.timeout(timeout);
+        }
+
+        let response = request
+            .send()
+            .await
+            .map_err(|error| HttpClient::map_error(url.to_owned(), error))?;
+        let status = response.status();
+        let body = response
+            .bytes()
+            .await
+            .map_err(|error| WarpgateHttpClientError::Http {
+                url: url.to_owned(),
+                error: Box::new(error),
+            })?;
+
+        Ok::<_, WarpgateHttpClientError>((status, body))
+    })?;
+
+    if !status.is_success() {
+        return Err(Error::msg(format!(
+            "Failed to load tool versions from <url>{url}</url> <mutedlight>({})</mutedlight>",
+            status.as_u16()
+        )));
+    }
+
+    let index: serde_json::Value = serde_json::from_slice(&body)?;
+    let values = select_json_path(&index, version_path)?;
+    let values = if values.len() == 1 {
+        values[0]
+            .as_array()
+            .map(|array| array.iter().collect())
+            .unwrap_or(values)
+    } else {
+        values
+    };
+
+    values
+        .iter()
+        .map(|value| {
+            value.as_str().map(str::to_owned).ok_or_else(|| {
+                Error::msg(format!(
+                    "Tool versions at path {version_path:?} must be a string or contain only strings"
+                ))
+            })
+        })
+        .collect()
+}
+
+fn select_json_path<'a>(
+    root: &'a serde_json::Value,
+    path: &str,
+) -> Result<Vec<&'a serde_json::Value>, Error> {
+    enum Segment {
+        Key(String),
+        Index(usize),
+        Wildcard,
+    }
+
+    let mut segments = vec![];
+    let mut chars = path.chars().peekable();
+
+    if chars.peek() == Some(&'$') {
+        chars.next();
+    }
+
+    while let Some(character) = chars.next() {
+        match character {
+            '.' => {
+                let mut key = String::new();
+
+                while let Some(&next) = chars.peek() {
+                    if matches!(next, '.' | '[' | ']') {
+                        break;
+                    }
+                    key.push(next);
+                    chars.next();
+                }
+
+                if key == "*" {
+                    segments.push(Segment::Wildcard);
+                } else if !key.is_empty() {
+                    segments.push(Segment::Key(key));
+                }
+            }
+            '[' => {
+                let mut token = String::new();
+
+                while let Some(&next) = chars.peek() {
+                    if next == ']' {
+                        break;
+                    }
+                    token.push(next);
+                    chars.next();
+                }
+
+                if chars.next() != Some(']') {
+                    return Err(Error::msg(format!("Invalid JSON path {path:?}")));
+                }
+
+                if token == "*" {
+                    segments.push(Segment::Wildcard);
+                } else {
+                    let index = token
+                        .parse::<usize>()
+                        .map_err(|_| Error::msg(format!("Invalid JSON path {path:?}")))?;
+                    segments.push(Segment::Index(index));
+                }
+            }
+            ']' => return Err(Error::msg(format!("Invalid JSON path {path:?}"))),
+            _ => {
+                let mut key = String::from(character);
+
+                while let Some(&next) = chars.peek() {
+                    if matches!(next, '.' | '[' | ']') {
+                        break;
+                    }
+                    key.push(next);
+                    chars.next();
+                }
+
+                if key == "*" {
+                    segments.push(Segment::Wildcard);
+                } else {
+                    segments.push(Segment::Key(key));
+                }
+            }
+        }
+    }
+
+    let mut current = vec![root];
+
+    for segment in segments {
+        let mut next = vec![];
+
+        match segment {
+            Segment::Key(key) => {
+                for value in current {
+                    next.push(
+                        value.get(&key).ok_or_else(|| {
+                            Error::msg(format!("JSON path {path:?} did not match"))
+                        })?,
+                    );
+                }
+            }
+            Segment::Index(index) => {
+                for value in current {
+                    next.push(
+                        value
+                            .as_array()
+                            .and_then(|array| array.get(index))
+                            .ok_or_else(|| {
+                                Error::msg(format!("JSON path {path:?} did not match"))
+                            })?,
+                    );
+                }
+            }
+            Segment::Wildcard => {
+                for value in current {
+                    if let Some(array) = value.as_array() {
+                        next.extend(array);
+                    } else if let Some(object) = value.as_object() {
+                        next.extend(object.values());
+                    } else {
+                        return Err(Error::msg(format!("JSON path {path:?} did not match")));
+                    }
+                }
+            }
+        }
+
+        if next.is_empty() {
+            return Err(Error::msg(format!("JSON path {path:?} did not match")));
+        }
+
+        current = next;
+    }
+
+    Ok(current)
 }
 
 // Logging

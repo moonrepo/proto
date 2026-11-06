@@ -4,21 +4,33 @@ use extism_pdk::*;
 use serde::de::DeserializeOwned;
 use std::path::PathBuf;
 use std::sync::OnceLock;
-use std::vec;
 use warpgate_api::{
     AnyResult, DownloadFileInput, DownloadFileOutput, ExecCommandInput, ExecCommandOutput,
-    HostEnvironment, HostOS, Id, SendRequestInput, SendRequestOutput, TestEnvironment, VirtualPath,
-    anyhow,
+    HostEnvironment, HostOS, Id, LoadToolVersionsInput, SendRequestInput, SendRequestOutput,
+    TestEnvironment, VirtualPath, anyhow,
 };
 
-#[host_fn]
-extern "ExtismHost" {
-    fn download_file(input: Json<DownloadFileInput>) -> Json<DownloadFileOutput>;
-    fn exec_command(input: Json<ExecCommandInput>) -> Json<ExecCommandOutput>;
-    fn send_request(input: Json<SendRequestInput>) -> Json<SendRequestOutput>;
-    fn get_env_var(key: String) -> String;
-    fn set_env_var(name: String, value: String);
+mod host_functions {
+    use extism_pdk::{Json, host_fn};
+    use warpgate_api::{
+        DownloadFileInput, DownloadFileOutput, ExecCommandInput, ExecCommandOutput,
+        LoadToolVersionsInput, LoadToolVersionsOutput, SendRequestInput, SendRequestOutput,
+    };
+
+    #[host_fn]
+    extern "ExtismHost" {
+        pub(super) fn download_file(input: Json<DownloadFileInput>) -> Json<DownloadFileOutput>;
+        pub(super) fn exec_command(input: Json<ExecCommandInput>) -> Json<ExecCommandOutput>;
+        pub(super) fn load_tool_versions(
+            input: Json<LoadToolVersionsInput>,
+        ) -> Json<LoadToolVersionsOutput>;
+        pub(super) fn send_request(input: Json<SendRequestInput>) -> Json<SendRequestOutput>;
+        pub(super) fn get_env_var(key: String) -> String;
+        pub(super) fn set_env_var(name: String, value: String);
+    }
 }
+
+use host_functions::{download_file, exec_command, get_env_var, send_request, set_env_var};
 
 /// Fetch the requested input and return a response.
 pub fn fetch(input: SendRequestInput) -> AnyResult<SendRequestOutput> {
@@ -118,59 +130,29 @@ where
     exec(ExecCommandInput::inherit(command, args))
 }
 
-/// Load all Git tags from the provided remote URL.
-/// The `git` executable must exist on the host machine,
-/// and an error is returned if the tags could not be loaded.
+/// Load tool versions from the provided remote URL.
+///
+/// This compatibility function delegates to [`load_tool_versions`], allowing
+/// existing plugins to use configured URL rewrites and manifest sources.
 pub fn load_git_tags<U>(url: U) -> AnyResult<Vec<String>>
 where
     U: AsRef<str>,
 {
-    let url = url.as_ref();
+    load_tool_versions(url)
+}
 
-    debug!("Loading Git tags from remote <url>{}</url>", url);
+/// Load all available versions for a tool from the provided remote URL.
+///
+/// When no per-tool source is configured, this behaves like [`load_git_tags`].
+/// A tool-specific index source can be configured through `.prototools`.
+pub fn load_tool_versions<U>(url: U) -> AnyResult<Vec<String>>
+where
+    U: AsRef<str>,
+{
+    let output =
+        unsafe { host_functions::load_tool_versions(Json(LoadToolVersionsInput::new(url)))?.0 };
 
-    let mut tags: Vec<String> = vec![];
-    let output = exec_captured(
-        "git",
-        ["ls-remote", "--tags", "--sort", "version:refname", url],
-    )?;
-
-    // Return an error instead of an empty list, so that the underlying
-    // reason (network, authentication, etc) is surfaced to the user
-    if output.exit_code != 0 {
-        let mut message = format!(
-            "Failed to load Git tags from <url>{url}</url>, as <shell>git ls-remote</shell> returned a {} exit code.",
-            output.exit_code
-        );
-        let stderr = output.stderr.trim();
-
-        if !stderr.is_empty() {
-            message.push_str(&format!("\n<mutedlight>{stderr}</mutedlight>"));
-        }
-
-        return Err(anyhow!(message));
-    }
-
-    for line in output.stdout.split('\n') {
-        // https://superuser.com/questions/1445823/what-does-mean-in-the-tags
-        if line.ends_with("^{}") {
-            continue;
-        }
-
-        let parts = line.split('\t').collect::<Vec<_>>();
-
-        if parts.len() < 2 {
-            continue;
-        }
-
-        if let Some(tag) = parts[1].strip_prefix("refs/tags/") {
-            tags.push(tag.to_owned());
-        }
-    }
-
-    debug!("Loaded {} Git tags", tags.len());
-
-    Ok(tags)
+    Ok(output.versions)
 }
 
 /// Check whether a command exists or not on the host machine.
