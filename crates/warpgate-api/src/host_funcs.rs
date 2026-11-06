@@ -242,6 +242,34 @@ impl DownloadFileInput {
 }
 
 api_struct!(
+    /// Input passed to the `load_tool_versions` host function.
+    #[derive(Setters)]
+    #[serde(default)]
+    pub struct LoadToolVersionsInput {
+        /// The Git remote URL, unless a tool-specific index URL is configured.
+        #[setters(into)]
+        pub url: String,
+    }
+);
+
+impl LoadToolVersionsInput {
+    /// Create an input with the provided URL.
+    pub fn new(url: impl AsRef<str>) -> Self {
+        Self {
+            url: url.as_ref().to_owned(),
+        }
+    }
+}
+
+api_struct!(
+    /// Output returned from the `load_tool_versions` host function.
+    pub struct LoadToolVersionsOutput {
+        /// Available versions loaded from a Git remote or index.
+        pub versions: Vec<String>,
+    }
+);
+
+api_struct!(
     /// Output returned from the `download_file` host function.
     #[serde(default)]
     pub struct DownloadFileOutput {

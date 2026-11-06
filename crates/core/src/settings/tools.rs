@@ -9,6 +9,15 @@ use starbase_utils::json::JsonValue;
 use std::collections::BTreeMap;
 use warpgate::PluginLocator;
 
+// `[tools.id.versions-source]`
+#[derive(Clone, Config, Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct ProtoToolVersionsSourceConfig {
+    pub index_url: String,
+
+    pub index_version_path: String,
+}
+
 // `[tools.id]`
 // `[tools."backend:tool"]`
 #[derive(Clone, Config, Debug, Serialize)]
@@ -31,6 +40,10 @@ pub struct ProtoToolConfig {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     #[setting(merge = merge_unique_vec)]
     pub requires: Vec<ToolContext>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[setting(nested)]
+    pub versions_source: Option<ProtoToolVersionsSourceConfig>,
 
     // Custom configuration to pass to plugins
     #[serde(flatten, skip_serializing_if = "FxHashMap::is_empty")]

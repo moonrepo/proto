@@ -1,4 +1,4 @@
-use super::{DetectStrategy, LoadToolVersionsSource, PinLocation, merge_iter};
+use super::{DetectStrategy, PinLocation, merge_iter};
 use crate::helpers::get_builtin_registry;
 use indexmap::{IndexMap, IndexSet};
 use rustc_hash::FxHashMap;
@@ -41,15 +41,6 @@ pub struct ProtoOfflineConfig {
 
     #[setting(default = 750, env = "PROTO_OFFLINE_TIMEOUT")]
     pub timeout: u64,
-}
-
-// `[settings.load-tool-versions]`
-#[derive(Clone, Config, Debug, Serialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct ProtoLoadToolVersionsConfig {
-    pub source: LoadToolVersionsSource,
-
-    pub version_key: Option<String>,
 }
 
 #[derive(Clone, Config, Debug, Deserialize, PartialEq, Serialize)]
@@ -111,9 +102,6 @@ pub struct ProtoSettingsConfig {
     pub detect_strategy: DetectStrategy,
 
     pub http: HttpOptions,
-
-    #[setting(nested)]
-    pub load_tool_versions: ProtoLoadToolVersionsConfig,
 
     #[serde(alias = "unstable-lockfile")]
     pub lockfile: bool,

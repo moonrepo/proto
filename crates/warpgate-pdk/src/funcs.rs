@@ -8,29 +8,37 @@ use std::path::PathBuf;
 use std::sync::OnceLock;
 use warpgate_api::{
     AnyResult, DownloadFileInput, DownloadFileOutput, ExecCommandInput, ExecCommandOutput,
-    HostEnvironment, HostOS, Id, SendRequestInput, SendRequestOutput, TestEnvironment, VirtualPath,
-    anyhow,
+    HostEnvironment, HostOS, Id, LoadToolVersionsInput, SendRequestInput, SendRequestOutput,
+    TestEnvironment, VirtualPath, anyhow,
 };
 
-mod tool_versions_host {
+mod host_functions {
     use extism_pdk::{Json, host_fn};
+    use rustc_hash::FxHashMap;
+    use warpgate_api::{
+        DownloadFileInput, DownloadFileOutput, ExecCommandInput, ExecCommandOutput,
+        LoadToolVersionsInput, LoadToolVersionsOutput, SendRequestInput, SendRequestOutput,
+    };
 
     #[host_fn]
     extern "ExtismHost" {
-        pub fn load_tool_versions(url: String) -> Json<Vec<String>>;
+        pub(super) fn download_file(input: Json<DownloadFileInput>) -> Json<DownloadFileOutput>;
+        pub(super) fn exec_command(input: Json<ExecCommandInput>) -> Json<ExecCommandOutput>;
+        pub(super) fn load_tool_versions(
+            input: Json<LoadToolVersionsInput>,
+        ) -> Json<LoadToolVersionsOutput>;
+        pub(super) fn send_request(input: Json<SendRequestInput>) -> Json<SendRequestOutput>;
+        pub(super) fn get_env_var(key: String) -> String;
+        pub(super) fn get_env_vars(names: Json<Vec<String>>) -> Json<FxHashMap<String, String>>;
+        pub(super) fn set_env_var(name: String, value: String);
+        pub(super) fn set_env_vars(vars: Json<FxHashMap<String, String>>);
     }
 }
 
-#[host_fn]
-extern "ExtismHost" {
-    fn download_file(input: Json<DownloadFileInput>) -> Json<DownloadFileOutput>;
-    fn exec_command(input: Json<ExecCommandInput>) -> Json<ExecCommandOutput>;
-    fn send_request(input: Json<SendRequestInput>) -> Json<SendRequestOutput>;
-    fn get_env_var(key: String) -> String;
-    fn get_env_vars(names: Json<Vec<String>>) -> Json<FxHashMap<String, String>>;
-    fn set_env_var(name: String, value: String);
-    fn set_env_vars(vars: Json<FxHashMap<String, String>>);
-}
+use host_functions::{
+    download_file, exec_command, get_env_var, get_env_vars, send_request, set_env_var,
+    set_env_vars,
+};
 
 /// Fetch the requested input and return a response.
 pub fn fetch(input: SendRequestInput) -> AnyResult<SendRequestOutput> {
@@ -143,13 +151,16 @@ where
 
 /// Load all available versions for a tool from the provided remote URL.
 ///
-/// By default, versions are loaded from Git tags. The host may configure a
-/// JSON manifest source and URL rewrites through `.prototools`.
+/// When no per-tool source is configured, this behaves like [`load_git_tags`].
+/// A tool-specific index source can be configured through `.prototools`.
 pub fn load_tool_versions<U>(url: U) -> AnyResult<Vec<String>>
 where
     U: AsRef<str>,
 {
-    Ok(unsafe { tool_versions_host::load_tool_versions(url.as_ref().to_owned())? }.0)
+    let output =
+        unsafe { host_functions::load_tool_versions(Json(LoadToolVersionsInput::new(url)))?.0 };
+
+    Ok(output.versions)
 }
 
 /// Check whether a command exists or not on the host machine.
