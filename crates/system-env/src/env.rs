@@ -332,8 +332,9 @@ impl fmt::Display for SystemABI {
 /// Is formatted as `<arch>-<os>` or `<arch>-<os>-<libc>`, for example,
 /// `arm64-macos`, `x64-linux-gnu`, or `arm64-linux-musl`.
 ///
-/// When parsing, Rust target triples (`<arch>-<vendor>-<os>-<env>`) are also
-/// supported, for example, `aarch64-apple-darwin`, `x86_64-unknown-linux-musl`,
+/// When parsing, the operating system may also come first (`<os>-<arch>` or
+/// `<os>-<arch>-<libc>`, for example, `linux-x64-musl`), and Rust target
+/// triples (`<arch>-<vendor>-<os>-<env>`) are also supported, for example, `aarch64-apple-darwin`, `x86_64-unknown-linux-musl`,
 /// or `aarch64-linux-android`. Each part supports the same aliases as their
 /// respective types (`mac`, `x86_64`, `aarch64`, `glibc`, etc), and the Rust
 /// variants of each (`i686`, `armv7`, `darwin`, `gnueabihf`, etc). If the libc
@@ -379,7 +380,8 @@ impl SystemPlatform {
     }
 
     /// Parse a platform from a string, in the format of `<arch>-<os>`,
-    /// `<arch>-<os>-<libc>`, or a Rust target triple.
+    /// `<arch>-<os>-<libc>`, `<os>-<arch>`, `<os>-<arch>-<libc>`, or a
+    /// Rust target triple.
     pub fn parse(value: impl AsRef<str>) -> Result<Self, Error> {
         Self::from_str(value.as_ref())
     }
@@ -526,6 +528,24 @@ impl FromStr for SystemPlatform {
             value: part.to_owned(),
             platform: value.to_owned(),
         };
+
+        // The operating system may come first (`<os>-<arch>-<libc>`), but
+        // only when the first part is not an architecture
+        if parse_platform_arch(parts[0]).is_none()
+            && let Some(os) = parse_platform_os(parts[0])
+        {
+            if parts.len() > 3 {
+                return Err(Error::InvalidPlatform(value.to_owned()));
+            }
+
+            let arch = parse_platform_arch(parts[1])
+                .ok_or_else(|| unknown_part("architecture", parts[1]))?;
+
+            let (os, libc) = parse_platform_libc(os, parts.get(2).copied())
+                .ok_or_else(|| unknown_part("libc", parts[2]))?;
+
+            return Ok(Self { os, arch, libc });
+        }
 
         let arch =
             parse_platform_arch(parts[0]).ok_or_else(|| unknown_part("architecture", parts[0]))?;

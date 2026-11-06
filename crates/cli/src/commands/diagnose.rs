@@ -2,9 +2,10 @@ use crate::components::{Issue, IssuesList};
 use crate::error::ProtoCliError;
 use crate::helpers::fetch_latest_version;
 use crate::session::{ProtoSession, SessionResult};
+use crate::utils::tool_record::sort_contexts_by_dependency;
 use clap::Args;
 use iocraft::prelude::{FlexDirection, View, element};
-use proto_core::{Id, ToolContext, TrustState};
+use proto_core::{Id, ProtoConfig, ToolContext, TrustState};
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 use starbase_console::ui::*;
@@ -291,9 +292,75 @@ async fn gather_warnings(
     }
 
     // After the tip, as these can't be resolved by `proto setup`
+    warnings.extend(gather_requirement_warnings(config));
     warnings.extend(gather_trust_warnings(session)?);
 
     Ok(warnings)
+}
+
+fn gather_requirement_warnings(config: &ProtoConfig) -> Vec<Issue> {
+    let mut warnings = vec![];
+    let mut items = vec![];
+
+    for (context, tool_config) in &config.tools {
+        if tool_config.requires.is_empty() {
+            continue;
+        }
+
+        // Self requirements are reported below, so don't report them as a cycle
+        items.push((
+            context.clone(),
+            tool_config
+                .requires
+                .iter()
+                .filter(|require_context| *require_context != context)
+                .cloned()
+                .collect(),
+        ));
+
+        // Requirements are only enforced when installing a configured version
+        if !config.versions.contains_key(context) {
+            continue;
+        }
+
+        for require_context in &tool_config.requires {
+            if require_context == context {
+                warnings.push(Issue {
+                    issue: format!("<id>{context}</id> requires itself"),
+                    resolution: Some(format!(
+                        "Remove <id>{context}</id> from the <property>requires</property> setting of <property>[tools.\"{context}\"]</property>"
+                    )),
+                    comment: None,
+                });
+            } else if !config.versions.contains_key(require_context) {
+                warnings.push(Issue {
+                    issue: format!(
+                        "<id>{context}</id> requires <id>{require_context}</id>, but a version of it has not been configured"
+                    ),
+                    resolution: Some(format!(
+                        "Configure a version of <id>{require_context}</id> in <file>.prototools</file>"
+                    )),
+                    comment: Some(format!(
+                        "Installing <id>{context}</id> will fail until it's configured"
+                    )),
+                });
+            }
+        }
+    }
+
+    if let Err(ProtoCliError::ToolRequirementsCycle { cycle }) = sort_contexts_by_dependency(&items)
+    {
+        warnings.push(Issue {
+            issue: format!("Tool requirements form a cycle: {cycle}"),
+            resolution: Some(
+                "Remove one of these tools from the <property>requires</property> setting of the other's <property>[tools.*]</property> config"
+                    .into(),
+            ),
+            comment: Some("Installing or running these tools will fail".into()),
+        });
+    }
+
+    warnings
 }
 
 fn gather_trust_warnings(session: &ProtoSession) -> Result<Vec<Issue>, ProtoCliError> {
@@ -443,4 +510,83 @@ fn gather_lockfile_warnings(session: &ProtoSession) -> Result<Vec<Issue>, ProtoC
     }
 
     Ok(warnings)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use proto_core::{ProtoToolConfig, ToolSpec};
+
+    fn ctx(value: &str) -> ToolContext {
+        ToolContext::parse(value).unwrap()
+    }
+
+    fn create_config(versions: &[&str], tools: &[(&str, &[&str])]) -> ProtoConfig {
+        let mut config = ProtoConfig::default();
+
+        for version in versions {
+            config
+                .versions
+                .insert(ctx(version), ToolSpec::parse("1.0.0").unwrap());
+        }
+
+        for (context, requires) in tools {
+            let mut tool_config = ProtoToolConfig::default();
+            tool_config.requires = requires.iter().map(|r| ctx(r)).collect();
+
+            config.tools.insert(ctx(context), tool_config);
+        }
+
+        config
+    }
+
+    fn gather(config: &ProtoConfig) -> Vec<String> {
+        gather_requirement_warnings(config)
+            .into_iter()
+            .map(|warning| warning.issue)
+            .collect()
+    }
+
+    #[test]
+    fn no_warnings_if_reqs_configured() {
+        let config = create_config(&["npm", "node"], &[("npm", &["node"])]);
+
+        assert!(gather(&config).is_empty());
+    }
+
+    #[test]
+    fn warns_if_req_not_configured() {
+        let config = create_config(&["npm:typescript"], &[("npm:typescript", &["node"])]);
+
+        assert_eq!(
+            gather(&config),
+            [
+                "<id>npm:typescript</id> requires <id>node</id>, but a version of it has not been configured"
+            ]
+        );
+    }
+
+    #[test]
+    fn doesnt_warn_if_tool_not_configured() {
+        let config = create_config(&[], &[("npm", &["node"])]);
+
+        assert!(gather(&config).is_empty());
+    }
+
+    #[test]
+    fn warns_if_tool_requires_itself() {
+        let config = create_config(&["node"], &[("node", &["node"])]);
+
+        assert_eq!(gather(&config), ["<id>node</id> requires itself"]);
+    }
+
+    #[test]
+    fn warns_if_reqs_form_a_cycle() {
+        let config = create_config(&["a", "b"], &[("a", &["b"]), ("b", &["a"])]);
+
+        assert_eq!(
+            gather(&config),
+            ["Tool requirements form a cycle: a → b → a"]
+        );
+    }
 }

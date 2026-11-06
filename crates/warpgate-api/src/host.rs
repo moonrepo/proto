@@ -15,6 +15,14 @@ api_struct!(
         /// Whether the plugin is running in a CI environment.
         pub ci: bool,
 
+        /// Whether the plugin is targeting a platform other than the machine
+        /// it's running on, for example, when locking other platforms. When
+        /// true, the architecture, operating system, and libc describe that
+        /// platform, but executed commands and environment variables still
+        /// reflect the machine, so must not be used to inspect the platform.
+        #[serde(default)]
+        pub foreign: bool,
+
         /// The libc implementation of the host system.
         pub libc: HostLibc,
 

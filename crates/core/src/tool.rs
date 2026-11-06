@@ -19,6 +19,7 @@ use starbase_utils::{fs, hash, path};
 use std::fmt::{self, Debug};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use system_env::SystemPlatform;
 use tracing::{debug, instrument};
 use warpgate::{
     PluginContainer, PluginLocator, PluginManifest, VirtualPath, Wasm,
@@ -107,6 +108,9 @@ impl Tool {
                 manifest,
                 create_host_functions(HostData {
                     cache_dir: proto.store.cache_dir.clone(),
+                    foreign_platform: proto
+                        .is_foreign_platform()
+                        .then(|| proto.get_host_platform().to_string()),
                     http_client: Arc::clone(proto.get_plugin_loader()?.get_http_client()?),
                     virtual_paths: proto.get_virtual_paths(),
                     working_dir: proto.working_dir.clone(),
@@ -184,6 +188,43 @@ impl Tool {
     /// Return a human readable name for the tool.
     pub fn get_name(&self) -> &str {
         &self.metadata.name
+    }
+
+    /// Return the platform that the tool is installed and locked for, which is
+    /// the host machine's, unless it was loaded for another platform with
+    /// [`ProtoEnvironment::for_platform`].
+    pub fn get_platform(&self) -> &SystemPlatform {
+        self.proto.get_host_platform()
+    }
+
+    /// Return the tools that this tool requires, which are those required by
+    /// the plugin, followed by those configured with `[tools.*].requires`.
+    pub fn get_requires(&self) -> Result<Vec<ToolContext>, ProtoToolError> {
+        let mut requires = vec![];
+
+        for require in &self.metadata.requires {
+            requires.push(ToolContext::parse(require)?);
+        }
+
+        if let Some(tool_config) = self.proto.load_config()?.get_tool_config(&self.context) {
+            requires.extend(tool_config.requires.iter().cloned());
+        }
+
+        let mut list: Vec<ToolContext> = Vec::with_capacity(requires.len());
+
+        for context in requires {
+            if context == self.context {
+                return Err(ProtoToolError::RequiresItself {
+                    tool: self.context.to_string(),
+                });
+            }
+
+            if !list.contains(&context) {
+                list.push(context);
+            }
+        }
+
+        Ok(list)
     }
 
     /// Return an absolute path to a temp directory solely for this tool.
@@ -305,7 +346,7 @@ impl Tool {
         };
 
         if !self.metadata.lock_options.ignore_os_arch {
-            record.set_platform(self.proto.get_host_platform());
+            record.set_platform(self.get_platform());
         }
 
         record
