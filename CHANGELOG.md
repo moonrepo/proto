@@ -40,6 +40,7 @@
 - **WASM API**
   - Updated `HostPlatform` to also parse the operating system first, in the format of `<os>-<arch>` or `<os>-<arch>-<libc>` (for example, `linux-x64-musl`). Platforms are still formatted with the architecture first.
   - Added a `HostEnvironment.foreign` field, which is true when the plugin is targeting a platform other than the machine it's running on, like when locking other platforms with `proto lock --platform`. The `arch`, `os`, and `libc` fields describe the targeted platform, but executed commands (including PDK functions like `command_exists`) and environment variables still reflect the machine, so plugins should not use them to inspect the platform when `foreign` is true.
+  - Deprecated `ParseVersionFileInput.content` in favor of `path`, which plugins can use to read the file contents.
 
 #### 🐞 Fixes
 

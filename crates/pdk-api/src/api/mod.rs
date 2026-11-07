@@ -466,6 +466,7 @@ api_struct!(
     /// Input passed to the `parse_version_file` function.
     pub struct ParseVersionFileInput {
         /// File contents to parse/extract a version from.
+        #[deprecated(note = "Use `path` to read the file contents instead.")]
         pub content: String,
 
         /// Current tool context.
