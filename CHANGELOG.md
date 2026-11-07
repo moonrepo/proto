@@ -44,6 +44,7 @@
 #### 🐞 Fixes
 
 - Fixed the built-in schema plugin (`internal-schema`), which powers TOML, JSON, and YAML plugins, ignoring an override in `[plugins.tools]`.
+- Fixed tool requirements not being met by a `PROTO_<TOOL>_VERSION` environment variable, which failed the Node.js plugin's `bundled-npm` install when Node.js was only pinned in a version file like `.nvmrc`.
 - Fixed requirements on backend tools (for example, `npm:tsx`) being ignored when ordering installs, as they were matched by identifier only.
 - Fixed `proto mcp`'s install tool not checking requirements.
 

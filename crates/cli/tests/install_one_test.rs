@@ -918,6 +918,24 @@ work = "~2.5"
         }
 
         #[test]
+        fn passes_if_reqs_set_with_env_var() {
+            let sandbox = create_empty_proto_sandbox();
+
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("moonbase")
+                        .arg("1.0.0")
+                        .env("PROTO_MOONSTONE_VERSION", "2");
+                })
+                .success();
+
+            assert.stdout(predicate::str::contains(
+                "moonbase 1.0.0 has been installed",
+            ));
+        }
+
+        #[test]
         fn errors_if_configured_reqs_not_met() {
             let sandbox = create_empty_proto_sandbox();
             sandbox.create_file(
