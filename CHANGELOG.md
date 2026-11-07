@@ -43,6 +43,7 @@
 
 #### 🐞 Fixes
 
+- Fixed the built-in schema plugin (`internal-schema`), which powers TOML, JSON, and YAML plugins, ignoring an override in `[plugins.tools]`.
 - Fixed requirements on backend tools (for example, `npm:tsx`) being ignored when ordering installs, as they were matched by identifier only.
 - Fixed `proto mcp`'s install tool not checking requirements.
 
