@@ -94,6 +94,20 @@ pub fn testing_download_file(
 }
 
 #[plugin_fn]
+pub fn testing_get_env_vars(
+    Json(names): Json<Vec<String>>,
+) -> FnResult<Json<HashMap<String, String>>> {
+    Ok(Json(get_host_env_vars(names)?.into_iter().collect()))
+}
+
+#[plugin_fn]
+pub fn testing_set_env_vars(Json(vars): Json<HashMap<String, String>>) -> FnResult<()> {
+    set_host_env_vars(vars)?;
+
+    Ok(())
+}
+
+#[plugin_fn]
 pub fn testing_send_request(
     Json(input): Json<SendRequestInput>,
 ) -> FnResult<Json<SendRequestOutput>> {
