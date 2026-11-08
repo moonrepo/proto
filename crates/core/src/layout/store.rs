@@ -28,7 +28,7 @@ pub struct Store {
     pub temp_dir: PathBuf,
 
     #[serde(skip)]
-    shim_binary: Arc<OnceCell<Vec<u8>>>,
+    shim_binary: Arc<OnceCell<PathBuf>>,
 }
 
 impl Store {
@@ -124,18 +124,14 @@ impl Store {
     }
 
     #[instrument(skip(self))]
-    pub fn load_shim_binary(&self) -> Result<&[u8], ProtoLayoutError> {
-        let value = self.shim_binary.get_or_try_init(|| {
-            Ok::<_, ProtoLayoutError>(fs::read_file_bytes(
-                locate_proto_exe("proto-shim").ok_or_else(|| {
-                    ProtoLayoutError::MissingShimBinary {
-                        bin_dir: self.bin_dir.clone(),
-                    }
-                })?,
-            )?)
+    pub fn locate_shim_binary(&self) -> Result<&Path, ProtoLayoutError> {
+        let path = self.shim_binary.get_or_try_init(|| {
+            locate_proto_exe("proto-shim").ok_or_else(|| ProtoLayoutError::MissingShimBinary {
+                bin_dir: self.bin_dir.clone(),
+            })
         })?;
 
-        Ok(value.as_ref())
+        Ok(path)
     }
 
     #[instrument(skip(self))]
@@ -191,7 +187,7 @@ impl Store {
 
     #[instrument(skip(self))]
     pub fn create_shim(&self, shim_path: &Path) -> Result<(), ProtoLayoutError> {
-        create_shim(self.load_shim_binary()?, shim_path).map_err(|error| {
+        create_shim(self.locate_shim_binary()?, shim_path).map_err(|error| {
             ProtoLayoutError::FailedCreateShim {
                 path: shim_path.to_owned(),
                 error: Box::new(error),

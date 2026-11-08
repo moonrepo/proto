@@ -126,7 +126,7 @@ impl<'tool> Linker<'tool> {
                 shim_entry.context = Some(self.tool.context.clone());
             }
 
-            // Create the shim file by copying the source executable
+            // Create the shim file from the source executable
             if force_create || find_only && !shim.path.exists() {
                 to_create.push(shim.path);
             }
