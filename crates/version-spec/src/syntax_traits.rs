@@ -100,13 +100,15 @@ impl MatchesRequirement for Range {
 // Rather than intersecting requirements directly, which would duplicate the
 // matching rules, search for a version that satisfies both sides. Within
 // a scope, the versions that a requirement matches are contiguous (as a
-// part cannot follow a wildcard part), so if any shared version exists,
-// the lowest one is the lower bound of one of the requirements involved,
-// and only those bounds need to be checked.
+// part cannot follow a wildcard part), except for a not equal (`!=`)
+// requirement, which leaves a gap where its exact match would be. So if
+// any shared version exists, the lowest one is either the lower bound of
+// one of the requirements involved, or the version right after a gap, and
+// only those versions need to be checked.
 //
 // For releases, a lower bound is a requirement with its omitted parts
-// zeroed, the version after it for an exclusive (`>`) requirement, or
-// `0.0.0`. Pre-releases only match when a requirement opts into them on
+// zeroed, the version after it for an exclusive (`>`) requirement or the
+// end of a gap (`!=`, like `1.3.0` for `!=1.2`), or `0.0.0`. Pre-releases only match when a requirement opts into them on
 // the same version numbers, so they are only possible on the provided
 // requirement's version numbers, where a lower bound is a requirement's
 // pre-release, the pre-release after it, or the lowest possible pre-release.
@@ -373,7 +375,8 @@ impl FormatsVersion for Requirement {
                 out.push(options.separator);
                 out.push('*');
             }
-        } else if options.include_op && self.op == Op::Wildcard {
+        } else if options.include_op {
+            // An operator requires a version to parse, like `>=*`
             out.push('*');
         }
 

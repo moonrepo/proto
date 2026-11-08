@@ -114,6 +114,8 @@ mod unresolved_spec {
             "latest",
             "lts-2014",
             "^1.2",
+            "!=1.2",
+            ">=1, !=1.2.3",
             "1.2.3",
             "node-1.2.3",
             "2024-2-26",
@@ -428,6 +430,9 @@ mod unresolved_spec {
             ("1.2.*", "1.2"),
             // requirements that match any version
             ("*", "latest"),
+            // requirements that exclude a version
+            ("!=1.2", "latest"),
+            ("!=node-1.2.3", "latest"),
             // ranges
             ("^1.2 || ~1", "latest"),
             (">1, <2", "latest"),

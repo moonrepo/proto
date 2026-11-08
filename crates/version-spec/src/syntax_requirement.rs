@@ -12,13 +12,19 @@ use std::str::FromStr;
 /// The comparison operator of a requirement.
 ///
 /// Operators are ordered by the versions they match against the same
-/// version, from the lowest to the highest, for example `<1.2.3`, `=1.2.3`,
-/// `~1.2.3`, `^1.2.3`, and then `>1.2.3`.
+/// version, from the lowest to the highest, for example `<1.2.3`, `!=1.2.3`,
+/// `=1.2.3`, `~1.2.3`, `^1.2.3`, and then `>1.2.3`.
 #[derive(Copy, Clone, Debug, Default, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 pub enum Op {
     /// An exact match (`=` or `==`).
     Exact,
+
+    /// A not equal match (`!=`), which matches every version that an exact
+    /// match does not. A partial requirement excludes every version with the
+    /// defined parts, for example `!=1.2` excludes both `1.2.0` and `1.2.9`.
+    /// Unlike other operators, it never opts into pre-releases.
+    NotEqual,
 
     /// A greater than match (`>`).
     Greater,
@@ -48,6 +54,7 @@ impl Display for Op {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_str(match self {
             Self::Exact => "=",
+            Self::NotEqual => "!=",
             Self::Greater => ">",
             Self::GreaterEq => ">=",
             Self::Less => "<",
@@ -62,17 +69,19 @@ impl Display for Op {
 impl Op {
     // Operators that match from lower versions rank first, and among
     // those that start matching on the same version, the operators that
-    // stop matching on lower versions rank first
+    // stop matching on lower versions rank first. A not equal match starts
+    // on the lowest version, like a less than match, but never stops
     fn rank(self) -> u8 {
         match self {
             Self::Less => 0,
             Self::LessEq => 1,
-            Self::Exact => 2,
-            Self::Wildcard => 3,
-            Self::Tilde => 4,
-            Self::Caret => 5,
-            Self::GreaterEq => 6,
-            Self::Greater => 7,
+            Self::NotEqual => 2,
+            Self::Exact => 3,
+            Self::Wildcard => 4,
+            Self::Tilde => 5,
+            Self::Caret => 6,
+            Self::GreaterEq => 7,
+            Self::Greater => 8,
         }
     }
 }
@@ -154,6 +163,7 @@ impl Requirement {
 
         match self.op {
             Op::Exact | Op::Wildcard => self.matches_exact(version),
+            Op::NotEqual => !self.matches_exact(version),
             Op::Greater => self.matches_greater(version),
             Op::GreaterEq => self.matches_exact(version) || self.matches_greater(version),
             Op::Less => self.matches_less(version),
@@ -324,9 +334,11 @@ impl Requirement {
 
     /// Returns true if this requirement has a pre-release on the same
     /// version numbers as the provided version, allowing a pre-release
-    /// version to be matched.
+    /// version to be matched. A not equal (`!=`) requirement never allows
+    /// one, as excluding a pre-release should not include its siblings.
     pub fn matches_pre(&self, version: &Version) -> bool {
-        self.prerelease.is_some()
+        self.op != Op::NotEqual
+            && self.prerelease.is_some()
             && self.major == Some(version.major)
             && self.minor == Some(version.minor)
             && self.patch == Some(version.patch)

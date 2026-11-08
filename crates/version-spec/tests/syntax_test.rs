@@ -447,6 +447,7 @@ mod syntax {
             for (input, op) in [
                 ("=1.2.3", Op::Exact),
                 ("==1.2.3", Op::Exact),
+                ("!=1.2.3", Op::NotEqual),
                 (">1.2.3", Op::Greater),
                 (">=1.2.3", Op::GreaterEq),
                 ("<1.2.3", Op::Less),
@@ -511,9 +512,47 @@ mod syntax {
         }
 
         #[test]
+        fn parses_not_equal_with_partial() {
+            assert_eq!(
+                parse_semver_req("!=1.2").unwrap(),
+                Requirement {
+                    op: Op::NotEqual,
+                    major: Some(1),
+                    minor: Some(2),
+                    ..Default::default()
+                }
+            );
+
+            // An explicit operator is kept for a wildcard part
+            assert_eq!(
+                parse_semver_req("!=1.2.*").unwrap(),
+                Requirement {
+                    op: Op::NotEqual,
+                    major: Some(1),
+                    minor: Some(2),
+                    ..Default::default()
+                }
+            );
+
+            assert_eq!(
+                parse_semver_req("!=node-1.2.3-rc.1").unwrap(),
+                Requirement {
+                    op: Op::NotEqual,
+                    scope: Some("node".into()),
+                    major: Some(1),
+                    minor: Some(2),
+                    patch: Some(3),
+                    prerelease: Some("rc.1".into()),
+                    ..Default::default()
+                }
+            );
+        }
+
+        #[test]
         fn parses_op_with_whitespace() {
             for (input, op) in [
                 ("= 1.2.3", Op::Exact),
+                ("!= 1.2.3", Op::NotEqual),
                 ("> 1.2.3", Op::Greater),
                 (">= 1.2.3", Op::GreaterEq),
                 ("<  1.2.3", Op::Less),
@@ -600,7 +639,9 @@ mod syntax {
             assert!(parse_semver_req("=>1.2").is_err());
             assert!(parse_semver_req("=<1.2").is_err());
             assert!(parse_semver_req(">>1.2").is_err());
-            assert!(parse_semver_req("!=1.2").is_err());
+            assert!(parse_semver_req("=!1.2").is_err());
+            assert!(parse_semver_req("!1.2").is_err());
+            assert!(parse_semver_req("!==1.2").is_err());
         }
 
         #[test]
@@ -865,6 +906,27 @@ mod syntax {
                 parse_semver_range(">=1.2.7 <1.3.0").unwrap(),
                 Range {
                     clauses: vec![Clause::All(vec![req(">=1.2.7"), req("<1.3.0")])]
+                }
+            );
+
+            // Including exclusions
+            for input in [">=1.0, !=1.2.3", ">=1.0 !=1.2.3", ">=1.0 && != 1.2.3"] {
+                assert_eq!(
+                    parse_semver_range(input).unwrap(),
+                    Range {
+                        clauses: vec![Clause::All(vec![req(">=1.0"), req("!=1.2.3")])]
+                    },
+                    "input: {input}"
+                );
+            }
+
+            assert_eq!(
+                parse_calver_range(">=2024-01, !=2024-03").unwrap(),
+                Range {
+                    clauses: vec![Clause::All(vec![
+                        parse_calver_req(">=2024-01").unwrap(),
+                        parse_calver_req("!=2024-03").unwrap()
+                    ])]
                 }
             );
         }
@@ -1671,6 +1733,7 @@ mod syntax {
             for (input, op) in [
                 ("=2000-10", Op::Exact),
                 ("==2000-10", Op::Exact),
+                ("!=2000-10", Op::NotEqual),
                 (">2000-10", Op::Greater),
                 (">=2000-10", Op::GreaterEq),
                 ("<2000-10", Op::Less),
@@ -1828,7 +1891,7 @@ mod syntax {
         fn errors_invalid_ops() {
             assert!(parse_calver_req("=>2000").is_err());
             assert!(parse_calver_req(">>2000").is_err());
-            assert!(parse_calver_req("!=2000").is_err());
+            assert!(parse_calver_req("!2000").is_err());
         }
 
         #[test]
@@ -2590,11 +2653,13 @@ mod syntax {
                 sort_inputs(
                     req,
                     [
-                        ">1.2.3", ">=1.2.3", "^1.2.3", "~1.2.3", "=1.2.3", "<=1.2.3", "<1.2.3"
+                        ">1.2.3", ">=1.2.3", "^1.2.3", "~1.2.3", "=1.2.3", "!=1.2.3", "<=1.2.3",
+                        "<1.2.3"
                     ]
                 ),
                 [
-                    "<1.2.3", "<=1.2.3", "=1.2.3", "~1.2.3", "^1.2.3", ">=1.2.3", ">1.2.3"
+                    "<1.2.3", "<=1.2.3", "!=1.2.3", "=1.2.3", "~1.2.3", "^1.2.3", ">=1.2.3",
+                    ">1.2.3"
                 ]
             );
 
@@ -2741,6 +2806,77 @@ mod syntax {
 
             // Build metadata is ignored
             assert!(req("=1.2.3").matches(&ver("1.2.3+build")));
+        }
+
+        #[test]
+        fn matches_not_equal() {
+            assert!(req("!=1.2.3").matches(&ver("1.2.4")));
+            assert!(req("!=1.2.3").matches(&ver("0.0.0")));
+            assert!(!req("!=1.2.3").matches(&ver("1.2.3")));
+
+            // Build metadata is ignored
+            assert!(!req("!=1.2.3").matches(&ver("1.2.3+build")));
+
+            // A partial excludes every version with the defined parts
+            assert!(!req("!=1.2").matches(&ver("1.2.0")));
+            assert!(!req("!=1.2").matches(&ver("1.2.9")));
+            assert!(req("!=1.2").matches(&ver("1.3.0")));
+            assert!(req("!=1.2").matches(&ver("1.1.9")));
+            assert!(!req("!=1").matches(&ver("1.9.9")));
+            assert!(req("!=1").matches(&ver("2.0.0")));
+            assert!(!req("!=1.*").matches(&ver("1.9.9")));
+
+            // A wildcard excludes every version
+            assert!(!req("!=*").matches(&ver("1.2.3")));
+
+            // A scoped requirement only matches the same scope
+            assert!(req("!=node-1.2.3").matches(&ver("node-1.2.4")));
+            assert!(!req("!=node-1.2.3").matches(&ver("node-1.2.3")));
+            assert!(!req("!=node-1.2.3").matches(&ver("1.2.4")));
+
+            assert!(req("!=2024-2").matches(&ver("2024-3-1")));
+            assert!(!req("!=2024-2").matches(&ver("2024-2-15")));
+        }
+
+        #[test]
+        fn matches_not_equal_prereleases() {
+            // An exclusion never opts into pre-releases, including
+            // when it excludes a pre-release
+            assert!(!req("!=1.2.3").matches(&ver("1.2.4-alpha")));
+            assert!(!req("!=1.2.3-alpha").matches(&ver("1.2.3-beta")));
+            assert!(!range(">=1.0, !=1.2.3-alpha").matches(&ver("1.2.3-beta")));
+
+            // While another requirement in the clause still can
+            let clause = range(">=1.2.3-alpha, !=1.2.3-beta");
+
+            assert!(clause.matches(&ver("1.2.3-alpha")));
+            assert!(!clause.matches(&ver("1.2.3-beta")));
+            assert!(clause.matches(&ver("1.2.3-beta.1")));
+            assert!(clause.matches(&ver("1.2.3")));
+
+            // A release exclusion doesn't exclude its pre-releases
+            assert!(range(">=1.2.3-alpha, !=1.2.3").matches(&ver("1.2.3-beta")));
+            assert!(!range(">=1.2.3-alpha, !=1.2.3").matches(&ver("1.2.3")));
+
+            // And neither does a partial one, as `=1.2` doesn't match them either
+            assert!(range(">=1.2.0-alpha, !=1.2").matches(&ver("1.2.0-beta")));
+            assert!(!range(">=1.2.0-alpha, =1.2").matches(&ver("1.2.0-beta")));
+            assert!(!range(">=1.2.0-alpha, !=1.2").matches(&ver("1.2.0")));
+        }
+
+        #[test]
+        fn matches_not_equal_clauses() {
+            let clause = range(">=1.0, !=1.2.3, !=1.4");
+
+            assert!(clause.matches(&ver("1.0.0")));
+            assert!(clause.matches(&ver("1.2.4")));
+            assert!(clause.matches(&ver("1.5.0")));
+            assert!(!clause.matches(&ver("0.9.0")));
+            assert!(!clause.matches(&ver("1.2.3")));
+            assert!(!clause.matches(&ver("1.4.2")));
+
+            // Either side of an or
+            assert!(range("!=1.2.3 || =1.2.3").matches(&ver("1.2.3")));
         }
 
         #[test]
@@ -2998,6 +3134,28 @@ mod syntax {
         }
 
         #[test]
+        fn matches_not_equal() {
+            // A shared version may be right after the excluded version
+            assert!(range("!=1.2.3").matches_req(&req("~1.2.3")));
+            assert!(range(">=1.2.3, !=1.2.3").matches_req(&req("<=1.2.4")));
+            assert!(!range(">=1.2.3, !=1.2.3").matches_req(&req("<=1.2.3")));
+            assert!(!range("!=1.2.3").matches_req(&req("=1.2.3")));
+            assert!(range("^1").matches_req(&req("!=1.2.3")));
+
+            // Or after the excluded parts of a partial
+            assert!(range("!=1.2").matches_req(&req(">=1.2")));
+            assert!(!range("!=1.2").matches_req(&req("~1.2")));
+            assert!(range(">=1.2, !=1.2, !=1.3").matches_req(&req("^1")));
+            assert!(!range(">=1.2, !=1.2, !=1.3").matches_req(&req("<1.4")));
+
+            // Which never opts into pre-releases, so only releases are shared
+            assert!(!range("!=1.2.3-alpha").matches_req(&req("=1.2.3-beta")));
+            assert!(!range("=1.2.3-beta").matches_req(&req("!=1.2.3-alpha")));
+            assert!(range("^1").matches_req(&req("!=1.2.3-alpha")));
+            assert!(range(">=1.2.3-alpha, !=1.2.3-alpha").matches_req(&req("=1.2.3-beta")));
+        }
+
+        #[test]
         fn matches_or_clauses() {
             let or = range("^1 || ^3");
 
@@ -3038,6 +3196,15 @@ mod syntax {
                 ">=node-1 <bun-2",
                 "node-1.2.3 - node-2.3.1",
                 "node-1.2.3 - 2.0.0",
+                "!=1.2.3",
+                "!=1.2",
+                "!=0",
+                ">=1.2 !=1.2.0 !=1.2.1",
+                ">=1.2.3 !=1.2.3 <1.2.4",
+                ">=1.2.3-alpha !=1.2.3-alpha",
+                ">=1.2.3-alpha !=1.2.3-alpha.0 <1.2.3",
+                "!=1.2.3-beta",
+                ">=node-1 !=node-1.2",
             ];
 
             let reqs = [
@@ -3063,6 +3230,12 @@ mod syntax {
                 "2.3.1-alpha",
                 "node-1.3",
                 "bun-1",
+                "!=0.0.0",
+                "!=1.2.3",
+                "!=1.2",
+                "!=2",
+                "!=1.2.3-alpha",
+                "!=node-1.2",
             ];
 
             let mut versions = vec![];

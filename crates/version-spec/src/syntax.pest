@@ -22,7 +22,7 @@ build_anchor = _{ "+" ~ build }
 // " "* would otherwise swallow the space that a space-only "and" matches
 and      = { " "* ~ ("&&" | ",") ~ " "* | " "+ }
 or       = { " "* ~ "||" ~ " "* }
-op       = { "==" | ">=" | "<=" | ">" | "<" | "~" | "^" | "=" }
+op       = { "==" | "!=" | ">=" | "<=" | ">" | "<" | "~" | "^" | "=" }
 req_wild = { "*" | "x" | "X" }
 
 // Repetition never backtracks, so stop before a "-" that leads into the

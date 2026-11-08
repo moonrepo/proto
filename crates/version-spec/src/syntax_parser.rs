@@ -243,6 +243,7 @@ fn handle_requirement(
                 has_op = true;
                 req.op = match inner.as_str() {
                     "=" | "==" => Op::Exact,
+                    "!=" => Op::NotEqual,
                     ">" => Op::Greater,
                     ">=" => Op::GreaterEq,
                     "<" => Op::Less,

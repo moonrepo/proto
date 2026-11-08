@@ -161,7 +161,15 @@ mod syntax_format {
 
         #[test]
         fn includes_wildcards_by_default() {
-            for (input, expected) in [("*", "*"), ("1.*", "1.*"), ("1.2.*", "1.2.*")] {
+            for (input, expected) in [
+                ("*", "*"),
+                ("1.*", "1.*"),
+                ("1.2.*", "1.2.*"),
+                // A wildcard with an operator keeps it, so that it can be parsed
+                ("=*", "=*"),
+                (">=*", ">=*"),
+                ("!=*", "!=*"),
+            ] {
                 assert_eq!(
                     req(input).to_formatted_string(&FormatOptions::default()),
                     expected,
