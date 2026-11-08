@@ -368,7 +368,7 @@ export interface NativeInstallInput {
 	 * Virtual directory for temporary files, unique to this install,
 	 * and removed once the install finishes.
 	 */
-	temp_dir: VirtualPath;
+	temp_dir?: VirtualPath;
 }
 
 export type Checksum = string;
@@ -413,7 +413,7 @@ export interface DownloadPrebuiltInput {
 	 * Virtual directory for temporary files, which the pre-built is also
 	 * downloaded to. Unique to this download, and removed once it finishes.
 	 */
-	temp_dir: VirtualPath;
+	temp_dir?: VirtualPath;
 }
 
 /** Output returned by the `download_prebuilt` function. */
@@ -829,5 +829,5 @@ export interface BuildInstructionsInput {
 	 * Virtual directory for temporary files, unique to this install,
 	 * and removed once the install finishes.
 	 */
-	temp_dir: VirtualPath;
+	temp_dir?: VirtualPath;
 }

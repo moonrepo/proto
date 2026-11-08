@@ -569,6 +569,7 @@ api_struct!(
 
         /// Virtual directory for temporary files, unique to this install,
         /// and removed once the install finishes.
+        #[serde(default)]
         pub temp_dir: VirtualPath,
     }
 );
@@ -631,6 +632,7 @@ api_struct!(
 
         /// Virtual directory for temporary files, which the pre-built is also
         /// downloaded to. Unique to this download, and removed once it finishes.
+        #[serde(default)]
         pub temp_dir: VirtualPath,
     }
 );
