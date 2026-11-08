@@ -173,11 +173,11 @@ fn handle_version(pair: Pair<Rule>, version: &mut Version) -> Result<(), pest::e
     for inner in pair.into_inner() {
         match inner.as_rule() {
             // Extract information
-            Rule::scope => version.scope = Some(CompactString::new(inner.as_str())),
+            Rule::scope => version.scope = Some(inner.as_str().into()),
 
-            Rule::pre => version.prerelease = Some(CompactString::new(inner.as_str())),
+            Rule::pre => version.prerelease = Some(inner.as_str().into()),
 
-            Rule::build => version.build = Some(CompactString::new(inner.as_str())),
+            Rule::build => version.build = Some(inner.as_str().into()),
 
             Rule::major => {
                 version.kind = VersionKind::Semantic;
@@ -190,6 +190,10 @@ fn handle_version(pair: Pair<Rule>, version: &mut Version) -> Result<(), pest::e
 
             Rule::patch => {
                 version.patch = parse_int(inner, "failed to parse patch version")?;
+            }
+
+            Rule::revision => {
+                version.revision = Some(parse_int(inner, "failed to parse revision")?);
             }
 
             Rule::year => {
@@ -232,9 +236,9 @@ fn handle_requirement(
     for inner in pair.into_inner() {
         match inner.as_rule() {
             // Extract information
-            Rule::req_scope => req.scope = Some(CompactString::new(inner.as_str())),
+            Rule::req_scope => req.scope = Some(inner.as_str().into()),
 
-            Rule::pre => req.prerelease = Some(CompactString::new(inner.as_str())),
+            Rule::pre => req.prerelease = Some(inner.as_str().into()),
 
             // Build metadata is accepted for compatibility, but ignored
             Rule::build => {}
@@ -243,6 +247,7 @@ fn handle_requirement(
                 has_op = true;
                 req.op = match inner.as_str() {
                     "=" | "==" => Op::Exact,
+                    "!=" => Op::NotEqual,
                     ">" => Op::Greater,
                     ">=" => Op::GreaterEq,
                     "<" => Op::Less,
@@ -285,6 +290,18 @@ fn handle_requirement(
                 verify_wildcard_order(req.minor, req.patch, span)?;
 
                 if !has_op && req.patch.is_none() {
+                    req.op = Op::Wildcard;
+                }
+            }
+
+            Rule::revision_req => {
+                let span = inner.as_span();
+
+                req.revision = parse_int_opt(inner, "failed to parse revision")?;
+
+                verify_wildcard_order(req.patch, req.revision, span)?;
+
+                if !has_op && req.revision.is_none() {
                     req.op = Op::Wildcard;
                 }
             }

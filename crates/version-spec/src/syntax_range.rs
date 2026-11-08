@@ -82,18 +82,23 @@ impl Clause {
         }
     }
 
-    // A bounded range is converted into requirements, which drops
-    // the build metadata, so it must also be compared separately
-    fn to_sorted_requirements(&self) -> Vec<Cow<'_, Requirement>> {
-        let mut reqs = match self {
+    // The requirements that all must match, in which a bounded
+    // range is converted into `>=lower && <=upper`
+    pub(crate) fn to_requirements(&self) -> Vec<Cow<'_, Requirement>> {
+        match self {
             Self::All(reqs) => reqs.iter().map(Cow::Borrowed).collect(),
             Self::Between(lower, upper) => vec![
                 Cow::Owned(lower.to_requirement(Op::GreaterEq)),
                 Cow::Owned(upper.to_requirement(Op::LessEq)),
             ],
             Self::Only(req) => vec![Cow::Borrowed(req)],
-        };
+        }
+    }
 
+    // A bounded range is converted into requirements, which drops
+    // the build metadata, so it must also be compared separately
+    fn to_sorted_requirements(&self) -> Vec<Cow<'_, Requirement>> {
+        let mut reqs = self.to_requirements();
         reqs.sort();
         reqs
     }

@@ -95,6 +95,46 @@ mod syntax_format {
         }
 
         #[test]
+        fn includes_revision() {
+            for input in [
+                "18.0.2.1",
+                "1.2.3.0",
+                "v1.2.3.4-rc.1+build",
+                "temurin-18.0.2.1",
+            ] {
+                assert_eq!(
+                    ver(input).to_formatted_string(&FormatOptions::default()),
+                    input.trim_start_matches('v'),
+                    "input: {input}"
+                );
+            }
+
+            // Unless excluded, including with the patch
+            assert_eq!(
+                ver("18.0.2.1").to_formatted_string(&FormatOptions {
+                    include_revision: false,
+                    ..Default::default()
+                }),
+                "18.0.2"
+            );
+            assert_eq!(
+                ver("18.0.2.1").to_formatted_string(&FormatOptions {
+                    include_patch: false,
+                    ..Default::default()
+                }),
+                "18.0"
+            );
+
+            assert_eq!(
+                ver("18.0.2.1").to_formatted_string(&FormatOptions {
+                    pad_revision: Some(3),
+                    ..Default::default()
+                }),
+                "18.0.2.001"
+            );
+        }
+
+        #[test]
         fn pads_parts() {
             assert_eq!(
                 ver("1.2.3").to_formatted_string(&FormatOptions {
@@ -161,13 +201,53 @@ mod syntax_format {
 
         #[test]
         fn includes_wildcards_by_default() {
-            for (input, expected) in [("*", "*"), ("1.*", "1.*"), ("1.2.*", "1.2.*")] {
+            for (input, expected) in [
+                ("*", "*"),
+                ("1.*", "1.*"),
+                ("1.2.*", "1.2.*"),
+                // A wildcard with an operator keeps it, so that it can be parsed
+                ("=*", "=*"),
+                (">=*", ">=*"),
+                ("!=*", "!=*"),
+            ] {
                 assert_eq!(
                     req(input).to_formatted_string(&FormatOptions::default()),
                     expected,
                     "input: {input}"
                 );
             }
+        }
+
+        #[test]
+        fn includes_revision() {
+            for (input, expected) in [
+                ("=18.0.2.1", "=18.0.2.1"),
+                (">=node-1.2.3.0-rc.1", ">=node-1.2.3.0-rc.1"),
+                ("1.2.3.*", "1.2.3.*"),
+                ("1.2.3.x", "1.2.3.*"),
+                ("=1.2.3.*", "=1.2.3"),
+            ] {
+                assert_eq!(
+                    req(input).to_formatted_string(&FormatOptions::default()),
+                    expected,
+                    "input: {input}"
+                );
+            }
+
+            assert_eq!(
+                req("=18.0.2.1").to_formatted_string(&FormatOptions {
+                    include_revision: false,
+                    ..Default::default()
+                }),
+                "=18.0.2"
+            );
+            assert_eq!(
+                req("1.2.3.*").to_formatted_string(&FormatOptions {
+                    include_op: false,
+                    ..Default::default()
+                }),
+                "1.2.3"
+            );
         }
 
         #[test]

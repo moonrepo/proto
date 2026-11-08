@@ -311,10 +311,14 @@ impl<'tool> Resolver<'tool> {
     }
 
     // Some requirements like `next-12` are actually aliases for a specific version,
-    // and should not be treated as a scoped requirement like `~next-12`.
+    // and should not be treated as a scoped requirement like `~next-12`. Only
+    // operators that match the alias's own versions apply, as resolving `!=next-12`
+    // or `<next-12` to the alias would do the opposite of what was requested.
     fn is_scoped_req_an_alias(&self, candidate: &UnresolvedVersionSpec) -> Option<String> {
         match candidate {
-            UnresolvedVersionSpec::Requirement(req) => {
+            UnresolvedVersionSpec::Requirement(req)
+                if matches!(req.op, Op::Tilde | Op::Exact | Op::Wildcard) =>
+            {
                 let mut alias = String::new();
 
                 if let Some(scope) = &req.scope {

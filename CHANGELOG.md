@@ -23,6 +23,13 @@
 
 ## Next
 
+#### 💥 Breaking
+
+- **WASM API**
+  - Changed the `scope`, `prerelease`, and `build` fields of `Version`, and the `scope` and `prerelease` fields of `Requirement`, from `CompactString` to a new `SharedString` type, which is a single pointer and cheap to clone. This reduces the size of `Version` from 88 to 48 bytes, and `Requirement` from 80 to 56 bytes, as tools may load thousands of versions.
+    - `SharedString` dereferences to `str`, and converts from and compares with `&str`, `String`, and `CompactString`, so most code is unchanged, like `version.prerelease.as_deref()` and `Some("alpha".into())`. Code that requires a `CompactString` must convert it with `.into()`.
+    - Versions and requirements are still serialized as strings, so plugins built with an older PDK are not affected.
+
 #### 🚀 Updates
 
 - Added a `proto lock [tool] [spec]` command, which resolves versions, and records the checksum of each tool's pre-built in the lockfile, without installing them. (#1129)
@@ -37,7 +44,20 @@
   - Requirements that form a cycle now error, instead of waiting forever when installing.
   - `proto diagnose` warns about requirements without a configured version, and cycles.
   - This setting is security-sensitive, and is ignored in untrusted configs.
+- Added support for `!=` (not equal) version requirements, which match every version except the one defined, and are typically combined with other requirements, for example, `>=1.2, !=1.2.3`.
+  - A partial requirement excludes every version with the defined parts, for example, `!=1.2` excludes both `1.2.0` and `1.2.9`.
+  - Unlike other requirements, a `!=` requirement never allows pre-releases to match, even when it excludes a pre-release.
+- Added support for a 4th number (a revision) in semantic versions, requirements, and ranges, for example, `18.0.2.1`, `>=18.0.2.1`, and `18.0.2.*`. Calendar versions do not support a revision.
+  - A version without a revision matches and orders like a revision of 0, but is not equal to one, so that `1.2.3` and `1.2.3.0` both remain as written.
+  - A requirement without a revision matches any revision, for example, `=18.0.2`, `~18.0.2`, and `<=18.0.2` all match `18.0.2.1`, while `>18.0.2` does not. A version like `18.0.2` is still resolved exactly, so use `~18.0.2` or `18.0.2.*` to resolve the latest revision.
+  - A caret requirement with a major, minor, and patch of 0 locks the revision, for example, `^0.0.0.4` only matches `0.0.0.4`, while `^0.0.3` matches `0.0.3.7`.
 - **WASM API**
+  - Added `Version.revision` and `Requirement.revision` fields, and `FormatOptions.include_revision` and `FormatOptions.pad_revision` fields.
+  - Added a `normalize_version` function, which converts a version in a format that some tools publish into one that proto can parse, by separating an attached pre-release that starts with a letter, and removing leading zeros. For example, `3.15.0rc2` becomes `3.15.0-rc.2`, `3.0rc1` becomes `3.0.0-rc.1`, `3.13.0t` becomes `3.13.0-t`, and `2021.01.07` becomes `2021.1.7`. Values that already parse are not changed, and neither are pre-releases that couldn't be converted back exactly, like `1.0.0rc.1`.
+  - Added a `FormatOptions.attach_prerelease` field, which formats the pre-release without separators (for example, `3.15.0rc2`), to convert a normalized version back into the tool's format.
+  - Added a `MatchesRange` trait, implemented for `Range`, `Clause`, and `Requirement`, whose `matches_range` method returns true if two ranges share at least one version. Unlike checking each requirement of a clause with `matches_req`, all of them must be satisfied by the same version, so `>=1.2.3 !=1.2.3` does not overlap `<=1.2.3`.
+  - Updated `UnresolvedVersionSpec.to_partial_string` to return "latest" for `!=` requirements.
+  - Plugins built with an older PDK fail to parse `!=` requirements and versions with a revision, and must be rebuilt to support them.
   - Updated `HostPlatform` to also parse the operating system first, in the format of `<os>-<arch>` or `<os>-<arch>-<libc>` (for example, `linux-x64-musl`). Platforms are still formatted with the architecture first.
   - Added a `HostEnvironment.foreign` field, which is true when the plugin is targeting a platform other than the machine it's running on, like when locking other platforms with `proto lock --platform`. The `arch`, `os`, and `libc` fields describe the targeted platform, but executed commands (including PDK functions like `command_exists`) and environment variables still reflect the machine, so plugins should not use them to inspect the platform when `foreign` is true.
   - Deprecated `ParseVersionFileInput.content` in favor of `path`, which plugins can use to read the file contents.
@@ -49,6 +69,8 @@
 
 #### 🐞 Fixes
 
+- Fixed scoped requirements with an operator other than `~` or `=` (for example, `<next-12`) resolving to an alias of the same name (`next-12`), which could select a version that the requirement excludes.
+- Fixed requirements with both an operator and a wildcard (for example, `>=*`) being formatted without the wildcard, which could not be parsed again.
 - Fixed the built-in schema plugin (`internal-schema`), which powers TOML, JSON, and YAML plugins, ignoring an override in `[plugins.tools]`.
 - Fixed tool requirements not being met by a `PROTO_<TOOL>_VERSION` environment variable, which failed the Node.js plugin's `bundled-npm` install when Node.js was only pinned in a version file like `.nvmrc`.
 - Fixed requirements on backend tools (for example, `npm:tsx`) being ignored when ordering installs, as they were matched by identifier only.

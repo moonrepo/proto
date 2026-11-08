@@ -22,7 +22,7 @@ build_anchor = _{ "+" ~ build }
 // " "* would otherwise swallow the space that a space-only "and" matches
 and      = { " "* ~ ("&&" | ",") ~ " "* | " "+ }
 or       = { " "* ~ "||" ~ " "* }
-op       = { "==" | ">=" | "<=" | ">" | "<" | "~" | "^" | "=" }
+op       = { "==" | "!=" | ">=" | "<=" | ">" | "<" | "~" | "^" | "=" }
 req_wild = { "*" | "x" | "X" }
 
 // Repetition never backtracks, so stop before a "-" that leads into the
@@ -56,25 +56,28 @@ req_scope_anchor = _{ req_scope ~ "-" }
 
 // ----- SEMANTIC VERSIONS -----
 
-num   = _{ "0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT* }
-major =  { num }
-minor =  { num }
-patch =  { num }
+num      = _{ "0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT* }
+major    =  { num }
+minor    =  { num }
+patch    =  { num }
+revision =  { num }
 
-semver_version = _{ major ~ "." ~ minor ~ "." ~ patch }
+// An optional 4th number, like the "1" in "18.0.2.1"
+semver_version = _{ major ~ "." ~ minor ~ "." ~ patch ~ ("." ~ revision)? }
 semver         =  { (semver_version | scope_anchor ~ semver_version | v_prefix ~ semver_version) ~ pre_anchor? ~ build_anchor? }
 
 parse_semver = { SOI ~ semver ~ EOI }
 
 // ----- SEMANTIC REQUIREMENTS -----
 
-num_req   = _{ num | req_wild }
-major_req =  { num_req }
-minor_req =  { num_req }
-patch_req =  { num_req }
+num_req      = _{ num | req_wild }
+major_req    =  { num_req }
+minor_req    =  { num_req }
+patch_req    =  { num_req }
+revision_req =  { num_req }
 
-semver_req_version = _{ major_req ~ ("." ~ minor_req)? ~ ("." ~ patch_req)? }
-semver_req_full    = _{ major_req ~ "." ~ minor_req ~ "." ~ patch_req }
+semver_req_version = _{ major_req ~ ("." ~ minor_req ~ ("." ~ patch_req ~ ("." ~ revision_req)?)?)? }
+semver_req_full    = _{ major_req ~ "." ~ minor_req ~ "." ~ patch_req ~ ("." ~ revision_req)? }
 
 // A pre-release on a partial version must start with a letter, so that a
 // dashed calver, like "2000-2", is not consumed as a digit pre-release

@@ -1,3 +1,4 @@
+use crate::shared_string::SharedString;
 use crate::syntax_range::{Clause, Range};
 use crate::syntax_requirement::{Op, Requirement};
 use crate::syntax_version::{Version, VersionKind};
@@ -68,143 +69,224 @@ pub trait MatchesRequirement {
 
 impl MatchesRequirement for Clause {
     fn matches_req(&self, req: &Requirement) -> bool {
-        match self {
-            Clause::All(reqs) => has_shared_version(req, reqs, |version| self.matches(version)),
-            Clause::Between(lower, upper) => has_shared_version(
-                req,
-                &[
-                    lower.to_requirement(Op::GreaterEq),
-                    upper.to_requirement(Op::LessEq),
-                ],
-                |version| self.matches(version),
-            ),
-            Clause::Only(other) => {
-                has_shared_version(req, std::slice::from_ref(other), |version| {
-                    self.matches(version)
-                })
-            }
-        }
+        let reqs = self.to_requirements();
+        let bounds = std::iter::once(req)
+            .chain(reqs.iter().map(AsRef::as_ref))
+            .collect::<Vec<_>>();
+
+        has_shared_version(&bounds, |version| {
+            req.matches(version) && self.matches(version)
+        })
     }
 }
 
 impl MatchesRequirement for Range {
     fn matches_req(&self, req: &Requirement) -> bool {
         if self.clauses.is_empty() {
-            return has_shared_version(req, &[], |version| self.matches(version));
+            return has_shared_version(&[req], |version| {
+                req.matches(version) && self.matches(version)
+            });
         }
 
         self.clauses.iter().any(|clause| clause.matches_req(req))
     }
 }
 
+/// Trait for matching a range against the implementing type.
+pub trait MatchesRange {
+    /// Returns true if the provided range overlaps this shape, in which
+    /// at least one version satisfies both, following the same rules as
+    /// [`MatchesVersion`]. For example, `>=1.5 <2` overlaps `^1.2 || ^3`,
+    /// as both are satisfied by `1.5.0`. Unlike checking each requirement
+    /// with [`MatchesRequirement`], the requirements of a clause must all
+    /// be satisfied by the same version, for example `>=1.2.3 !=1.2.3`
+    /// does not overlap `<=1.2.3`.
+    fn matches_range(&self, range: &Range) -> bool;
+}
+
+impl MatchesRange for Requirement {
+    fn matches_range(&self, range: &Range) -> bool {
+        range.matches_req(self)
+    }
+}
+
+impl MatchesRange for Clause {
+    fn matches_range(&self, range: &Range) -> bool {
+        let own = self.to_requirements();
+
+        // An empty range has no requirements of its own
+        if range.clauses.is_empty() {
+            let bounds = own.iter().map(AsRef::as_ref).collect::<Vec<_>>();
+
+            return has_shared_version(&bounds, |version| {
+                self.matches(version) && range.matches(version)
+            });
+        }
+
+        range.clauses.iter().any(|clause| {
+            let other = clause.to_requirements();
+            let bounds = own
+                .iter()
+                .chain(&other)
+                .map(AsRef::as_ref)
+                .collect::<Vec<_>>();
+
+            has_shared_version(&bounds, |version| {
+                self.matches(version) && clause.matches(version)
+            })
+        })
+    }
+}
+
+impl MatchesRange for Range {
+    fn matches_range(&self, range: &Range) -> bool {
+        if !self.clauses.is_empty() {
+            return self
+                .clauses
+                .iter()
+                .any(|clause| clause.matches_range(range));
+        }
+
+        if !range.clauses.is_empty() {
+            return range
+                .clauses
+                .iter()
+                .any(|clause| clause.matches_range(self));
+        }
+
+        has_shared_version(&[], |version| {
+            self.matches(version) && range.matches(version)
+        })
+    }
+}
+
 // Rather than intersecting requirements directly, which would duplicate the
-// matching rules, search for a version that satisfies both sides. Within
-// a scope, the versions that a requirement matches are contiguous (as a
-// part cannot follow a wildcard part), so if any shared version exists,
-// the lowest one is the lower bound of one of the requirements involved,
-// and only those bounds need to be checked.
+// matching rules, search for a version that satisfies both sides, using the
+// requirements of both sides as bounds. Within a scope, the versions that a
+// requirement matches are contiguous (as a part cannot follow a wildcard
+// part), except for a not equal (`!=`) requirement, which leaves a gap where
+// its exact match would be. So if any shared version exists, the lowest one
+// is either the lower bound of one of the requirements involved, or the
+// version right after a gap, and only those versions need to be checked.
 //
-// For releases, a lower bound is a requirement with its omitted parts
-// zeroed, the version after it for an exclusive (`>`) requirement, or
-// `0.0.0`. Pre-releases only match when a requirement opts into them on
-// the same version numbers, so they are only possible on the provided
-// requirement's version numbers, where a lower bound is a requirement's
-// pre-release, the pre-release after it, or the lowest possible pre-release.
+// For releases, a lower bound is a requirement with its omitted parts zeroed,
+// the version after it for an exclusive (`>`) requirement or the end of a gap
+// (`!=`, like `1.3.0` for `!=1.2`), or `0.0.0`. Pre-releases only match when
+// a requirement on each side opts into them on the same version numbers, so
+// they are only possible on the version numbers of a requirement with a
+// pre-release, where a lower bound is a requirement's pre-release, the
+// pre-release after it, or the lowest possible pre-release.
 //
 // A scoped requirement only matches its own scope, so a shared version can
 // only exist within the first scope found. When the scopes disagree, no
-// version satisfies both sides, so every check fails as expected
-fn has_shared_version(
-    req: &Requirement,
-    bounds: &[Requirement],
-    matches: impl Fn(&Version) -> bool,
-) -> bool {
-    let scope = req
-        .scope
-        .as_deref()
-        .or_else(|| bounds.iter().find_map(|bound| bound.scope.as_deref()));
-    let all_bounds = || std::iter::once(req).chain(bounds);
+// version satisfies both sides, so every check fails as expected. The kind
+// does not affect matching, so the first one found is used
+fn has_shared_version(bounds: &[&Requirement], matches: impl Fn(&Version) -> bool) -> bool {
+    // Candidates share the bounds' strings instead of allocating their own
+    let scope = bounds.iter().find_map(|bound| bound.scope.clone());
+    let kind = bounds.first().map(|bound| bound.kind).unwrap_or_default();
 
-    let check = |major: u32, minor: u32, patch: u32, prerelease: Option<&str>| {
-        let version = Version {
-            kind: req.kind,
-            scope: scope.map(Into::into),
+    let check = |(major, minor, patch, revision): Numbers, prerelease: Option<SharedString>| {
+        matches(&Version {
+            kind,
+            scope: scope.clone(),
             major,
             minor,
             patch,
-            prerelease: prerelease.map(Into::into),
+            revision,
+            prerelease,
             build: None,
-        };
-
-        req.matches(&version) && matches(&version)
+        })
     };
 
     // Releases
-    if check(0, 0, 0, None) {
+    if check((0, 0, 0, None), None) {
         return true;
     }
 
-    for bound in all_bounds() {
+    for bound in bounds {
         let Some(major) = bound.major else {
             continue;
         };
 
-        if check(
+        let numbers = (
             major,
             bound.minor.unwrap_or(0),
             bound.patch.unwrap_or(0),
-            None,
-        ) {
+            bound.revision,
+        );
+
+        if check(numbers, None) {
             return true;
         }
 
-        if let Some((major, minor, patch)) = next_release(major, bound.minor, bound.patch)
-            && check(major, minor, patch, None)
+        if let Some(numbers) = next_release(major, bound.minor, bound.patch, bound.revision)
+            && check(numbers, None)
         {
             return true;
         }
     }
 
-    // Pre-releases
-    let (Some(major), Some(minor), Some(patch), Some(_)) =
-        (req.major, req.minor, req.patch, &req.prerelease)
-    else {
-        return false;
-    };
+    // Pre-releases, in which an omitted revision is the same as 0
+    bounds.iter().any(|bound| {
+        let (Some(major), Some(minor), Some(patch), Some(_)) =
+            (bound.major, bound.minor, bound.patch, &bound.prerelease)
+        else {
+            return false;
+        };
 
-    // A numeric identifier has the lowest precedence, and fewer
-    // identifiers have a lower precedence than more
-    if check(major, minor, patch, Some("0")) {
-        return true;
-    }
+        let numbers = (major, minor, patch, bound.revision);
 
-    all_bounds().any(|bound| {
-        bound.prerelease.as_deref().is_some_and(|pre| {
-            check(major, minor, patch, Some(pre))
-                || check(major, minor, patch, Some(&format!("{pre}.0")))
-        })
+        // A numeric identifier has the lowest precedence, and fewer
+        // identifiers have a lower precedence than more
+        check(numbers, Some("0".into()))
+            || bounds.iter().any(|bound| {
+                bound.prerelease.as_ref().is_some_and(|pre| {
+                    check(numbers, Some(pre.clone()))
+                        || check(numbers, Some(format!("{pre}.0").into()))
+                })
+            })
     })
 }
 
+// The major, minor, patch, and revision numbers of a version
+type Numbers = (u32, u32, u32, Option<u32>);
+
 // Increments the lowest defined part, carrying into
 // the higher parts when the maximum is reached
-fn next_release(major: u32, minor: Option<u32>, patch: Option<u32>) -> Option<(u32, u32, u32)> {
-    match (minor, patch) {
-        (Some(minor), Some(patch)) => patch
+fn next_release(
+    major: u32,
+    minor: Option<u32>,
+    patch: Option<u32>,
+    revision: Option<u32>,
+) -> Option<Numbers> {
+    match (minor, patch, revision) {
+        (Some(minor), Some(patch), Some(revision)) => revision
             .checked_add(1)
-            .map(|patch| (major, minor, patch))
-            .or_else(|| next_release(major, Some(minor), None)),
-        (Some(minor), None) => minor
+            .map(|revision| (major, minor, patch, Some(revision)))
+            .or_else(|| next_release(major, Some(minor), Some(patch), None)),
+        (Some(minor), Some(patch), None) => patch
             .checked_add(1)
-            .map(|minor| (major, minor, 0))
-            .or_else(|| next_release(major, None, None)),
-        _ => major.checked_add(1).map(|major| (major, 0, 0)),
+            .map(|patch| (major, minor, patch, None))
+            .or_else(|| next_release(major, Some(minor), None, None)),
+        (Some(minor), None, _) => minor
+            .checked_add(1)
+            .map(|minor| (major, minor, 0, None))
+            .or_else(|| next_release(major, None, None, None)),
+        _ => major.checked_add(1).map(|major| (major, 0, 0, None)),
     }
 }
 
 /// Options for formatting a version into a string.
 #[derive(Debug, Clone)]
 pub struct FormatOptions {
+    /// Whether to attach the pre-release to the version, without the `-`
+    /// separator, and without the `.` between its leading label and number,
+    /// for example `3.15.0rc2` instead of `3.15.0-rc.2`. This is the reverse
+    /// of [`normalize_version`](crate::normalize_version). A pre-release that
+    /// doesn't start with a letter keeps the `-`, as it would otherwise run
+    /// into the version.
+    pub attach_prerelease: bool,
     /// Whether to include the comparison operator, and wildcard placeholders,
     /// for requirements.
     pub include_op: bool,
@@ -214,6 +296,9 @@ pub struct FormatOptions {
     pub include_scope: bool,
     /// Whether to include the patch version.
     pub include_patch: bool,
+    /// Whether to include the revision (the 4th version number), if defined.
+    /// Requires the patch version to be included.
+    pub include_revision: bool,
     /// Whether to include the pre-release information.
     pub include_prerelease: bool,
     /// Whether to include the build metadata.
@@ -224,6 +309,8 @@ pub struct FormatOptions {
     pub pad_minor: Option<u8>,
     /// Whether to pad the patch version with leading zeros, and if so, how many digits to pad to.
     pub pad_patch: Option<u8>,
+    /// Whether to pad the revision with leading zeros, and if so, how many digits to pad to.
+    pub pad_revision: Option<u8>,
     /// The separator character to use between version components.
     pub separator: char,
 }
@@ -257,17 +344,41 @@ impl FormatOptions {
 impl Default for FormatOptions {
     fn default() -> Self {
         Self {
+            attach_prerelease: false,
             include_op: true,
             include_minor: true,
             include_scope: true,
             include_patch: true,
+            include_revision: true,
             include_prerelease: true,
             include_build: true,
             pad_major: None,
             pad_minor: None,
             pad_patch: None,
+            pad_revision: None,
             separator: '.',
         }
+    }
+}
+
+fn push_prerelease(out: &mut String, pre: &str, attach: bool) {
+    if !attach || !pre.starts_with(|c: char| c.is_ascii_alphabetic()) {
+        out.push('-');
+        out.push_str(pre);
+
+        return;
+    }
+
+    let label = pre
+        .find(|c: char| !c.is_ascii_alphabetic())
+        .unwrap_or(pre.len());
+    let (name, rest) = pre.split_at(label);
+
+    out.push_str(name);
+
+    match rest.strip_prefix('.') {
+        Some(number) if number.starts_with(|c: char| c.is_ascii_digit()) => out.push_str(number),
+        _ => out.push_str(rest),
     }
 }
 
@@ -306,14 +417,20 @@ impl FormatsVersion for Version {
             if options.include_patch && !(self.kind == VersionKind::Calendar && self.patch == 0) {
                 out.push(options.separator);
                 pad(&mut out, self.patch, options.pad_patch);
+
+                if options.include_revision
+                    && let Some(revision) = self.revision
+                {
+                    out.push(options.separator);
+                    pad(&mut out, revision, options.pad_revision);
+                }
             }
         }
 
         if options.include_prerelease
             && let Some(pre) = &self.prerelease
         {
-            out.push('-');
-            out.push_str(pre);
+            push_prerelease(&mut out, pre, options.attach_prerelease);
         }
 
         if options.include_build
@@ -365,6 +482,16 @@ impl FormatsVersion for Requirement {
                 } else if let Some(patch) = &self.patch {
                     out.push(options.separator);
                     pad(&mut out, patch, options.pad_patch);
+
+                    if !options.include_revision {
+                        // Nothing
+                    } else if let Some(revision) = &self.revision {
+                        out.push(options.separator);
+                        pad(&mut out, revision, options.pad_revision);
+                    } else if options.include_op && self.op == Op::Wildcard {
+                        out.push(options.separator);
+                        out.push('*');
+                    }
                 } else if options.include_op && self.op == Op::Wildcard {
                     out.push(options.separator);
                     out.push('*');
@@ -373,15 +500,15 @@ impl FormatsVersion for Requirement {
                 out.push(options.separator);
                 out.push('*');
             }
-        } else if options.include_op && self.op == Op::Wildcard {
+        } else if options.include_op {
+            // An operator requires a version to parse, like `>=*`
             out.push('*');
         }
 
         if options.include_prerelease
             && let Some(pre) = &self.prerelease
         {
-            out.push('-');
-            out.push_str(pre);
+            push_prerelease(&mut out, pre, options.attach_prerelease);
         }
 
         out
