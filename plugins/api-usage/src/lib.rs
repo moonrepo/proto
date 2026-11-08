@@ -154,6 +154,10 @@ pub fn download_prebuilt(
     let env = get_host_environment()?;
     let config = get_tool_config::<WasmTestConfig>()?;
 
+    // Std doesn't create parent directories, so this verifies
+    // that the host created the temp directory
+    std::fs::write(input.temp_dir.join("download_prebuilt"), "")?;
+
     Ok(Json(DownloadPrebuiltOutput {
         download_url: format!(
             "{}/{}/{}-{}-{}.txt",

@@ -45,6 +45,7 @@
     - `get_env_vars` omits variables that are not set, so unlike `get_env_var`, a variable set to an empty value can be told apart from one that is not set.
     - `set_env_vars` appends to `PATH` instead of overwriting it, like `set_env_var`.
     - Added `get_host_env_vars` and `set_host_env_vars` functions to the PDK.
+  - Added `BuildInstructionsInput.temp_dir`, `DownloadPrebuiltInput.temp_dir`, and `NativeInstallInput.temp_dir` fields, a temporary directory unique to the install (or download when locking), which is removed once it finishes. Pre-builts are also downloaded to this directory.
 
 #### 🐞 Fixes
 

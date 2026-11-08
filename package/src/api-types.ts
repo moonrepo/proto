@@ -14,8 +14,10 @@ export type SystemLibc = 'gnu' | 'musl' | 'unknown';
 /** Package manager of the system environment. */
 export type SystemPackageManager = 'pkg' | 'pkgin' | 'apk' | 'apt' | 'dnf' | 'pacman' | 'yum' | 'brew' | 'choco' | 'scoop' | 'all';
 
+/** Represents a resolved version or alias. */
 export type VersionSpec = string;
 
+/** Represents an unresolved version or alias that must be resolved to a fully-qualified version. */
 export type UnresolvedVersionSpec = string;
 
 /** Target where host logs should be written to. */
@@ -97,6 +99,14 @@ export interface HostEnvironment {
 	arch: SystemArch;
 	/** Whether the plugin is running in a CI environment. */
 	ci: boolean;
+	/**
+	 * Whether the plugin is targeting a platform other than the machine
+	 * it's running on, for example, when locking other platforms. When
+	 * true, the architecture, operating system, and libc describe that
+	 * platform, but executed commands and environment variables still
+	 * reflect the machine, so must not be used to inspect the platform.
+	 */
+	foreign?: boolean;
 	/** Virtual path to the home directory of the current user. */
 	home_dir: VirtualPath;
 	/**
@@ -122,8 +132,10 @@ export interface TestEnvironment {
 	sandbox: VirtualPath;
 }
 
+/** Strategies and protocols for locating plugins. */
 export type PluginLocator = string;
 
+/** Represents a virtual absolute path on the guest system. */
 export type VirtualPath = string;
 
 export type Version = string;
@@ -206,6 +218,7 @@ export interface RegisterToolInput {
 /** Supported strategies for installing a tool. */
 export type InstallStrategy = 'build-from-source' | 'download-prebuilt';
 
+/** Either a boolean representing on or off, or a string representing on with a message. */
 export type Switch = boolean | string;
 
 /** Output returned by the `register_tool` function. */
@@ -320,7 +333,11 @@ export interface DetectVersionOutput {
 
 /** Input passed to the `parse_version_file` function. */
 export interface ParseVersionFileInput {
-	/** File contents to parse/extract a version from. */
+	/**
+	 * File contents to parse/extract a version from.
+	 *
+	 * @deprecated Use `path` to read the file contents instead.
+	 */
 	content: string;
 	/** Current tool context. */
 	context: PluginUnresolvedContext;
@@ -347,6 +364,11 @@ export interface NativeInstallInput {
 	force: boolean;
 	/** Virtual directory to install to. */
 	install_dir: VirtualPath;
+	/**
+	 * Virtual directory for temporary files, unique to this install,
+	 * and removed once the install finishes.
+	 */
+	temp_dir: VirtualPath;
 }
 
 export type Checksum = string;
@@ -387,6 +409,11 @@ export interface DownloadPrebuiltInput {
 	context: PluginContext;
 	/** Virtual directory to install to. */
 	install_dir: VirtualPath;
+	/**
+	 * Virtual directory for temporary files, which the pre-built is also
+	 * downloaded to. Unique to this download, and removed once it finishes.
+	 */
+	temp_dir: VirtualPath;
 }
 
 /** Output returned by the `download_prebuilt` function. */
@@ -471,6 +498,7 @@ export interface LocateExecutablesInput {
 	install_dir: VirtualPath;
 }
 
+/** Either a string, or a list of strings. */
 export type StringOrVec = string | string[];
 
 /** Configuration for generated shim and symlinked executable files. */
@@ -660,8 +688,10 @@ export interface RunHookResult {
 	paths?: string[] | null;
 }
 
+/** The location in which source code can be acquired. */
 export type SourceLocation = ArchiveSource | GitSource;
 
+/** An instruction to execute. All paths are relative from the build directory. */
 export type BuildInstruction = {
 	/** A builder and its parameters for installing the builder. */
 	instruction: {
@@ -717,6 +747,7 @@ export type BuildInstruction = {
 
 export type Requirement = string;
 
+/** Is required and must exist in the current environment. */
 export type BuildRequirement = {
 	requirement: string;
 	type: 'command-exists-on-path';
@@ -738,8 +769,10 @@ export type BuildRequirement = {
 	type: 'windows-developer-mode';
 };
 
+/** A system dependency name in multiple formats. */
 export type DependencyName = string | Record<SystemPackageManager, string> | string[] | Record<SystemPackageManager, string[]>;
 
+/** Represents a system dependency (one or many packages) to install. */
 export type SystemDependency = string | Record<SystemPackageManager, string> | string[] | Record<SystemPackageManager, string[]> | {
 	/** Only install on this architecture. */
 	arch?: SystemArch | null;
@@ -792,4 +825,9 @@ export interface BuildInstructionsInput {
 	context: PluginContext;
 	/** Virtual directory to install to. */
 	install_dir: VirtualPath;
+	/**
+	 * Virtual directory for temporary files, unique to this install,
+	 * and removed once the install finishes.
+	 */
+	temp_dir: VirtualPath;
 }

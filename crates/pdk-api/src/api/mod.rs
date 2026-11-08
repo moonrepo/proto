@@ -566,6 +566,10 @@ api_struct!(
 
         /// Virtual directory to install to.
         pub install_dir: VirtualPath,
+
+        /// Virtual directory for temporary files, unique to this install,
+        /// and removed once the install finishes.
+        pub temp_dir: VirtualPath,
     }
 );
 
@@ -624,6 +628,10 @@ api_struct!(
 
         /// Virtual directory to install to.
         pub install_dir: VirtualPath,
+
+        /// Virtual directory for temporary files, which the pre-built is also
+        /// downloaded to. Unique to this download, and removed once it finishes.
+        pub temp_dir: VirtualPath,
     }
 );
 

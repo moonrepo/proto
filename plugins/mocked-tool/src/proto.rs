@@ -208,6 +208,10 @@ pub fn native_install(
         return Err(plugin_err!("Invalid version {version}"));
     }
 
+    // Std doesn't create parent directories, so this verifies
+    // that the host created the temp directory
+    std::fs::write(input.temp_dir.join("native_install"), "")?;
+
     // Create the primary executable
     if id != NO_PRIMARY_ID {
         fs::write_file(input.install_dir.join(env.os.get_exe_name(&id)), "")?;
