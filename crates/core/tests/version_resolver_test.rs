@@ -2,7 +2,75 @@ use proto_core::{
     ProtoToolConfig, ToolManifest, UnresolvedVersionSpec, Version, VersionResolver, VersionSpec,
     resolve_version,
 };
+use proto_pdk_api::LoadVersionsOutput;
 use std::collections::BTreeMap;
+
+mod derived_latest {
+    use super::*;
+
+    fn create_resolver(versions: &[&str]) -> VersionResolver<'static> {
+        VersionResolver::from_output(LoadVersionsOutput {
+            versions: versions
+                .iter()
+                .map(|version| VersionSpec::parse(version).unwrap())
+                .collect(),
+            ..Default::default()
+        })
+    }
+
+    fn latest() -> UnresolvedVersionSpec {
+        UnresolvedVersionSpec::Alias("latest".into())
+    }
+
+    #[test]
+    fn uses_highest_version() {
+        let resolver = create_resolver(&["1.0.0", "2.1.0", "2.0.0"]);
+
+        assert_eq!(
+            resolver.resolve(&latest()),
+            Some(VersionSpec::parse("2.1.0").unwrap())
+        );
+    }
+
+    #[test]
+    fn skips_prereleases() {
+        let resolver = create_resolver(&["1.0.0", "2.0.0", "3.0.0-beta.1", "3.0.0-rc.1", "canary"]);
+
+        assert_eq!(
+            resolver.aliases.get("latest").unwrap(),
+            &UnresolvedVersionSpec::parse("2.0.0").unwrap()
+        );
+        assert_eq!(
+            resolver.resolve(&latest()),
+            Some(VersionSpec::parse("2.0.0").unwrap())
+        );
+    }
+
+    #[test]
+    fn isnt_derived_when_only_prereleases() {
+        let resolver = create_resolver(&["1.0.0-alpha.1", "1.0.0-rc.1"]);
+
+        assert!(!resolver.aliases.contains_key("latest"));
+        assert_eq!(resolver.resolve(&latest()), None);
+    }
+
+    #[test]
+    fn doesnt_override_plugin_latest() {
+        let resolver = VersionResolver::from_output(LoadVersionsOutput {
+            latest: Some(UnresolvedVersionSpec::parse("2.0.0-rc.1").unwrap()),
+            versions: vec![
+                VersionSpec::parse("1.0.0").unwrap(),
+                VersionSpec::parse("2.0.0-rc.1").unwrap(),
+            ],
+            ..Default::default()
+        });
+
+        assert_eq!(
+            resolver.resolve(&latest()),
+            Some(VersionSpec::parse("2.0.0-rc.1").unwrap())
+        );
+    }
+}
 
 mod version_resolver {
     use super::*;
