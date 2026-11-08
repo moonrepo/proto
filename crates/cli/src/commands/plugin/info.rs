@@ -65,7 +65,7 @@ pub async fn info(session: ProtoSession, args: PluginInfoArgs) -> SessionResult 
         session.console.write_json_for_format(PluginInfoOutput {
             bins,
             config: tool.config.clone(),
-            exe_file: Some(locations.exe_file.clone()),
+            exe_file: locations.exe_file,
             exes_dirs: locations.exes_dirs,
             globals_dirs: locations.globals_dirs,
             globals_prefix: locations.globals_prefix,
@@ -218,15 +218,19 @@ pub async fn info(session: ProtoSession, args: PluginInfoArgs) -> SessionResult 
                         )
                     }.into_any()
                 )
-                Entry(
-                    name: "Executable file",
-                    value: element! {
-                        StyledText(
-                            content: locations.exe_file.to_string_lossy(),
-                            style: Style::Path
+                #(locations.exe_file.map(|file| {
+                    element! {
+                        Entry(
+                            name: "Executable file",
+                            value: element! {
+                                StyledText(
+                                    content: file.to_string_lossy(),
+                                    style: Style::Path
+                                )
+                            }.into_any()
                         )
-                    }.into_any()
-                )
+                    }
+                }))
                 Entry(
                     name: "Executables directories",
                     no_children: locations.exes_dirs.is_empty()

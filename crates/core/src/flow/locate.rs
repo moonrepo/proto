@@ -30,7 +30,9 @@ pub struct ExecutableLocation {
 
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct LocatorResponse {
-    pub exe_file: PathBuf,
+    /// The primary executable, if the tool has one. Some tools (like backends)
+    /// only provide secondary executables, none of which are named after the tool.
+    pub exe_file: Option<PathBuf>,
     pub exes_dirs: Vec<PathBuf>,
     pub globals_dir: Option<PathBuf>,
     pub globals_dirs: Vec<PathBuf>,
@@ -80,7 +82,7 @@ impl<'tool> Locator<'tool> {
             globals_dirs: self.locate_globals_dirs().await?,
             globals_dir: self.locate_globals_dir().await?,
             globals_prefix: self.locate_globals_prefix().await?,
-            exe_file: self.locate_exe_file().await?,
+            exe_file: self.try_locate_exe_file().await?,
             exes_dirs: self.locate_exes_dirs().await?,
         })
     }
@@ -280,11 +282,27 @@ impl<'tool> Locator<'tool> {
         self.exe_file.as_ref()
     }
 
-    /// Locate the primary executable from the tool directory.
+    /// Locate the primary executable from the tool directory, and error if it
+    /// could not be found.
     #[instrument(skip(self))]
     pub async fn locate_exe_file(&mut self) -> Result<PathBuf, ProtoLocateError> {
+        match self.try_locate_exe_file().await? {
+            Some(exe_file) => Ok(exe_file),
+            None => Err(ProtoLocateError::MissingToolExecutable {
+                tool: self.tool.get_name().to_owned(),
+                path: self.get_fallback_exe_file(),
+            }),
+        }
+    }
+
+    /// Locate the primary executable from the tool directory. If the plugin did not
+    /// mark an executable as primary, fall back to a file named after the tool, and
+    /// return `None` if that does not exist either, as the tool may only provide
+    /// secondary executables. Errors if the primary executable does not exist.
+    #[instrument(skip(self))]
+    pub async fn try_locate_exe_file(&mut self) -> Result<Option<PathBuf>, ProtoLocateError> {
         if let Some(exe) = &self.exe_file {
-            return Ok(exe.to_owned());
+            return Ok(Some(exe.to_owned()));
         }
 
         debug!(
@@ -292,12 +310,9 @@ impl<'tool> Locator<'tool> {
             "Locating primary executable for tool"
         );
 
-        let exe_file = if let Some(location) = self.locate_primary_exe().await? {
-            location.path
-        } else {
-            self.product_dir.join(path::exe_name(path::encode_component(
-                self.tool.get_file_name(),
-            )))
+        let (exe_file, is_primary) = match self.locate_primary_exe().await? {
+            Some(location) => (location.path, true),
+            None => (self.get_fallback_exe_file(), false),
         };
 
         if exe_file.exists() {
@@ -305,13 +320,28 @@ impl<'tool> Locator<'tool> {
 
             self.exe_file = Some(exe_file.clone());
 
-            return Ok(exe_file);
+            return Ok(Some(exe_file));
         }
 
-        Err(ProtoLocateError::MissingToolExecutable {
-            tool: self.tool.get_name().to_owned(),
-            path: exe_file,
-        })
+        if is_primary {
+            return Err(ProtoLocateError::MissingToolExecutable {
+                tool: self.tool.get_name().to_owned(),
+                path: exe_file,
+            });
+        }
+
+        debug!(
+            tool = self.tool.context.as_str(),
+            "Tool has no primary executable",
+        );
+
+        Ok(None)
+    }
+
+    fn get_fallback_exe_file(&self) -> PathBuf {
+        self.product_dir.join(path::exe_name(path::encode_component(
+            self.tool.get_file_name(),
+        )))
     }
 
     /// Return an absolute path to the primary executables directory (first in the list),

@@ -52,6 +52,7 @@
 - Fixed tool requirements not being met by a `PROTO_<TOOL>_VERSION` environment variable, which failed the Node.js plugin's `bundled-npm` install when Node.js was only pinned in a version file like `.nvmrc`.
 - Fixed requirements on backend tools (for example, `npm:tsx`) being ignored when ordering installs, as they were matched by identifier only.
 - Fixed `proto mcp`'s install tool not checking requirements.
+- Fixed tools without a primary executable (for example, `asdf:golang`, which provides `go` and `gofmt`) failing to run any of their executables with `proto run --exe`, shims, `proto exec`, and `proto activate`.
 
 #### ⚙️ Internal
 
@@ -59,6 +60,7 @@
 - Plugins now receive their host environment from the platform proto has detected, instead of detecting it again for every plugin. On Linux, this avoids running `ldd --version` each time a plugin is loaded.
 - Added a `foreign_platform` field to warpgate's `HostData`, which logs a warning when the `exec_command` host function is called while set.
 - Added `HttpDownloader::without_cache` to warpgate, which never reads from or writes to the HTTP cache.
+- Changed `LocatorResponse.exe_file` to an `Option`, which is `None` when the tool has no primary executable, and added `Locator.try_locate_exe_file`.
 
 ## 0.63.2
 
