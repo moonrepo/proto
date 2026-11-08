@@ -150,6 +150,18 @@ pub fn testing_load_git_tags(Json(url): Json<String>) -> FnResult<Json<Vec<Strin
     Ok(Json(load_git_tags(url)?))
 }
 
+// Doesn't have a `parse_version_file` function on purpose,
+// as this tests how proto parses version files by default
+#[plugin_fn]
+pub fn detect_version_files(
+    Json(_): Json<DetectVersionInput>,
+) -> FnResult<Json<DetectVersionOutput>> {
+    Ok(Json(DetectVersionOutput {
+        files: vec![".api-usage-version".into(), ".api-usage-version.alt".into()],
+        ignore: vec![],
+    }))
+}
+
 #[plugin_fn]
 pub fn load_versions(Json(_): Json<LoadVersionsInput>) -> FnResult<Json<LoadVersionsOutput>> {
     Ok(Json(LoadVersionsOutput::from(vec![

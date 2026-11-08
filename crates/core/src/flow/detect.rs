@@ -189,11 +189,16 @@ impl<'tool> Detector<'tool> {
             } else {
                 let content = fs::read_file(&file_path)?;
 
-                UnresolvedVersionSpec::parse(content.trim()).map_err(|error| {
+                // The file may be empty, or only contain comments
+                let Some(value) = extract_version_from_text(&content) else {
+                    continue;
+                };
+
+                UnresolvedVersionSpec::parse(value).map_err(|error| {
                     ProtoDetectError::InvalidDetectedVersionSpec {
                         error: Box::new(error),
                         path: file_path.clone(),
-                        version: content.trim().to_owned(),
+                        version: value.to_owned(),
                     }
                 })?
             };
