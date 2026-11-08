@@ -8,11 +8,25 @@ use proto_pdk_api::ToolInventoryOptions;
 use proto_shim::{create_shim, locate_proto_exe};
 use serde::Serialize;
 use starbase_styles::color;
+use starbase_utils::fs::FsError;
 use starbase_utils::{envx, fs, path};
 use std::fmt;
+use std::io;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
-use tracing::{debug, instrument};
+use std::sync::{Arc, Once};
+use tracing::{debug, instrument, warn};
+
+fn symlink_file(src_path: &Path, link_path: &Path) -> io::Result<()> {
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink(src_path, link_path)
+    }
+
+    #[cfg(windows)]
+    {
+        std::os::windows::fs::symlink_file(src_path, link_path)
+    }
+}
 
 #[derive(Clone, Default, Serialize)]
 pub struct Store {
@@ -149,28 +163,59 @@ impl Store {
         Ok(())
     }
 
+    /// Symlink an executable into the bin directory, and return whether it was linked.
     #[instrument(skip(self))]
-    pub fn link_bin(&self, bin_path: &Path, src_path: &Path) -> Result<(), ProtoLayoutError> {
-        // Windows requires admin privileges to create soft/hard links,
-        // so just copy the binary... annoying...
-        #[cfg(windows)]
+    pub fn link_bin(&self, bin_path: &Path, src_path: &Path) -> Result<bool, ProtoLayoutError> {
+        let result = symlink_file(src_path, bin_path);
+
+        // Symlinks require developer mode or elevated privileges on Windows.
+        // If we don't have access, skip the executable, as the tool
+        // is still available through its shim.
+        if cfg!(windows)
+            && let Err(error) = &result
         {
-            fs::reflink_file(src_path, bin_path)?;
+            static WARNED: Once = Once::new();
+
+            // Every executable fails for the same reason, so only warn once
+            WARNED.call_once(|| {
+                warn!(
+                    bin_dir = ?self.bin_dir,
+                    "Unable to symlink binaries, skipping them: {error}"
+                );
+            });
+
+            debug!(
+                source = ?src_path,
+                target = ?bin_path,
+                "Skipping binary as it could not be symlinked"
+            );
+
+            return Ok(false);
         }
 
-        #[cfg(unix)]
-        {
-            use starbase_utils::fs::FsError;
+        result.map_err(|error| {
+            ProtoLayoutError::Fs(Box::new(FsError::Create {
+                path: src_path.to_path_buf(),
+                error: Box::new(error),
+            }))
+        })?;
 
-            std::os::unix::fs::symlink(src_path, bin_path).map_err(|error| {
-                ProtoLayoutError::Fs(Box::new(FsError::Create {
-                    path: src_path.to_path_buf(),
-                    error: Box::new(error),
-                }))
-            })?;
-        }
+        Ok(true)
+    }
 
-        Ok(())
+    /// Verify that symlinks can be created in the bin directory.
+    #[instrument(skip(self))]
+    pub fn check_bin_linking(&self) -> io::Result<()> {
+        std::fs::create_dir_all(&self.bin_dir)?;
+
+        let link_path = self
+            .bin_dir
+            .join(format!(".link-check-{}", std::process::id()));
+
+        // The target doesn't need to exist
+        symlink_file(&self.bin_dir.join(".link-check-target"), &link_path)?;
+
+        std::fs::remove_file(&link_path)
     }
 
     #[instrument(skip(self))]
