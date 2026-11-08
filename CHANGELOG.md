@@ -40,6 +40,7 @@
 - Updated `proto install --force` to download the pre-built archive and its checksum file as they currently exist upstream, instead of copies from the HTTP request cache, which are kept for up to 7 days.
 - Updated running a tool's self-upgrade command (for example, `bun upgrade`) through proto to offer to upgrade with `proto install` in an interactive terminal, instead of only erroring. Non-interactive runs (like CI or JSON output) still error.
   - The latest version is pinned to the config file that the current version came from, or to the local directory if it came from an ecosystem file or wasn't detected.
+- Updated version files for plugins without a `parse_version_file` function to use the first line with content, skipping blank lines and comments (everything after a `#` or `//`). Files without a version are now skipped, instead of failing detection.
 - Added a `[tools.*].requires` setting, which declares other tools that the tool depends on, in addition to those required by its plugin. For example, `requires = ["node"]`.
   - When installing, the required tools must have a configured version, and are installed first.
   - When running (including shims), the required tools are added to the environment.
@@ -63,6 +64,7 @@
   - Updated `HostPlatform` to also parse the operating system first, in the format of `<os>-<arch>` or `<os>-<arch>-<libc>` (for example, `linux-x64-musl`). Platforms are still formatted with the architecture first.
   - Added a `HostEnvironment.foreign` field, which is true when the plugin is targeting a platform other than the machine it's running on, like when locking other platforms with `proto lock --platform`. The `arch`, `os`, and `libc` fields describe the targeted platform, but executed commands (including PDK functions like `command_exists`) and environment variables still reflect the machine, so plugins should not use them to inspect the platform when `foreign` is true.
   - Deprecated `ParseVersionFileInput.content` in favor of `path`, which plugins can use to read the file contents.
+  - Added `extract_version_from_text` and `extract_version_from_file` functions, which extract the version from the contents of a plain version file, like `.nvmrc` or `.python-version`, or from the file itself, reading a line at a time.
   - Added a `ParseVersionFileOutput.stop` field. When true and no version is returned, the plugin's remaining files in that directory are skipped, while parent directories are still checked. This is useful for tools where one config file takes precedence over another, even when it doesn't define a version.
   - Added `get_env_vars` and `set_env_vars` host functions, which get or set multiple environment variables on the host machine with a single call.
     - `get_env_vars` omits variables that are not set, so unlike `get_env_var`, a variable set to an empty value can be told apart from one that is not set.

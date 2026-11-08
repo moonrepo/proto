@@ -1,6 +1,7 @@
 use proto_core::{
     ProtoConfig, ProtoEnvironment, ProtoFileManager, Tool, ToolContext, UnresolvedVersionSpec,
-    flow::detect::Detector, load_tool_from_locator,
+    flow::detect::{Detector, ProtoDetectError},
+    load_tool_from_locator,
 };
 use starbase_sandbox::create_empty_sandbox;
 use std::path::Path;
@@ -173,6 +174,79 @@ mod version_detector {
                 .unwrap(),
             None
         );
+    }
+
+    // This plugin detects version files without parsing them. Since proto reads
+    // the file, it doesn't matter that the sandbox root isn't mapped for plugins.
+    mod without_parser {
+        use super::*;
+
+        async fn create_tool(root: &Path) -> Tool {
+            load_tool_from_locator(
+                ToolContext::parse("api-usage").unwrap(),
+                ProtoEnvironment::new_testing(root).unwrap(),
+                warpgate::find_debug_locator("proto_api_usage")
+                    .expect("Test plugins not available. Run `just build-wasm` to build them!"),
+            )
+            .await
+            .unwrap()
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn skips_comments_and_blank_lines() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".api-usage-version", "\n# pinned\n1.2.3 # lts\n2.0.0\n");
+
+            let tool = create_tool(sandbox.path()).await;
+
+            assert_eq!(
+                Detector::new(&tool)
+                    .detect_version_from(sandbox.path())
+                    .await
+                    .unwrap(),
+                Some((
+                    UnresolvedVersionSpec::parse("1.2.3").unwrap(),
+                    sandbox.path().join(".api-usage-version")
+                ))
+            );
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn checks_next_file_without_a_version() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".api-usage-version", "# only a comment\n");
+            sandbox.create_file(".api-usage-version.alt", "2.0.0");
+
+            let tool = create_tool(sandbox.path()).await;
+
+            assert_eq!(
+                Detector::new(&tool)
+                    .detect_version_from(sandbox.path())
+                    .await
+                    .unwrap(),
+                Some((
+                    UnresolvedVersionSpec::parse("2.0.0").unwrap(),
+                    sandbox.path().join(".api-usage-version.alt")
+                ))
+            );
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn errors_for_invalid_version() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(".api-usage-version", ">>> # comment");
+
+            let tool = create_tool(sandbox.path()).await;
+            let error = Detector::new(&tool)
+                .detect_version_from(sandbox.path())
+                .await
+                .unwrap_err();
+
+            assert!(matches!(
+                error,
+                ProtoDetectError::InvalidDetectedVersionSpec { version, .. } if version == ">>>"
+            ));
+        }
     }
 
     mod stop {
