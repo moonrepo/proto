@@ -600,7 +600,7 @@ async fn prepare_tool(
     }
 
     // Extract executable directories
-    if let Some(dir) = locations.exe_file.parent() {
+    if let Some(dir) = locations.exe_file.as_deref().and_then(|file| file.parent()) {
         item.add_path(dir.to_path_buf());
     }
 

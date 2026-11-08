@@ -36,6 +36,7 @@ impl WasmTestWrapper {
     ) -> DownloadPrebuiltOutput {
         input.context = self.prepare_context(input.context);
         input.install_dir = self.tool.to_virtual_path(input.install_dir);
+        input.temp_dir = self.prepare_temp_dir(&input.context, input.temp_dir);
 
         self.tool
             .plugin
@@ -71,6 +72,7 @@ impl WasmTestWrapper {
     pub async fn native_install(&self, mut input: NativeInstallInput) -> NativeInstallOutput {
         input.context = self.prepare_context(input.context);
         input.install_dir = self.tool.to_virtual_path(input.install_dir);
+        input.temp_dir = self.prepare_temp_dir(&input.context, input.temp_dir);
 
         self.tool
             .plugin
@@ -254,6 +256,17 @@ impl WasmTestWrapper {
             tool_dir: self.tool.to_virtual_path(tool_dir),
             working_dir: self.tool.to_virtual_path(working_dir),
             ..context
+        }
+    }
+
+    fn prepare_temp_dir(&self, context: &PluginContext, temp_dir: VirtualPath) -> VirtualPath {
+        if temp_dir.is_empty() {
+            self.tool.to_virtual_path(
+                self.tool
+                    .get_version_temp_dir(&ToolSpec::new_resolved(context.version.clone())),
+            )
+        } else {
+            self.tool.to_virtual_path(temp_dir)
         }
     }
 

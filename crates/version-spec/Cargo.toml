@@ -13,8 +13,8 @@ all-features = true
 
 [dependencies]
 compact_str = { workspace = true }
-pest = "2.9.2"
-pest_derive = "2.9.2"
+pest = "2.9.5"
+pest_derive = "2.9.5"
 regex = { workspace = true }
 schematic = { workspace = true, optional = true, features = ["schema"] }
 serde = { workspace = true }

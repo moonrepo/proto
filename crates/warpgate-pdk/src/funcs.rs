@@ -1,6 +1,7 @@
 use crate::api::populate_send_request_output;
 use crate::{download_file, exec_command, send_request};
 use extism_pdk::*;
+use rustc_hash::FxHashMap;
 use serde::de::DeserializeOwned;
 use std::path::PathBuf;
 use std::sync::OnceLock;
@@ -17,7 +18,9 @@ extern "ExtismHost" {
     fn exec_command(input: Json<ExecCommandInput>) -> Json<ExecCommandOutput>;
     fn send_request(input: Json<SendRequestInput>) -> Json<SendRequestOutput>;
     fn get_env_var(key: String) -> String;
+    fn get_env_vars(names: Json<Vec<String>>) -> Json<FxHashMap<String, String>>;
     fn set_env_var(name: String, value: String);
+    fn set_env_vars(vars: Json<FxHashMap<String, String>>);
 }
 
 /// Fetch the requested input and return a response.
@@ -210,6 +213,29 @@ where
     Ok(if inner.is_empty() { None } else { Some(inner) })
 }
 
+/// Return the values of multiple environment variables on the host machine,
+/// with a single host function call.
+///
+/// Variables that are not set are omitted from the returned map. Unlike
+/// [`get_host_env_var`], variables that are set to an empty value are
+/// included (as an empty string).
+pub fn get_host_env_vars<I, K>(keys: I) -> AnyResult<FxHashMap<String, String>>
+where
+    I: IntoIterator<Item = K>,
+    K: AsRef<str>,
+{
+    let keys = keys
+        .into_iter()
+        .map(|key| key.as_ref().to_owned())
+        .collect::<Vec<_>>();
+
+    if keys.is_empty() {
+        return Ok(FxHashMap::default());
+    }
+
+    Ok(unsafe { get_env_vars(Json(keys))?.0 })
+}
+
 /// Set the value of an environment variable on the host machine.
 pub fn set_host_env_var<K, V>(key: K, value: V) -> AnyResult<()>
 where
@@ -217,6 +243,31 @@ where
     V: AsRef<str>,
 {
     unsafe { set_env_var(key.as_ref().into(), value.as_ref().into())? };
+
+    Ok(())
+}
+
+/// Set the values of multiple environment variables on the host machine,
+/// with a single host function call.
+///
+/// Like [`set_host_env_var`], setting `PATH` appends to the current value,
+/// instead of overwriting it.
+pub fn set_host_env_vars<I, K, V>(vars: I) -> AnyResult<()>
+where
+    I: IntoIterator<Item = (K, V)>,
+    K: AsRef<str>,
+    V: AsRef<str>,
+{
+    let vars = vars
+        .into_iter()
+        .map(|(key, value)| (key.as_ref().to_owned(), value.as_ref().to_owned()))
+        .collect::<FxHashMap<_, _>>();
+
+    if vars.is_empty() {
+        return Ok(());
+    }
+
+    unsafe { set_env_vars(Json(vars))? };
 
     Ok(())
 }

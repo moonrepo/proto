@@ -146,6 +146,7 @@ impl<'tool> Installer<'tool> {
                                 context: self.tool.create_plugin_context(self.spec),
                                 install_dir: self.tool.to_virtual_path(&self.product_dir),
                                 force: options.force,
+                                temp_dir: self.tool.to_virtual_path(&self.temp_dir),
                             },
                         )
                         .await,
@@ -362,6 +363,7 @@ impl<'tool> Installer<'tool> {
                     BuildInstructionsInput {
                         context: self.tool.create_plugin_context(self.spec),
                         install_dir: self.tool.to_virtual_path(&self.product_dir),
+                        temp_dir: self.tool.to_virtual_path(&self.temp_dir),
                     },
                 )
                 .await,
@@ -440,6 +442,10 @@ impl<'tool> Installer<'tool> {
         let client = proto.get_plugin_loader()?.get_http_client()?;
         let config = proto.load_config()?;
 
+        // Already created when installing, but not when locking,
+        // and the plugin may write to it
+        fs::create_dir_all(temp_dir)?;
+
         let output: DownloadPrebuiltOutput = proto.create_metric().record_tool_install_step(
             &self.tool.context,
             "prepare_download_prebuilt",
@@ -450,6 +456,7 @@ impl<'tool> Installer<'tool> {
                     DownloadPrebuiltInput {
                         context: self.tool.create_plugin_context(self.spec),
                         install_dir: self.tool.to_virtual_path(&self.product_dir),
+                        temp_dir: self.tool.to_virtual_path(temp_dir),
                     },
                 )
                 .await,
@@ -476,9 +483,6 @@ impl<'tool> Installer<'tool> {
             .clone()
             .unwrap_or_else(|| extract_file_name_from_url(&download_url));
         let download_file = temp_dir.join(&download_name);
-
-        // Already created when installing, but not when locking
-        fs::create_dir_all(temp_dir)?;
 
         record.source = Some(download_url.clone());
         options.on_phase_change.as_ref().inspect(|func| {

@@ -40,11 +40,21 @@
 - **WASM API**
   - Updated `HostPlatform` to also parse the operating system first, in the format of `<os>-<arch>` or `<os>-<arch>-<libc>` (for example, `linux-x64-musl`). Platforms are still formatted with the architecture first.
   - Added a `HostEnvironment.foreign` field, which is true when the plugin is targeting a platform other than the machine it's running on, like when locking other platforms with `proto lock --platform`. The `arch`, `os`, and `libc` fields describe the targeted platform, but executed commands (including PDK functions like `command_exists`) and environment variables still reflect the machine, so plugins should not use them to inspect the platform when `foreign` is true.
+  - Deprecated `ParseVersionFileInput.content` in favor of `path`, which plugins can use to read the file contents.
+  - Added `get_env_vars` and `set_env_vars` host functions, which get or set multiple environment variables on the host machine with a single call.
+    - `get_env_vars` omits variables that are not set, so unlike `get_env_var`, a variable set to an empty value can be told apart from one that is not set.
+    - `set_env_vars` appends to `PATH` instead of overwriting it, like `set_env_var`.
+    - Added `get_host_env_vars` and `set_host_env_vars` functions to the PDK.
+  - Added `BuildInstructionsInput.temp_dir`, `DownloadPrebuiltInput.temp_dir`, and `NativeInstallInput.temp_dir` fields, a temporary directory unique to the install (or download when locking), which is removed once it finishes. Pre-builts are also downloaded to this directory.
 
 #### 🐞 Fixes
 
+- Fixed the built-in schema plugin (`internal-schema`), which powers TOML, JSON, and YAML plugins, ignoring an override in `[plugins.tools]`.
+- Fixed tool requirements not being met by a `PROTO_<TOOL>_VERSION` environment variable, which failed the Node.js plugin's `bundled-npm` install when Node.js was only pinned in a version file like `.nvmrc`.
 - Fixed requirements on backend tools (for example, `npm:tsx`) being ignored when ordering installs, as they were matched by identifier only.
 - Fixed `proto mcp`'s install tool not checking requirements.
+- Fixed tools without a primary executable (for example, `asdf:golang`, which provides `go` and `gofmt`) failing to run any of their executables with `proto run --exe`, shims, `proto exec`, and `proto activate`.
+- Fixed `proto plugin info` not supporting tools with a backend (for example, `proto plugin info asdf:golang`), and not displaying their inventory. The JSON output includes a new `context` field.
 
 #### ⚙️ Internal
 
@@ -52,6 +62,7 @@
 - Plugins now receive their host environment from the platform proto has detected, instead of detecting it again for every plugin. On Linux, this avoids running `ldd --version` each time a plugin is loaded.
 - Added a `foreign_platform` field to warpgate's `HostData`, which logs a warning when the `exec_command` host function is called while set.
 - Added `HttpDownloader::without_cache` to warpgate, which never reads from or writes to the HTTP cache.
+- Changed `LocatorResponse.exe_file` to an `Option`, which is `None` when the tool has no primary executable, and added `Locator.try_locate_exe_file`.
 
 ## 0.63.2
 

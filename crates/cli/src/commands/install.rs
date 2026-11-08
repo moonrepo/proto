@@ -15,6 +15,7 @@ use starbase_console::ui::*;
 use starbase_console::utils::formats::format_duration;
 use starbase_styles::color;
 use std::collections::BTreeMap;
+use std::env;
 use std::time::{Duration, Instant};
 use tokio::task::JoinSet;
 use tokio::time::sleep;
@@ -131,7 +132,12 @@ pub fn enforce_requirements(
     versions: &BTreeMap<ToolContext, ToolSpec>,
 ) -> Result<(), ProtoCliError> {
     for require_context in tool.get_requires()? {
-        if !versions.contains_key(&require_context) {
+        // A version can also be provided through the environment, like
+        // `PROTO_NODE_VERSION` when a plugin installs another tool
+        let in_env = env::var(format!("PROTO_{}_VERSION", require_context.id.to_env_var()))
+            .is_ok_and(|value| !value.is_empty());
+
+        if !versions.contains_key(&require_context) && !in_env {
             return Err(ProtoCliError::InstallRequirementsNotMet {
                 tool: tool.get_name().to_owned(),
                 requires: require_context.to_string(),

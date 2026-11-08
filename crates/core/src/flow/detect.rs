@@ -139,12 +139,6 @@ impl<'tool> Detector<'tool> {
                 continue;
             }
 
-            let content = fs::read_file(&file_path)?.trim().to_owned();
-
-            if content.is_empty() {
-                continue;
-            }
-
             let version = if has_parser {
                 let output: ParseVersionFileOutput = self
                     .tool
@@ -152,7 +146,8 @@ impl<'tool> Detector<'tool> {
                     .call_func_with(
                         PluginFunction::ParseVersionFile,
                         ParseVersionFileInput {
-                            content,
+                            #[allow(deprecated)]
+                            content: fs::read_file(&file_path)?,
                             context: self.tool.create_plugin_unresolved_context(),
                             file: file.clone(),
                             path: self.tool.to_virtual_path(&file_path),
@@ -166,11 +161,13 @@ impl<'tool> Detector<'tool> {
 
                 output.version.unwrap()
             } else {
-                UnresolvedVersionSpec::parse(&content).map_err(|error| {
+                let content = fs::read_file(&file_path)?;
+
+                UnresolvedVersionSpec::parse(content.trim()).map_err(|error| {
                     ProtoDetectError::InvalidDetectedVersionSpec {
                         error: Box::new(error),
                         path: file_path.clone(),
-                        version: content,
+                        version: content.trim().to_owned(),
                     }
                 })?
             };

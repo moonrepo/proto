@@ -194,14 +194,18 @@ pub async fn load_schema_plugin_with_proto(
 ) -> Result<PathBuf, ProtoLoaderError> {
     let proto = proto.as_ref();
     let config = proto.load_config()?;
-    let mut locator = config.builtin_schema_plugin();
+    let context = ToolContext::new(Id::raw(SCHEMA_PLUGIN_KEY));
+
+    // Like other plugins, the built-in can be overridden in `[plugins.tools]`
+    let mut locator = config
+        .get_plugin(&context, PluginType::Tool)
+        .cloned()
+        .unwrap_or_else(|| config.builtin_schema_plugin());
 
     // Rewrite if a URL
     if let PluginLocator::Url(inner) = &mut locator {
         inner.url = config.rewrite_url(&inner.url);
     }
-
-    let context = ToolContext::new(Id::raw(SCHEMA_PLUGIN_KEY));
 
     let plugin_loaded = proto.create_metric().record_plugin_load(
         &context,

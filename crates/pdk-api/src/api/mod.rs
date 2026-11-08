@@ -466,6 +466,7 @@ api_struct!(
     /// Input passed to the `parse_version_file` function.
     pub struct ParseVersionFileInput {
         /// File contents to parse/extract a version from.
+        #[deprecated(note = "Use `path` to read the file contents instead.")]
         pub content: String,
 
         /// Current tool context.
@@ -565,6 +566,11 @@ api_struct!(
 
         /// Virtual directory to install to.
         pub install_dir: VirtualPath,
+
+        /// Virtual directory for temporary files, unique to this install,
+        /// and removed once the install finishes.
+        #[serde(default)]
+        pub temp_dir: VirtualPath,
     }
 );
 
@@ -623,6 +629,11 @@ api_struct!(
 
         /// Virtual directory to install to.
         pub install_dir: VirtualPath,
+
+        /// Virtual directory for temporary files, which the pre-built is also
+        /// downloaded to. Unique to this download, and removed once it finishes.
+        #[serde(default)]
+        pub temp_dir: VirtualPath,
     }
 );
 

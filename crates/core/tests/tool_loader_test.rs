@@ -745,3 +745,25 @@ mod load_tool_from_locator {
         assert_eq!(output.exit_code, 0);
     }
 }
+
+mod load_schema_plugin {
+    use super::*;
+    use proto_core::load_schema_plugin_with_proto;
+
+    #[tokio::test]
+    async fn uses_configured_plugin_over_builtin() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(
+            ".prototools",
+            "[plugins.tools]\ninternal-schema = \"file://./schema.wasm\"\n",
+        );
+        sandbox.create_file("schema.wasm", "");
+
+        let mut proto = ProtoEnvironment::new_testing(sandbox.path()).unwrap();
+        proto.working_dir = sandbox.path().to_path_buf();
+
+        let path = load_schema_plugin_with_proto(&proto).await.unwrap();
+
+        assert!(path.ends_with("schema.wasm"), "{path:?}");
+    }
+}
