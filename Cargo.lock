@@ -4425,6 +4425,7 @@ dependencies = [
  "schematic",
  "serde",
  "serde_json",
+ "starbase_sandbox",
  "system_env",
  "thiserror 2.0.21",
  "version_spec",

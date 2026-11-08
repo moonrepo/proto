@@ -74,8 +74,8 @@ pub fn parse_version_file(
         if !content.trim().is_empty() {
             version = Some(UnresolvedVersionSpec::parse(content.trim())?);
         }
-    } else {
-        version = Some(UnresolvedVersionSpec::parse(content.trim())?);
+    } else if let Some(value) = extract_version_from_file(&input.path)? {
+        version = Some(UnresolvedVersionSpec::parse(value)?);
     }
 
     Ok(Json(ParseVersionFileOutput { version, stop }))
