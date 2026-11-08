@@ -24,10 +24,11 @@ mod regen_shim {
 
         install_node(&sandbox);
 
-        let old_timestamp = fs::metadata(get_shim_path(sandbox.path(), "node"))
-            .unwrap()
-            .created()
-            .unwrap();
+        let shim_path = get_shim_path(sandbox.path(), "node");
+
+        // Remove it first, as writing to a hard link would change the source
+        fs::remove_file(&shim_path).unwrap();
+        fs::write(&shim_path, "stale").unwrap();
 
         sandbox
             .run_bin(|cmd| {
@@ -35,12 +36,7 @@ mod regen_shim {
             })
             .success();
 
-        let new_timestamp = fs::metadata(get_shim_path(sandbox.path(), "node"))
-            .unwrap()
-            .created()
-            .unwrap();
-
-        assert_ne!(old_timestamp, new_timestamp);
+        assert_ne!(fs::read(&shim_path).unwrap(), b"stale");
     }
 
     #[test]
