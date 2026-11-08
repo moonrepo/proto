@@ -43,6 +43,7 @@
 - **WASM API**
   - Added a `normalize_version` function, which converts a version in a format that some tools publish into one that proto can parse, by separating an attached pre-release (one of `a`, `b`, `c`, `rc`, `alpha`, `beta`, or `dev`) and removing leading zeros. For example, `3.15.0rc2` becomes `3.15.0-rc.2`, `3.0rc1` becomes `3.0.0-rc.1`, and `2021.01.07` becomes `2021.1.7`. Values that already parse are not changed.
   - Added a `FormatOptions.attach_prerelease` field, which formats the pre-release without separators (for example, `3.15.0rc2`), to convert a normalized version back into the tool's format.
+  - Added a `MatchesRange` trait, implemented for `Range`, `Clause`, and `Requirement`, whose `matches_range` method returns true if two ranges share at least one version. Unlike checking each requirement of a clause with `matches_req`, all of them must be satisfied by the same version, so `>=1.2.3 !=1.2.3` does not overlap `<=1.2.3`.
   - Updated `UnresolvedVersionSpec.to_partial_string` to return "latest" for `!=` requirements.
   - Plugins built with an older PDK fail to parse `!=` requirements, and must be rebuilt to support them.
   - Updated `HostPlatform` to also parse the operating system first, in the format of `<os>-<arch>` or `<os>-<arch>-<libc>` (for example, `linux-x64-musl`). Platforms are still formatted with the architecture first.

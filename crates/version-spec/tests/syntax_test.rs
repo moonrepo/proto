@@ -1,7 +1,7 @@
 use version_spec::{
-    Clause, MatchesRequirement, MatchesVersion, Op, Range, Requirement, Version, VersionKind,
-    parse_calver, parse_calver_range, parse_calver_req, parse_semver, parse_semver_range,
-    parse_semver_req,
+    Clause, MatchesRange, MatchesRequirement, MatchesVersion, Op, Range, Requirement, Version,
+    VersionKind, parse_calver, parse_calver_range, parse_calver_req, parse_semver,
+    parse_semver_range, parse_semver_req,
 };
 
 mod syntax {
@@ -3276,6 +3276,184 @@ mod syntax {
                         range.matches_req(&req),
                         shared.is_some(),
                         "range {range_input:?} against requirement {req_input:?}, shared version {:?}",
+                        shared.map(|version| version.to_string()),
+                    );
+                }
+            }
+        }
+    }
+
+    mod matches_range {
+        use super::*;
+
+        fn req(input: &str) -> Requirement {
+            Requirement::parse(input).unwrap()
+        }
+
+        fn range(input: &str) -> Range {
+            Range::parse(input).unwrap()
+        }
+
+        #[test]
+        fn matches_wildcard() {
+            assert!(range("").matches_range(&range("")));
+            assert!(range("").matches_range(&range("^1 || ^3")));
+            assert!(range("^1 || ^3").matches_range(&range("*")));
+
+            // Except pre-releases
+            assert!(!range("").matches_range(&range("=1.2.3-alpha")));
+        }
+
+        #[test]
+        fn matches_overlaps() {
+            assert!(range(">=1.5 <2").matches_range(&range("^1.2 || ^3")));
+            assert!(range("^1 || ^3").matches_range(&range("~3.2")));
+            assert!(range("1.2.3 - 2.3.4").matches_range(&range(">=2.3.4")));
+
+            assert!(!range("^1").matches_range(&range("^2 || ^3")));
+            assert!(!range("1.2.3 - 2.3.4").matches_range(&range(">2.3.4 || <1.2.3")));
+        }
+
+        #[test]
+        fn requires_one_version_for_a_clause() {
+            let own = range(">=1.0.0 <=1.2.3");
+            let other = range(">=1.2.3 !=1.2.3");
+
+            // Each requirement overlaps on its own, but no version satisfies all of them
+            assert!(own.matches_req(&req(">=1.2.3")));
+            assert!(own.matches_req(&req("!=1.2.3")));
+            assert!(!own.matches_range(&other));
+            assert!(!other.matches_range(&own));
+
+            assert!(!range("<2").matches_range(&range(">=1.9 !=1.9 !=1")));
+            assert!(range("<2").matches_range(&range(">=1.9 !=1.9.0")));
+        }
+
+        #[test]
+        fn matches_prereleases() {
+            assert!(range(">=1.2.3-alpha <1.2.3").matches_range(&range("=1.2.3-beta || ^2")));
+
+            // Both sides must opt into pre-releases
+            assert!(!range("^1").matches_range(&range("=1.2.3-alpha")));
+            assert!(!range(">=1.2.3-alpha").matches_range(&range(">=1.2.4-alpha <1.2.4")));
+        }
+
+        #[test]
+        fn matches_scopes() {
+            assert!(range(">=node-1").matches_range(&range("^1 || ^2")));
+            assert!(!range(">=node-1").matches_range(&range("bun-1 || bun-2")));
+        }
+
+        #[test]
+        fn matches_like_requirements() {
+            for range_input in [">=1.2 <1.3 || >=3", "!=1.2.3", "", "1.2.3-alpha - 2.0.0"] {
+                let range = range(range_input);
+
+                for req_input in ["1.2", "!=1.2.3", "=1.2.3-alpha", "~2"] {
+                    let req = req(req_input);
+                    let expected = range.matches_req(&req);
+                    let only = Range {
+                        clauses: vec![Clause::Only(req.clone())],
+                    };
+
+                    assert_eq!(
+                        range.matches_range(&only),
+                        expected,
+                        "{range_input:?} {req_input:?}"
+                    );
+                    assert_eq!(
+                        req.matches_range(&range),
+                        expected,
+                        "{range_input:?} {req_input:?}"
+                    );
+                }
+            }
+        }
+
+        // Verify against a brute force search for a shared version, in which
+        // the grid includes every version that a match may be found on
+        #[test]
+        fn matches_same_as_shared_versions() {
+            let ranges = [
+                "",
+                "*",
+                "1.2",
+                "=1.2.3",
+                ">1.2",
+                ">1.2.3",
+                ">=1.2",
+                "<2",
+                "<1.2.3",
+                "<=1.2",
+                "~1.2.3",
+                "^0.2.3",
+                "^0.0.3",
+                "^1.2",
+                ">=1.2.3-alpha",
+                "=1.2.3-beta",
+                "<=1.2.3-alpha",
+                ">1.2.3-alpha <1.2.3",
+                ">1.2.2 <1.2.3-alpha",
+                ">=1.2.3-beta <=1.2.3",
+                ">=1.2 <1.3 || >=3",
+                ">1.2.3 <1.2.4",
+                "1.0.0 - 1.2.3",
+                "1.2.3-alpha - 2.0.0",
+                "1.2.3 - 2.3.1-beta",
+                "=1.2.3-alpha || =2.3.1-alpha",
+                ">=node-1",
+                ">=node-1 <bun-2",
+                "node-1.2.3 - node-2.3.1",
+                "node-1.2.3 - 2.0.0",
+                "bun-1",
+                "!=1.2.3",
+                "!=1.2",
+                "!=0",
+                ">=1.2 !=1.2.0 !=1.2.1",
+                ">=1.2.3 !=1.2.3 <1.2.4",
+                ">=1.2.3 !=1.2.3",
+                ">=1.2.3-alpha !=1.2.3-alpha",
+                "!=1.2.3-beta",
+                ">=node-1 !=node-1.2",
+            ];
+
+            let mut versions = vec![];
+
+            for scope in [None, Some("node"), Some("bun")] {
+                for major in 0..=4 {
+                    for minor in 0..=4 {
+                        for patch in 0..=4 {
+                            for pre in [
+                                None,
+                                Some("0"),
+                                Some("alpha"),
+                                Some("alpha.0"),
+                                Some("beta"),
+                                Some("beta.0"),
+                            ] {
+                                versions.push(Version {
+                                    scope: scope.map(Into::into),
+                                    prerelease: pre.map(Into::into),
+                                    ..Version::new(major, minor, patch)
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+
+            let ranges = ranges.map(|input| (input, range(input)));
+
+            for (lhs_input, lhs) in &ranges {
+                for (rhs_input, rhs) in &ranges {
+                    let shared = versions
+                        .iter()
+                        .find(|version| lhs.matches(version) && rhs.matches(version));
+
+                    assert_eq!(
+                        lhs.matches_range(rhs),
+                        shared.is_some(),
+                        "range {lhs_input:?} against range {rhs_input:?}, shared version {:?}",
                         shared.map(|version| version.to_string()),
                     );
                 }
