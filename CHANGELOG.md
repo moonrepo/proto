@@ -53,6 +53,7 @@
 - Fixed requirements on backend tools (for example, `npm:tsx`) being ignored when ordering installs, as they were matched by identifier only.
 - Fixed `proto mcp`'s install tool not checking requirements.
 - Fixed tools without a primary executable (for example, `asdf:golang`, which provides `go` and `gofmt`) failing to run any of their executables with `proto run --exe`, shims, `proto exec`, and `proto activate`.
+- Fixed `proto plugin info` not supporting tools with a backend (for example, `proto plugin info asdf:golang`), and not displaying their inventory. The JSON output includes a new `context` field.
 
 #### ⚙️ Internal
 

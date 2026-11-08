@@ -17,6 +17,7 @@ use tracing::instrument;
 struct PluginInfoOutput {
     bins: Vec<ExecutableLocation>,
     config: ProtoToolConfig,
+    context: ToolContext,
     exe_file: Option<PathBuf>,
     exes_dirs: Vec<PathBuf>,
     globals_dirs: Vec<PathBuf>,
@@ -33,18 +34,20 @@ struct PluginInfoOutput {
 
 #[derive(Args, Clone, Debug)]
 pub struct PluginInfoArgs {
-    #[arg(required = true, help = "ID of plugin")]
-    id: Id,
+    #[arg(
+        required = true,
+        help = "ID of plugin, optionally prefixed with a backend (for example, asdf:golang)"
+    )]
+    context: ToolContext,
 }
 
 #[instrument(skip(session))]
 pub async fn info(session: ProtoSession, args: PluginInfoArgs) -> SessionResult {
     let global_config = session.load_config_with_mode(ConfigMode::Global)?;
-    let context = ToolContext::new(args.id.clone());
 
     let tool = session
         .load_tool_with_options(
-            &context,
+            &args.context,
             LoadToolOptions {
                 detect_version: true,
                 inherit_local: true,
@@ -65,6 +68,7 @@ pub async fn info(session: ProtoSession, args: PluginInfoArgs) -> SessionResult 
         session.console.write_json_for_format(PluginInfoOutput {
             bins,
             config: tool.config.clone(),
+            context: tool.context.clone(),
             exe_file: locations.exe_file,
             exes_dirs: locations.exes_dirs,
             globals_dirs: locations.globals_dirs,
@@ -94,7 +98,7 @@ pub async fn info(session: ProtoSession, args: PluginInfoArgs) -> SessionResult 
                     name: "ID",
                     value: element! {
                         StyledText(
-                            content: tool.get_id().to_string(),
+                            content: tool.context.to_string(),
                             style: Style::Id
                         )
                     }.into_any()
@@ -177,10 +181,6 @@ pub async fn info(session: ProtoSession, args: PluginInfoArgs) -> SessionResult 
             }
         }
     })?;
-
-    if is_backend {
-        return Ok(None);
-    }
 
     // INVENTORY
 
