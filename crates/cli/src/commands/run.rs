@@ -3,17 +3,20 @@ use crate::error::ProtoCliError;
 use crate::session::{ProtoSession, SessionResult};
 use crate::workflows::{ExecCommandOptions, ExecWorkflow, ExecWorkflowParams};
 use clap::Args;
+use iocraft::prelude::element;
 use miette::IntoDiagnostic;
 use proto_core::flow::detect::{Detector, ProtoDetectError};
 use proto_core::flow::locate::{Locator, ProtoLocateError};
 use proto_core::flow::resolve::Resolver;
 use proto_core::layout::ShimRegistry;
 use proto_core::{
-    Id, PROTO_PLUGIN_KEY, ProtoEnvironment, ProtoLoaderError, Tool, ToolContext, ToolSpec,
+    Id, PROTO_PLUGIN_KEY, PinLocation, ProtoConfig, ProtoEnvironment, ProtoLoaderError, Tool,
+    ToolContext, ToolSpec,
 };
 use proto_pdk_api::ExecutableConfig;
 use proto_shim::{exec_command_and_replace, locate_proto_exe};
 use rustc_hash::FxHashMap;
+use starbase_console::ui::Confirm;
 use starbase_styles::color;
 use starbase_utils::{envx, path};
 use std::env;
@@ -96,6 +99,58 @@ fn is_trying_to_self_upgrade(tool: &Tool, args: &[String]) -> bool {
     }
 
     false
+}
+
+// Only proto configs can be pinned to, as a version may also be
+// detected from an ecosystem file, which is owned by the tool
+fn get_self_upgrade_pin_config(source: Option<PathBuf>) -> Option<PathBuf> {
+    source.filter(|path| ProtoConfig::is_config_file(path))
+}
+
+// The tool's native self-upgrade conflicts with proto's managed
+// inventory, so offer to upgrade with proto instead
+async fn run_self_upgrade(
+    session: ProtoSession,
+    tool: &Tool,
+    source: Option<PathBuf>,
+) -> SessionResult {
+    // A prompt can only be answered when attached to a terminal
+    // that isn't rendering machine readable output
+    let can_prompt =
+        !session.should_skip_prompts() && !session.is_json_format() && session.is_tty();
+    let mut confirmed = false;
+
+    if can_prompt {
+        session
+            .console
+            .render_interactive(element! {
+                Confirm(
+                    label: format!("Upgrade <id>{}</id> with proto instead?", tool.get_name()),
+                    on_confirm: &mut confirmed,
+                )
+            })
+            .await?;
+    }
+
+    if !confirmed {
+        return Err(ProtoCliError::RunNoSelfUpgrade {
+            command: format!("proto install {} latest --pin", tool.context),
+            tool: tool.get_name().to_owned(),
+        }
+        .into());
+    }
+
+    install_one(
+        session.clone(),
+        InstallArgs {
+            pin: Some(Some(PinLocation::Local)),
+            pin_config: get_self_upgrade_pin_config(source),
+            spec: Some(ToolSpec::parse("latest").unwrap()),
+            ..Default::default()
+        },
+        tool.context.clone(),
+    )
+    .await
 }
 
 async fn get_tool_executable(
@@ -376,15 +431,7 @@ pub async fn run(session: ProtoSession, mut args: RunArgs) -> SessionResult {
     };
 
     let mut use_global_proto = should_use_global_proto(&tool)?;
-
-    // Avoid running the tool's native self-upgrade as it conflicts with proto
-    if is_trying_to_self_upgrade(&tool, &args.passthrough) {
-        return Err(ProtoCliError::RunNoSelfUpgrade {
-            command: format!("proto install {} latest --pin", tool.context),
-            tool: tool.get_name().to_owned(),
-        }
-        .into());
-    }
+    let is_self_upgrade = is_trying_to_self_upgrade(&tool, &args.passthrough);
 
     // Detect a version to run with
     let (mut spec, detected_source) = if use_global_proto {
@@ -399,6 +446,9 @@ pub async fn run(session: ProtoSession, mut args: RunArgs) -> SessionResult {
     } else {
         match Detector::detect(&tool).await {
             Ok((spec, source)) => (spec, source),
+            Err(ProtoDetectError::FailedVersionDetect { .. }) if is_self_upgrade => {
+                return run_self_upgrade(session, &tool, None).await;
+            }
             Err(error) => {
                 return if matches!(error, ProtoDetectError::FailedVersionDetect { .. }) {
                     run_global_tool(session, args, error.into()).map(|_| None)
@@ -408,6 +458,11 @@ pub async fn run(session: ProtoSession, mut args: RunArgs) -> SessionResult {
             }
         }
     };
+
+    // Avoid running the tool's native self-upgrade as it conflicts with proto
+    if is_self_upgrade {
+        return run_self_upgrade(session, &tool, detected_source).await;
+    }
 
     Resolver::resolve(&tool, &mut spec, true).await?;
 
@@ -597,6 +652,40 @@ fn create_command(
 mod tests {
     use super::*;
     use starbase_sandbox::create_empty_sandbox;
+
+    mod self_upgrade_pin_config {
+        use super::*;
+
+        #[test]
+        fn uses_config_files() {
+            for file in [
+                "/repo/.prototools",
+                "/repo/.prototools.production",
+                "/home/.proto/.prototools",
+            ] {
+                assert_eq!(
+                    get_self_upgrade_pin_config(Some(PathBuf::from(file))),
+                    Some(PathBuf::from(file))
+                );
+            }
+        }
+
+        #[test]
+        fn ignores_ecosystem_files() {
+            for file in [
+                "/repo/.nvmrc",
+                "/repo/package.json",
+                "/repo/.prototools-old",
+            ] {
+                assert_eq!(get_self_upgrade_pin_config(Some(PathBuf::from(file))), None);
+            }
+        }
+
+        #[test]
+        fn ignores_no_source() {
+            assert_eq!(get_self_upgrade_pin_config(None), None);
+        }
+    }
 
     mod fallback_guard {
         use super::*;

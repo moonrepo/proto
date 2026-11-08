@@ -1130,4 +1130,78 @@ requires = ["protostar"]
             );
         }
     }
+
+    // Commands aren't attached to a terminal, so the upgrade is never offered
+    mod self_upgrade {
+        use super::*;
+
+        #[test]
+        fn errors_when_non_interactive() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file(".prototools", "protostar = \"1.2.3\"");
+
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.args(["run", "protostar", "--", "self", "upgrade"]);
+                })
+                .failure();
+
+            assert.stderr(
+                predicate::str::contains("Self upgrading protostar is not supported").and(
+                    predicate::str::contains("proto install protostar latest --pin"),
+                ),
+            );
+
+            assert_eq!(
+                fs::read_to_string(sandbox.path().join(".prototools")).unwrap(),
+                "protostar = \"1.2.3\""
+            );
+            assert!(!sandbox.path().join(".proto/tools/protostar/1.2.3").exists());
+        }
+
+        #[test]
+        fn errors_when_no_version_detected() {
+            let sandbox = create_empty_proto_sandbox();
+
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.args(["run", "protostar", "--", "self", "upgrade"]);
+                })
+                .failure();
+
+            assert.stderr(predicate::str::contains(
+                "Self upgrading protostar is not supported",
+            ));
+        }
+
+        #[test]
+        fn errors_when_version_is_passed() {
+            let sandbox = create_empty_proto_sandbox();
+
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.args(["run", "protostar", "1.2.3", "--", "self", "upgrade"]);
+                })
+                .failure();
+
+            assert.stderr(predicate::str::contains(
+                "Self upgrading protostar is not supported",
+            ));
+        }
+
+        #[test]
+        fn doesnt_match_partial_commands() {
+            let sandbox = create_empty_proto_sandbox();
+
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.args(["run", "protostar", "1.2.3", "--", "self"]);
+                })
+                .failure();
+
+            assert.stderr(
+                predicate::str::contains("Self upgrading protostar is not supported").not(),
+            );
+        }
+    }
 }

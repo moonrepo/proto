@@ -25,6 +25,7 @@ pub fn register_tool(Json(input): Json<RegisterToolInput>) -> FnResult<Json<Regi
             ignore_os_arch: input.id == "protoform",
             ..Default::default()
         },
+        self_upgrade_commands: vec!["self upgrade".into()],
         ..RegisterToolOutput::default()
     }))
 }
