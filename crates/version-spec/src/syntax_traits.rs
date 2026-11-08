@@ -207,6 +207,13 @@ fn next_release(major: u32, minor: Option<u32>, patch: Option<u32>) -> Option<(u
 /// Options for formatting a version into a string.
 #[derive(Debug, Clone)]
 pub struct FormatOptions {
+    /// Whether to attach the pre-release to the version, without the `-`
+    /// separator, and without the `.` between its leading label and number,
+    /// for example `3.15.0rc2` instead of `3.15.0-rc.2`. This is the reverse
+    /// of [`normalize_version`](crate::normalize_version). A pre-release that
+    /// doesn't start with a letter keeps the `-`, as it would otherwise run
+    /// into the version.
+    pub attach_prerelease: bool,
     /// Whether to include the comparison operator, and wildcard placeholders,
     /// for requirements.
     pub include_op: bool,
@@ -259,6 +266,7 @@ impl FormatOptions {
 impl Default for FormatOptions {
     fn default() -> Self {
         Self {
+            attach_prerelease: false,
             include_op: true,
             include_minor: true,
             include_scope: true,
@@ -270,6 +278,27 @@ impl Default for FormatOptions {
             pad_patch: None,
             separator: '.',
         }
+    }
+}
+
+fn push_prerelease(out: &mut String, pre: &str, attach: bool) {
+    if !attach || !pre.starts_with(|c: char| c.is_ascii_alphabetic()) {
+        out.push('-');
+        out.push_str(pre);
+
+        return;
+    }
+
+    let label = pre
+        .find(|c: char| !c.is_ascii_alphabetic())
+        .unwrap_or(pre.len());
+    let (name, rest) = pre.split_at(label);
+
+    out.push_str(name);
+
+    match rest.strip_prefix('.') {
+        Some(number) if number.starts_with(|c: char| c.is_ascii_digit()) => out.push_str(number),
+        _ => out.push_str(rest),
     }
 }
 
@@ -314,8 +343,7 @@ impl FormatsVersion for Version {
         if options.include_prerelease
             && let Some(pre) = &self.prerelease
         {
-            out.push('-');
-            out.push_str(pre);
+            push_prerelease(&mut out, pre, options.attach_prerelease);
         }
 
         if options.include_build
@@ -383,8 +411,7 @@ impl FormatsVersion for Requirement {
         if options.include_prerelease
             && let Some(pre) = &self.prerelease
         {
-            out.push('-');
-            out.push_str(pre);
+            push_prerelease(&mut out, pre, options.attach_prerelease);
         }
 
         out

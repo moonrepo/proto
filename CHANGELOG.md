@@ -37,7 +37,14 @@
   - Requirements that form a cycle now error, instead of waiting forever when installing.
   - `proto diagnose` warns about requirements without a configured version, and cycles.
   - This setting is security-sensitive, and is ignored in untrusted configs.
+- Added support for `!=` (not equal) version requirements, which match every version except the one defined, and are typically combined with other requirements, for example, `>=1.2, !=1.2.3`.
+  - A partial requirement excludes every version with the defined parts, for example, `!=1.2` excludes both `1.2.0` and `1.2.9`.
+  - Unlike other requirements, a `!=` requirement never allows pre-releases to match, even when it excludes a pre-release.
 - **WASM API**
+  - Added a `normalize_version` function, which converts a version in a format that some tools publish into one that proto can parse, by separating an attached pre-release (one of `a`, `b`, `c`, `rc`, `alpha`, `beta`, or `dev`) and removing leading zeros. For example, `3.15.0rc2` becomes `3.15.0-rc.2`, `3.0rc1` becomes `3.0.0-rc.1`, and `2021.01.07` becomes `2021.1.7`. Values that already parse are not changed.
+  - Added a `FormatOptions.attach_prerelease` field, which formats the pre-release without separators (for example, `3.15.0rc2`), to convert a normalized version back into the tool's format.
+  - Updated `UnresolvedVersionSpec.to_partial_string` to return "latest" for `!=` requirements.
+  - Plugins built with an older PDK fail to parse `!=` requirements, and must be rebuilt to support them.
   - Updated `HostPlatform` to also parse the operating system first, in the format of `<os>-<arch>` or `<os>-<arch>-<libc>` (for example, `linux-x64-musl`). Platforms are still formatted with the architecture first.
   - Added a `HostEnvironment.foreign` field, which is true when the plugin is targeting a platform other than the machine it's running on, like when locking other platforms with `proto lock --platform`. The `arch`, `os`, and `libc` fields describe the targeted platform, but executed commands (including PDK functions like `command_exists`) and environment variables still reflect the machine, so plugins should not use them to inspect the platform when `foreign` is true.
   - Deprecated `ParseVersionFileInput.content` in favor of `path`, which plugins can use to read the file contents.
@@ -49,6 +56,8 @@
 
 #### 🐞 Fixes
 
+- Fixed scoped requirements with an operator other than `~` or `=` (for example, `<next-12`) resolving to an alias of the same name (`next-12`), which could select a version that the requirement excludes.
+- Fixed requirements with both an operator and a wildcard (for example, `>=*`) being formatted without the wildcard, which could not be parsed again.
 - Fixed the built-in schema plugin (`internal-schema`), which powers TOML, JSON, and YAML plugins, ignoring an override in `[plugins.tools]`.
 - Fixed tool requirements not being met by a `PROTO_<TOOL>_VERSION` environment variable, which failed the Node.js plugin's `bundled-npm` install when Node.js was only pinned in a version file like `.nvmrc`.
 - Fixed requirements on backend tools (for example, `npm:tsx`) being ignored when ordering installs, as they were matched by identifier only.
