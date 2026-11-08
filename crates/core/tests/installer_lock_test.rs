@@ -441,3 +441,51 @@ mod installer_lock {
         );
     }
 }
+
+mod installer_temp_dir {
+    use super::*;
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn passes_version_temp_dir_to_native_install() {
+        let server = spawn_prebuilt_server();
+        let sandbox = create_sandbox(&server, false);
+        let proto = create_proto(&sandbox);
+        let tool = load_tool_with_plugin(&proto, "protostar", "proto_mocked_tool").await;
+        let spec = resolved_spec("1", "1.0.0");
+        let installer = Installer::new(&tool, &spec);
+
+        installer.install(InstallOptions::default()).await.unwrap();
+
+        assert_eq!(installer.temp_dir, tool.get_version_temp_dir(&spec));
+        assert!(installer.temp_dir.join("native_install").exists());
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn passes_version_temp_dir_to_download_prebuilt() {
+        let server = spawn_prebuilt_server();
+        let sandbox = create_sandbox(&server, false);
+        let proto = create_proto(&sandbox);
+        let tool = load_tool(&proto, "x64-linux").await;
+        let spec = resolved_spec("1", "1.0.0");
+        let installer = Installer::new(&tool, &spec);
+
+        installer.install(InstallOptions::default()).await.unwrap();
+
+        assert_eq!(installer.temp_dir, tool.get_version_temp_dir(&spec));
+        assert!(installer.temp_dir.join("download_prebuilt").exists());
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn creates_temp_dir_for_download_prebuilt_when_locking() {
+        let server = spawn_prebuilt_server();
+        let sandbox = create_sandbox(&server, true);
+        let proto = create_proto(&sandbox);
+        let tool = load_tool(&proto, "x64-linux").await;
+
+        // The plugin errors if the directory doesn't exist when called
+        unwrap_locked(lock(&tool, &resolved_spec("1", "1.0.0")).await.unwrap());
+
+        // And it's removed once locked
+        assert!(!tool.get_temp_dir().join("lock").exists());
+    }
+}

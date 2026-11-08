@@ -15,6 +15,11 @@ api_struct!(
 
         /// Virtual directory to install to.
         pub install_dir: VirtualPath,
+
+        /// Virtual directory for temporary files, unique to this install,
+        /// and removed once the install finishes.
+        #[serde(default)]
+        pub temp_dir: VirtualPath,
     }
 );
 

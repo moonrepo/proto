@@ -1,9 +1,10 @@
 use proto_core::test_utils::create_empty_proto_sandbox;
 use proto_core::{
-    ProtoConfig, ProtoEnvironment, Tool, ToolContext, ToolSpec, flow::locate::Locator,
+    ProtoConfig, ProtoEnvironment, Tool, ToolContext, ToolSpec,
+    flow::locate::{Locator, ProtoLocateError},
     load_tool_from_locator,
 };
-use starbase_utils::fs;
+use starbase_utils::{fs, path};
 use std::path::Path;
 use version_spec::VersionSpec;
 
@@ -16,6 +17,18 @@ async fn create_node(root: &Path) -> Tool {
             .tools
             .get("node")
             .unwrap(),
+    )
+    .await
+    .unwrap()
+}
+
+// Every executable is secondary, none are named after the tool
+async fn create_no_primary_tool(root: &Path) -> Tool {
+    load_tool_from_locator(
+        ToolContext::parse("protolith").unwrap(),
+        ProtoEnvironment::new_testing(root).unwrap(),
+        warpgate::find_debug_locator("proto_mocked_tool")
+            .expect("Test plugins not available. Run `just build-wasm` to build them!"),
     )
     .await
     .unwrap()
@@ -161,12 +174,85 @@ mod locator {
         // Should have at minimum an exe_file and exes_dirs
         let file_name = response
             .exe_file
+            .expect("primary executable")
             .file_name()
             .unwrap()
             .to_string_lossy()
             .to_string();
         assert!(file_name.contains("node"));
         assert!(!response.exes_dirs.is_empty());
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn locate_all_succeeds_without_a_primary_exe() {
+        let sandbox = create_empty_proto_sandbox();
+        let tool = create_no_primary_tool(sandbox.path()).await;
+
+        let spec = ToolSpec::new_resolved(VersionSpec::parse("1.0.0").unwrap());
+        let mut locator = Locator::new(&tool, &spec);
+
+        let secondary_exe = locator
+            .product_dir
+            .join("lib")
+            .join(path::exe_name("protolith-fmt"));
+
+        fs::write_file(&secondary_exe, "").unwrap();
+
+        assert!(locator.locate_primary_exe().await.unwrap().is_none());
+
+        let response = locator.locate_all().await.unwrap();
+
+        assert_eq!(response.exe_file, None);
+        assert_eq!(response.exes_dirs, vec![locator.product_dir.join("lib")]);
+        assert!(locator.get_exe_file().is_none());
+
+        // Secondary executables are still available to run
+        let secondaries = locator.locate_secondary_exes().await.unwrap();
+
+        let fmt_exe = secondaries
+            .iter()
+            .find(|exe| exe.name == "protolith-fmt")
+            .expect("secondary executable");
+
+        assert_eq!(fmt_exe.path, secondary_exe);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn locate_exe_file_errors_without_a_primary_exe() {
+        let sandbox = create_empty_proto_sandbox();
+        let tool = create_no_primary_tool(sandbox.path()).await;
+
+        let spec = ToolSpec::new_resolved(VersionSpec::parse("1.0.0").unwrap());
+        let mut locator = Locator::new(&tool, &spec);
+
+        fs::write_file(
+            locator
+                .product_dir
+                .join("lib")
+                .join(path::exe_name("protolith-fmt")),
+            "",
+        )
+        .unwrap();
+
+        assert!(matches!(
+            locator.locate_exe_file().await.unwrap_err(),
+            ProtoLocateError::MissingToolExecutable { .. }
+        ));
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn locate_all_errors_if_primary_exe_is_missing() {
+        let sandbox = create_empty_proto_sandbox();
+        let tool = create_node(sandbox.path()).await;
+
+        let spec = ToolSpec::new_resolved(VersionSpec::parse("20.0.0").unwrap());
+        let mut locator = Locator::new(&tool, &spec);
+
+        // A declared primary that doesn't exist is a broken install
+        assert!(matches!(
+            locator.locate_all().await.unwrap_err(),
+            ProtoLocateError::MissingToolExecutable { .. }
+        ));
     }
 
     #[tokio::test(flavor = "multi_thread")]

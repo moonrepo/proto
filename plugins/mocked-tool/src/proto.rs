@@ -4,6 +4,10 @@ use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use starbase_utils::fs;
 
+// Mimics backends (like `asdf:golang`) whose executables are not
+// named after the tool, so none of them are marked as primary
+const NO_PRIMARY_ID: &str = "protolith";
+
 #[plugin_fn]
 pub fn register_tool(Json(input): Json<RegisterToolInput>) -> FnResult<Json<RegisterToolOutput>> {
     initialize_tracing();
@@ -63,16 +67,14 @@ pub fn parse_version_file(
 }
 
 #[plugin_fn]
-pub fn pin_version(
-    Json(input): Json<PinVersionInput>,
-) -> FnResult<Json<PinVersionOutput>> {
+pub fn pin_version(Json(input): Json<PinVersionInput>) -> FnResult<Json<PinVersionOutput>> {
     let mut output = PinVersionOutput::default();
     let id = get_plugin_id()?;
 
     match input.version {
         UnresolvedVersionSpec::Alias(_) => {
             output.error = Some("Aliases are not supported.".into());
-        },
+        }
         _ => {
             let file = input.dir.join(format!(".{id}-version"));
 
@@ -86,17 +88,14 @@ pub fn pin_version(
                     output.pinned = false;
                 }
             }
-        },
+        }
     };
 
     Ok(Json(output))
 }
 
-
 #[plugin_fn]
-pub fn unpin_version(
-    Json(input): Json<UnpinVersionInput>,
-) -> FnResult<Json<UnpinVersionOutput>> {
+pub fn unpin_version(Json(input): Json<UnpinVersionInput>) -> FnResult<Json<UnpinVersionOutput>> {
     let mut output = UnpinVersionOutput::default();
     let id = get_plugin_id()?;
     let file = input.dir.join(format!(".{id}-version"));
@@ -209,8 +208,14 @@ pub fn native_install(
         return Err(plugin_err!("Invalid version {version}"));
     }
 
+    // Std doesn't create parent directories, so this verifies
+    // that the host created the temp directory
+    std::fs::write(input.temp_dir.join("native_install"), "")?;
+
     // Create the primary executable
-    fs::write_file(input.install_dir.join(env.os.get_exe_name(&id)), "")?;
+    if id != NO_PRIMARY_ID {
+        fs::write_file(input.install_dir.join(env.os.get_exe_name(&id)), "")?;
+    }
 
     // Create other executables
     let lib_dir = input.install_dir.join("lib");
@@ -241,10 +246,17 @@ pub fn locate_executables(
     let mut output = LocateExecutablesOutput::default();
 
     // Executables
-    output.exes.insert(
-        id.to_string(),
-        ExecutableConfig::new_primary(env.os.get_exe_name(&id)),
-    );
+    if id == NO_PRIMARY_ID {
+        output.exes.insert(
+            format!("{id}-fmt"),
+            ExecutableConfig::new(env.os.get_exe_name(format!("lib/{id}-fmt"))),
+        );
+    } else {
+        output.exes.insert(
+            id.to_string(),
+            ExecutableConfig::new_primary(env.os.get_exe_name(&id)),
+        );
+    }
 
     output.exes.insert(
         format!("{id}x"),

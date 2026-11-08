@@ -10,6 +10,7 @@ mod tracing;
 pub use api::*;
 pub use funcs::*;
 pub use path_ext::*;
+pub use rustc_hash::*;
 #[cfg(feature = "tracing")]
 pub use tracing::*;
 pub use warpgate_api::*;

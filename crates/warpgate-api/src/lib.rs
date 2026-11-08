@@ -6,6 +6,7 @@ mod locator;
 mod locator_error;
 mod path_utils;
 mod real_path;
+mod utils;
 mod virtual_path;
 
 pub use anyhow::anyhow;
@@ -16,6 +17,7 @@ pub use locator_error::*;
 pub use path_utils::*;
 pub use real_path::*;
 pub use starbase_id::*;
+pub use utils::*;
 pub use virtual_path::*;
 
 /// Wrap a struct with common derives and serde required attributes.

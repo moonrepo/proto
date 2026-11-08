@@ -160,6 +160,112 @@ mod download_file {
     }
 }
 
+mod env_vars {
+    use super::*;
+    use std::env;
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn gets_multiple_vars() {
+        unsafe {
+            env::set_var("WARPGATE_TEST_GET_ENV_VARS_A", "a");
+            env::set_var("WARPGATE_TEST_GET_ENV_VARS_B", "b");
+        };
+
+        let sandbox = create_empty_sandbox();
+        let container = create_container(sandbox.path());
+
+        let vars: FxHashMap<String, String> = container
+            .call_func_with(
+                "testing_get_env_vars",
+                [
+                    "WARPGATE_TEST_GET_ENV_VARS_A",
+                    "WARPGATE_TEST_GET_ENV_VARS_B",
+                ],
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(
+            vars,
+            FxHashMap::from_iter([
+                ("WARPGATE_TEST_GET_ENV_VARS_A".into(), "a".into()),
+                ("WARPGATE_TEST_GET_ENV_VARS_B".into(), "b".into()),
+            ])
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn omits_unset_vars_but_keeps_empty_vars() {
+        unsafe {
+            env::set_var("WARPGATE_TEST_GET_ENV_VARS_EMPTY", "");
+            env::remove_var("WARPGATE_TEST_GET_ENV_VARS_UNSET");
+        };
+
+        let sandbox = create_empty_sandbox();
+        let container = create_container(sandbox.path());
+
+        let vars: FxHashMap<String, String> = container
+            .call_func_with(
+                "testing_get_env_vars",
+                [
+                    "WARPGATE_TEST_GET_ENV_VARS_EMPTY",
+                    "WARPGATE_TEST_GET_ENV_VARS_UNSET",
+                ],
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(
+            vars,
+            FxHashMap::from_iter([("WARPGATE_TEST_GET_ENV_VARS_EMPTY".into(), "".into())])
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn sets_multiple_vars() {
+        let sandbox = create_empty_sandbox();
+        let container = create_container(sandbox.path());
+
+        container
+            .call_func_without_output(
+                "testing_set_env_vars",
+                FxHashMap::from_iter([
+                    ("WARPGATE_TEST_SET_ENV_VARS_A", "a"),
+                    ("WARPGATE_TEST_SET_ENV_VARS_B", "b"),
+                ]),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(env::var("WARPGATE_TEST_SET_ENV_VARS_A").unwrap(), "a");
+        assert_eq!(env::var("WARPGATE_TEST_SET_ENV_VARS_B").unwrap(), "b");
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn appends_real_paths_when_setting_path() {
+        let sandbox = create_empty_sandbox();
+        let container = create_container(sandbox.path());
+
+        container
+            .call_func_without_output(
+                "testing_set_env_vars",
+                FxHashMap::from_iter([("PATH", "/sandbox/env-vars/a:/sandbox/env-vars/b")]),
+            )
+            .await
+            .unwrap();
+
+        let paths = env::split_paths(&env::var_os("PATH").unwrap()).collect::<Vec<_>>();
+
+        assert_eq!(
+            paths[paths.len() - 2..],
+            [
+                sandbox.path().join("env-vars/a"),
+                sandbox.path().join("env-vars/b")
+            ]
+        );
+    }
+}
+
 mod send_request {
     use super::*;
 

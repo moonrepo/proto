@@ -4,6 +4,7 @@
 use crate::clients::{HttpClient, WarpgateHttpClientError};
 use crate::plugin_error::WarpgatePluginError;
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
+use rustc_hash::FxHashMap;
 use starbase_shell::{ShellType, join_exe_args};
 use starbase_styles::{apply_style_tags, color};
 use starbase_utils::net::{self, DownloadOptions};
@@ -68,6 +69,13 @@ pub fn create_host_functions(data: HostData) -> Vec<Function> {
             UserData::new(()),
             get_env_var,
         ),
+        Function::new(
+            "get_env_vars",
+            [ValType::I64],
+            [ValType::I64],
+            UserData::new(()),
+            get_env_vars,
+        ),
         Function::new("host_log", [ValType::I64], [], UserData::new(()), host_log),
         Function::new(
             "send_request",
@@ -82,6 +90,13 @@ pub fn create_host_functions(data: HostData) -> Vec<Function> {
             [],
             UserData::new(data.clone()),
             set_env_var,
+        ),
+        Function::new(
+            "set_env_vars",
+            [ValType::I64],
+            [],
+            UserData::new(data.clone()),
+            set_env_vars,
         ),
     ]
 }
@@ -505,6 +520,43 @@ fn get_env_var(
     Ok(())
 }
 
+#[instrument(name = "host_func_get_env_vars", skip_all)]
+fn get_env_vars(
+    plugin: &mut CurrentPlugin,
+    inputs: &[Val],
+    outputs: &mut [Val],
+    _user_data: UserData<()>,
+) -> Result<(), Error> {
+    let names: Vec<String> = serde_json::from_str(plugin.memory_get_val(&inputs[0])?)?;
+    let uuid = plugin.id().to_string();
+
+    trace!(
+        plugin = &uuid,
+        names = ?names,
+        "Calling host function {}",
+        color::label("get_env_vars"),
+    );
+
+    // Unlike `get_env_var`, variables that are not set (or are not
+    // valid Unicode) are omitted, so the guest can tell them apart
+    // from variables that are set to an empty value
+    let vars = names
+        .into_iter()
+        .filter_map(|name| env::var(&name).ok().map(|value| (name, value)))
+        .collect::<FxHashMap<_, _>>();
+
+    trace!(
+        plugin = &uuid,
+        vars = ?vars,
+        "Called host function {}",
+        color::label("get_env_vars"),
+    );
+
+    plugin.memory_set_val(&mut outputs[0], serde_json::to_string(&vars)?)?;
+
+    Ok(())
+}
+
 #[instrument(name = "host_func_set_env_var", skip_all)]
 fn set_env_var(
     plugin: &mut CurrentPlugin,
@@ -524,10 +576,49 @@ fn set_env_var(
         color::label("set_env_var"),
     );
 
-    if name == "PATH" {
-        let data = user_data.get()?;
-        let data = data.lock().unwrap();
+    let data = user_data.get()?;
+    let data = data.lock().unwrap();
 
+    set_host_env_var(&uuid, "set_env_var", &data, name, value)
+}
+
+#[instrument(name = "host_func_set_env_vars", skip_all)]
+fn set_env_vars(
+    plugin: &mut CurrentPlugin,
+    inputs: &[Val],
+    _outputs: &mut [Val],
+    user_data: UserData<HostData>,
+) -> Result<(), Error> {
+    let vars: FxHashMap<String, String> = serde_json::from_str(plugin.memory_get_val(&inputs[0])?)?;
+    let uuid = plugin.id().to_string();
+
+    trace!(
+        plugin = &uuid,
+        vars = ?vars,
+        "Calling host function {}",
+        color::label("set_env_vars"),
+    );
+
+    let data = user_data.get()?;
+    let data = data.lock().unwrap();
+
+    for (name, value) in vars {
+        set_host_env_var(&uuid, "set_env_vars", &data, name, value)?;
+    }
+
+    Ok(())
+}
+
+// Shared by `set_env_var` and `set_env_vars`. Setting `PATH` appends
+// to the current value instead of overwriting it.
+fn set_host_env_var(
+    uuid: &str,
+    func: &str,
+    data: &HostData,
+    name: String,
+    value: String,
+) -> Result<(), Error> {
+    if name == "PATH" {
         // The WASM plugin has no context into what OS they are really
         // running on, so handle both delimiters for convenience.
         let new_path = value
@@ -537,11 +628,11 @@ fn set_env_var(
             .collect::<Vec<_>>();
 
         trace!(
-            plugin = &uuid,
+            plugin = uuid,
             name = &name,
             path = ?new_path,
             "Called host function {}",
-            color::label("set_env_var"),
+            color::label(func),
         );
 
         let mut path = envx::paths();
@@ -550,11 +641,11 @@ fn set_env_var(
         unsafe { env::set_var("PATH", env::join_paths(path)?) };
     } else {
         trace!(
-            plugin = &uuid,
+            plugin = uuid,
             name = &name,
             value = &value,
             "Called host function {}",
-            color::label("set_env_var"),
+            color::label(func),
         );
 
         unsafe { env::set_var(name, value) };

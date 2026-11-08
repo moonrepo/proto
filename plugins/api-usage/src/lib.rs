@@ -94,6 +94,20 @@ pub fn testing_download_file(
 }
 
 #[plugin_fn]
+pub fn testing_get_env_vars(
+    Json(names): Json<Vec<String>>,
+) -> FnResult<Json<HashMap<String, String>>> {
+    Ok(Json(get_host_env_vars(names)?.into_iter().collect()))
+}
+
+#[plugin_fn]
+pub fn testing_set_env_vars(Json(vars): Json<HashMap<String, String>>) -> FnResult<()> {
+    set_host_env_vars(vars)?;
+
+    Ok(())
+}
+
+#[plugin_fn]
 pub fn testing_send_request(
     Json(input): Json<SendRequestInput>,
 ) -> FnResult<Json<SendRequestOutput>> {
@@ -139,6 +153,10 @@ pub fn download_prebuilt(
 ) -> FnResult<Json<DownloadPrebuiltOutput>> {
     let env = get_host_environment()?;
     let config = get_tool_config::<WasmTestConfig>()?;
+
+    // Std doesn't create parent directories, so this verifies
+    // that the host created the temp directory
+    std::fs::write(input.temp_dir.join("download_prebuilt"), "")?;
 
     Ok(Json(DownloadPrebuiltOutput {
         download_url: format!(
