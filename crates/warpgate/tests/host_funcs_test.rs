@@ -116,6 +116,72 @@ fn create_container_for_platform(
     .unwrap()
 }
 
+mod path_ext {
+    use super::*;
+    use warpgate::api::{HostEnvironment, HostOS};
+
+    // Mimic a Windows host, where the host directories use backslashes
+    fn create_windows_container(sandbox_path: &std::path::Path) -> PluginContainer {
+        let id = Id::raw("test");
+        let mut manifest = PluginManifest::new([Wasm::file(find_api_usage_wasm())]);
+
+        manifest.config.insert(
+            "virtual_paths".into(),
+            r#"[["C:\\Users\\me", "/userhome"]]"#.into(),
+        );
+
+        inject_default_manifest_config(&id, &sandbox_path.join("home"), &mut manifest).unwrap();
+
+        let mut env: HostEnvironment =
+            serde_json::from_str(&manifest.config["host_environment"]).unwrap();
+        env.os = HostOS::Windows;
+
+        manifest.config.insert(
+            "host_environment".into(),
+            serde_json::to_string(&env).unwrap(),
+        );
+
+        PluginContainer::new(
+            id,
+            manifest,
+            create_host_functions(HostData {
+                cache_dir: sandbox_path.join("cache"),
+                foreign_platform: None,
+                http_client: Arc::new(create_http_client().unwrap()),
+                virtual_paths: vec![],
+                working_dir: sandbox_path.to_path_buf(),
+            }),
+        )
+        .unwrap()
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn real_paths_only_use_forward_slashes_on_windows() {
+        let sandbox = create_empty_sandbox();
+        let container = create_windows_container(sandbox.path());
+
+        let output: Option<String> = container
+            .call_func_with("testing_to_real_path", "/userhome/.proto/tools")
+            .await
+            .unwrap();
+
+        assert_eq!(output.unwrap(), "C:/Users/me/.proto/tools");
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn creates_virtual_paths_from_windows_paths() {
+        let sandbox = create_empty_sandbox();
+        let container = create_windows_container(sandbox.path());
+
+        let output: String = container
+            .call_func_with("testing_create_virtual_path", r"C:\Users\me\.cargo")
+            .await
+            .unwrap();
+
+        assert_eq!(output, "/userhome/.cargo");
+    }
+}
+
 mod download_file {
     use super::*;
 
