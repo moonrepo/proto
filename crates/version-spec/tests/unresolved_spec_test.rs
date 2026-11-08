@@ -50,6 +50,19 @@ mod unresolved_spec {
             UnresolvedVersionSpec::Version(Version::semantic(1, 2, 3))
         );
 
+        // with a revision
+        assert_eq!(
+            UnresolvedVersionSpec::parse("18.0.2.1").unwrap(),
+            UnresolvedVersionSpec::Version(Version {
+                revision: Some(1),
+                ..Version::semantic(18, 0, 2)
+            })
+        );
+        assert!(matches!(
+            UnresolvedVersionSpec::parse("18.0.2.*").unwrap(),
+            UnresolvedVersionSpec::Requirement(_)
+        ));
+
         // calver, in which a year-month is fully-qualified
         assert_eq!(
             UnresolvedVersionSpec::parse("2024-02").unwrap(),
@@ -114,6 +127,11 @@ mod unresolved_spec {
             "latest",
             "lts-2014",
             "^1.2",
+            "18.0.2.1",
+            "1.2.3.0",
+            "~18.0.2.1",
+            "!=1.2",
+            ">=1, !=1.2.3",
             "1.2.3",
             "node-1.2.3",
             "2024-2-26",
@@ -426,8 +444,15 @@ mod unresolved_spec {
             // requirements, in which wildcard parts are omitted
             ("1.*", "1"),
             ("1.2.*", "1.2"),
+            ("1.2.3.*", "1.2.3"),
+            // revisions
+            ("18.0.2.1", "18.0.2.1"),
+            ("~18.0.2.1", "18.0.2.1"),
             // requirements that match any version
             ("*", "latest"),
+            // requirements that exclude a version
+            ("!=1.2", "latest"),
+            ("!=node-1.2.3", "latest"),
             // ranges
             ("^1.2 || ~1", "latest"),
             (">1, <2", "latest"),

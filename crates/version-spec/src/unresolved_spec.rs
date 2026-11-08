@@ -119,14 +119,17 @@ impl UnresolvedVersionSpec {
     /// operator and build metadata are also omitted. For example, "~1.2" would
     /// simply print "1.2".
     ///
-    /// Furthermore, `Canary` will return "canary", ranges and wildcard
-    /// requirements will return "latest", and aliases will return as-is.
+    /// Furthermore, `Canary` will return "canary", ranges, wildcard and not
+    /// equal (`!=`) requirements will return "latest", and aliases will
+    /// return as-is.
     pub fn to_partial_string(&self) -> String {
         match self {
             Self::Canary => "canary".into(),
             Self::Alias(alias) => alias.to_string(),
             Self::Range(_) => "latest".into(),
-            Self::Requirement(req) if req.major.is_none() => "latest".into(),
+            Self::Requirement(req) if req.major.is_none() || req.op == Op::NotEqual => {
+                "latest".into()
+            }
             Self::Requirement(req) => {
                 let mut options = FormatOptions::new(req.kind);
                 options.include_op = false;

@@ -1,7 +1,7 @@
 use version_spec::{
-    Clause, MatchesRequirement, MatchesVersion, Op, Range, Requirement, Version, VersionKind,
-    parse_calver, parse_calver_range, parse_calver_req, parse_semver, parse_semver_range,
-    parse_semver_req,
+    Clause, MatchesRange, MatchesRequirement, MatchesVersion, Op, Range, Requirement, Version,
+    VersionKind, parse_calver, parse_calver_range, parse_calver_req, parse_semver,
+    parse_semver_range, parse_semver_req,
 };
 
 mod syntax {
@@ -277,7 +277,54 @@ mod syntax {
 
         #[test]
         fn errors_too_many_parts() {
-            assert!(parse_semver("1.2.3.4").is_err());
+            assert!(parse_semver("1.2.3.4.5").is_err());
+        }
+
+        #[test]
+        fn parses_revision() {
+            assert_eq!(
+                parse_semver("18.0.2.1").unwrap(),
+                Version {
+                    revision: Some(1),
+                    ..Version::new(18, 0, 2)
+                }
+            );
+
+            // An explicit 0 is kept
+            assert_eq!(
+                parse_semver("1.2.3.0").unwrap(),
+                Version {
+                    revision: Some(0),
+                    ..Version::new(1, 2, 3)
+                }
+            );
+
+            assert_eq!(
+                parse_semver("v1.2.3.4-rc.1+build.5").unwrap(),
+                Version {
+                    revision: Some(4),
+                    prerelease: Some("rc.1".into()),
+                    build: Some("build.5".into()),
+                    ..Version::new(1, 2, 3)
+                }
+            );
+
+            assert_eq!(
+                parse_semver("temurin-18.0.2.1").unwrap(),
+                Version {
+                    scope: Some("temurin".into()),
+                    revision: Some(1),
+                    ..Version::new(18, 0, 2)
+                }
+            );
+        }
+
+        #[test]
+        fn errors_invalid_revision() {
+            assert!(parse_semver("1.2.3.").is_err());
+            assert!(parse_semver("1.2.3.04").is_err());
+            assert!(parse_semver("1.2.3.x").is_err());
+            assert!(parse_semver("1.2.3.4294967296").is_err());
         }
 
         #[test]
@@ -447,6 +494,7 @@ mod syntax {
             for (input, op) in [
                 ("=1.2.3", Op::Exact),
                 ("==1.2.3", Op::Exact),
+                ("!=1.2.3", Op::NotEqual),
                 (">1.2.3", Op::Greater),
                 (">=1.2.3", Op::GreaterEq),
                 ("<1.2.3", Op::Less),
@@ -511,9 +559,47 @@ mod syntax {
         }
 
         #[test]
+        fn parses_not_equal_with_partial() {
+            assert_eq!(
+                parse_semver_req("!=1.2").unwrap(),
+                Requirement {
+                    op: Op::NotEqual,
+                    major: Some(1),
+                    minor: Some(2),
+                    ..Default::default()
+                }
+            );
+
+            // An explicit operator is kept for a wildcard part
+            assert_eq!(
+                parse_semver_req("!=1.2.*").unwrap(),
+                Requirement {
+                    op: Op::NotEqual,
+                    major: Some(1),
+                    minor: Some(2),
+                    ..Default::default()
+                }
+            );
+
+            assert_eq!(
+                parse_semver_req("!=node-1.2.3-rc.1").unwrap(),
+                Requirement {
+                    op: Op::NotEqual,
+                    scope: Some("node".into()),
+                    major: Some(1),
+                    minor: Some(2),
+                    patch: Some(3),
+                    prerelease: Some("rc.1".into()),
+                    ..Default::default()
+                }
+            );
+        }
+
+        #[test]
         fn parses_op_with_whitespace() {
             for (input, op) in [
                 ("= 1.2.3", Op::Exact),
+                ("!= 1.2.3", Op::NotEqual),
                 ("> 1.2.3", Op::Greater),
                 (">= 1.2.3", Op::GreaterEq),
                 ("<  1.2.3", Op::Less),
@@ -600,7 +686,9 @@ mod syntax {
             assert!(parse_semver_req("=>1.2").is_err());
             assert!(parse_semver_req("=<1.2").is_err());
             assert!(parse_semver_req(">>1.2").is_err());
-            assert!(parse_semver_req("!=1.2").is_err());
+            assert!(parse_semver_req("=!1.2").is_err());
+            assert!(parse_semver_req("!1.2").is_err());
+            assert!(parse_semver_req("!==1.2").is_err());
         }
 
         #[test]
@@ -761,7 +849,68 @@ mod syntax {
 
         #[test]
         fn errors_too_many_parts() {
-            assert!(parse_semver_req("1.2.3.4").is_err());
+            assert!(parse_semver_req("1.2.3.4.5").is_err());
+        }
+
+        #[test]
+        fn parses_revision() {
+            assert_eq!(
+                parse_semver_req("=18.0.2.1").unwrap(),
+                Requirement {
+                    op: Op::Exact,
+                    major: Some(18),
+                    minor: Some(0),
+                    patch: Some(2),
+                    revision: Some(1),
+                    ..Default::default()
+                }
+            );
+
+            assert_eq!(
+                parse_semver_req(">=node-1.2.3.4-rc.1").unwrap(),
+                Requirement {
+                    op: Op::GreaterEq,
+                    scope: Some("node".into()),
+                    major: Some(1),
+                    minor: Some(2),
+                    patch: Some(3),
+                    revision: Some(4),
+                    prerelease: Some("rc.1".into()),
+                    ..Default::default()
+                }
+            );
+
+            // A wildcard revision is a wildcard match
+            assert_eq!(
+                parse_semver_req("1.2.3.*").unwrap(),
+                Requirement {
+                    op: Op::Wildcard,
+                    major: Some(1),
+                    minor: Some(2),
+                    patch: Some(3),
+                    ..Default::default()
+                }
+            );
+
+            // Unless an operator was defined
+            assert_eq!(
+                parse_semver_req("!=1.2.3.x").unwrap(),
+                Requirement {
+                    op: Op::NotEqual,
+                    major: Some(1),
+                    minor: Some(2),
+                    patch: Some(3),
+                    ..Default::default()
+                }
+            );
+        }
+
+        #[test]
+        fn errors_invalid_revision() {
+            assert!(parse_semver_req("1.2.3.").is_err());
+            assert!(parse_semver_req("1.2.3.04").is_err());
+            assert!(parse_semver_req("1.2.*.4").is_err());
+            assert!(parse_semver_req("1.*.3.4").is_err());
         }
 
         #[test]
@@ -867,6 +1016,27 @@ mod syntax {
                     clauses: vec![Clause::All(vec![req(">=1.2.7"), req("<1.3.0")])]
                 }
             );
+
+            // Including exclusions
+            for input in [">=1.0, !=1.2.3", ">=1.0 !=1.2.3", ">=1.0 && != 1.2.3"] {
+                assert_eq!(
+                    parse_semver_range(input).unwrap(),
+                    Range {
+                        clauses: vec![Clause::All(vec![req(">=1.0"), req("!=1.2.3")])]
+                    },
+                    "input: {input}"
+                );
+            }
+
+            assert_eq!(
+                parse_calver_range(">=2024-01, !=2024-03").unwrap(),
+                Range {
+                    clauses: vec![Clause::All(vec![
+                        parse_calver_req(">=2024-01").unwrap(),
+                        parse_calver_req("!=2024-03").unwrap()
+                    ])]
+                }
+            );
         }
 
         #[test]
@@ -962,6 +1132,26 @@ mod syntax {
                 parse_semver_range("1.2.3+build - 2.3.4").unwrap(),
                 Range {
                     clauses: vec![Clause::Between(ver("1.2.3+build"), ver("2.3.4"))]
+                }
+            );
+        }
+
+        #[test]
+        fn parses_revision() {
+            assert_eq!(
+                parse_semver_range("18.0.2.1 - 18.0.3").unwrap(),
+                Range {
+                    clauses: vec![Clause::Between(ver("18.0.2.1"), ver("18.0.3"))]
+                }
+            );
+
+            assert_eq!(
+                parse_semver_range(">=1.2.3.4 <2 || 3.0.0.*").unwrap(),
+                Range {
+                    clauses: vec![
+                        Clause::All(vec![req(">=1.2.3.4"), req("<2")]),
+                        Clause::Only(req("3.0.0.*")),
+                    ]
                 }
             );
         }
@@ -1323,6 +1513,12 @@ mod syntax {
         }
 
         #[test]
+        fn errors_revision() {
+            assert!(parse_calver("2024-01-05.1").is_err());
+            assert!(Version::parse("2024-01-05.1").is_err());
+        }
+
+        #[test]
         fn rejects_dot_format() {
             // Calendar versions use "-" only; a "." separator is semver
             assert!(parse_calver("2024.02").is_err());
@@ -1671,6 +1867,7 @@ mod syntax {
             for (input, op) in [
                 ("=2000-10", Op::Exact),
                 ("==2000-10", Op::Exact),
+                ("!=2000-10", Op::NotEqual),
                 (">2000-10", Op::Greater),
                 (">=2000-10", Op::GreaterEq),
                 ("<2000-10", Op::Less),
@@ -1828,7 +2025,7 @@ mod syntax {
         fn errors_invalid_ops() {
             assert!(parse_calver_req("=>2000").is_err());
             assert!(parse_calver_req(">>2000").is_err());
-            assert!(parse_calver_req("!=2000").is_err());
+            assert!(parse_calver_req("!2000").is_err());
         }
 
         #[test]
@@ -2498,6 +2695,40 @@ mod syntax {
         }
 
         #[test]
+        fn orders_revisions() {
+            // An omitted revision is 0, and orders before an explicit 0
+            // when the versions are otherwise equal
+            assert_eq!(
+                sorted([
+                    "1.2.4",
+                    "1.2.3.10",
+                    "1.2.3.0",
+                    "1.2.3",
+                    "1.2.3.2",
+                    "1.2.3.0-rc.1",
+                    "1.2.3-rc.1",
+                    "1.2.3.1",
+                ]),
+                [
+                    "1.2.3-rc.1",
+                    "1.2.3.0-rc.1",
+                    "1.2.3",
+                    "1.2.3.0",
+                    "1.2.3.1",
+                    "1.2.3.2",
+                    "1.2.3.10",
+                    "1.2.4"
+                ]
+            );
+
+            // But they are not equal, so that both format as they were parsed
+            assert_ne!(
+                Version::parse("1.2.3").unwrap(),
+                Version::parse("1.2.3.0").unwrap()
+            );
+        }
+
+        #[test]
         fn orders_prereleases() {
             // The example ordering from the semver spec
             assert_eq!(
@@ -2590,12 +2821,20 @@ mod syntax {
                 sort_inputs(
                     req,
                     [
-                        ">1.2.3", ">=1.2.3", "^1.2.3", "~1.2.3", "=1.2.3", "<=1.2.3", "<1.2.3"
+                        ">1.2.3", ">=1.2.3", "^1.2.3", "~1.2.3", "=1.2.3", "!=1.2.3", "<=1.2.3",
+                        "<1.2.3"
                     ]
                 ),
                 [
-                    "<1.2.3", "<=1.2.3", "=1.2.3", "~1.2.3", "^1.2.3", ">=1.2.3", ">1.2.3"
+                    "<1.2.3", "<=1.2.3", "!=1.2.3", "=1.2.3", "~1.2.3", "^1.2.3", ">=1.2.3",
+                    ">1.2.3"
                 ]
+            );
+
+            // An omitted revision orders before any revision
+            assert_eq!(
+                sort_inputs(req, ["=1.2.4", "=1.2.3.1", "=1.2.3", "=1.2.3.0"]),
+                ["=1.2.3", "=1.2.3.0", "=1.2.3.1", "=1.2.4"]
             );
 
             // Kinds are ordered by their numbers, with the kind as a tiebreaker
@@ -2640,6 +2879,10 @@ mod syntax {
                     "1.0.0-alpha",
                     "1.0.0+build",
                     "1.0.0-alpha+build",
+                    "1.0.0.0",
+                    "1.0.0.0-alpha",
+                    "1.0.0.1",
+                    "1.0.0.1+build",
                     "10.0.0",
                     "2024-2",
                     "2024-02-01",
@@ -2666,6 +2909,10 @@ mod syntax {
                     "=1.2.3",
                     "=1.2.3-alpha",
                     ">1.2.3-alpha",
+                    "=1.2.3.0",
+                    "=1.2.3.1",
+                    ">=1.2.3.1-alpha",
+                    "1.2.3.*",
                     "^0.0.3",
                     "~2024-2",
                     "~2024.2",
@@ -2744,6 +2991,180 @@ mod syntax {
         }
 
         #[test]
+        fn matches_revisions_exactly() {
+            assert!(req("=18.0.2.1").matches(&ver("18.0.2.1")));
+            assert!(!req("=18.0.2.1").matches(&ver("18.0.2.2")));
+            assert!(!req("=18.0.2.1").matches(&ver("18.0.2")));
+
+            // An omitted revision is the same as 0
+            assert!(req("=18.0.2.0").matches(&ver("18.0.2")));
+            assert!(req("=18.0.2.0").matches(&ver("18.0.2.0")));
+
+            // A requirement without a revision matches any revision
+            assert!(req("=18.0.2").matches(&ver("18.0.2.1")));
+            assert!(req("18.0.2.*").matches(&ver("18.0.2.1")));
+            assert!(req("18.0.2.*").matches(&ver("18.0.2")));
+            assert!(!req("18.0.2.*").matches(&ver("18.0.3")));
+            assert!(req("temurin-18.0.2").matches(&ver("temurin-18.0.2.1")));
+
+            // Unless it has a pre-release, as it then refers to a single version
+            assert!(req("=1.2.3-rc.1").matches(&ver("1.2.3.0-rc.1")));
+            assert!(!req("=1.2.3-rc.1").matches(&ver("1.2.3.1-rc.1")));
+        }
+
+        #[test]
+        fn matches_revisions_greater_and_less() {
+            assert!(req(">18.0.2.1").matches(&ver("18.0.2.2")));
+            assert!(req(">18.0.2.1").matches(&ver("18.0.3")));
+            assert!(!req(">18.0.2.1").matches(&ver("18.0.2.1")));
+            assert!(req(">=18.0.2.1").matches(&ver("18.0.2.1")));
+
+            // A requirement without a revision only matches beyond its revisions
+            assert!(!req(">18.0.2").matches(&ver("18.0.2.1")));
+            assert!(req(">18.0.2").matches(&ver("18.0.3")));
+            assert!(req(">=18.0.2").matches(&ver("18.0.2.1")));
+            assert!(req("<=18.0.2").matches(&ver("18.0.2.1")));
+
+            assert!(req("<18.0.2.1").matches(&ver("18.0.2")));
+            assert!(req("<18.0.2.1").matches(&ver("18.0.2.0")));
+            assert!(!req("<18.0.2.1").matches(&ver("18.0.2.1")));
+            assert!(!req("<18.0.2").matches(&ver("18.0.2.1")));
+            assert!(req("<18.0.2").matches(&ver("18.0.1.9")));
+
+            // But still matches pre-releases on the same version numbers
+            let range = range(">=1.2.3-alpha <1.2.3");
+
+            assert!(range.matches(&ver("1.2.3-beta")));
+            assert!(range.matches(&ver("1.2.3.0-beta")));
+            assert!(!range.matches(&ver("1.2.3.1-beta")));
+        }
+
+        #[test]
+        fn matches_revisions_tilde_and_caret() {
+            assert!(req("~18.0.2").matches(&ver("18.0.2.1")));
+            assert!(req("~1.2.3.4").matches(&ver("1.2.3.5")));
+            assert!(req("~1.2.3.4").matches(&ver("1.2.9")));
+            assert!(!req("~1.2.3.4").matches(&ver("1.2.3.3")));
+            assert!(!req("~1.2.3.4").matches(&ver("1.3.0")));
+
+            assert!(req("^1.2.3.4").matches(&ver("1.9.0")));
+            assert!(req("^1.2.3.4").matches(&ver("1.2.3.5")));
+            assert!(!req("^1.2.3.4").matches(&ver("1.2.3.3")));
+            assert!(!req("^1.2.3.4").matches(&ver("2.0.0")));
+
+            // A zero major and minor locks the patch, but not the revision
+            assert!(req("^0.0.3").matches(&ver("0.0.3.7")));
+            assert!(req("^0.0.3.4").matches(&ver("0.0.3.5")));
+            assert!(!req("^0.0.3.4").matches(&ver("0.0.3.3")));
+            assert!(!req("^0.0.3.4").matches(&ver("0.0.4")));
+
+            // A zero major, minor, and patch locks the revision
+            assert!(req("^0.0.0.4").matches(&ver("0.0.0.4")));
+            assert!(!req("^0.0.0.4").matches(&ver("0.0.0.5")));
+            assert!(req("^0.0.0").matches(&ver("0.0.0.5")));
+        }
+
+        #[test]
+        fn matches_revisions_prereleases() {
+            assert!(req(">=1.2.3.4-rc.1").matches(&ver("1.2.3.4-rc.2")));
+            assert!(req(">=1.2.3.4-rc.1").matches(&ver("1.2.3.4")));
+            assert!(req(">=1.2.3.4-rc.1").matches(&ver("1.2.3.5")));
+
+            // A pre-release only matches on the same revision
+            assert!(!req(">=1.2.3.4-rc.1").matches(&ver("1.2.3.5-rc.1")));
+            assert!(req(">=1.2.3-rc.1").matches(&ver("1.2.3.0-rc.2")));
+            assert!(!req(">=1.2.3-rc.1").matches(&ver("1.2.3.1-rc.2")));
+        }
+
+        #[test]
+        fn matches_revisions_not_equal_and_between() {
+            // A requirement without a revision excludes all of its revisions
+            assert!(!req("!=18.0.2").matches(&ver("18.0.2.1")));
+            assert!(req("!=18.0.2.1").matches(&ver("18.0.2")));
+            assert!(req("!=18.0.2.1").matches(&ver("18.0.2.2")));
+            assert!(!req("!=18.0.2.0").matches(&ver("18.0.2")));
+
+            // A bound without a revision includes all of its revisions
+            let between = range("18.0.2 - 18.0.3");
+
+            assert!(between.matches(&ver("18.0.2.0")));
+            assert!(between.matches(&ver("18.0.3.1")));
+            assert!(!between.matches(&ver("18.0.4")));
+            assert!(!range("18.0.2.1 - 18.0.3").matches(&ver("18.0.2")));
+        }
+
+        #[test]
+        fn matches_not_equal() {
+            assert!(req("!=1.2.3").matches(&ver("1.2.4")));
+            assert!(req("!=1.2.3").matches(&ver("0.0.0")));
+            assert!(!req("!=1.2.3").matches(&ver("1.2.3")));
+
+            // Build metadata is ignored
+            assert!(!req("!=1.2.3").matches(&ver("1.2.3+build")));
+
+            // A partial excludes every version with the defined parts
+            assert!(!req("!=1.2").matches(&ver("1.2.0")));
+            assert!(!req("!=1.2").matches(&ver("1.2.9")));
+            assert!(req("!=1.2").matches(&ver("1.3.0")));
+            assert!(req("!=1.2").matches(&ver("1.1.9")));
+            assert!(!req("!=1").matches(&ver("1.9.9")));
+            assert!(req("!=1").matches(&ver("2.0.0")));
+            assert!(!req("!=1.*").matches(&ver("1.9.9")));
+
+            // A wildcard excludes every version
+            assert!(!req("!=*").matches(&ver("1.2.3")));
+
+            // A scoped requirement only matches the same scope
+            assert!(req("!=node-1.2.3").matches(&ver("node-1.2.4")));
+            assert!(!req("!=node-1.2.3").matches(&ver("node-1.2.3")));
+            assert!(!req("!=node-1.2.3").matches(&ver("1.2.4")));
+
+            assert!(req("!=2024-2").matches(&ver("2024-3-1")));
+            assert!(!req("!=2024-2").matches(&ver("2024-2-15")));
+        }
+
+        #[test]
+        fn matches_not_equal_prereleases() {
+            // An exclusion never opts into pre-releases, including
+            // when it excludes a pre-release
+            assert!(!req("!=1.2.3").matches(&ver("1.2.4-alpha")));
+            assert!(!req("!=1.2.3-alpha").matches(&ver("1.2.3-beta")));
+            assert!(!range(">=1.0, !=1.2.3-alpha").matches(&ver("1.2.3-beta")));
+
+            // While another requirement in the clause still can
+            let clause = range(">=1.2.3-alpha, !=1.2.3-beta");
+
+            assert!(clause.matches(&ver("1.2.3-alpha")));
+            assert!(!clause.matches(&ver("1.2.3-beta")));
+            assert!(clause.matches(&ver("1.2.3-beta.1")));
+            assert!(clause.matches(&ver("1.2.3")));
+
+            // A release exclusion doesn't exclude its pre-releases
+            assert!(range(">=1.2.3-alpha, !=1.2.3").matches(&ver("1.2.3-beta")));
+            assert!(!range(">=1.2.3-alpha, !=1.2.3").matches(&ver("1.2.3")));
+
+            // And neither does a partial one, as `=1.2` doesn't match them either
+            assert!(range(">=1.2.0-alpha, !=1.2").matches(&ver("1.2.0-beta")));
+            assert!(!range(">=1.2.0-alpha, =1.2").matches(&ver("1.2.0-beta")));
+            assert!(!range(">=1.2.0-alpha, !=1.2").matches(&ver("1.2.0")));
+        }
+
+        #[test]
+        fn matches_not_equal_clauses() {
+            let clause = range(">=1.0, !=1.2.3, !=1.4");
+
+            assert!(clause.matches(&ver("1.0.0")));
+            assert!(clause.matches(&ver("1.2.4")));
+            assert!(clause.matches(&ver("1.5.0")));
+            assert!(!clause.matches(&ver("0.9.0")));
+            assert!(!clause.matches(&ver("1.2.3")));
+            assert!(!clause.matches(&ver("1.4.2")));
+
+            // Either side of an or
+            assert!(range("!=1.2.3 || =1.2.3").matches(&ver("1.2.3")));
+        }
+
+        #[test]
         fn matches_greater_and_less() {
             assert!(req(">1.2.3").matches(&ver("1.2.4")));
             assert!(!req(">1.2.3").matches(&ver("1.2.3")));
@@ -2781,7 +3202,7 @@ mod syntax {
             assert!(req("^0.2.3").matches(&ver("0.2.9")));
             assert!(!req("^0.2.3").matches(&ver("0.3.0")));
 
-            // A zero major and minor locks the micro
+            // A zero major and minor locks the patch
             assert!(req("^0.0.3").matches(&ver("0.0.3")));
             assert!(!req("^0.0.3").matches(&ver("0.0.4")));
 
@@ -2998,6 +3419,28 @@ mod syntax {
         }
 
         #[test]
+        fn matches_not_equal() {
+            // A shared version may be right after the excluded version
+            assert!(range("!=1.2.3").matches_req(&req("~1.2.3")));
+            assert!(range(">=1.2.3, !=1.2.3").matches_req(&req("<=1.2.4")));
+            assert!(!range(">=1.2.3, !=1.2.3").matches_req(&req("<=1.2.3")));
+            assert!(!range("!=1.2.3").matches_req(&req("=1.2.3")));
+            assert!(range("^1").matches_req(&req("!=1.2.3")));
+
+            // Or after the excluded parts of a partial
+            assert!(range("!=1.2").matches_req(&req(">=1.2")));
+            assert!(!range("!=1.2").matches_req(&req("~1.2")));
+            assert!(range(">=1.2, !=1.2, !=1.3").matches_req(&req("^1")));
+            assert!(!range(">=1.2, !=1.2, !=1.3").matches_req(&req("<1.4")));
+
+            // Which never opts into pre-releases, so only releases are shared
+            assert!(!range("!=1.2.3-alpha").matches_req(&req("=1.2.3-beta")));
+            assert!(!range("=1.2.3-beta").matches_req(&req("!=1.2.3-alpha")));
+            assert!(range("^1").matches_req(&req("!=1.2.3-alpha")));
+            assert!(range(">=1.2.3-alpha, !=1.2.3-alpha").matches_req(&req("=1.2.3-beta")));
+        }
+
+        #[test]
         fn matches_or_clauses() {
             let or = range("^1 || ^3");
 
@@ -3038,6 +3481,28 @@ mod syntax {
                 ">=node-1 <bun-2",
                 "node-1.2.3 - node-2.3.1",
                 "node-1.2.3 - 2.0.0",
+                "!=1.2.3",
+                "!=1.2",
+                "!=0",
+                ">=1.2 !=1.2.0 !=1.2.1",
+                ">=1.2.3 !=1.2.3 <1.2.4",
+                ">=1.2.3-alpha !=1.2.3-alpha",
+                ">=1.2.3-alpha !=1.2.3-alpha.0 <1.2.3",
+                "!=1.2.3-beta",
+                ">=node-1 !=node-1.2",
+                "=1.2.3.1",
+                ">1.2.3.1",
+                ">1.2.3",
+                ">=1.2.3.1 <1.2.4",
+                "!=1.2.3.1",
+                "~1.2.3.1",
+                "^0.0.3.1",
+                "^0.0.0.1",
+                "1.2.3.*",
+                ">=1.2.3.1-alpha",
+                "=1.2.3.0-beta",
+                ">=1.2.3.1-alpha <1.2.3.1",
+                "1.2.3.1 - 1.2.4.1",
             ];
 
             let reqs = [
@@ -3063,6 +3528,21 @@ mod syntax {
                 "2.3.1-alpha",
                 "node-1.3",
                 "bun-1",
+                "!=0.0.0",
+                "!=1.2.3",
+                "!=1.2",
+                "!=2",
+                "!=1.2.3-alpha",
+                "!=node-1.2",
+                "=1.2.3.1",
+                ">1.2.3.0",
+                "<1.2.3.1",
+                "<=1.2.3",
+                "1.2.3.*",
+                "=1.2.3.1-alpha",
+                ">=1.2.3.0-beta",
+                "!=1.2.3.1",
+                "^0.0.0.1",
             ];
 
             let mut versions = vec![];
@@ -3071,19 +3551,22 @@ mod syntax {
                 for major in 0..=4 {
                     for minor in 0..=4 {
                         for patch in 0..=4 {
-                            for pre in [
-                                None,
-                                Some("0"),
-                                Some("alpha"),
-                                Some("alpha.0"),
-                                Some("beta"),
-                                Some("beta.0"),
-                            ] {
-                                versions.push(Version {
-                                    scope: scope.map(Into::into),
-                                    prerelease: pre.map(Into::into),
-                                    ..Version::new(major, minor, patch)
-                                });
+                            for revision in [None, Some(0), Some(1), Some(2)] {
+                                for pre in [
+                                    None,
+                                    Some("0"),
+                                    Some("alpha"),
+                                    Some("alpha.0"),
+                                    Some("beta"),
+                                    Some("beta.0"),
+                                ] {
+                                    versions.push(Version {
+                                        scope: scope.map(Into::into),
+                                        revision,
+                                        prerelease: pre.map(Into::into),
+                                        ..Version::new(major, minor, patch)
+                                    });
+                                }
                             }
                         }
                     }
@@ -3103,6 +3586,200 @@ mod syntax {
                         range.matches_req(&req),
                         shared.is_some(),
                         "range {range_input:?} against requirement {req_input:?}, shared version {:?}",
+                        shared.map(|version| version.to_string()),
+                    );
+                }
+            }
+        }
+    }
+
+    mod matches_range {
+        use super::*;
+
+        fn req(input: &str) -> Requirement {
+            Requirement::parse(input).unwrap()
+        }
+
+        fn range(input: &str) -> Range {
+            Range::parse(input).unwrap()
+        }
+
+        #[test]
+        fn matches_wildcard() {
+            assert!(range("").matches_range(&range("")));
+            assert!(range("").matches_range(&range("^1 || ^3")));
+            assert!(range("^1 || ^3").matches_range(&range("*")));
+
+            // Except pre-releases
+            assert!(!range("").matches_range(&range("=1.2.3-alpha")));
+        }
+
+        #[test]
+        fn matches_overlaps() {
+            assert!(range(">=1.5 <2").matches_range(&range("^1.2 || ^3")));
+            assert!(range("^1 || ^3").matches_range(&range("~3.2")));
+            assert!(range("1.2.3 - 2.3.4").matches_range(&range(">=2.3.4")));
+
+            assert!(!range("^1").matches_range(&range("^2 || ^3")));
+            assert!(!range("1.2.3 - 2.3.4").matches_range(&range(">2.3.4 || <1.2.3")));
+        }
+
+        #[test]
+        fn requires_one_version_for_a_clause() {
+            let own = range(">=1.0.0 <=1.2.3");
+            let other = range(">=1.2.3 !=1.2.3");
+
+            // Each requirement overlaps on its own, but no version satisfies all of them
+            assert!(own.matches_req(&req(">=1.2.3")));
+            assert!(own.matches_req(&req("!=1.2.3")));
+            assert!(!own.matches_range(&other));
+            assert!(!other.matches_range(&own));
+
+            assert!(!range("<2").matches_range(&range(">=1.9 !=1.9 !=1")));
+            assert!(range("<2").matches_range(&range(">=1.9 !=1.9.0")));
+        }
+
+        #[test]
+        fn matches_prereleases() {
+            assert!(range(">=1.2.3-alpha <1.2.3").matches_range(&range("=1.2.3-beta || ^2")));
+
+            // Both sides must opt into pre-releases
+            assert!(!range("^1").matches_range(&range("=1.2.3-alpha")));
+            assert!(!range(">=1.2.3-alpha").matches_range(&range(">=1.2.4-alpha <1.2.4")));
+        }
+
+        #[test]
+        fn matches_scopes() {
+            assert!(range(">=node-1").matches_range(&range("^1 || ^2")));
+            assert!(!range(">=node-1").matches_range(&range("bun-1 || bun-2")));
+        }
+
+        #[test]
+        fn matches_like_requirements() {
+            for range_input in [">=1.2 <1.3 || >=3", "!=1.2.3", "", "1.2.3-alpha - 2.0.0"] {
+                let range = range(range_input);
+
+                for req_input in ["1.2", "!=1.2.3", "=1.2.3-alpha", "~2"] {
+                    let req = req(req_input);
+                    let expected = range.matches_req(&req);
+                    let only = Range {
+                        clauses: vec![Clause::Only(req.clone())],
+                    };
+
+                    assert_eq!(
+                        range.matches_range(&only),
+                        expected,
+                        "{range_input:?} {req_input:?}"
+                    );
+                    assert_eq!(
+                        req.matches_range(&range),
+                        expected,
+                        "{range_input:?} {req_input:?}"
+                    );
+                }
+            }
+        }
+
+        // Verify against a brute force search for a shared version, in which
+        // the grid includes every version that a match may be found on
+        #[test]
+        fn matches_same_as_shared_versions() {
+            let ranges = [
+                "",
+                "*",
+                "1.2",
+                "=1.2.3",
+                ">1.2",
+                ">1.2.3",
+                ">=1.2",
+                "<2",
+                "<1.2.3",
+                "<=1.2",
+                "~1.2.3",
+                "^0.2.3",
+                "^0.0.3",
+                "^1.2",
+                ">=1.2.3-alpha",
+                "=1.2.3-beta",
+                "<=1.2.3-alpha",
+                ">1.2.3-alpha <1.2.3",
+                ">1.2.2 <1.2.3-alpha",
+                ">=1.2.3-beta <=1.2.3",
+                ">=1.2 <1.3 || >=3",
+                ">1.2.3 <1.2.4",
+                "1.0.0 - 1.2.3",
+                "1.2.3-alpha - 2.0.0",
+                "1.2.3 - 2.3.1-beta",
+                "=1.2.3-alpha || =2.3.1-alpha",
+                ">=node-1",
+                ">=node-1 <bun-2",
+                "node-1.2.3 - node-2.3.1",
+                "node-1.2.3 - 2.0.0",
+                "bun-1",
+                "!=1.2.3",
+                "!=1.2",
+                "!=0",
+                ">=1.2 !=1.2.0 !=1.2.1",
+                ">=1.2.3 !=1.2.3 <1.2.4",
+                ">=1.2.3 !=1.2.3",
+                ">=1.2.3-alpha !=1.2.3-alpha",
+                "!=1.2.3-beta",
+                ">=node-1 !=node-1.2",
+                "=1.2.3.1",
+                ">1.2.3.1",
+                ">=1.2.3.1 <1.2.4",
+                "!=1.2.3.1",
+                "~1.2.3.1",
+                "^0.0.3.1",
+                "^0.0.0.1",
+                "1.2.3.*",
+                ">=1.2.3.1-alpha",
+                "=1.2.3.0-beta",
+                ">=1.2.3.1-alpha <1.2.3.1",
+                "1.2.3.1 - 1.2.4.1",
+                ">=1.2.3 !=1.2.3.0 <1.2.3.2",
+            ];
+
+            let mut versions = vec![];
+
+            for scope in [None, Some("node"), Some("bun")] {
+                for major in 0..=4 {
+                    for minor in 0..=4 {
+                        for patch in 0..=4 {
+                            for revision in [None, Some(0), Some(1), Some(2)] {
+                                for pre in [
+                                    None,
+                                    Some("0"),
+                                    Some("alpha"),
+                                    Some("alpha.0"),
+                                    Some("beta"),
+                                    Some("beta.0"),
+                                ] {
+                                    versions.push(Version {
+                                        scope: scope.map(Into::into),
+                                        revision,
+                                        prerelease: pre.map(Into::into),
+                                        ..Version::new(major, minor, patch)
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            let ranges = ranges.map(|input| (input, range(input)));
+
+            for (lhs_input, lhs) in &ranges {
+                for (rhs_input, rhs) in &ranges {
+                    let shared = versions
+                        .iter()
+                        .find(|version| lhs.matches(version) && rhs.matches(version));
+
+                    assert_eq!(
+                        lhs.matches_range(rhs),
+                        shared.is_some(),
+                        "range {lhs_input:?} against range {rhs_input:?}, shared version {:?}",
                         shared.map(|version| version.to_string()),
                     );
                 }

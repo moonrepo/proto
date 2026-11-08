@@ -1,9 +1,9 @@
 use crate::is_calver_like;
+use crate::shared_string::SharedString;
 use crate::spec_error::SpecError;
 use crate::syntax_parser::{parse_calver_req, parse_semver_req};
 use crate::syntax_traits::{FormatOptions, FormatsVersion};
 use crate::syntax_version::{Version, VersionKind, compare_prerelease};
-use compact_str::CompactString;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::fmt::{self, Display};
@@ -12,13 +12,19 @@ use std::str::FromStr;
 /// The comparison operator of a requirement.
 ///
 /// Operators are ordered by the versions they match against the same
-/// version, from the lowest to the highest, for example `<1.2.3`, `=1.2.3`,
-/// `~1.2.3`, `^1.2.3`, and then `>1.2.3`.
+/// version, from the lowest to the highest, for example `<1.2.3`, `!=1.2.3`,
+/// `=1.2.3`, `~1.2.3`, `^1.2.3`, and then `>1.2.3`.
 #[derive(Copy, Clone, Debug, Default, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 pub enum Op {
     /// An exact match (`=` or `==`).
     Exact,
+
+    /// A not equal match (`!=`), which matches every version that an exact
+    /// match does not. A partial requirement excludes every version with the
+    /// defined parts, for example `!=1.2` excludes both `1.2.0` and `1.2.9`.
+    /// Unlike other operators, it never opts into pre-releases.
+    NotEqual,
 
     /// A greater than match (`>`).
     Greater,
@@ -48,6 +54,7 @@ impl Display for Op {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_str(match self {
             Self::Exact => "=",
+            Self::NotEqual => "!=",
             Self::Greater => ">",
             Self::GreaterEq => ">=",
             Self::Less => "<",
@@ -62,17 +69,19 @@ impl Display for Op {
 impl Op {
     // Operators that match from lower versions rank first, and among
     // those that start matching on the same version, the operators that
-    // stop matching on lower versions rank first
+    // stop matching on lower versions rank first. A not equal match starts
+    // on the lowest version, like a less than match, but never stops
     fn rank(self) -> u8 {
         match self {
             Self::Less => 0,
             Self::LessEq => 1,
-            Self::Exact => 2,
-            Self::Wildcard => 3,
-            Self::Tilde => 4,
-            Self::Caret => 5,
-            Self::GreaterEq => 6,
-            Self::Greater => 7,
+            Self::NotEqual => 2,
+            Self::Exact => 3,
+            Self::Wildcard => 4,
+            Self::Tilde => 5,
+            Self::Caret => 6,
+            Self::GreaterEq => 7,
+            Self::Greater => 8,
         }
     }
 }
@@ -107,7 +116,7 @@ pub struct Requirement {
     pub op: Op,
 
     /// An optional scope prefix, for example the "vendor" in `vendor-1.2`.
-    pub scope: Option<CompactString>,
+    pub scope: Option<SharedString>,
 
     /// The major version number, or the year for calendar versions.
     /// A `None` is either an omitted part or a wildcard.
@@ -121,9 +130,16 @@ pub struct Requirement {
     /// A `None` is either an omitted part or a wildcard.
     pub patch: Option<u32>,
 
+    /// An optional 4th version number for semantic versions, for example
+    /// the "1" in `>=18.0.2.1`. A `None` is either an omitted part, which
+    /// matches any revision, or a wildcard. With a pre-release, an omitted
+    /// revision is 0 instead, as the requirement then refers to a single
+    /// version, for example `=1.2.3-rc.1` does not match `1.2.3.1-rc.1`.
+    pub revision: Option<u32>,
+
     /// Optional pre-release identifier, for example the "alpha.1"
     /// in `>=1.2.3-alpha.1`.
-    pub prerelease: Option<CompactString>,
+    pub prerelease: Option<SharedString>,
 }
 
 impl Requirement {
@@ -154,6 +170,7 @@ impl Requirement {
 
         match self.op {
             Op::Exact | Op::Wildcard => self.matches_exact(version),
+            Op::NotEqual => !self.matches_exact(version),
             Op::Greater => self.matches_greater(version),
             Op::GreaterEq => self.matches_exact(version) || self.matches_greater(version),
             Op::Less => self.matches_less(version),
@@ -179,8 +196,14 @@ impl Requirement {
             }
         }
 
-        if let Some(micro) = self.patch {
-            if version.patch != micro {
+        if let Some(patch) = self.patch {
+            if version.patch != patch {
+                return false;
+            }
+        }
+
+        if let Some(revision) = self.revision_bound() {
+            if version.revision.unwrap_or(0) != revision {
                 return false;
             }
         }
@@ -190,7 +213,8 @@ impl Requirement {
 
     /// Returns true if the provided version is greater (`>`) than this
     /// requirement. A partial requirement only matches versions beyond
-    /// the defined parts, for example `>1` does not match `1.5.0`.
+    /// the defined parts, for example `>1` does not match `1.5.0`, and
+    /// `>1.2.3` does not match `1.2.3.1`.
     pub fn matches_greater(&self, version: &Version) -> bool {
         let Some(major) = self.major else {
             return false;
@@ -208,12 +232,22 @@ impl Requirement {
             return version.minor > minor;
         }
 
-        let Some(micro) = self.patch else {
+        let Some(patch) = self.patch else {
             return false;
         };
 
-        if version.patch != micro {
-            return version.patch > micro;
+        if version.patch != patch {
+            return version.patch > patch;
+        }
+
+        let Some(revision) = self.revision_bound() else {
+            return false;
+        };
+
+        let version_revision = version.revision.unwrap_or(0);
+
+        if version_revision != revision {
+            return version_revision > revision;
         }
 
         compare_prerelease(version.prerelease.as_deref(), self.prerelease.as_deref())
@@ -221,7 +255,9 @@ impl Requirement {
     }
 
     /// Returns true if the provided version is less (`<`) than this requirement.
-    /// A partial requirement only matches versions below the defined parts.
+    /// A partial requirement only matches versions below the defined parts. An
+    /// omitted revision is the lowest revision, so that `<1.2.3` matches the
+    /// pre-releases of `1.2.3`, but not `1.2.3.1`.
     pub fn matches_less(&self, version: &Version) -> bool {
         let Some(major) = self.major else {
             return false;
@@ -239,12 +275,19 @@ impl Requirement {
             return version.minor < minor;
         }
 
-        let Some(micro) = self.patch else {
+        let Some(patch) = self.patch else {
             return false;
         };
 
-        if version.patch != micro {
-            return version.patch < micro;
+        if version.patch != patch {
+            return version.patch < patch;
+        }
+
+        let revision = self.revision_bound().unwrap_or(0);
+        let version_revision = version.revision.unwrap_or(0);
+
+        if version_revision != revision {
+            return version_revision < revision;
         }
 
         compare_prerelease(version.prerelease.as_deref(), self.prerelease.as_deref())
@@ -268,9 +311,17 @@ impl Requirement {
             }
         }
 
-        if let Some(micro) = self.patch {
-            if version.patch != micro {
-                return version.patch > micro;
+        if let Some(patch) = self.patch {
+            if version.patch != patch {
+                return version.patch > patch;
+            }
+        }
+
+        if let Some(revision) = self.revision_bound() {
+            let version_revision = version.revision.unwrap_or(0);
+
+            if version_revision != revision {
+                return version_revision > revision;
             }
         }
 
@@ -280,7 +331,8 @@ impl Requirement {
 
     /// Returns true for a compatible (`^`) match: parts may drift up to
     /// the next major version, or the next minor or patch version when
-    /// the major or minor is 0.
+    /// the major or minor is 0. When the major, minor, and patch are all
+    /// 0, only the revision may drift, if it was omitted.
     pub fn matches_caret(&self, version: &Version) -> bool {
         let Some(major) = self.major else {
             return true;
@@ -294,7 +346,7 @@ impl Requirement {
             return true;
         };
 
-        let Some(micro) = self.patch else {
+        let Some(patch) = self.patch else {
             return if major > 0 {
                 version.minor >= minor
             } else {
@@ -305,17 +357,26 @@ impl Requirement {
         if major > 0 {
             if version.minor != minor {
                 return version.minor > minor;
-            } else if version.patch != micro {
-                return version.patch > micro;
+            } else if version.patch != patch {
+                return version.patch > patch;
             }
         } else if minor > 0 {
             if version.minor != minor {
                 return false;
-            } else if version.patch != micro {
-                return version.patch > micro;
+            } else if version.patch != patch {
+                return version.patch > patch;
             }
-        } else if version.minor != minor || version.patch != micro {
+        } else if version.minor != minor || version.patch != patch {
             return false;
+        }
+
+        if let Some(revision) = self.revision_bound() {
+            let version_revision = version.revision.unwrap_or(0);
+
+            if version_revision != revision {
+                // A zero major, minor, and patch locks the revision
+                return (major > 0 || minor > 0 || patch > 0) && version_revision > revision;
+            }
         }
 
         compare_prerelease(version.prerelease.as_deref(), self.prerelease.as_deref())
@@ -324,12 +385,23 @@ impl Requirement {
 
     /// Returns true if this requirement has a pre-release on the same
     /// version numbers as the provided version, allowing a pre-release
-    /// version to be matched.
+    /// version to be matched. A not equal (`!=`) requirement never allows
+    /// one, as excluding a pre-release should not include its siblings.
     pub fn matches_pre(&self, version: &Version) -> bool {
-        self.prerelease.is_some()
+        self.op != Op::NotEqual
+            && self.prerelease.is_some()
             && self.major == Some(version.major)
             && self.minor == Some(version.minor)
             && self.patch == Some(version.patch)
+            && self.revision_bound() == Some(version.revision.unwrap_or(0))
+    }
+
+    // The revision to match against, in which an omitted revision matches
+    // any revision, unless the requirement has a pre-release on a full
+    // version, as it then refers to a single version, with a revision of 0
+    fn revision_bound(&self) -> Option<u32> {
+        self.revision
+            .or_else(|| (self.patch.is_some() && self.prerelease.is_some()).then_some(0))
     }
 }
 
@@ -353,6 +425,7 @@ impl Ord for Requirement {
             .then_with(|| self.major.cmp(&other.major))
             .then_with(|| self.minor.cmp(&other.minor))
             .then_with(|| self.patch.cmp(&other.patch))
+            .then_with(|| self.revision.cmp(&other.revision))
             .then_with(|| {
                 compare_prerelease(self.prerelease.as_deref(), other.prerelease.as_deref())
             })

@@ -819,6 +819,46 @@ mod resolver {
         }
 
         #[tokio::test(flavor = "multi_thread")]
+        async fn does_not_apply_to_excluding_operators() {
+            let sandbox = create_empty_sandbox();
+            let tool = create_mocked_tool(sandbox.path()).await;
+
+            seed_remote_versions(
+                &tool,
+                Some("next"),
+                r#"{
+                    "aliases": { "next-12": "1.2.3" },
+                    "versions": ["1.0.0", "1.2.3", "2.0.0"]
+                }"#,
+            );
+
+            // Resolving these to the alias would pick the excluded version
+            for value in ["!=next-12", "<next-12", ">next-12"] {
+                let result = Resolver::new(&tool)
+                    .resolve_version_candidate(
+                        &UnresolvedVersionSpec::parse(value).unwrap(),
+                        false,
+                        false,
+                    )
+                    .await;
+
+                assert!(result.is_err(), "expected {value} to not resolve");
+            }
+
+            // While an explicit exact match still does
+            let result = Resolver::new(&tool)
+                .resolve_version_candidate(
+                    &UnresolvedVersionSpec::parse("=next-12").unwrap(),
+                    false,
+                    false,
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(result, VersionSpec::parse("1.2.3").unwrap());
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
         async fn does_not_apply_to_unscoped_requirements() {
             let sandbox = create_empty_sandbox();
             let tool = create_mocked_tool(sandbox.path()).await;
