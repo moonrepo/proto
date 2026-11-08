@@ -72,6 +72,7 @@
 
 #### 🐞 Fixes
 
+- Fixed the `latest` alias resolving to a pre-release when a plugin doesn't define it. It now resolves to the highest version that isn't a pre-release.
 - Fixed version detection failing when a plugin reads a version file through `ParseVersionFileInput.path`, and the file is in a directory that plugins cannot access, like a parent of a working directory that's outside of the home directory. Plugins are no longer asked to parse these files, so they are skipped during detection.
 - Fixed scoped requirements with an operator other than `~` or `=` (for example, `<next-12`) resolving to an alias of the same name (`next-12`), which could select a version that the requirement excludes.
 - Fixed requirements with both an operator and a wildcard (for example, `>=*`) being formatted without the wildcard, which could not be parsed again.

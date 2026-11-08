@@ -35,10 +35,16 @@ impl<'tool> VersionResolver<'tool> {
         // Sort from newest to oldest
         resolver.versions.sort_by(|a, d| d.cmp(a));
 
-        if !resolver.aliases.contains_key("latest") && !resolver.versions.is_empty() {
+        // Plugins didn't define it, so use the highest stable version
+        if !resolver.aliases.contains_key("latest")
+            && let Some(latest) = resolver.versions.iter().find(|spec| {
+                spec.as_version()
+                    .is_some_and(|version| version.prerelease.is_none())
+            })
+        {
             resolver
                 .aliases
-                .insert("latest".into(), resolver.versions[0].to_unresolved_spec());
+                .insert("latest".into(), latest.to_unresolved_spec());
         }
 
         resolver
