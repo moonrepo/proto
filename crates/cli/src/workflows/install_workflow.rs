@@ -1,4 +1,4 @@
-use crate::commands::pin::internal_pin;
+use crate::commands::pin::{internal_pin, internal_pin_config};
 use crate::components::{InstallAllProgress, InstallProgress, InstallProgressProps};
 use crate::error::ProtoCliError;
 use crate::shell::{self, Export};
@@ -25,6 +25,7 @@ use starbase_styles::encode_style_tags;
 use starbase_utils::envx;
 use std::collections::BTreeMap;
 use std::env;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::task::JoinHandle;
@@ -44,6 +45,7 @@ pub struct InstallWorkflowParams {
     pub log_writer: Option<LogWriter>,
     pub multiple: bool,
     pub passthrough_args: Vec<String>,
+    pub pin_config: Option<PathBuf>,
     pub pin_to: Option<PinLocation>,
     pub quiet: bool,
     pub skip_prompts: bool,
@@ -112,7 +114,7 @@ impl InstallWorkflow {
         Resolver::resolve(&self.tool, spec, false).await?;
 
         if !params.force && self.tool.is_installed(spec) {
-            self.pin_version(spec, None, params.pin_to.as_ref()).await?;
+            self.pin_version(spec, None, &params).await?;
             self.finish_progress(spec, started);
 
             // Ensure bins/shims exist
@@ -137,7 +139,7 @@ impl InstallWorkflow {
                 } else {
                     None
                 },
-                params.pin_to.as_ref(),
+                &params,
             )
             .await?;
         self.finish_progress(spec, started);
@@ -405,14 +407,21 @@ impl InstallWorkflow {
         &mut self,
         spec: &ToolSpec,
         install_record: Option<&LockRecord>,
-        arg_pin_to: Option<&PinLocation>,
+        params: &InstallWorkflowParams,
     ) -> Result<bool, ProtoCliError> {
+        // A specific config takes precedence over every location
+        if let Some(pin_config) = &params.pin_config {
+            internal_pin_config(&self.tool.tool, spec, pin_config, install_record).await?;
+
+            return Ok(true);
+        }
+
         let config = self.tool.proto.load_config()?;
         let mut pin_to = PinLocation::Local;
         let mut pin = false;
 
         // via `--pin` arg
-        if let Some(custom_type) = arg_pin_to {
+        if let Some(custom_type) = &params.pin_to {
             pin_to = *custom_type;
             pin = true;
         }

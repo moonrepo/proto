@@ -8,7 +8,7 @@ use proto_core::{
 use proto_pdk_api::{PinVersionInput, PinVersionOutput, PluginFunction};
 use starbase_console::ui::*;
 use starbase_styles::encode_style_tags;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tracing::{debug, instrument};
 
 #[derive(Args, Clone, Debug)]
@@ -39,15 +39,31 @@ pub async fn internal_pin(
     pin_to: PinLocation,
     install_record: Option<&LockRecord>,
 ) -> Result<PathBuf, ProtoLockError> {
+    internal_pin_config(
+        tool,
+        spec,
+        tool.proto.get_config_dir(pin_to)?,
+        install_record,
+    )
+    .await
+}
+
+/// Like [`internal_pin`], but pins to a specific config file, or
+/// the base config within a directory, instead of a location.
+pub async fn internal_pin_config(
+    tool: &Tool,
+    spec: &ToolSpec,
+    config: &Path,
+    install_record: Option<&LockRecord>,
+) -> Result<PathBuf, ProtoLockError> {
     let version = match &spec.version {
         Some(version) => version.to_string(),
         None => spec.req.to_string(),
     };
 
-    let config_dir = tool.proto.get_config_dir(pin_to)?;
     let mut previous_spec = None;
 
-    let config_path = tool.proto.update_config_document(config_dir, |doc| {
+    let config_path = tool.proto.update_config_document(config, |doc| {
         previous_spec = doc
             .get(tool.context.as_str())
             .and_then(|item| item.as_str())
