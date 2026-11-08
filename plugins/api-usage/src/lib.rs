@@ -132,6 +132,20 @@ pub fn testing_host_environment(_: ()) -> FnResult<Json<HostEnvironment>> {
 }
 
 #[plugin_fn]
+pub fn testing_to_real_path(Json(path): Json<String>) -> FnResult<Json<Option<String>>> {
+    Ok(Json(
+        VirtualPath::new(path)
+            .to_real_path()?
+            .map(|path| path.to_string()),
+    ))
+}
+
+#[plugin_fn]
+pub fn testing_create_virtual_path(Json(path): Json<String>) -> FnResult<Json<String>> {
+    Ok(Json(VirtualPath::create(path)?.to_string()))
+}
+
+#[plugin_fn]
 pub fn testing_load_git_tags(Json(url): Json<String>) -> FnResult<Json<Vec<String>>> {
     Ok(Json(load_git_tags(url)?))
 }

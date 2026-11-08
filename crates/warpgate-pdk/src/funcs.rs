@@ -3,6 +3,7 @@ use crate::{download_file, exec_command, send_request};
 use extism_pdk::*;
 use rustc_hash::FxHashMap;
 use serde::de::DeserializeOwned;
+use std::ffi::OsStr;
 use std::path::PathBuf;
 use std::sync::OnceLock;
 use std::vec;
@@ -324,9 +325,27 @@ pub fn get_host_to_guest_paths() -> AnyResult<&'static Vec<(PathBuf, PathBuf)>> 
 
     if PATHS_LIST.get().is_none() {
         if let Some(config) = config::get("virtual_paths")? {
-            let _ = PATHS_LIST.set(json::from_str(&config)?);
+            let mut paths: Vec<(PathBuf, PathBuf)> = json::from_str(&config)?;
+
+            for (host_path, _) in &mut paths {
+                *host_path = use_forward_slashes(&*host_path)?;
+            }
+
+            let _ = PATHS_LIST.set(paths);
         }
     }
 
     Ok(PATHS_LIST.get_or_init(Vec::new))
+}
+
+/// WASI only treats `/` as a path separator, so replace the `\` in a real path
+/// from a Windows host, otherwise it can't be joined, split, or compared.
+pub(crate) fn use_forward_slashes(path: impl AsRef<OsStr>) -> AnyResult<PathBuf> {
+    let path = path.as_ref();
+
+    Ok(if get_host_environment()?.os.is_windows() {
+        PathBuf::from(path.to_string_lossy().replace('\\', "/"))
+    } else {
+        PathBuf::from(path)
+    })
 }
