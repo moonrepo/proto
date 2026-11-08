@@ -23,6 +23,30 @@ mod normalize_version {
     }
 
     #[test]
+    fn separates_any_attached_prerelease() {
+        for (input, expected) in [
+            // Any label, in any case
+            ("1.0.0pre1", "1.0.0-pre.1"),
+            ("1.0.0RC1", "1.0.0-RC.1"),
+            ("1.0.0post1", "1.0.0-post.1"),
+            ("8u292", "8.0.0-u.292"),
+            // Without a number
+            ("1.0.0rc", "1.0.0-rc"),
+            ("3.13.0t", "3.13.0-t"),
+            // Only the number after the label is separated
+            ("1.0.0a1.dev2", "1.0.0-a.1.dev2"),
+            ("1.0.0rc1.2", "1.0.0-rc.1.2"),
+            ("1.0.0beta2rc1", "1.0.0-beta.2rc1"),
+            ("1.0.0rc1-1", "1.0.0-rc.1-1"),
+            ("1.0.0rc-1", "1.0.0-rc-1"),
+            ("1.0.0rc_1", "1.0.0-rc_1"),
+            ("1.0.0rc.beta", "1.0.0-rc.beta"),
+        ] {
+            assert_eq!(normalize_version(input), expected, "input: {input}");
+        }
+    }
+
+    #[test]
     fn fills_parts_for_prereleases() {
         assert_eq!(normalize_version("3.0rc1"), "3.0.0-rc.1");
         assert_eq!(normalize_version("3rc1"), "3.0.0-rc.1");
@@ -100,18 +124,16 @@ mod normalize_version {
     #[test]
     fn keeps_unsupported_shapes() {
         for input in [
-            // A label without a number, or in another case
-            "1.0.0rc",
-            "1.0.0RC1",
             // Other separators, which wouldn't convert back as written
             "1.0.0.rc1",
             "1.0.0_rc1",
             "1.0.dev1",
-            // Labels that aren't pre-releases, or more than one label
-            "1.0.0post1",
-            "3.13.0t",
-            "1.0.0a1.dev2",
-            "1.0.0rc1-1",
+            "1.0.0rc.1",
+            "1.0.0rc.1.beta",
+            // Characters that a pre-release can't contain
+            "1.0.0rc!",
+            "1.0.0rc 1",
+            "1.0.0r\u{e9}1",
             "",
         ] {
             assert_eq!(normalize_version(input), input, "input: {input}");
@@ -126,6 +148,8 @@ mod normalize_version {
             "2021.01.07",
             "v1.0.0dev3+build",
             "1.02.3-rc1",
+            "3.13.0t",
+            "1.0.0a1.dev2",
         ] {
             let once = normalize_version(input);
 
@@ -140,6 +164,9 @@ mod normalize_version {
             ("3.0rc1", "3.0.0-rc.1"),
             ("v1.0.0alpha1", "1.0.0-alpha.1"),
             ("2021.01.07", "2021.1.7"),
+            ("3.13.0t", "3.13.0-t"),
+            ("1.0.0a1.dev2", "1.0.0-a.1.dev2"),
+            ("1.0.0rc_1", "1.0.0-rc_1"),
         ] {
             assert!(Version::parse(input).is_err(), "input: {input}");
             assert_eq!(
@@ -187,6 +214,17 @@ mod attach_prerelease {
             "1.0.0dev3",
             "v3.15.0rc2",
             "3.15.0rc2+20260901",
+            "1.0.0RC1",
+            "1.0.0post1",
+            "1.0.0rc",
+            "3.13.0t",
+            "1.0.0a1.dev2",
+            "1.0.0rc1.2",
+            "1.0.0beta2rc1",
+            "1.0.0rc1-1",
+            "1.0.0rc-1",
+            "1.0.0rc_1",
+            "1.0.0rc.beta",
         ] {
             let version = Version::parse(normalize_version(input)).unwrap();
 
