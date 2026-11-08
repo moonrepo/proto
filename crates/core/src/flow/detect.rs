@@ -140,6 +140,24 @@ impl<'tool> Detector<'tool> {
             }
 
             let version = if has_parser {
+                // Plugins can only access directories that have been mapped into
+                // their sandbox, which doesn't include every directory that's walked
+                if !self
+                    .tool
+                    .plugin
+                    .virtual_paths
+                    .iter()
+                    .any(|(host_path, _)| file_path.starts_with(host_path))
+                {
+                    trace!(
+                        tool = self.tool.context.as_str(),
+                        file = ?file_path,
+                        "Skipping version file, as it's not accessible to the plugin"
+                    );
+
+                    continue;
+                }
+
                 let output: ParseVersionFileOutput = self
                     .tool
                     .plugin
@@ -155,11 +173,19 @@ impl<'tool> Detector<'tool> {
                     )
                     .await?;
 
-                if output.version.is_none() {
-                    continue;
-                }
+                match output.version {
+                    Some(version) => version,
+                    None if output.stop => {
+                        trace!(
+                            tool = self.tool.context.as_str(),
+                            file = ?file_path,
+                            "Plugin stopped detection in directory"
+                        );
 
-                output.version.unwrap()
+                        return Ok(None);
+                    }
+                    None => continue,
+                }
             } else {
                 let content = fs::read_file(&file_path)?;
 

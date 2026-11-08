@@ -61,6 +61,7 @@
   - Updated `HostPlatform` to also parse the operating system first, in the format of `<os>-<arch>` or `<os>-<arch>-<libc>` (for example, `linux-x64-musl`). Platforms are still formatted with the architecture first.
   - Added a `HostEnvironment.foreign` field, which is true when the plugin is targeting a platform other than the machine it's running on, like when locking other platforms with `proto lock --platform`. The `arch`, `os`, and `libc` fields describe the targeted platform, but executed commands (including PDK functions like `command_exists`) and environment variables still reflect the machine, so plugins should not use them to inspect the platform when `foreign` is true.
   - Deprecated `ParseVersionFileInput.content` in favor of `path`, which plugins can use to read the file contents.
+  - Added a `ParseVersionFileOutput.stop` field. When true and no version is returned, the plugin's remaining files in that directory are skipped, while parent directories are still checked. This is useful for tools where one config file takes precedence over another, even when it doesn't define a version.
   - Added `get_env_vars` and `set_env_vars` host functions, which get or set multiple environment variables on the host machine with a single call.
     - `get_env_vars` omits variables that are not set, so unlike `get_env_var`, a variable set to an empty value can be told apart from one that is not set.
     - `set_env_vars` appends to `PATH` instead of overwriting it, like `set_env_var`.
@@ -69,6 +70,7 @@
 
 #### 🐞 Fixes
 
+- Fixed version detection failing when a plugin reads a version file through `ParseVersionFileInput.path`, and the file is in a directory that plugins cannot access, like a parent of a working directory that's outside of the home directory. Plugins are no longer asked to parse these files, so they are skipped during detection.
 - Fixed scoped requirements with an operator other than `~` or `=` (for example, `<next-12`) resolving to an alias of the same name (`next-12`), which could select a version that the requirement excludes.
 - Fixed requirements with both an operator and a wildcard (for example, `>=*`) being formatted without the wildcard, which could not be parsed again.
 - Fixed the built-in schema plugin (`internal-schema`), which powers TOML, JSON, and YAML plugins, ignoring an override in `[plugins.tools]`.
@@ -77,6 +79,8 @@
 - Fixed `proto mcp`'s install tool not checking requirements.
 - Fixed tools without a primary executable (for example, `asdf:golang`, which provides `go` and `gofmt`) failing to run any of their executables with `proto run --exe`, shims, `proto exec`, and `proto activate`.
 - Fixed `proto plugin info` not supporting tools with a backend (for example, `proto plugin info asdf:golang`), and not displaying their inventory. The JSON output includes a new `context` field.
+- **WASM API**
+  - Fixed paths on Windows hosts, as WASI only treats `/` as a separator. `to_real_path` returned mixed separators (for example, `C:\Users\me/.proto`), and `VirtualPath::create` failed for real paths within a virtual directory. Real paths in WASM now only use `/`.
 
 #### ⚙️ Internal
 
