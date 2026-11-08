@@ -23,6 +23,13 @@
 
 ## Next
 
+#### 💥 Breaking
+
+- **WASM API**
+  - Changed the `scope`, `prerelease`, and `build` fields of `Version`, and the `scope` and `prerelease` fields of `Requirement`, from `CompactString` to a new `SharedString` type, which is a single pointer and cheap to clone. This reduces the size of `Version` from 88 to 48 bytes, and `Requirement` from 80 to 56 bytes, as tools may load thousands of versions.
+    - `SharedString` dereferences to `str`, and converts from and compares with `&str`, `String`, and `CompactString`, so most code is unchanged, like `version.prerelease.as_deref()` and `Some("alpha".into())`. Code that requires a `CompactString` must convert it with `.into()`.
+    - Versions and requirements are still serialized as strings, so plugins built with an older PDK are not affected.
+
 #### 🚀 Updates
 
 - Added a `proto lock [tool] [spec]` command, which resolves versions, and records the checksum of each tool's pre-built in the lockfile, without installing them. (#1129)

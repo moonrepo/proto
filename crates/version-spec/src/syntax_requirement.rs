@@ -1,9 +1,9 @@
 use crate::is_calver_like;
+use crate::shared_string::SharedString;
 use crate::spec_error::SpecError;
 use crate::syntax_parser::{parse_calver_req, parse_semver_req};
 use crate::syntax_traits::{FormatOptions, FormatsVersion};
 use crate::syntax_version::{Version, VersionKind, compare_prerelease};
-use compact_str::CompactString;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::fmt::{self, Display};
@@ -116,7 +116,7 @@ pub struct Requirement {
     pub op: Op,
 
     /// An optional scope prefix, for example the "vendor" in `vendor-1.2`.
-    pub scope: Option<CompactString>,
+    pub scope: Option<SharedString>,
 
     /// The major version number, or the year for calendar versions.
     /// A `None` is either an omitted part or a wildcard.
@@ -139,7 +139,7 @@ pub struct Requirement {
 
     /// Optional pre-release identifier, for example the "alpha.1"
     /// in `>=1.2.3-alpha.1`.
-    pub prerelease: Option<CompactString>,
+    pub prerelease: Option<SharedString>,
 }
 
 impl Requirement {

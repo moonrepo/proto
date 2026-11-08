@@ -1,9 +1,9 @@
 use crate::is_calver_like;
+use crate::shared_string::SharedString;
 use crate::spec_error::SpecError;
 use crate::syntax_parser::{calendar_year, parse_calver, parse_semver};
 use crate::syntax_requirement::{Op, Requirement};
 use crate::syntax_traits::{FormatOptions, FormatsVersion};
-use compact_str::CompactString;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::fmt::{self, Display};
@@ -38,7 +38,7 @@ pub struct Version {
 
     /// An optional scope prefix, for example the "vendor" in `vendor-1.2.3`.
     /// Does not include the trailing `-`.
-    pub scope: Option<CompactString>,
+    pub scope: Option<SharedString>,
 
     /// The major version number, or the year for calendar versions.
     pub major: u32,
@@ -58,11 +58,11 @@ pub struct Version {
 
     /// Optional pre-release identifier, for example the "alpha.1"
     /// in `1.2.3-alpha.1`. Does not include the leading `-`.
-    pub prerelease: Option<CompactString>,
+    pub prerelease: Option<SharedString>,
 
     /// Optional build metadata, for example the "build.5" in `1.2.3+build.5`.
     /// Does not include the leading `+`.
-    pub build: Option<CompactString>,
+    pub build: Option<SharedString>,
 }
 
 impl Version {

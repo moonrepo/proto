@@ -1,3 +1,4 @@
+use crate::shared_string::SharedString;
 use crate::syntax_range::{Clause, Range};
 use crate::syntax_requirement::{Op, Requirement};
 use crate::syntax_version::{Version, VersionKind};
@@ -181,18 +182,19 @@ impl MatchesRange for Range {
 // version satisfies both sides, so every check fails as expected. The kind
 // does not affect matching, so the first one found is used
 fn has_shared_version(bounds: &[&Requirement], matches: impl Fn(&Version) -> bool) -> bool {
-    let scope = bounds.iter().find_map(|bound| bound.scope.as_deref());
+    // Candidates share the bounds' strings instead of allocating their own
+    let scope = bounds.iter().find_map(|bound| bound.scope.clone());
     let kind = bounds.first().map(|bound| bound.kind).unwrap_or_default();
 
-    let check = |(major, minor, patch, revision): Numbers, prerelease: Option<&str>| {
+    let check = |(major, minor, patch, revision): Numbers, prerelease: Option<SharedString>| {
         matches(&Version {
             kind,
-            scope: scope.map(Into::into),
+            scope: scope.clone(),
             major,
             minor,
             patch,
             revision,
-            prerelease: prerelease.map(Into::into),
+            prerelease,
             build: None,
         })
     };
@@ -237,10 +239,11 @@ fn has_shared_version(bounds: &[&Requirement], matches: impl Fn(&Version) -> boo
 
         // A numeric identifier has the lowest precedence, and fewer
         // identifiers have a lower precedence than more
-        check(numbers, Some("0"))
+        check(numbers, Some("0".into()))
             || bounds.iter().any(|bound| {
-                bound.prerelease.as_deref().is_some_and(|pre| {
-                    check(numbers, Some(pre)) || check(numbers, Some(&format!("{pre}.0")))
+                bound.prerelease.as_ref().is_some_and(|pre| {
+                    check(numbers, Some(pre.clone()))
+                        || check(numbers, Some(format!("{pre}.0").into()))
                 })
             })
     })

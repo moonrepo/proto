@@ -1,4 +1,5 @@
 mod resolved_spec;
+mod shared_string;
 mod spec_error;
 mod syntax_parser;
 mod syntax_range;
@@ -8,6 +9,7 @@ mod syntax_version;
 mod unresolved_spec;
 
 pub use resolved_spec::*;
+pub use shared_string::*;
 pub use spec_error::*;
 #[doc(hidden)]
 pub use syntax_parser::*;
