@@ -95,6 +95,10 @@ pub fn inject_default_manifest_config(
         manifest.config.insert("virtual_paths".into(), paths);
     }
 
+    if manifest.memory.max_var_bytes.is_none() {
+        manifest.memory.max_var_bytes = Some(16 * 1024 * 1024); // 16 MiB
+    }
+
     Ok(())
 }
 
