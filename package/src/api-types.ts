@@ -252,8 +252,10 @@ export interface RegisterToolOutput {
 	/** Other plugins that this plugin requires. */
 	requires?: string[];
 	/**
-	 * Names of commands that will self-upgrade the tool,
-	 * and should be blocked from happening.
+	 * Names of commands that will self-upgrade the tool, and conflict with
+	 * proto's inventory. When ran through proto, the command will not execute.
+	 * Instead an upgrade through proto is offered in interactive terminals,
+	 * otherwise an error is returned.
 	 */
 	self_upgrade_commands?: string[];
 	/**

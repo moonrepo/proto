@@ -181,6 +181,7 @@ impl ProtoMcp {
                         log_writer: None,
                         multiple: false,
                         passthrough_args: vec![],
+                        pin_config: None,
                         pin_to: if req.pin {
                             Some(PinLocation::Closest)
                         } else {

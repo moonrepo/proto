@@ -16,6 +16,7 @@ use starbase_console::utils::formats::format_duration;
 use starbase_styles::color;
 use std::collections::BTreeMap;
 use std::env;
+use std::path::PathBuf;
 use std::time::{Duration, Instant};
 use tokio::task::JoinSet;
 use tokio::time::sleep;
@@ -81,6 +82,10 @@ pub struct InstallArgs {
     // Used internally by other commands to trigger conditional logic
     #[arg(hide = true, long)]
     pub internal: bool,
+
+    // Used internally to pin to a specific config file, instead of a location
+    #[arg(skip)]
+    pub pin_config: Option<PathBuf>,
 }
 
 impl InstallArgs {
@@ -210,6 +215,7 @@ pub async fn install_one(
             &mut spec,
             InstallWorkflowParams {
                 log_writer: None,
+                pin_config: args.pin_config.clone(),
                 pin_to: args.get_pin_location(),
                 strategy: args.get_strategy(),
                 force: args.force,
@@ -388,6 +394,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> SessionResult 
                         log_writer: None,
                         multiple: true,
                         passthrough_args: vec![],
+                        pin_config: None,
                         pin_to,
                         skip_prompts,
                         strategy,
