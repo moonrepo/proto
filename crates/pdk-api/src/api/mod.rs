@@ -488,6 +488,11 @@ api_struct!(
         /// Can be a semantic version or a version requirement/range.
         #[serde(skip_serializing_if = "Option::is_none")]
         pub version: Option<UnresolvedVersionSpec>,
+
+        /// When true and no `version` is returned, skip the plugin's remaining
+        /// files in the current directory. Parent directories are still checked.
+        #[serde(skip_serializing_if = "is_false")]
+        pub stop: bool,
     }
 );
 

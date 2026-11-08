@@ -36,7 +36,12 @@ pub fn detect_version_files(
     let id = get_plugin_id()?;
 
     Ok(Json(DetectVersionOutput {
-        files: vec![format!(".{id}rc"), format!(".{id}.json")],
+        files: vec![
+            format!(".{id}rc"),
+            format!(".{id}.json"),
+            format!(".{id}.stop"),
+            format!(".{id}.after-stop"),
+        ],
         ignore: vec![],
     }))
 }
@@ -51,19 +56,28 @@ pub fn parse_version_file(
     Json(input): Json<ParseVersionFileInput>,
 ) -> FnResult<Json<ParseVersionFileOutput>> {
     let mut version = None;
+    let mut stop = false;
     let id = get_plugin_id()?;
+    let content = fs::read_file(&input.path)?;
 
     if input.file == format!(".{id}.json") {
-        let json: VersionJson = json::from_str(&input.content)?;
+        let json: VersionJson = json::from_str(&content)?;
 
         if let Some(constraint) = json.version {
             version = Some(UnresolvedVersionSpec::parse(constraint)?);
         }
+    } else if input.file == format!(".{id}.stop") {
+        stop = true;
+
+        // An empty file has no version, but still shadows the files after it
+        if !content.trim().is_empty() {
+            version = Some(UnresolvedVersionSpec::parse(content.trim())?);
+        }
     } else {
-        version = Some(UnresolvedVersionSpec::parse(input.content.trim())?);
+        version = Some(UnresolvedVersionSpec::parse(content.trim())?);
     }
 
-    Ok(Json(ParseVersionFileOutput { version }))
+    Ok(Json(ParseVersionFileOutput { version, stop }))
 }
 
 #[plugin_fn]
