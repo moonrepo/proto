@@ -350,6 +350,11 @@ export interface ParseVersionFileInput {
 /** Output returned by the `parse_version_file` function. */
 export interface ParseVersionFileOutput {
 	/**
+	 * When true and no `version` is returned, skip the plugin's remaining
+	 * files in the current directory. Parent directories are still checked.
+	 */
+	stop?: boolean;
+	/**
 	 * The version that was extracted from the file.
 	 * Can be a semantic version or a version requirement/range.
 	 */

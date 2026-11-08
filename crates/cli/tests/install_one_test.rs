@@ -139,7 +139,7 @@ mod install_one {
     }
 
     #[test]
-    fn detects_ecosystem_file_from_parent_dir() {
+    fn skips_ecosystem_file_from_parent_dir_outside_of_home() {
         let sandbox = create_empty_proto_sandbox();
         sandbox.create_file(".protostarrc", "1.2.3");
         sandbox.create_file("nested/.gitkeep", "");
@@ -152,7 +152,8 @@ mod install_one {
             })
             .success();
 
-        assert!(sandbox.path().join(".proto/tools/protostar/1.2.3").exists());
+        // Plugins can't access this parent, so the latest version is used
+        assert!(!sandbox.path().join(".proto/tools/protostar/1.2.3").exists());
     }
 
     #[test]
