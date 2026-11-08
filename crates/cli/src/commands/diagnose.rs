@@ -5,6 +5,7 @@ use crate::session::{ProtoSession, SessionResult};
 use crate::utils::tool_record::sort_contexts_by_dependency;
 use clap::Args;
 use iocraft::prelude::{FlexDirection, View, element};
+use proto_core::layout::Store;
 use proto_core::{Id, ProtoConfig, ToolContext, TrustState};
 use rustc_hash::FxHashMap;
 use serde::Serialize;
@@ -295,7 +296,33 @@ async fn gather_warnings(
     warnings.extend(gather_requirement_warnings(config));
     warnings.extend(gather_trust_warnings(session)?);
 
+    // Other platforms use symlinks for bins
+    if cfg!(windows) {
+        warnings.extend(gather_bin_link_warnings(&session.env.store));
+    }
+
     Ok(warnings)
+}
+
+fn gather_bin_link_warnings(store: &Store) -> Vec<Issue> {
+    let Err(error) = store.check_bin_linking() else {
+        return vec![];
+    };
+
+    vec![Issue {
+        issue: format!(
+            "Unable to create symlinks in bin directory <path>{}</path>: {error}",
+            store.bin_dir.display(),
+        ),
+        resolution: Some(
+            "Enable Developer Mode in the Windows settings, or run proto as an administrator"
+                .into(),
+        ),
+        comment: Some(
+            "Executables will not be linked in this directory, but shims will continue to work"
+                .into(),
+        ),
+    }]
 }
 
 fn gather_requirement_warnings(config: &ProtoConfig) -> Vec<Issue> {
@@ -545,6 +572,31 @@ mod tests {
             .into_iter()
             .map(|warning| warning.issue)
             .collect()
+    }
+
+    #[test]
+    fn no_bin_link_warnings_if_links_can_be_created() {
+        let sandbox = starbase_sandbox::create_empty_sandbox();
+        let store = Store::new(sandbox.path());
+
+        assert!(gather_bin_link_warnings(&store).is_empty());
+    }
+
+    #[test]
+    fn warns_if_bin_links_cant_be_created() {
+        let sandbox = starbase_sandbox::create_empty_sandbox();
+        let store = Store::new(sandbox.path());
+
+        // A file in place of the directory fails the check
+        sandbox.create_file("bin", "");
+
+        let warnings = gather_bin_link_warnings(&store);
+
+        assert_eq!(warnings.len(), 1);
+        assert!(warnings[0].issue.starts_with(&format!(
+            "Unable to create symlinks in bin directory <path>{}</path>: ",
+            store.bin_dir.display()
+        )));
     }
 
     #[test]

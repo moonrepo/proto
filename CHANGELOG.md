@@ -37,6 +37,10 @@
   - Without `--platform`, locks the current platform, and every platform that already has a record for the tool, for example, to fill in the checksums that `proto outdated --update` removes from other platforms.
   - Platforms that have already been locked are not downloaded again, unless `--force` is passed, which downloads them and verifies the lockfile's checksums.
   - Tools that install natively (like backends) or build from source can only be verified by installing them, so are skipped. A warning is logged when a plugin executes a command while locking another platform, as the command's output reflects the current machine.
+- Updated shims in `~/.proto/shims` to be hard links to the `proto-shim` executable, instead of a copy for each shim, which greatly reduces their disk usage. Shims are still copied when a hard link can't be created, for example, when `proto-shim` is on a different drive.
+  - Existing shims are replaced the next time they're created, or with `proto regen`.
+- Updated executables in `~/.proto/bin` on Windows to be symlinks to the installed tool's executable, instead of copies, matching other platforms. Symlinks require Developer Mode or administrator privileges. Without them, a warning is logged once and executables are not linked, but the tool's shims will continue to work.
+  - `proto diagnose` also warns on Windows when symlinks can't be created in `~/.proto/bin`.
 - Updated `proto install --force` to download the pre-built archive and its checksum file as they currently exist upstream, instead of copies from the HTTP request cache, which are kept for up to 7 days.
 - Updated running a tool's self-upgrade command (for example, `bun upgrade`) through proto to offer to upgrade with `proto install` in an interactive terminal, instead of only erroring. Non-interactive runs (like CI or JSON output) still error.
   - The latest version is pinned to the config file that the current version came from, or to the local directory if it came from an ecosystem file or wasn't detected.
