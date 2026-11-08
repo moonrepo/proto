@@ -42,6 +42,25 @@ mod normalize_version {
     }
 
     #[test]
+    fn supports_revisions() {
+        assert_eq!(normalize_version("18.0.2.01"), "18.0.2.1");
+        assert_eq!(normalize_version("1.2.3.4rc1"), "1.2.3.4-rc.1");
+        assert_eq!(
+            Version::parse(normalize_version("1.2.3.4rc1"))
+                .unwrap()
+                .to_formatted_string(&FormatOptions {
+                    attach_prerelease: true,
+                    ..Default::default()
+                }),
+            "1.2.3.4rc1"
+        );
+
+        // A revision is never filled in
+        assert_eq!(normalize_version("3.0rc1"), "3.0.0-rc.1");
+        assert_eq!(normalize_version("18.0.2.1"), "18.0.2.1");
+    }
+
+    #[test]
     fn keeps_prefix_and_build() {
         assert_eq!(normalize_version("v3.15.0rc2"), "v3.15.0-rc.2");
         assert_eq!(normalize_version("V1.02.3"), "V1.2.3");

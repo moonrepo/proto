@@ -25,9 +25,11 @@ pub enum VersionKind {
 /// scopes, pre-releases, and build metadata.
 ///
 /// Versions are grouped by scope, with unscoped versions first, and then
-/// ordered by precedence per the semver spec: the major, minor, and patch
-/// numbers, then the pre-release. As the kind and build metadata do not
-/// affect precedence, they are only used as tiebreakers.
+/// ordered by precedence per the semver spec: the major, minor, patch, and
+/// revision numbers, in which an omitted revision is 0, then the pre-release.
+/// As whether the revision is defined, the kind, and build metadata do not
+/// affect precedence, they are only used as tiebreakers, for example `1.2.3`
+/// orders before `1.2.3.0`.
 #[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(try_from = "String", into = "String")]
 pub struct Version {
@@ -47,6 +49,12 @@ pub struct Version {
     /// The patch version number, or the day for calendar versions,
     /// in which a day of 0 means it was not defined.
     pub patch: u32,
+
+    /// An optional 4th version number for semantic versions, for example
+    /// the "1" in `18.0.2.1`. When matching and ordering, an omitted
+    /// revision is the same as 0, but `1.2.3` and `1.2.3.0` are not equal,
+    /// so that both format as they were parsed.
+    pub revision: Option<u32>,
 
     /// Optional pre-release identifier, for example the "alpha.1"
     /// in `1.2.3-alpha.1`. Does not include the leading `-`.
@@ -116,6 +124,8 @@ impl Version {
     }
 
     /// Converts this version into a requirement with the provided operator.
+    /// An omitted revision stays omitted, so the requirement matches any
+    /// revision, for example `1.2.3` as `<=1.2.3` matches `1.2.3.1`.
     pub fn to_requirement(&self, op: Op) -> Requirement {
         Requirement {
             kind: self.kind,
@@ -128,6 +138,7 @@ impl Version {
             } else {
                 Some(self.patch)
             },
+            revision: self.revision,
             prerelease: self.prerelease.clone(),
         }
     }
@@ -156,9 +167,11 @@ impl Ord for Version {
             .then_with(|| self.major.cmp(&other.major))
             .then_with(|| self.minor.cmp(&other.minor))
             .then_with(|| self.patch.cmp(&other.patch))
+            .then_with(|| self.revision.unwrap_or(0).cmp(&other.revision.unwrap_or(0)))
             .then_with(|| {
                 compare_prerelease(self.prerelease.as_deref(), other.prerelease.as_deref())
             })
+            .then_with(|| self.revision.is_some().cmp(&other.revision.is_some()))
             .then_with(|| self.kind.cmp(&other.kind))
             .then_with(|| compare_build(self.build.as_deref(), other.build.as_deref()))
     }

@@ -184,20 +184,21 @@ fn has_shared_version(bounds: &[&Requirement], matches: impl Fn(&Version) -> boo
     let scope = bounds.iter().find_map(|bound| bound.scope.as_deref());
     let kind = bounds.first().map(|bound| bound.kind).unwrap_or_default();
 
-    let check = |major: u32, minor: u32, patch: u32, prerelease: Option<&str>| {
+    let check = |(major, minor, patch, revision): Numbers, prerelease: Option<&str>| {
         matches(&Version {
             kind,
             scope: scope.map(Into::into),
             major,
             minor,
             patch,
+            revision,
             prerelease: prerelease.map(Into::into),
             build: None,
         })
     };
 
     // Releases
-    if check(0, 0, 0, None) {
+    if check((0, 0, 0, None), None) {
         return true;
     }
 
@@ -206,58 +207,70 @@ fn has_shared_version(bounds: &[&Requirement], matches: impl Fn(&Version) -> boo
             continue;
         };
 
-        if check(
+        let numbers = (
             major,
             bound.minor.unwrap_or(0),
             bound.patch.unwrap_or(0),
-            None,
-        ) {
+            bound.revision,
+        );
+
+        if check(numbers, None) {
             return true;
         }
 
-        if let Some((major, minor, patch)) = next_release(major, bound.minor, bound.patch)
-            && check(major, minor, patch, None)
+        if let Some(numbers) = next_release(major, bound.minor, bound.patch, bound.revision)
+            && check(numbers, None)
         {
             return true;
         }
     }
 
-    // Pre-releases
-    bounds.iter().any(|numbers| {
-        let (Some(major), Some(minor), Some(patch), Some(_)) = (
-            numbers.major,
-            numbers.minor,
-            numbers.patch,
-            &numbers.prerelease,
-        ) else {
+    // Pre-releases, in which an omitted revision is the same as 0
+    bounds.iter().any(|bound| {
+        let (Some(major), Some(minor), Some(patch), Some(_)) =
+            (bound.major, bound.minor, bound.patch, &bound.prerelease)
+        else {
             return false;
         };
 
+        let numbers = (major, minor, patch, bound.revision);
+
         // A numeric identifier has the lowest precedence, and fewer
         // identifiers have a lower precedence than more
-        check(major, minor, patch, Some("0"))
+        check(numbers, Some("0"))
             || bounds.iter().any(|bound| {
                 bound.prerelease.as_deref().is_some_and(|pre| {
-                    check(major, minor, patch, Some(pre))
-                        || check(major, minor, patch, Some(&format!("{pre}.0")))
+                    check(numbers, Some(pre)) || check(numbers, Some(&format!("{pre}.0")))
                 })
             })
     })
 }
 
+// The major, minor, patch, and revision numbers of a version
+type Numbers = (u32, u32, u32, Option<u32>);
+
 // Increments the lowest defined part, carrying into
 // the higher parts when the maximum is reached
-fn next_release(major: u32, minor: Option<u32>, patch: Option<u32>) -> Option<(u32, u32, u32)> {
-    match (minor, patch) {
-        (Some(minor), Some(patch)) => patch
+fn next_release(
+    major: u32,
+    minor: Option<u32>,
+    patch: Option<u32>,
+    revision: Option<u32>,
+) -> Option<Numbers> {
+    match (minor, patch, revision) {
+        (Some(minor), Some(patch), Some(revision)) => revision
             .checked_add(1)
-            .map(|patch| (major, minor, patch))
-            .or_else(|| next_release(major, Some(minor), None)),
-        (Some(minor), None) => minor
+            .map(|revision| (major, minor, patch, Some(revision)))
+            .or_else(|| next_release(major, Some(minor), Some(patch), None)),
+        (Some(minor), Some(patch), None) => patch
             .checked_add(1)
-            .map(|minor| (major, minor, 0))
-            .or_else(|| next_release(major, None, None)),
-        _ => major.checked_add(1).map(|major| (major, 0, 0)),
+            .map(|patch| (major, minor, patch, None))
+            .or_else(|| next_release(major, Some(minor), None, None)),
+        (Some(minor), None, _) => minor
+            .checked_add(1)
+            .map(|minor| (major, minor, 0, None))
+            .or_else(|| next_release(major, None, None, None)),
+        _ => major.checked_add(1).map(|major| (major, 0, 0, None)),
     }
 }
 
@@ -280,6 +293,9 @@ pub struct FormatOptions {
     pub include_scope: bool,
     /// Whether to include the patch version.
     pub include_patch: bool,
+    /// Whether to include the revision (the 4th version number), if defined.
+    /// Requires the patch version to be included.
+    pub include_revision: bool,
     /// Whether to include the pre-release information.
     pub include_prerelease: bool,
     /// Whether to include the build metadata.
@@ -290,6 +306,8 @@ pub struct FormatOptions {
     pub pad_minor: Option<u8>,
     /// Whether to pad the patch version with leading zeros, and if so, how many digits to pad to.
     pub pad_patch: Option<u8>,
+    /// Whether to pad the revision with leading zeros, and if so, how many digits to pad to.
+    pub pad_revision: Option<u8>,
     /// The separator character to use between version components.
     pub separator: char,
 }
@@ -328,11 +346,13 @@ impl Default for FormatOptions {
             include_minor: true,
             include_scope: true,
             include_patch: true,
+            include_revision: true,
             include_prerelease: true,
             include_build: true,
             pad_major: None,
             pad_minor: None,
             pad_patch: None,
+            pad_revision: None,
             separator: '.',
         }
     }
@@ -394,6 +414,13 @@ impl FormatsVersion for Version {
             if options.include_patch && !(self.kind == VersionKind::Calendar && self.patch == 0) {
                 out.push(options.separator);
                 pad(&mut out, self.patch, options.pad_patch);
+
+                if options.include_revision
+                    && let Some(revision) = self.revision
+                {
+                    out.push(options.separator);
+                    pad(&mut out, revision, options.pad_revision);
+                }
             }
         }
 
@@ -452,6 +479,16 @@ impl FormatsVersion for Requirement {
                 } else if let Some(patch) = &self.patch {
                     out.push(options.separator);
                     pad(&mut out, patch, options.pad_patch);
+
+                    if !options.include_revision {
+                        // Nothing
+                    } else if let Some(revision) = &self.revision {
+                        out.push(options.separator);
+                        pad(&mut out, revision, options.pad_revision);
+                    } else if options.include_op && self.op == Op::Wildcard {
+                        out.push(options.separator);
+                        out.push('*');
+                    }
                 } else if options.include_op && self.op == Op::Wildcard {
                     out.push(options.separator);
                     out.push('*');

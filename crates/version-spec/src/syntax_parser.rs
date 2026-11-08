@@ -192,6 +192,10 @@ fn handle_version(pair: Pair<Rule>, version: &mut Version) -> Result<(), pest::e
                 version.patch = parse_int(inner, "failed to parse patch version")?;
             }
 
+            Rule::revision => {
+                version.revision = Some(parse_int(inner, "failed to parse revision")?);
+            }
+
             Rule::year => {
                 version.kind = VersionKind::Calendar;
                 version.major = parse_int(inner, "failed to parse year").map(calendar_year)?;
@@ -286,6 +290,18 @@ fn handle_requirement(
                 verify_wildcard_order(req.minor, req.patch, span)?;
 
                 if !has_op && req.patch.is_none() {
+                    req.op = Op::Wildcard;
+                }
+            }
+
+            Rule::revision_req => {
+                let span = inner.as_span();
+
+                req.revision = parse_int_opt(inner, "failed to parse revision")?;
+
+                verify_wildcard_order(req.patch, req.revision, span)?;
+
+                if !has_op && req.revision.is_none() {
                     req.op = Op::Wildcard;
                 }
             }
