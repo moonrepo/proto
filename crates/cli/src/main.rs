@@ -11,13 +11,13 @@ mod telemetry;
 mod utils;
 mod workflows;
 
-use app::{App as CLI, Commands, DebugCommands, PluginCommands, StdoutOwner};
+use app::{App as CLI, Commands, DebugCommands, PluginCommands};
 use clap::Parser;
 use proto_core::reporter::ReporterFormat;
 use session::ProtoSession;
 use starbase::{
     App, MainResult,
-    tracing::{LogLevel, OtelOptions, TracingOptions},
+    tracing::{OtelOptions, TracingOptions},
 };
 use starbase_utils::{envx, string_vec};
 use std::env;
@@ -43,22 +43,15 @@ async fn async_main() -> MainResult {
     let app = App::default();
     app.setup_diagnostics();
 
-    let stdout_owner = cli.stdout_owner();
     let is_exec_command = matches!(
         &cli.command,
         Commands::Exec(_) | Commands::Run(_) | Commands::Shell(_)
     );
 
     let _guard = app.setup_tracing(TracingOptions {
-        default_level: if is_exec_command || matches!(cli.command, Commands::Bin { .. }) {
-            LogLevel::Warn
-        } else if matches!(stdout_owner, StdoutOwner::CompletionCode) {
-            LogLevel::Off
-        } else {
-            LogLevel::Info
-        },
         dump_trace: cli.dump && !is_exec_command,
         filter_modules: get_tracing_modules(),
+        // Always set by `setup_env_vars`, using `App::log_level`
         log_env: "PROTO_APP_LOG".into(),
         log_file: cli.log_file.clone(),
         ndjson: cli.reporter_format() == ReporterFormat::Ndjson,
@@ -68,7 +61,7 @@ async fn async_main() -> MainResult {
             service_name: cli.otel_service_name.clone(),
             ..Default::default()
         },
-        show_spans: cli.log.is_verbose(),
+        show_spans: cli.log_level().is_verbose(),
         // test_env: "PROTO_TEST".into(),
         ..TracingOptions::default()
     })?;

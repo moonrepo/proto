@@ -297,10 +297,11 @@ impl ProtoConfig {
             let locator = warpgate::find_debug_locator("proto_mocked_tool")
                 .expect("Test plugins not available. Run `just build-wasm` to build them!");
 
-            tools.insert(Id::raw("moonbase"), locator.clone());
-            tools.insert(Id::raw("moonstone"), locator.clone());
-            tools.insert(Id::raw("protoform"), locator.clone());
-            tools.insert(Id::raw("protostar"), locator);
+            for id in ["moonbase", "moonstone", "protoform", "protostar"] {
+                if !tools.contains_key(id) {
+                    tools.insert(Id::raw(id), locator.clone());
+                }
+            }
         }
     }
 

@@ -116,14 +116,13 @@ pub struct App {
 
     #[arg(
         value_enum,
-        default_value_t,
         long,
         short = 'l',
         global = true,
         env = "PROTO_LOG",
-        help = "Lowest log level to output"
+        help = "Lowest log level to output (default: warn when running a tool, otherwise info)"
     )]
-    pub log: LogLevel,
+    pub log: Option<LogLevel>,
 
     #[arg(
         long,
@@ -252,9 +251,28 @@ impl App {
         }
     }
 
+    /// The configured log level, otherwise the default for the current command.
+    pub fn log_level(&self) -> LogLevel {
+        if let Some(level) = &self.log {
+            return level.clone();
+        }
+
+        match &self.command {
+            // Their stderr belongs to the tool being executed, or is read by
+            // scripts, so only write what the user must know about
+            Commands::Bin(_) | Commands::Exec(_) | Commands::Run(_) | Commands::Shell(_) => {
+                LogLevel::Warn
+            }
+            // The output is evaluated by the shell
+            Commands::Completions(_) => LogLevel::Off,
+            _ => LogLevel::Info,
+        }
+    }
+
     pub fn setup_env_vars(&self) {
         unsafe {
-            env::set_var("PROTO_APP_LOG", self.log.to_string());
+            // Always set, as a tool's child `proto` processes inherit it
+            env::set_var("PROTO_APP_LOG", self.log_level().to_string());
             env::set_var("PROTO_VERSION", env!("CARGO_PKG_VERSION"));
 
             if let Ok(value) = env::var("PROTO_DEBUG_COMMAND") {
