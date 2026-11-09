@@ -98,4 +98,73 @@ mod general {
 
         assert!(output.get("info").is_some());
     }
+
+    mod log_level {
+        use super::*;
+
+        // Logged when loading a built-in plugin in debug builds, which
+        // makes it the only `info` log that all of these commands reach
+        const INFO_LOG: &str = "Using a locally built WASM file";
+
+        const TOOL_COMMANDS: &[&[&str]] = &[
+            &["run", "protostar"],
+            &["exec", "protostar", "--", "echo", "hello"],
+            &["bin", "protostar"],
+        ];
+
+        fn get_stderr(args: &[&str], level: Option<&str>) -> String {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file(".prototools", "protostar = \"1.0.0\"\n");
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.args(args);
+
+                    match level {
+                        Some(level) => cmd.env("PROTO_LOG", level),
+                        None => cmd.env_remove("PROTO_LOG"),
+                    };
+                })
+                .stderr()
+        }
+
+        #[test]
+        fn tool_commands_only_log_warnings_by_default() {
+            for args in TOOL_COMMANDS {
+                let stderr = get_stderr(args, None);
+
+                assert!(!stderr.contains(INFO_LOG), "{args:?}: {stderr}");
+            }
+        }
+
+        #[test]
+        fn tool_commands_use_an_explicit_level() {
+            for args in TOOL_COMMANDS {
+                let stderr = get_stderr(args, Some("info"));
+
+                assert!(stderr.contains(INFO_LOG), "{args:?}: {stderr}");
+            }
+        }
+
+        #[test]
+        fn log_arg_takes_precedence_over_env_var() {
+            let stderr = get_stderr(&["run", "protostar", "--log", "info"], Some("warn"));
+
+            assert!(stderr.contains(INFO_LOG), "{stderr}");
+        }
+
+        #[test]
+        fn other_commands_log_info_by_default() {
+            let stderr = get_stderr(&["versions", "protostar"], None);
+
+            assert!(stderr.contains(INFO_LOG), "{stderr}");
+        }
+
+        #[test]
+        fn other_commands_use_an_explicit_level() {
+            let stderr = get_stderr(&["versions", "protostar"], Some("warn"));
+
+            assert!(!stderr.contains(INFO_LOG), "{stderr}");
+        }
+    }
 }

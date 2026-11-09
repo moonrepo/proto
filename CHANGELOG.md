@@ -58,6 +58,8 @@
   - A version without a revision matches and orders like a revision of 0, but is not equal to one, so that `1.2.3` and `1.2.3.0` both remain as written.
   - A requirement without a revision matches any revision, for example, `=18.0.2`, `~18.0.2`, and `<=18.0.2` all match `18.0.2.1`, while `>18.0.2` does not. A version like `18.0.2` is still resolved exactly, so use `~18.0.2` or `18.0.2.*` to resolve the latest revision.
   - A caret requirement with a major, minor, and patch of 0 locks the revision, for example, `^0.0.0.4` only matches `0.0.0.4`, while `^0.0.3` matches `0.0.3.7`.
+- `proto plugin info` and `proto diagnose` now show plugin overrides that were ignored because their config isn't trusted.
+  - A tool with a built-in plugin still runs when its override is ignored, so a warning now names the tool and the ignored plugin.
 - **WASM API**
   - Added `Version.revision` and `Requirement.revision` fields, and `FormatOptions.include_revision` and `FormatOptions.pad_revision` fields.
   - Added a `normalize_version` function, which converts a version in a format that some tools publish into one that proto can parse, by separating an attached pre-release that starts with a letter, and removing leading zeros. For example, `3.15.0rc2` becomes `3.15.0-rc.2`, `3.0rc1` becomes `3.0.0-rc.1`, `3.13.0t` becomes `3.13.0-t`, and `2021.01.07` becomes `2021.1.7`. Values that already parse are not changed, and neither are pre-releases that couldn't be converted back exactly, like `1.0.0rc.1`.
@@ -88,6 +90,7 @@
 - Fixed `proto mcp`'s install tool not checking requirements.
 - Fixed tools without a primary executable (for example, `asdf:golang`, which provides `go` and `gofmt`) failing to run any of their executables with `proto run --exe`, shims, `proto exec`, and `proto activate`.
 - Fixed `proto plugin info` not supporting tools with a backend (for example, `proto plugin info asdf:golang`), and not displaying their inventory. The JSON output includes a new `context` field.
+- Fixed `proto run`, `proto exec`, `proto shell`, `proto bin`, and shims logging at the `info` level by default instead of `warn`, which wrote log lines to the stderr of the tool being executed. `proto completions` no longer logs by default. An explicit `--log` or `PROTO_LOG` still takes precedence.
 - **WASM API**
   - Fixed paths on Windows hosts, as WASI only treats `/` as a separator. `to_real_path` returned mixed separators (for example, `C:\Users\me/.proto`), and `VirtualPath::create` failed for real paths within a virtual directory. Real paths in WASM now only use `/`.
 

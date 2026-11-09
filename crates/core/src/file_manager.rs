@@ -7,6 +7,7 @@ use crate::tool_context::ToolContext;
 use once_cell::sync::OnceCell;
 use schematic::{Config, PartialConfig};
 use serde::Serialize;
+use starbase_styles::encode_style_tags;
 use starbase_utils::fs;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Debug;
@@ -14,6 +15,111 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use tracing::debug;
 use version_spec::UnresolvedVersionSpec;
+use warpgate::PluginLocator;
+
+/// A plugin that was loaded for a tool, and where it came from.
+#[derive(Clone, Debug, Serialize)]
+pub struct TrustedPluginRecord {
+    /// Path of the closest config file that configured the plugin.
+    /// Is `None` when it wasn't configured, like a built-in plugin.
+    pub config: Option<PathBuf>,
+
+    /// The tool or backend that the plugin was loaded for.
+    pub context: ToolContext,
+
+    /// The locally built WASM file that replaced the built-in
+    /// plugin. This only occurs in debug builds.
+    pub debug_file: Option<PathBuf>,
+
+    /// The plugin that was loaded.
+    pub locator: PluginLocator,
+
+    /// All other plugins applied for the tool that this one took
+    /// precedence over, closest first, ending with the built-in plugin.
+    pub overrides: Vec<PluginLocator>,
+
+    /// Whether the plugin is for a tool or a backend.
+    #[serde(rename = "type")]
+    pub type_of: PluginType,
+}
+
+/// A plugin that was configured in a config file, but was
+/// ignored because the config has not been trusted.
+#[derive(Clone, Debug, Serialize)]
+pub struct UntrustedPluginRecord {
+    /// Path of the config file that configured the plugin.
+    pub config: PathBuf,
+
+    /// The tool or backend that the plugin was configured for.
+    pub context: ToolContext,
+
+    /// The plugin that was ignored.
+    pub locator: PluginLocator,
+
+    /// Whether the plugin is for a tool or a backend.
+    #[serde(rename = "type")]
+    pub type_of: PluginType,
+}
+
+impl UntrustedPluginRecord {
+    /// Return the locator for displaying in a terminal. It was written in a
+    /// config that has not been trusted, so remove control characters (terminal
+    /// escape sequences), and encode anything that looks like a style tag.
+    pub fn get_display_locator(&self) -> String {
+        encode_style_tags(
+            self.locator
+                .to_string()
+                .chars()
+                .filter(|ch| !ch.is_control())
+                .collect::<String>(),
+        )
+    }
+}
+
+/// Find all plugins for a tool in a config, ordered by the
+/// same precedence as [`ProtoConfig::get_plugin`].
+fn find_plugins<'config>(
+    config: &'config PartialProtoConfig,
+    context: &ToolContext,
+    ty: PluginType,
+) -> Vec<&'config PluginLocator> {
+    let plugins = config.plugins.as_ref();
+
+    if ty == PluginType::Backend
+        && let Some(id) = &context.backend
+    {
+        [
+            config
+                .backends
+                .as_ref()
+                .and_then(|backends| backends.get(id))
+                .and_then(|backend| backend.plugin.as_ref()),
+            plugins
+                .and_then(|plugins| plugins.backends.as_ref())
+                .and_then(|backends| backends.get(id)),
+        ]
+        .into_iter()
+        .flatten()
+        .collect()
+    } else {
+        [
+            config
+                .tools
+                .as_ref()
+                .and_then(|tools| tools.get(context))
+                .and_then(|tool| tool.plugin.as_ref()),
+            plugins
+                .and_then(|plugins| plugins.tools.as_ref())
+                .and_then(|tools| tools.get(&context.id)),
+            plugins
+                .and_then(|plugins| plugins.legacy.as_ref())
+                .and_then(|tools| tools.get(&context.id)),
+        ]
+        .into_iter()
+        .flatten()
+        .collect()
+    }
+}
 
 #[derive(Debug, Serialize)]
 pub struct ProtoConfigFile {
@@ -41,40 +147,71 @@ pub struct ProtoConfigFile {
 }
 
 impl ProtoConfigFile {
-    /// Return true if a plugin for the provided tool was configured in
+    /// Return all plugins for the provided tool that were configured
+    /// in this config and have been applied, ordered by precedence.
+    pub fn get_plugins(&self, context: &ToolContext, ty: PluginType) -> Vec<&PluginLocator> {
+        find_plugins(&self.config, context, ty)
+    }
+
+    /// Return the plugin for the provided tool that was configured in
     /// this config, but was ignored because the config is not trusted.
-    pub fn has_untrusted_plugin(&self, context: &ToolContext, ty: PluginType) -> bool {
+    pub fn get_untrusted_plugin(
+        &self,
+        context: &ToolContext,
+        ty: PluginType,
+    ) -> Option<&PluginLocator> {
+        self.untrusted_config
+            .as_ref()
+            .and_then(|config| find_plugins(config, context, ty).into_iter().next())
+    }
+
+    /// Return all plugins that were configured in this config,
+    /// but were ignored because the config is not trusted.
+    pub fn get_untrusted_plugins(&self) -> Vec<UntrustedPluginRecord> {
         let Some(config) = &self.untrusted_config else {
-            return false;
+            return vec![];
         };
 
-        let plugins = config.plugins.as_ref();
+        let mut tools = BTreeMap::new();
+        let mut backends = BTreeMap::new();
 
-        if ty == PluginType::Backend
-            && let Some(id) = &context.backend
-        {
-            config
-                .backends
-                .as_ref()
-                .and_then(|backends| backends.get(id))
-                .is_some_and(|backend| backend.plugin.is_some())
-                || plugins
-                    .and_then(|plugins| plugins.backends.as_ref())
-                    .is_some_and(|backends| backends.contains_key(id))
-        } else {
-            config
-                .tools
-                .as_ref()
-                .and_then(|tools| tools.get(context))
-                .is_some_and(|tool| tool.plugin.is_some())
-                || plugins.is_some_and(|plugins| {
-                    [&plugins.tools, &plugins.legacy].into_iter().any(|tools| {
-                        tools
-                            .as_ref()
-                            .is_some_and(|tools| tools.contains_key(&context.id))
-                    })
-                })
+        // From lowest to highest precedence, so that each
+        // tool lists the plugin that it would have loaded
+        if let Some(plugins) = &config.plugins {
+            for (id, locator) in plugins.legacy.iter().chain(&plugins.tools).flatten() {
+                tools.insert(ToolContext::new(id.to_owned()), locator);
+            }
+
+            for (id, locator) in plugins.backends.iter().flatten() {
+                backends.insert(ToolContext::new(id.to_owned()), locator);
+            }
         }
+
+        for (context, tool) in config.tools.iter().flatten() {
+            if let Some(locator) = &tool.plugin {
+                tools.insert(context.to_owned(), locator);
+            }
+        }
+
+        for (id, backend) in config.backends.iter().flatten() {
+            if let Some(locator) = &backend.plugin {
+                backends.insert(ToolContext::new(id.to_owned()), locator);
+            }
+        }
+
+        [(tools, PluginType::Tool), (backends, PluginType::Backend)]
+            .into_iter()
+            .flat_map(|(plugins, type_of)| {
+                plugins
+                    .into_iter()
+                    .map(move |(context, locator)| UntrustedPluginRecord {
+                        config: self.path.clone(),
+                        context,
+                        locator: locator.to_owned(),
+                        type_of,
+                    })
+            })
+            .collect()
     }
 
     /// Gather the version specifications defined in this config only. Since a
@@ -91,6 +228,12 @@ impl ProtoConfigFile {
         }
 
         specs
+    }
+
+    /// Return true if a plugin for the provided tool was configured in
+    /// this config, but was ignored because the config is not trusted.
+    pub fn has_untrusted_plugin(&self, context: &ToolContext, ty: PluginType) -> bool {
+        self.get_untrusted_plugin(context, ty).is_some()
     }
 }
 

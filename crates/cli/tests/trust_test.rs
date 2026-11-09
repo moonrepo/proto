@@ -753,6 +753,448 @@ customtool = "file://./custom.wasm"
         }
     }
 
+    mod untrusted_plugins {
+        use super::*;
+        use proto_core::warpgate::{PluginLocator, find_debug_locator};
+
+        const NOTICE: &str = "not used, as the config is not trusted";
+        const OVERRIDE: &str = "file://./custom.wasm";
+
+        // Output wraps at the width of the console, so compare without whitespace
+        fn contains(output: &str, text: &str) -> bool {
+            let squish = |value: &str| value.split_whitespace().collect::<String>();
+
+            squish(output).contains(&squish(text))
+        }
+
+        fn write_override(sandbox: &Sandbox, dir: &str, locator: &str) {
+            sandbox.create_file(
+                format!("{dir}/.prototools"),
+                format!("protostar = \"1.0.0\"\n\n[plugins.tools]\nprotostar = \"{locator}\"\n"),
+            );
+        }
+
+        // `plugin info` requires the tool to be installed. This happens
+        // before any config is written, so that the built-in plugin is used
+        fn create_installed_sandbox() -> ProtoSandbox {
+            let sandbox = create_empty_proto_sandbox();
+
+            run(
+                &sandbox,
+                Path::new(""),
+                &["install", "protostar", "1.0.0"],
+                &[],
+            )
+            .success();
+
+            sandbox
+        }
+
+        // A copy of the mocked plugin, as the built-in plugin is that same
+        // file in tests, and an applied override must be told apart from it
+        fn create_override_sandbox() -> ProtoSandbox {
+            let sandbox = create_installed_sandbox();
+
+            let PluginLocator::File(file) = find_debug_locator("proto_mocked_tool")
+                .expect("Test plugins not available. Run `just build-wasm` to build them!")
+            else {
+                unreachable!()
+            };
+
+            std::fs::copy(file.get_resolved_path(), sandbox.path().join("custom.wasm")).unwrap();
+
+            write_override(&sandbox, ".", OVERRIDE);
+
+            sandbox
+        }
+
+        fn plugin_info_json(sandbox: &Sandbox, dir: &str) -> serde_json::Value {
+            let assert = run(
+                sandbox,
+                Path::new(dir),
+                &["plugin", "info", "protostar", "--json"],
+                &[],
+            );
+            let stdout = assert.stdout();
+
+            assert.success();
+
+            serde_json::from_str(&stdout).unwrap()
+        }
+
+        fn diagnose_comments(sandbox: &Sandbox) -> Vec<String> {
+            let assert = run(sandbox, Path::new(""), &["diagnose", "--json"], &[]);
+            let stdout = assert.stdout();
+            let output: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+
+            output["warnings"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter_map(|warning| warning["comment"].as_str())
+                .filter(|comment| comment.contains("Untrusted plugin overrides"))
+                .map(|comment| comment.to_owned())
+                .collect()
+        }
+
+        #[test]
+        fn plugin_info_shows_override() {
+            let sandbox = create_override_sandbox();
+
+            let assert = run(
+                &sandbox,
+                Path::new(""),
+                &["plugin", "info", "protostar"],
+                &[],
+            );
+            let stdout = assert.stdout();
+            let stderr = assert.stderr();
+
+            assert.success();
+
+            assert!(contains(&stdout, "Override in"), "{stdout}");
+            assert!(contains(&stdout, NOTICE), "{stdout}");
+            assert!(contains(&stdout, OVERRIDE), "{stdout}");
+            assert!(contains(&stdout, "to use it."), "{stdout}");
+            assert!(contains(&stdout, "Run proto trust"), "{stdout}");
+
+            // Rendered instead of logged
+            assert!(!contains(&stderr, NOTICE), "{stderr}");
+
+            let output = plugin_info_json(&sandbox, "");
+
+            assert_eq!(output["untrusted_plugin"]["locator"], OVERRIDE);
+            assert_eq!(output["untrusted_plugin"]["type"], "tool");
+            assert!(
+                output["untrusted_plugin"]["config"]
+                    .as_str()
+                    .unwrap()
+                    .ends_with(".prototools")
+            );
+            assert_ne!(output["plugin"], OVERRIDE);
+        }
+
+        #[test]
+        fn diagnose_lists_overrides() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[plugins.tools]
+protostar = "file://./custom.wasm"
+protoform = "file://./lowered.wasm"
+
+[tools.protoform]
+plugin = "file://./raised.wasm"
+
+[plugins.backends]
+npm = "file://./npm.wasm"
+"#,
+            );
+
+            let comments = diagnose_comments(&sandbox);
+
+            assert_eq!(comments.len(), 1);
+            assert!(comments[0].contains("protostar (file://./custom.wasm)"));
+            assert!(comments[0].contains("npm backend (file://./npm.wasm)"));
+
+            // Lists the plugin that would have been loaded
+            assert!(comments[0].contains("protoform (file://./raised.wasm)"));
+            assert!(!comments[0].contains("lowered.wasm"));
+        }
+
+        #[test]
+        fn uses_override_once_trusted() {
+            let sandbox = create_override_sandbox();
+
+            assert_eq!(diagnose_comments(&sandbox).len(), 1);
+
+            trust(&sandbox, &[".prototools"]).success();
+
+            let output = plugin_info_json(&sandbox, "");
+
+            assert_eq!(output["plugin"], OVERRIDE);
+            assert!(output["untrusted_plugin"].is_null());
+            assert_eq!(output["trusted_plugin"]["locator"], OVERRIDE);
+
+            let assert = run(
+                &sandbox,
+                Path::new(""),
+                &["plugin", "info", "protostar"],
+                &[],
+            );
+            let stdout = assert.stdout();
+
+            assert.success();
+
+            assert!(!contains(&stdout, "Override in"), "{stdout}");
+            assert!(!contains(&stdout, NOTICE), "{stdout}");
+            assert!(diagnose_comments(&sandbox).is_empty());
+        }
+
+        #[test]
+        fn records_where_a_trusted_override_came_from() {
+            let sandbox = create_override_sandbox();
+
+            trust(&sandbox, &[".prototools"]).success();
+
+            let output = plugin_info_json(&sandbox, "");
+            let plugin = &output["trusted_plugin"];
+            let overrides = plugin["overrides"].as_array().unwrap();
+
+            assert_eq!(plugin["locator"], OVERRIDE);
+            assert_eq!(plugin["type"], "tool");
+            assert!(Path::new(plugin["config"].as_str().unwrap()).ends_with(".prototools"));
+            assert!(plugin["debug_file"].is_null());
+
+            // The built-in plugin
+            assert_eq!(overrides.len(), 1);
+            assert!(
+                overrides[0]
+                    .as_str()
+                    .unwrap()
+                    .ends_with("proto_mocked_tool.wasm")
+            );
+        }
+
+        #[test]
+        fn records_overrides_in_precedence_order() {
+            let sandbox = create_override_sandbox();
+
+            write_override(&sandbox, "child", "file://../custom.wasm");
+            trust(&sandbox, &[".prototools"]).success();
+            trust(&sandbox, &["child/.prototools"]).success();
+
+            let output = plugin_info_json(&sandbox, "child");
+            let plugin = &output["trusted_plugin"];
+            let overrides = plugin["overrides"].as_array().unwrap();
+
+            assert_eq!(plugin["locator"], "file://../custom.wasm");
+            assert!(Path::new(plugin["config"].as_str().unwrap()).ends_with("child/.prototools"));
+
+            assert_eq!(overrides.len(), 2);
+            assert_eq!(overrides[0], OVERRIDE);
+            assert!(
+                overrides[1]
+                    .as_str()
+                    .unwrap()
+                    .ends_with("proto_mocked_tool.wasm")
+            );
+        }
+
+        // Plugins in `[tools.*]` take precedence over `[plugins.tools]`,
+        // even when the latter is in a closer config
+        #[test]
+        fn records_the_plugin_that_was_loaded_instead_of_the_closest() {
+            let sandbox = create_override_sandbox();
+
+            sandbox.create_file(
+                ".prototools",
+                format!("protostar = \"1.0.0\"\n\n[tools.protostar]\nplugin = \"{OVERRIDE}\"\n"),
+            );
+            write_override(&sandbox, "child", "file://./closest.wasm");
+            trust(&sandbox, &[".prototools"]).success();
+            trust(&sandbox, &["child/.prototools"]).success();
+
+            let output = plugin_info_json(&sandbox, "child");
+            let plugin = &output["trusted_plugin"];
+            let config = plugin["config"].as_str().unwrap();
+
+            assert_eq!(output["plugin"], OVERRIDE);
+            assert_eq!(plugin["locator"], OVERRIDE);
+            assert!(Path::new(config).ends_with(".prototools"));
+            assert!(!Path::new(config).ends_with("child/.prototools"));
+            assert_eq!(plugin["overrides"][0], "file://./closest.wasm");
+        }
+
+        #[test]
+        fn warns_when_a_builtin_tool_runs() {
+            let sandbox = create_override_sandbox();
+
+            for command in ["run", "bin"] {
+                let stderr = run(&sandbox, Path::new(""), &[command, "protostar"], &[]).stderr();
+
+                assert!(contains(&stderr, NOTICE), "{command}: {stderr}");
+                assert!(
+                    contains(&stderr, &format!("Override {OVERRIDE} for protostar in")),
+                    "{command}: {stderr}"
+                );
+            }
+        }
+
+        #[test]
+        fn doesnt_warn_when_trusted() {
+            let sandbox = create_override_sandbox();
+
+            trust(&sandbox, &[".prototools"]).success();
+
+            let stderr = run(&sandbox, Path::new(""), &["run", "protostar"], &[]).stderr();
+
+            assert!(!contains(&stderr, NOTICE), "{stderr}");
+        }
+
+        #[test]
+        fn doesnt_warn_when_activating() {
+            let sandbox = create_override_sandbox();
+
+            // Runs on every prompt, and warns about the config once per shell
+            let activation = activate(&sandbox);
+
+            assert!(!contains(&activation.stderr, NOTICE));
+            assert!(contains(&activation.stderr, WARNING));
+        }
+
+        #[test]
+        fn ignores_overrides_shadowed_by_a_closer_config() {
+            let sandbox = create_override_sandbox();
+
+            // The root config is untrusted, but this trusted config takes
+            // precedence, so trusting the root wouldn't change anything
+            write_override(&sandbox, "child", "file://../custom.wasm");
+            trust(&sandbox, &["child/.prototools"]).success();
+
+            let output = plugin_info_json(&sandbox, "child");
+
+            assert_eq!(output["plugin"], "file://../custom.wasm");
+            assert!(output["untrusted_plugin"].is_null());
+        }
+
+        #[test]
+        fn reports_closest_override() {
+            let sandbox = create_override_sandbox();
+
+            write_override(&sandbox, "child", "file://./closest.wasm");
+
+            let output = plugin_info_json(&sandbox, "child");
+
+            assert_eq!(
+                output["untrusted_plugin"]["locator"],
+                "file://./closest.wasm"
+            );
+        }
+
+        #[test]
+        fn doesnt_report_without_an_override() {
+            let sandbox = create_installed_sandbox();
+            sandbox.create_file(".prototools", format!("protostar = \"1.0.0\"\n{CONFIG}"));
+
+            let output = plugin_info_json(&sandbox, "");
+
+            assert!(output["untrusted_plugin"].is_null());
+            assert!(diagnose_comments(&sandbox).is_empty());
+        }
+
+        #[test]
+        fn sanitizes_locators_written_in_untrusted_configs() {
+            let sandbox = create_installed_sandbox();
+
+            write_override(&sandbox, ".", "file://./\\u001b[31m</id>.wasm");
+
+            // Encoded, as style tags would otherwise be removed from the locator
+            let expected = "[31m＜/id＞.wasm";
+
+            for args in [&["diagnose"][..], &["plugin", "info", "protostar"][..]] {
+                let stdout = run(&sandbox, Path::new(""), args, &[]).stdout();
+
+                assert!(contains(&stdout, expected), "{stdout}");
+                assert!(!stdout.contains('\u{1b}'), "{stdout}");
+            }
+
+            // Logs are written directly to the terminal
+            let stderr = run(&sandbox, Path::new(""), &["bin", "protostar"], &[]).stderr();
+            let warning = stderr
+                .lines()
+                .find(|line| line.contains("Override"))
+                .expect("missing untrusted override warning");
+
+            assert!(warning.contains(expected), "{warning}");
+            assert!(!warning.contains('\u{1b}'), "{warning}");
+        }
+
+        mod debug_builds {
+            use super::*;
+
+            #[test]
+            fn logs_and_shows_the_local_wasm_file() {
+                let sandbox = create_installed_sandbox();
+                sandbox.create_file(".prototools", "protostar = \"1.0.0\"\n");
+
+                let assert = run(
+                    &sandbox,
+                    Path::new(""),
+                    &["plugin", "info", "protostar"],
+                    &[],
+                );
+                let stdout = assert.stdout();
+                let stderr = assert.stderr();
+
+                assert.success();
+
+                assert!(contains(&stderr, "Using a locally built WASM file"));
+                assert!(contains(&stderr, "proto_mocked_tool.wasm"));
+                assert!(
+                    contains(&stdout, "Local WASM file replaced the built-in plugin"),
+                    "{stdout}"
+                );
+
+                let output = plugin_info_json(&sandbox, "");
+
+                let plugin = &output["trusted_plugin"];
+
+                assert!(
+                    plugin["debug_file"]
+                        .as_str()
+                        .unwrap()
+                        .ends_with("proto_mocked_tool.wasm")
+                );
+                assert!(plugin["config"].is_null());
+                assert!(plugin["overrides"].as_array().unwrap().is_empty());
+            }
+
+            #[test]
+            fn doesnt_report_the_same_file_when_configured() {
+                let sandbox = create_installed_sandbox();
+                let locator = find_debug_locator("proto_mocked_tool")
+                    .expect("Test plugins not available. Run `just build-wasm` to build them!");
+
+                sandbox.create_file(
+                    ".prototools",
+                    format!("protostar = \"1.0.0\"\n\n[plugins.tools]\nprotostar = '{locator}'\n"),
+                );
+                trust(&sandbox, &[".prototools"]).success();
+
+                let output = plugin_info_json(&sandbox, "");
+                let plugin = &output["trusted_plugin"];
+
+                assert_eq!(plugin["locator"], locator.to_string());
+                assert!(plugin["config"].is_string());
+                assert!(plugin["debug_file"].is_null());
+            }
+
+            #[test]
+            fn doesnt_report_for_overrides() {
+                let sandbox = create_override_sandbox();
+
+                trust(&sandbox, &[".prototools"]).success();
+
+                let assert = run(
+                    &sandbox,
+                    Path::new(""),
+                    &["plugin", "info", "protostar"],
+                    &[],
+                );
+                let stderr = assert.stderr();
+
+                assert.success();
+
+                assert!(
+                    !contains(&stderr, "Using a locally built WASM file"),
+                    "{stderr}"
+                );
+            }
+        }
+    }
+
     mod reporting {
         use super::*;
 
