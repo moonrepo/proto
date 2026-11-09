@@ -99,8 +99,11 @@ impl Tool {
             .get_tool_config(context)
             .and_then(|tool_config| tool_config.versions_source.as_ref())
             .map(|source| ToolVersionsSource {
+                version_pattern: source.version_pattern.clone(),
                 index_url: source.index_url.clone(),
-                index_version_path: source.index_version_path.clone(),
+                index_version_key: source.index_version_key.clone(),
+                git_url: source.git_url.clone(),
+                git_tag_pattern: source.git_tag_pattern.clone(),
             });
 
         debug!(

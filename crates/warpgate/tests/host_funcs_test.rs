@@ -6,7 +6,10 @@ use std::net::TcpListener;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::thread;
-use warpgate::api::{DownloadFileInput, DownloadFileOutput, SendRequestInput, SendRequestOutput};
+use warpgate::api::{
+    DownloadFileInput, DownloadFileOutput, LoadToolVersionsInput, SendRequestInput,
+    SendRequestOutput,
+};
 use warpgate::host::{HostData, ToolVersionsSource, create_host_functions};
 use warpgate::{
     Id, PluginContainer, PluginManifest, VirtualPath, Wasm, create_http_client,
@@ -477,11 +480,30 @@ mod load_git_tags {
         assert_eq!(tags, ["v1.0.0", "v1.1.0"]);
 
         let versions: Vec<String> = container
-            .call_func_with("testing_load_tool_versions", repo.to_string_lossy())
+            .call_func_with(
+                "testing_load_tool_versions",
+                LoadToolVersionsInput::Git {
+                    url: repo.to_string_lossy().into_owned(),
+                    tag_pattern: None,
+                },
+            )
             .await
             .unwrap();
 
         assert_eq!(versions, tags);
+
+        let filtered_versions: Vec<String> = container
+            .call_func_with(
+                "testing_load_tool_versions",
+                LoadToolVersionsInput::Git {
+                    url: repo.to_string_lossy().into_owned(),
+                    tag_pattern: Some("^v1\\.1\\.0$".to_owned()),
+                },
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(filtered_versions, ["v1.1.0"]);
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -506,23 +528,26 @@ mod load_git_tags {
     #[tokio::test(flavor = "multi_thread")]
     async fn loads_versions_from_configured_index() {
         let sandbox = create_empty_sandbox();
-        let manifest_url = spawn_http_server(
-            "200 OK",
-            r#"{"versions":["v1.0.0","v1.1.0"],"release":{"version":"v2.0.0"}}"#,
-        );
+        let manifest_url = spawn_http_server("200 OK", r#"[{"name":"v1.0.0"},{"name":"v1.1.0"}]"#);
         let container = create_container_with_tool_version_config(
             sandbox.path(),
             None,
             Some(ToolVersionsSource {
-                index_url: manifest_url,
-                index_version_path: "versions".to_owned(),
+                version_pattern: None,
+                index_url: Some(manifest_url),
+                index_version_key: Some("name".to_owned()),
+                git_url: None,
+                git_tag_pattern: None,
             }),
         );
 
         let versions: Vec<String> = container
             .call_func_with(
                 "testing_load_tool_versions",
-                "https://github.com/example/tool",
+                LoadToolVersionsInput::Git {
+                    url: "https://github.com/example/tool".to_owned(),
+                    tag_pattern: None,
+                },
             )
             .await
             .unwrap();
@@ -538,22 +563,55 @@ mod load_git_tags {
     }
 
     #[tokio::test(flavor = "multi_thread")]
-    async fn loads_single_version_from_json_path() {
+    async fn loads_versions_from_configured_git() {
         let sandbox = create_empty_sandbox();
-        let index_url = spawn_http_server("200 OK", r#"[{"version":"v1.2.3"}]"#);
+        let repo = sandbox.path().join("repo");
+
+        fs::create_dir_all(&repo).unwrap();
+        git(&repo, &["init", "--quiet"]);
+        git(&repo, &["commit", "--allow-empty", "--quiet", "-m", "init"]);
+        git(&repo, &["tag", "v3.0.0"]);
+        git(&repo, &["tag", "unrelated"]);
+
         let container = create_container_with_tool_version_config(
             sandbox.path(),
             None,
             Some(ToolVersionsSource {
-                index_url,
-                index_version_path: ".[0].version".to_owned(),
+                version_pattern: None,
+                index_url: None,
+                index_version_key: None,
+                git_url: Some(repo.to_string_lossy().into_owned()),
+                git_tag_pattern: Some("^v3\\.".to_owned()),
             }),
         );
 
         let versions: Vec<String> = container
             .call_func_with(
                 "testing_load_tool_versions",
-                "https://github.com/example/tool",
+                LoadToolVersionsInput::Index {
+                    url: "https://example.com/unused.json".to_owned(),
+                    version_path: None,
+                },
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(versions, ["v3.0.0"]);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn loads_single_version_from_json_path() {
+        let sandbox = create_empty_sandbox();
+        let index_url = spawn_http_server("200 OK", r#"[{"version":"v1.2.3"}]"#);
+        let container = create_container(sandbox.path());
+
+        let versions: Vec<String> = container
+            .call_func_with(
+                "testing_load_tool_versions",
+                LoadToolVersionsInput::Index {
+                    url: index_url,
+                    version_path: Some(".[0].version".to_owned()),
+                },
             )
             .await
             .unwrap();
@@ -570,19 +628,15 @@ mod load_git_tags {
         );
 
         for version_path in ["*.name", "[*].name"] {
-            let container = create_container_with_tool_version_config(
-                sandbox.path(),
-                None,
-                Some(ToolVersionsSource {
-                    index_url: index_url.clone(),
-                    index_version_path: version_path.to_owned(),
-                }),
-            );
+            let container = create_container(sandbox.path());
 
             let versions: Vec<String> = container
                 .call_func_with(
                     "testing_load_tool_versions",
-                    "https://github.com/example/tool",
+                    LoadToolVersionsInput::Index {
+                        url: index_url.clone(),
+                        version_path: Some(version_path.to_owned()),
+                    },
                 )
                 .await
                 .unwrap();

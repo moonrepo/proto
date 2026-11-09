@@ -11,11 +11,22 @@ use warpgate::PluginLocator;
 
 // `[tools.id.versions-source]`
 #[derive(Clone, Config, Debug, Serialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(default, rename_all = "kebab-case")]
 pub struct ProtoToolVersionsSourceConfig {
-    pub index_url: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version_pattern: Option<String>,
 
-    pub index_version_path: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub index_url: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub index_version_key: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub git_url: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub git_tag_pattern: Option<String>,
 }
 
 // `[tools.id]`

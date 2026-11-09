@@ -146,19 +146,15 @@ pub fn load_git_tags<U>(url: U) -> AnyResult<Vec<String>>
 where
     U: AsRef<str>,
 {
-    load_tool_versions(url)
+    load_tool_versions(LoadToolVersionsInput::Git {
+        url: url.as_ref().to_owned(),
+        tag_pattern: None,
+    })
 }
 
-/// Load all available versions for a tool from the provided remote URL.
-///
-/// When no per-tool source is configured, this behaves like [`load_git_tags`].
-/// A tool-specific index source can be configured through `.prototools`.
-pub fn load_tool_versions<U>(url: U) -> AnyResult<Vec<String>>
-where
-    U: AsRef<str>,
-{
-    let output =
-        unsafe { host_functions::load_tool_versions(Json(LoadToolVersionsInput::new(url)))?.0 };
+/// Load all available versions for a tool from Git tags or a JSON index.
+pub fn load_tool_versions(input: LoadToolVersionsInput) -> AnyResult<Vec<String>> {
+    let output = unsafe { host_functions::load_tool_versions(Json(input))?.0 };
 
     Ok(output.versions)
 }

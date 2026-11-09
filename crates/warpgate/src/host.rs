@@ -5,6 +5,7 @@ use crate::clients::{HttpClient, WarpgateHttpClientError};
 use crate::plugin_error::WarpgatePluginError;
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
 use rustc_hash::FxHashMap;
+use regex::Regex;
 use starbase_shell::{ShellType, join_exe_args};
 use starbase_styles::{apply_style_tags, color};
 use starbase_utils::net::{self, DownloadOptions};
@@ -44,15 +45,18 @@ pub struct HostData {
     /// Current working directory, in which commands are executed.
     pub working_dir: PathBuf,
 
-    /// Optional per-tool index to use instead of Git tags.
+    /// Optional per-tool overrides for the version source.
     pub versions_source: Option<ToolVersionsSource>,
 }
 
-/// Configured JSON index used to load a tool's versions.
+/// Configured version source overrides for a tool.
 #[derive(Clone, Debug)]
 pub struct ToolVersionsSource {
-    pub index_url: String,
-    pub index_version_path: String,
+    pub version_pattern: Option<String>,
+    pub index_url: Option<String>,
+    pub index_version_key: Option<String>,
+    pub git_url: Option<String>,
+    pub git_tag_pattern: Option<String>,
 }
 
 /// Create a list of our built-in host functions.
@@ -130,15 +134,70 @@ fn load_tool_versions(
     let data = user_data.get()?;
     let data = data.lock().unwrap();
 
-    let versions = if let Some(source) = &data.versions_source {
-        load_tool_versions_from_index(
-            &data,
-            &source.index_url,
-            &source.index_version_path,
-            plugin.time_remaining(),
-        )?
-    } else {
-        load_tool_versions_from_git(&data, &input.url)?
+    let source = data.versions_source.as_ref();
+    let git_url = source.and_then(|source| source.git_url.as_deref());
+    let index_url = source.and_then(|source| source.index_url.as_deref());
+
+    if git_url.is_some() && index_url.is_some() {
+        return Err(Error::msg(
+            "Tool versions source cannot configure both git-url and index-url",
+        ));
+    }
+
+    let (source_type, source_url, override_used) = match (&input, index_url, git_url) {
+        (LoadToolVersionsInput::Git { .. }, Some(index_url), _) => ("index", index_url, true),
+        (LoadToolVersionsInput::Git { url, .. }, None, git_url) => (
+            "git",
+            git_url.unwrap_or(url),
+            source.is_some_and(|source| {
+                source.git_url.is_some()
+                    || source.git_tag_pattern.is_some()
+                    || source.version_pattern.is_some()
+            }),
+        ),
+        (LoadToolVersionsInput::Index { .. }, _, Some(git_url)) => ("git", git_url, true),
+        (LoadToolVersionsInput::Index { url, .. }, index_url, None) => (
+            "index",
+            index_url.unwrap_or(url),
+            source.is_some_and(|source| {
+                source.index_url.is_some()
+                    || source.index_version_key.is_some()
+                    || source.version_pattern.is_some()
+            }),
+        ),
+    };
+
+    debug!(
+        source_type,
+        source_url, override_used, "Loading tool versions"
+    );
+
+    let versions = match input {
+        LoadToolVersionsInput::Git { url, tag_pattern } => {
+            if let Some(index_url) = index_url {
+                load_index_source(&data, source, index_url, None, plugin.time_remaining())?
+            } else {
+                load_git_source(
+                    &data,
+                    source,
+                    git_url.unwrap_or(&url),
+                    tag_pattern.as_deref(),
+                )?
+            }
+        }
+        LoadToolVersionsInput::Index { url, version_path } => {
+            if let Some(git_url) = git_url {
+                load_git_source(&data, source, git_url, None)?
+            } else {
+                load_index_source(
+                    &data,
+                    source,
+                    index_url.unwrap_or(&url),
+                    version_path.as_deref(),
+                    plugin.time_remaining(),
+                )?
+            }
+        }
     };
 
     plugin.memory_set_val(
@@ -147,6 +206,22 @@ fn load_tool_versions(
     )?;
 
     Ok(())
+}
+
+fn load_git_source(
+    data: &HostData,
+    source: Option<&ToolVersionsSource>,
+    url: &str,
+    input_pattern: Option<&str>,
+) -> Result<Vec<String>, Error> {
+    let pattern = source
+        .and_then(|source| source.git_tag_pattern.as_deref())
+        .or_else(|| source.and_then(|source| source.version_pattern.as_deref()))
+        .or(input_pattern);
+
+    let versions = load_tool_versions_from_git(data, url)?;
+
+    filter_versions(versions, pattern, "Git tag")
 }
 
 fn load_tool_versions_from_git(data: &HostData, url: &str) -> Result<Vec<String>, Error> {
@@ -188,6 +263,28 @@ fn load_tool_versions_from_git(data: &HostData, url: &str) -> Result<Vec<String>
     }
 
     Ok(versions)
+}
+
+fn load_index_source(
+    data: &HostData,
+    source: Option<&ToolVersionsSource>,
+    url: &str,
+    input_path: Option<&str>,
+    timeout: Option<std::time::Duration>,
+) -> Result<Vec<String>, Error> {
+    let version_path = source
+        .and_then(|source| source.index_version_key.as_ref())
+        .map(|key| format!("*.{key}"))
+        .or_else(|| input_path.map(str::to_owned))
+        .unwrap_or_else(|| "*.version".to_owned());
+
+    let versions = load_tool_versions_from_index(data, url, &version_path, timeout)?;
+
+    filter_versions(
+        versions,
+        source.and_then(|source| source.version_pattern.as_deref()),
+        "Index version",
+    )
 }
 
 fn load_tool_versions_from_index(
@@ -247,6 +344,24 @@ fn load_tool_versions_from_index(
             })
         })
         .collect()
+}
+
+fn filter_versions(
+    versions: Vec<String>,
+    pattern: Option<&str>,
+    source: &str,
+) -> Result<Vec<String>, Error> {
+    let Some(pattern) = pattern else {
+        return Ok(versions);
+    };
+
+    let regex = Regex::new(pattern)
+        .map_err(|error| Error::msg(format!("Invalid {source} pattern {pattern:?}: {error}")))?;
+
+    Ok(versions
+        .into_iter()
+        .filter(|version| regex.is_match(version))
+        .collect())
 }
 
 fn select_json_path<'a>(

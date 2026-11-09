@@ -241,24 +241,23 @@ impl DownloadFileInput {
     }
 }
 
-api_struct!(
-    /// Input passed to the `load_tool_versions` host function.
-    #[derive(Setters)]
-    #[serde(default)]
-    pub struct LoadToolVersionsInput {
-        /// The Git remote URL, unless a tool-specific index URL is configured.
-        #[setters(into)]
-        pub url: String,
-    }
-);
+/// Input passed to the `load_tool_versions` host function.
+#[derive(Clone, Debug, serde::Deserialize, PartialEq, serde::Serialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum LoadToolVersionsInput {
+    /// Load versions from Git tags.
+    Git {
+        url: String,
+        #[serde(default)]
+        tag_pattern: Option<String>,
+    },
 
-impl LoadToolVersionsInput {
-    /// Create an input with the provided URL.
-    pub fn new(url: impl AsRef<str>) -> Self {
-        Self {
-            url: url.as_ref().to_owned(),
-        }
-    }
+    /// Load versions from a JSON index.
+    Index {
+        url: String,
+        #[serde(default)]
+        version_path: Option<String>,
+    },
 }
 
 api_struct!(
