@@ -162,6 +162,7 @@ mod path_ext {
                 http_client: Arc::new(create_http_client().unwrap()),
                 virtual_paths: vec![],
                 working_dir: sandbox_path.to_path_buf(),
+                versions_source: None,
             }),
         )
         .unwrap()

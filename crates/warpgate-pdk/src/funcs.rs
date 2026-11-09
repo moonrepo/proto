@@ -36,8 +36,7 @@ mod host_functions {
 }
 
 use host_functions::{
-    download_file, exec_command, get_env_var, get_env_vars, send_request, set_env_var,
-    set_env_vars,
+    download_file, exec_command, get_env_var, get_env_vars, send_request, set_env_var, set_env_vars,
 };
 
 /// Fetch the requested input and return a response.

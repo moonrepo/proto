@@ -4,8 +4,8 @@
 use crate::clients::{HttpClient, WarpgateHttpClientError};
 use crate::plugin_error::WarpgatePluginError;
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
-use rustc_hash::FxHashMap;
 use regex::Regex;
+use rustc_hash::FxHashMap;
 use starbase_shell::{ShellType, join_exe_args};
 use starbase_styles::{apply_style_tags, color};
 use starbase_utils::net::{self, DownloadOptions};
