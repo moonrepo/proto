@@ -1,8 +1,10 @@
-use crate::config::{ConfigMode, PROTO_CONFIG_NAME, PinLocation, ProtoConfig};
+use crate::config::{ConfigMode, PROTO_CONFIG_NAME, PinLocation, PluginType, ProtoConfig};
 use crate::config_error::ProtoConfigError;
 use crate::config_trust::{TrustState, TrustStore, get_sensitive_fields};
 use crate::env_error::ProtoEnvError;
-use crate::file_manager::{ProtoConfigFile, ProtoDirEntry, ProtoFileManager};
+use crate::file_manager::{
+    ProtoConfigFile, ProtoDirEntry, ProtoFileManager, TrustedPluginRecord, UntrustedPluginRecord,
+};
 use crate::helpers::is_offline;
 use crate::layout::Store;
 use crate::lockfile::ProtoLock;
@@ -21,7 +23,7 @@ use std::time::Duration;
 use system_env::SystemPlatform;
 use toml_edit::DocumentMut;
 use tracing::{debug, instrument};
-use warpgate::PluginLoader;
+use warpgate::{PluginLoader, PluginLocator};
 
 #[derive(Clone, Default)]
 pub struct ProtoEnvironment {
@@ -306,6 +308,85 @@ impl ProtoEnvironment {
             })
             .flatten()
             .collect())
+    }
+
+    /// Return the plugin that would have been loaded for the provided tool, if
+    /// its config had been trusted. Configs are ordered by precedence, so
+    /// returns `None` when a closer config has configured an applied plugin,
+    /// as trusting a config further away wouldn't change what's loaded.
+    pub fn get_untrusted_plugin(
+        &self,
+        context: &ToolContext,
+        ty: PluginType,
+    ) -> Result<Option<UntrustedPluginRecord>, ProtoConfigError> {
+        for file in self.load_config_files()? {
+            if let Some(locator) = file.get_untrusted_plugin(context, ty) {
+                return Ok(Some(UntrustedPluginRecord {
+                    config: file.path.clone(),
+                    context: context.to_owned(),
+                    locator: locator.to_owned(),
+                    type_of: ty,
+                }));
+            }
+
+            if !file.get_plugins(context, ty).is_empty() {
+                return Ok(None);
+            }
+        }
+
+        Ok(None)
+    }
+
+    /// Return where the plugin that was loaded for the provided tool came from.
+    /// Accepts the loaded locator instead of finding it, as a plugin may not be
+    /// configured at all, and isn't always from the closest config: a plugin in
+    /// `[tools.*]` takes precedence over `[plugins.tools]` in a closer config.
+    pub fn get_trusted_plugin(
+        &self,
+        context: &ToolContext,
+        ty: PluginType,
+        locator: &PluginLocator,
+    ) -> Result<TrustedPluginRecord, ProtoConfigError> {
+        let builtin_plugins = self.load_config()?.builtin_plugins();
+        let builtin = builtin_plugins.get(context.backend.as_ref().unwrap_or(&context.id), ty);
+
+        let mut config = None;
+        let mut overrides = vec![];
+
+        for file in self.load_config_files()? {
+            for plugin in file.get_plugins(context, ty) {
+                if plugin == locator {
+                    config.get_or_insert_with(|| file.path.clone());
+                } else if !overrides.contains(plugin) {
+                    overrides.push(plugin.to_owned());
+                }
+            }
+        }
+
+        // Built-in plugins are only file locators in debug builds, while
+        // the same file configured explicitly is not a replacement
+        let debug_file = match locator {
+            PluginLocator::File(file) if config.is_none() && builtin == Some(locator) => {
+                Some(file.get_resolved_path())
+            }
+            _ => None,
+        };
+
+        if let Some(builtin) = builtin
+            && builtin != locator
+            && !overrides.contains(builtin)
+        {
+            overrides.push(builtin.to_owned());
+        }
+
+        Ok(TrustedPluginRecord {
+            config,
+            context: context.to_owned(),
+            debug_file,
+            locator: locator.to_owned(),
+            overrides,
+            type_of: ty,
+        })
     }
 
     pub fn load_lock(

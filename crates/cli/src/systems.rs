@@ -1,8 +1,8 @@
 use crate::app::{App as CLI, Commands};
 use crate::helpers::fetch_latest_version;
 use proto_core::{
-    ConfigMode, ProtoConfigFile, ProtoEnvironment, TrustState, Version, is_offline, now,
-    reporter::ProtoConsole,
+    ConfigMode, ProtoConfigFile, ProtoEnvironment, TrustState, UntrustedPluginRecord, Version,
+    is_offline, now, reporter::ProtoConsole,
 };
 use proto_shim::get_exe_file_name;
 use starbase_styles::color;
@@ -77,6 +77,16 @@ pub fn format_untrusted_config_warning(file: &ProtoConfigFile) -> String {
             .collect::<Vec<_>>()
             .join(", "),
         color::shell(format!("proto trust {}", file.path.display())),
+    )
+}
+
+pub fn format_untrusted_plugin_warning(plugin: &UntrustedPluginRecord) -> String {
+    format!(
+        "Override {} for {} in {} not used, as the config is not trusted. Run {} to use it.",
+        color::url(plugin.get_display_locator()),
+        color::id(plugin.context.as_str()),
+        color::path(&plugin.config),
+        color::shell(format!("proto trust {}", plugin.config.display())),
     )
 }
 

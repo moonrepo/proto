@@ -1,4 +1,4 @@
-use crate::app::{App as CLI, Commands, StdoutOwner};
+use crate::app::{App as CLI, Commands, PluginCommands, StdoutOwner};
 use crate::commands::clean::{CleanArgs, CleanTarget, internal_clean};
 use crate::helpers::create_console_theme;
 use crate::systems::*;
@@ -21,7 +21,7 @@ use std::collections::VecDeque;
 use std::env;
 use std::sync::Arc;
 use tokio::task::JoinSet;
-use tracing::{debug, instrument};
+use tracing::{debug, info, instrument, warn};
 
 pub type SessionResult = AppResult<miette::Report>;
 
@@ -111,6 +111,8 @@ impl ProtoSession {
         options: LoadToolOptions,
     ) -> Result<ToolRecord, ProtoLoaderError> {
         let mut record = ToolRecord::new(load_tool(context, &self.env).await?);
+
+        self.report_plugin_source(&record)?;
 
         if let Some(spec) = &options.inherit_remote {
             record.inherit_from_remote(spec).await?;
@@ -294,6 +296,8 @@ impl ProtoSession {
                 other => other?,
             };
 
+            self.report_plugin_source(&record)?;
+
             if options.inherit_local {
                 record.inherit_from_local(config);
             }
@@ -359,6 +363,45 @@ impl ProtoSession {
     pub fn should_skip_prompts(&self) -> bool {
         self.cli.yes || ci_env::is_ci() || cd_env::is_cd()
     }
+
+    /// Report when the plugin loaded for a tool is not the one that was asked
+    /// for, as the tool still runs, just with a different plugin. A tool without
+    /// a built-in plugin fails with a trust error instead.
+    fn report_plugin_source(&self, record: &ToolRecord) -> Result<(), ProtoConfigError> {
+        // Runs on every prompt, and tracks untrusted configs itself
+        if matches!(self.cli.command, Commands::Activate(_)) {
+            return Ok(());
+        }
+
+        if let Some(locator) = &record.locator
+            && let Some(path) = self
+                .env
+                .get_trusted_plugin(&record.context, record.ty, locator)?
+                .debug_file
+        {
+            info!(
+                tool = record.context.as_str(),
+                path = ?path,
+                "Using a locally built WASM file instead of the built-in plugin, as this is a debug build",
+            );
+        }
+
+        // Renders the untrusted plugin itself
+        if matches!(
+            self.cli.command,
+            Commands::Plugin {
+                command: PluginCommands::Info(_)
+            }
+        ) {
+            return Ok(());
+        }
+
+        if let Some(plugin) = self.env.get_untrusted_plugin(&record.context, record.ty)? {
+            warn!("{}", format_untrusted_plugin_warning(&plugin));
+        }
+
+        Ok(())
+    }
 }
 
 #[async_trait]
@@ -387,8 +430,9 @@ impl AppSession for ProtoSession {
         // hook runs on every prompt, `diagnose` reports them as warnings, and
         // `status` renders them (except for JSON, which has no place for them).
         // Tool commands are executed many times by scripts and editors (through
-        // shims), so they stay quiet, and fail with a trust error when the tool
-        // itself is affected. The remaining commands don't load configs.
+        // shims), so they stay quiet, and only fail with a trust error, or warn
+        // about an untrusted plugin, when the tool itself is affected. The
+        // remaining commands don't load configs.
         let renders_trust = match self.cli.command {
             Commands::Diagnose(_) => true,
             Commands::Status(_) => !self.is_json_format(),
@@ -463,6 +507,41 @@ impl AppSession for ProtoSession {
 mod tests {
     use super::*;
     use clap::Parser;
+
+    #[test]
+    fn log_level_defaults_by_command() {
+        let default_level = |args: &[&str]| {
+            let mut cli = CLI::try_parse_from(args).unwrap();
+
+            // May be set by the environment running the tests
+            cli.log = None;
+            cli.log_level().to_string()
+        };
+
+        for args in [
+            &["proto", "run", "node"][..],
+            &["proto", "exec", "node", "--", "node"],
+            &["proto", "shell", "node"],
+            &["proto", "bin", "node"],
+        ] {
+            assert_eq!(default_level(args), "warn", "{args:?}");
+        }
+
+        assert_eq!(default_level(&["proto", "completions"]), "off");
+        assert_eq!(default_level(&["proto", "status"]), "info");
+        assert_eq!(default_level(&["proto", "activate", "zsh"]), "info");
+    }
+
+    #[test]
+    fn log_level_prefers_explicit_level() {
+        let cli = CLI::try_parse_from(["proto", "--log", "debug", "run", "node"]).unwrap();
+
+        assert_eq!(cli.log_level().to_string(), "debug");
+
+        let cli = CLI::try_parse_from(["proto", "--log", "off", "status"]).unwrap();
+
+        assert_eq!(cli.log_level().to_string(), "off");
+    }
 
     #[test]
     fn version_checks_never_corrupt_protocol_stdout() {
