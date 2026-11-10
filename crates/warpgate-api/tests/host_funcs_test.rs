@@ -34,4 +34,24 @@ mod send_request_input {
 
         assert_eq!(input.method, SendRequestMethod::Post);
     }
+
+    #[test]
+    fn errors_on_failure_by_default() {
+        let input: SendRequestInput =
+            serde_json::from_str(r#"{"url":"https://moonrepo.dev"}"#).unwrap();
+
+        assert!(input.error_on_failure);
+        assert!(SendRequestInput::new("https://moonrepo.dev").error_on_failure);
+        assert!(SendRequestInput::post("https://moonrepo.dev").error_on_failure);
+        assert!(SendRequestInput::default().error_on_failure);
+    }
+
+    #[test]
+    fn can_disable_error_on_failure() {
+        let input: SendRequestInput =
+            serde_json::from_str(r#"{"url":"https://moonrepo.dev","error_on_failure":false}"#)
+                .unwrap();
+
+        assert!(!input.error_on_failure);
+    }
 }

@@ -11,7 +11,7 @@ use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, OnceLock};
 use std::time::Instant;
-use system_env::{SystemArch, SystemLibc, SystemOS};
+use system_env::{SystemDetails, SystemPlatform};
 use tokio::sync::RwLock;
 use tokio::task::spawn_blocking;
 use tracing::{instrument, trace};
@@ -51,14 +51,15 @@ pub fn inject_default_manifest_config(
     }
 
     if !manifest.config.contains_key("host_environment") {
-        let os = SystemOS::from_env();
+        let platform = SystemPlatform::from_env();
 
         let env = serde_json::to_string(&HostEnvironment {
-            arch: SystemArch::from_env(),
+            arch: platform.arch,
             ci: is_ci(),
+            details: Some(SystemDetails::from_platform(&platform)),
             foreign: false,
-            libc: SystemLibc::detect(os),
-            os,
+            libc: platform.libc,
+            os: platform.os,
             home_dir: VirtualPath::new("/userhome"),
         })
         .map_err(|error| WarpgatePluginError::InvalidInput {

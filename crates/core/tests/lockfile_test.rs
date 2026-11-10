@@ -300,6 +300,86 @@ mod lockfile {
 
             assert!(a.is_match(&b, &default_options()));
         }
+
+        fn variant_record(variant: Option<&str>) -> LockRecord {
+            LockRecord {
+                variant: variant.map(|variant| variant.into()),
+                ..record_with(
+                    Some("1.2.3"),
+                    None,
+                    Some(SystemOS::Linux),
+                    Some(SystemArch::X64),
+                )
+            }
+        }
+
+        #[test]
+        fn matches_same_variant() {
+            assert!(
+                variant_record(Some("baseline"))
+                    .is_match(&variant_record(Some("baseline")), &default_options())
+            );
+        }
+
+        #[test]
+        fn no_match_different_variant() {
+            assert!(
+                !variant_record(Some("baseline"))
+                    .is_match(&variant_record(Some("musl-baseline")), &default_options())
+            );
+        }
+
+        #[test]
+        fn no_match_variant_and_default_build() {
+            // Unlike libc, a record without a variant is the default build,
+            // not a wildcard, so neither direction matches
+            assert!(
+                !variant_record(None)
+                    .is_match(&variant_record(Some("baseline")), &default_options())
+            );
+            assert!(
+                !variant_record(Some("baseline"))
+                    .is_match(&variant_record(None), &default_options())
+            );
+        }
+
+        #[test]
+        fn matches_records_without_a_variant_backwards_compat() {
+            // Records created before variants were recorded are the default build
+            assert!(variant_record(None).is_match(&variant_record(None), &default_options()));
+        }
+
+        #[test]
+        fn matches_variant_when_ignoring_os_arch() {
+            let options = ToolLockOptions {
+                ignore_os_arch: true,
+                ..Default::default()
+            };
+            let record = |variant: Option<&str>| LockRecord {
+                variant: variant.map(|variant| variant.into()),
+                ..record_with(Some("1.2.3"), None, None, None)
+            };
+
+            assert!(record(Some("baseline")).is_match(&record(Some("baseline")), &options));
+            assert!(!record(Some("baseline")).is_match(&record(None), &options));
+        }
+
+        #[test]
+        fn matches_with_platform_ignores_variant() {
+            // The variant is only known once the plugin is called, so
+            // matching by platform alone includes every variant
+            let spec = UnresolvedVersionSpec::parse("1.2.3").unwrap();
+            let platform = SystemPlatform::new(SystemOS::Linux, SystemArch::X64);
+
+            for variant in [None, Some("baseline")] {
+                assert!(variant_record(variant).is_match_with(
+                    None,
+                    Some(&spec),
+                    &platform,
+                    &default_options(),
+                ));
+            }
+        }
     }
 
     mod lock_record_conversions {
@@ -384,6 +464,18 @@ mod lockfile {
             assert!(other_record.arch.is_none());
             assert!(other_record.libc.is_none());
             assert!(other_record.version.is_some());
+        }
+
+        #[test]
+        fn for_other_platform_strips_variant() {
+            let record = LockRecord {
+                version: Some(VersionSpec::parse("1.2.3").unwrap()),
+                variant: Some("baseline".into()),
+                ..Default::default()
+            };
+
+            assert!(record.for_other_platform().variant.is_none());
+            assert_eq!(record.for_manifest().variant, Some("baseline".into()));
         }
 
         #[test]
@@ -477,6 +569,39 @@ mod lockfile {
 
             assert_eq!(records[0].libc, Some(SystemLibc::Musl));
             assert_eq!(records[1].libc, None);
+        }
+
+        #[test]
+        fn save_and_load_roundtrip_with_variant() {
+            let sandbox = create_empty_sandbox();
+
+            let mut lock = ProtoLock::load_from(sandbox.path()).unwrap();
+            let record = |variant: Option<&str>| LockRecord {
+                spec: Some(UnresolvedVersionSpec::parse("1.2.3").unwrap()),
+                os: Some(SystemOS::Linux),
+                arch: Some(SystemArch::X64),
+                libc: Some(SystemLibc::Gnu),
+                variant: variant.map(|variant| variant.into()),
+                ..Default::default()
+            };
+
+            // Saved in a stable order, after the default build
+            lock.tools
+                .entry(Id::raw("bun"))
+                .or_default()
+                .extend([record(Some("baseline")), record(None)]);
+            lock.sort_records();
+            lock.save().unwrap();
+
+            let contents = std::fs::read_to_string(&lock.path).unwrap();
+
+            assert_eq!(contents.matches("variant = \"baseline\"").count(), 1);
+
+            let loaded = ProtoLock::load_from(sandbox.path()).unwrap();
+            let records = loaded.tools.get(&Id::raw("bun")).unwrap();
+
+            assert_eq!(records[0].variant, None);
+            assert_eq!(records[1].variant, Some("baseline".into()));
         }
 
         #[test]

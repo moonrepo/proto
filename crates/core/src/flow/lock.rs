@@ -228,8 +228,8 @@ impl<'tool> Locker<'tool> {
         Ok(self.load_lock()?.is_some())
     }
 
-    /// Find the record in the lockfile with the same backend, spec, and
-    /// platform (operating system, architecture, and libc) as the provided
+    /// Find the record in the lockfile with the same backend, spec, platform
+    /// (operating system, architecture, and libc), and variant as the provided
     /// record. Unlike [`LockRecord::is_match`], records without a platform
     /// (created before platforms were recorded) don't match every platform.
     pub fn find_platform_record(
@@ -249,6 +249,7 @@ impl<'tool> Locker<'tool> {
                         && existing.os == record.os
                         && existing.arch == record.arch
                         && existing.libc == record.libc
+                        && existing.variant == record.variant
                 })
                 .cloned()
         }))
@@ -499,6 +500,7 @@ impl<'tool> Locker<'tool> {
 
         let platform = self.tool.get_platform();
         let libc = get_lockable_libc(platform);
+        let mut exact_libc: Option<&LockRecord> = None;
         let mut any_libc: Option<&LockRecord> = None;
         let mut other_platform: Option<&LockRecord> = None;
 
@@ -514,12 +516,20 @@ impl<'tool> Locker<'tool> {
                 &self.tool.metadata.lock_options,
             ) {
                 // Records without a libc (created before libcs were recorded)
-                // match every libc, so prefer a record for the current libc
-                if record.libc == libc {
-                    return Ok(Some(record.clone()));
+                // match every libc, so prefer a record for the current libc.
+                // Each build (variant) for the platform has its own record, but
+                // which is downloaded is unknown until the plugin is called, so
+                // prefer the highest version, which other builds update to
+                let best = if record.libc == libc {
+                    &mut exact_libc
+                } else {
+                    &mut any_libc
+                };
+
+                if best.is_none_or(|current| record.version > current.version) {
+                    *best = Some(record);
                 }
 
-                any_libc.get_or_insert(record);
                 continue;
             }
 
@@ -537,7 +547,7 @@ impl<'tool> Locker<'tool> {
             }
         }
 
-        if let Some(record) = any_libc {
+        if let Some(record) = exact_libc.or(any_libc) {
             return Ok(Some(record.clone()));
         }
 
@@ -568,6 +578,45 @@ impl<'tool> Locker<'tool> {
         Ok(None)
     }
 
+    /// Find the record in the lockfile for the resolved version of the provided
+    /// specification, with the same platform and variant as the install record.
+    fn find_variant_record(
+        &self,
+        spec: &ToolSpec,
+        install_record: &LockRecord,
+    ) -> Result<Option<LockRecord>, ProtoLockError> {
+        let Some(version) = &spec.version else {
+            return Ok(None);
+        };
+
+        let Some(lock) = self.load_lock()? else {
+            return Ok(None);
+        };
+
+        let Some(records) = lock.tools.get(self.tool.get_id()) else {
+            return Ok(None);
+        };
+
+        let mut other = self.tool.create_locked_record();
+        other.spec = Some(spec.req.clone());
+        other.variant = install_record.variant.clone();
+
+        let matches = records
+            .iter()
+            .filter(|record| {
+                record.version.as_ref() == Some(version)
+                    && record.is_match(&other, &self.tool.metadata.lock_options)
+            })
+            .collect::<Vec<_>>();
+
+        // Records without a libc match every libc, so prefer the current libc
+        Ok(matches
+            .iter()
+            .find(|record| record.libc == other.libc)
+            .or(matches.first())
+            .map(|record| (*record).to_owned()))
+    }
+
     /// Verify the installation is legitimate by comparing it to the internal lockfile record.
     #[instrument(skip(self))]
     pub fn verify_locked_record(
@@ -577,15 +626,47 @@ impl<'tool> Locker<'tool> {
     ) -> Result<(), ProtoLockError> {
         // Extract the lock record from the lockfile first,
         // otherwise try the internal manifest
-        let Some(locked_record) = self.get_resolved_locked_record(spec) else {
+        let Some(resolved_record) = self.get_resolved_locked_record(spec) else {
             return Ok(());
         };
 
         // If we have different backends, then the installation strategy
         // and content/files which are hashed may differ, so avoid verify
-        if install_record.backend != locked_record.backend {
+        if install_record.backend != resolved_record.backend {
             return Ok(());
         }
+
+        // The version may have been resolved with the record of another build
+        // (variant) for this platform, as the variant is only known once the
+        // plugin is called, so verify against the record of the downloaded build.
+        // If it hasn't been locked, there's nothing to verify against, and a
+        // record is added for it after installing
+        let variant_record;
+        let locked_record = if resolved_record.variant == install_record.variant {
+            resolved_record
+        } else if let Some(record) = self.find_variant_record(spec, install_record)? {
+            variant_record = record;
+            &variant_record
+        } else if spec.immutable {
+            return Err(ProtoLockError::ImmutableMissingVariantRecord {
+                tool: self.tool.get_name().to_owned(),
+                spec: spec.req.to_string(),
+                platform: self.tool.get_platform().to_string(),
+                variant: install_record
+                    .variant
+                    .clone()
+                    .unwrap_or_else(|| "default".into()),
+            });
+        } else {
+            debug!(
+                tool = self.tool.context.as_str(),
+                variant = install_record.variant.as_deref(),
+                locked_variant = resolved_record.variant.as_deref(),
+                "No record in lockfile for the downloaded build, skipping verification",
+            );
+
+            return Ok(());
+        };
 
         let make_error = |actual: String, expected: String| match &install_record.source {
             Some(source) => ProtoLockError::MismatchedChecksumWithSource {

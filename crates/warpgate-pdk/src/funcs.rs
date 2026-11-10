@@ -24,10 +24,19 @@ extern "ExtismHost" {
     fn set_env_vars(vars: Json<FxHashMap<String, String>>);
 }
 
-/// Fetch the requested input and return a response.
+/// Fetch the requested input and return a response. If
+/// [`error_on_failure`](SendRequestInput::error_on_failure) is true (the
+/// default), returns an error when the response has a non-2xx status, or
+/// an empty body.
 pub fn fetch(input: SendRequestInput) -> AnyResult<SendRequestOutput> {
     let url = input.url.clone();
+    let error_on_failure = input.error_on_failure;
     let response = send_request!(input, input);
+
+    if !error_on_failure {
+        return Ok(response);
+    }
+
     let status = response.status;
 
     if !(200..300).contains(&status) {
@@ -97,12 +106,45 @@ where
     download(DownloadFileInput::new(url, file.as_ref()))
 }
 
-/// Execute a command on the host with the provided input.
+/// Execute a command on the host with the provided input. If
+/// [`error_on_nonzero`](ExecCommandInput::error_on_nonzero) is true,
+/// returns an error when the command exits with a non-zero code.
 pub fn exec(input: ExecCommandInput) -> AnyResult<ExecCommandOutput> {
-    Ok(exec_command!(input, input))
+    // The input is moved into the call, so keep what the error needs
+    let command_line = input.error_on_nonzero.then(|| {
+        let mut line = input.command.clone();
+
+        for arg in &input.args {
+            line.push(' ');
+            line.push_str(arg);
+        }
+
+        line
+    });
+
+    let output = exec_command!(input, input);
+
+    if let Some(command_line) = command_line
+        && output.exit_code != 0
+    {
+        let mut message = format!(
+            "Command <shell>{command_line}</shell> failed with a {} exit code.",
+            output.exit_code
+        );
+        let stderr = output.stderr.trim();
+
+        if !stderr.is_empty() {
+            message.push_str(&format!("\n<mutedlight>{stderr}</mutedlight>"));
+        }
+
+        return Err(anyhow!(message));
+    }
+
+    Ok(output)
 }
 
 /// Execute a command on the host and capture its output (pipe).
+/// A non-zero exit code is returned in the output, not as an error.
 pub fn exec_captured<C, I, A>(command: C, args: I) -> AnyResult<ExecCommandOutput>
 where
     C: AsRef<str>,
@@ -113,6 +155,7 @@ where
 }
 
 /// Execute a command on the host and stream its output to the console (inherit).
+/// A non-zero exit code is returned in the output, not as an error.
 pub fn exec_streamed<C, I, A>(command: C, args: I) -> AnyResult<ExecCommandOutput>
 where
     C: AsRef<str>,

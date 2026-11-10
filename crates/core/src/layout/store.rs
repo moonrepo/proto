@@ -14,7 +14,7 @@ use std::fmt;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Once};
-use tracing::{debug, instrument, warn};
+use tracing::{debug, instrument};
 
 fn symlink_file(src_path: &Path, link_path: &Path) -> io::Result<()> {
     #[cfg(unix)]
@@ -163,34 +163,37 @@ impl Store {
         Ok(())
     }
 
-    /// Symlink an executable into the bin directory, and return whether it was linked.
+    /// Symlink an executable into the bin directory. On Windows, the executable
+    /// is copied instead when it can't be symlinked.
     #[instrument(skip(self))]
-    pub fn link_bin(&self, bin_path: &Path, src_path: &Path) -> Result<bool, ProtoLayoutError> {
+    pub fn link_bin(&self, bin_path: &Path, src_path: &Path) -> Result<(), ProtoLayoutError> {
         let result = symlink_file(src_path, bin_path);
 
         // Symlinks require developer mode or elevated privileges on Windows.
-        // If we don't have access, skip the executable, as the tool
-        // is still available through its shim.
+        // If we don't have access, copy the executable instead, like before
+        // symlinks were supported, which uses more disk space but still works
         if cfg!(windows)
             && let Err(error) = &result
         {
-            static WARNED: Once = Once::new();
+            static LOGGED: Once = Once::new();
 
-            // Every executable fails for the same reason, so only warn once
-            WARNED.call_once(|| {
-                warn!(
+            // Every executable fails for the same reason, so only log it once
+            LOGGED.call_once(|| {
+                debug!(
                     bin_dir = ?self.bin_dir,
-                    "Unable to symlink binaries, skipping them: {error}"
+                    "Unable to symlink binaries, copying them instead: {error}"
                 );
             });
 
             debug!(
                 source = ?src_path,
                 target = ?bin_path,
-                "Skipping binary as it could not be symlinked"
+                "Copying binary as it could not be symlinked"
             );
 
-            return Ok(false);
+            fs::reflink_file(src_path, bin_path)?;
+
+            return Ok(());
         }
 
         result.map_err(|error| {
@@ -200,7 +203,7 @@ impl Store {
             }))
         })?;
 
-        Ok(true)
+        Ok(())
     }
 
     /// Verify that symlinks can be created in the bin directory.
