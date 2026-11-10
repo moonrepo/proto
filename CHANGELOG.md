@@ -72,6 +72,7 @@
   - Deprecated `ParseVersionFileInput.content` in favor of `path`, which plugins can use to read the file contents.
   - Added `extract_version_from_text` and `extract_version_from_file` functions, which extract the version from the contents of a plain version file, like `.nvmrc` or `.python-version`, or from the file itself, reading a line at a time.
   - Added a `ParseVersionFileOutput.stop` field. When true and no version is returned, the plugin's remaining files in that directory are skipped, while parent directories are still checked. This is useful for tools where one config file takes precedence over another, even when it doesn't define a version.
+  - Added an `ExecCommandInput.error_on_nonzero` field. When true, `exec` returns an error if the command exits with a non-zero code, which includes the exit code and stderr, instead of returning the output. Defaults to false, and `exec_captured` and `exec_streamed` still return the exit code in the output.
   - Added `get_env_vars` and `set_env_vars` host functions, which get or set multiple environment variables on the host machine with a single call.
     - `get_env_vars` omits variables that are not set, so unlike `get_env_var`, a variable set to an empty value can be told apart from one that is not set.
     - `set_env_vars` appends to `PATH` instead of overwriting it, like `set_env_var`.
