@@ -1,8 +1,9 @@
 use system_env::{SystemArch, SystemDetails, SystemDistro, SystemOS, SystemPlatform};
 
-fn distro(id: &str, version_id: Option<&str>) -> Option<SystemDistro> {
+fn distro(id: &str, id_like: &[&str], version_id: Option<&str>) -> Option<SystemDistro> {
     Some(SystemDistro {
         id: id.into(),
+        id_like: id_like.iter().map(|like| (*like).into()).collect(),
         version_id: version_id.map(|version| version.into()),
     })
 }
@@ -25,7 +26,7 @@ UBUNTU_CODENAME=noble
 
         assert_eq!(
             SystemDistro::parse_os_release(content),
-            distro("ubuntu", Some("24.04"))
+            distro("ubuntu", &["debian"], Some("24.04"))
         );
     }
 
@@ -42,7 +43,7 @@ HOME_URL="https://www.debian.org/"
 
         assert_eq!(
             SystemDistro::parse_os_release(content),
-            distro("debian", Some("12"))
+            distro("debian", &[], Some("12"))
         );
     }
 
@@ -59,7 +60,7 @@ PRETTY_NAME="Fedora Linux 40 (Container Image)"
 
         assert_eq!(
             SystemDistro::parse_os_release(content),
-            distro("fedora", Some("40"))
+            distro("fedora", &[], Some("40"))
         );
     }
 
@@ -74,7 +75,87 @@ HOME_URL="https://alpinelinux.org/"
 
         assert_eq!(
             SystemDistro::parse_os_release(content),
-            distro("alpine", Some("3.20.3"))
+            distro("alpine", &[], Some("3.20.3"))
+        );
+    }
+
+    #[test]
+    fn parses_rocky() {
+        let content = r#"NAME="Rocky Linux"
+VERSION="9.4 (Blue Onyx)"
+ID="rocky"
+ID_LIKE="rhel centos fedora"
+VERSION_ID="9.4"
+PLATFORM_ID="platform:el9"
+PRETTY_NAME="Rocky Linux 9.4 (Blue Onyx)"
+ANSI_COLOR="0;32"
+CPE_NAME="cpe:/o:rocky:rocky:9::baseos"
+HOME_URL="https://rockylinux.org/"
+REDHAT_SUPPORT_PRODUCT="Rocky Linux"
+REDHAT_SUPPORT_PRODUCT_VERSION="9.4"
+"#;
+
+        assert_eq!(
+            SystemDistro::parse_os_release(content),
+            distro("rocky", &["rhel", "centos", "fedora"], Some("9.4"))
+        );
+    }
+
+    #[test]
+    fn parses_almalinux() {
+        let content = r#"NAME="AlmaLinux"
+VERSION="9.4 (Seafoam Ocelot)"
+ID="almalinux"
+ID_LIKE="rhel centos fedora"
+VERSION_ID="9.4"
+PLATFORM_ID="platform:el9"
+PRETTY_NAME="AlmaLinux 9.4 (Seafoam Ocelot)"
+ANSI_COLOR="0;34"
+CPE_NAME="cpe:/o:almalinux:almalinux:9::baseos"
+HOME_URL="https://almalinux.org/"
+REDHAT_SUPPORT_PRODUCT="AlmaLinux"
+REDHAT_SUPPORT_PRODUCT_VERSION="9.4"
+SUPPORT_END=2032-06-01
+"#;
+
+        assert_eq!(
+            SystemDistro::parse_os_release(content),
+            distro("almalinux", &["rhel", "centos", "fedora"], Some("9.4"))
+        );
+    }
+
+    #[test]
+    fn parses_without_id_like() {
+        let content = r#"NAME="Red Hat Enterprise Linux"
+VERSION="9.4 (Plow)"
+ID="rhel"
+VERSION_ID="9.4"
+PLATFORM_ID="platform:el9"
+PRETTY_NAME="Red Hat Enterprise Linux 9.4 (Plow)"
+"#;
+
+        let result = SystemDistro::parse_os_release(content).unwrap();
+
+        assert!(result.id_like.is_empty());
+        assert_eq!(Some(result), distro("rhel", &[], Some("9.4")));
+    }
+
+    #[test]
+    fn normalizes_id_like() {
+        // Lowercased like the identifier, and split on any whitespace
+        assert_eq!(
+            SystemDistro::parse_os_release("ID=custom\nID_LIKE=\"  RHEL\tFedora  \"\n"),
+            distro("custom", &["rhel", "fedora"], None)
+        );
+
+        // Unquoted with a single entry, and empty values are ignored
+        assert_eq!(
+            SystemDistro::parse_os_release("ID_LIKE=Debian\nID=custom\n"),
+            distro("custom", &["debian"], None)
+        );
+        assert_eq!(
+            SystemDistro::parse_os_release("ID=custom\nID_LIKE=\"\"\n"),
+            distro("custom", &[], None)
         );
     }
 
@@ -88,7 +169,7 @@ BUILD_ID=rolling
 
         assert_eq!(
             SystemDistro::parse_os_release(content),
-            distro("arch", None)
+            distro("arch", &[], None)
         );
     }
 
@@ -101,7 +182,7 @@ VERSION_ID="1.0 \"beta\""
 
         assert_eq!(
             SystemDistro::parse_os_release(content),
-            distro("custom", Some(r#"1.0 "beta""#))
+            distro("custom", &[], Some(r#"1.0 "beta""#))
         );
     }
 
@@ -127,7 +208,7 @@ VERSION_ID="1.0 \"beta\""
 
         std::fs::remove_dir_all(&dir).unwrap();
 
-        assert_eq!(result, distro("debian", Some("12")));
+        assert_eq!(result, distro("debian", &[], Some("12")));
     }
 
     #[test]
@@ -231,6 +312,41 @@ mod serde {
         assert_eq!(
             serde_json::from_str::<SystemDetails>("{}").unwrap(),
             SystemDetails::default()
+        );
+    }
+
+    #[test]
+    fn round_trips_distro_with_id_like() {
+        let details = SystemDetails {
+            distro: distro("rocky", &["rhel", "centos", "fedora"], Some("9.4")),
+            ..Default::default()
+        };
+        let json = serde_json::to_string(&details).unwrap();
+
+        assert_eq!(
+            json,
+            r#"{"distro":{"id":"rocky","id_like":["rhel","centos","fedora"],"version_id":"9.4"}}"#
+        );
+        assert_eq!(
+            serde_json::from_str::<SystemDetails>(&json).unwrap(),
+            details
+        );
+    }
+
+    #[test]
+    fn round_trips_distro_without_id_like() {
+        let details = SystemDetails {
+            distro: distro("debian", &[], Some("12")),
+            ..Default::default()
+        };
+        let json = serde_json::to_string(&details).unwrap();
+
+        // Omitted when empty, and defaulted when missing, so JSON from older
+        // versions of proto (before the field existed) still parses
+        assert_eq!(json, r#"{"distro":{"id":"debian","version_id":"12"}}"#);
+        assert_eq!(
+            serde_json::from_str::<SystemDetails>(&json).unwrap(),
+            details
         );
     }
 }
