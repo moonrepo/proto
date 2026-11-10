@@ -23,6 +23,7 @@ struct WasmTestConfig {
     list: Vec<String>,
     map: HashMap<String, usize>,
     prebuilt_url: String,
+    prebuilt_variant: Option<String>,
 }
 
 #[plugin_fn]
@@ -172,7 +173,8 @@ pub fn load_versions(Json(_): Json<LoadVersionsInput>) -> FnResult<Json<LoadVers
 }
 
 // Each platform and version downloads a different file, from the
-// URL configured with the `prebuilt-url` setting
+// URL configured with the `prebuilt-url` setting, and an optional
+// build variant configured with the `prebuilt-variant` setting
 #[plugin_fn]
 pub fn download_prebuilt(
     Json(input): Json<DownloadPrebuiltInput>,
@@ -184,11 +186,18 @@ pub fn download_prebuilt(
     // that the host created the temp directory
     std::fs::write(input.temp_dir.join("download_prebuilt"), "")?;
 
+    let variant_suffix = config
+        .prebuilt_variant
+        .as_ref()
+        .map(|variant| format!("-{variant}"))
+        .unwrap_or_default();
+
     Ok(Json(DownloadPrebuiltOutput {
         download_url: format!(
-            "{}/{}/{}-{}-{}.txt",
+            "{}/{}/{}-{}-{}{variant_suffix}.txt",
             config.prebuilt_url, input.context.version, env.arch, env.os, env.libc
         ),
+        variant: config.prebuilt_variant,
         ..Default::default()
     }))
 }

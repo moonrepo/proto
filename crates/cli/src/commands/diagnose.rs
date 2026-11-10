@@ -319,7 +319,7 @@ fn gather_bin_link_warnings(store: &Store) -> Vec<Issue> {
                 .into(),
         ),
         comment: Some(
-            "Executables will not be linked in this directory, but shims will continue to work"
+            "Executables will be copied into this directory instead, which uses more disk space"
                 .into(),
         ),
     }]

@@ -79,7 +79,8 @@ macro_rules! download_file {
 }
 
 /// Calls the `send_request` host function to send an HTTP request
-/// and return a response. Not OK responses must be handled by the guest.
+/// and return a response. Not OK responses must be handled by the guest,
+/// as `SendRequestInput.error_on_failure` is only handled by `fetch`.
 #[macro_export]
 macro_rules! send_request {
     (input, $input:expr) => {{

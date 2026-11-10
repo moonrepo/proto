@@ -2,7 +2,7 @@ use crate::config::ProtoToolConfig;
 use crate::tool_manifest::ToolManifest;
 use proto_pdk_api::LoadVersionsOutput;
 use std::collections::BTreeMap;
-use tracing::trace;
+use tracing::{debug, trace};
 use version_spec::*;
 
 #[derive(Default)]
@@ -30,6 +30,26 @@ impl<'tool> VersionResolver<'tool> {
 
         if let Some(latest) = output.latest {
             resolver.aliases.insert("latest".into(), latest);
+        }
+
+        // An alias may point to an exact version that the plugin didn't
+        // list (for example, a dev build), which would never resolve, as
+        // explicit versions must exist in the list
+        for (alias, spec) in &resolver.aliases {
+            if let UnresolvedVersionSpec::Version(version) = spec {
+                let target = VersionSpec::Version(version.to_owned());
+
+                if !resolver.versions.contains(&target) {
+                    // If the download fails, the plugin's alias may be stale
+                    debug!(
+                        alias = alias.as_str(),
+                        version = target.to_string(),
+                        "Alias points to a version that isn't in the plugin's list of versions, adding it"
+                    );
+
+                    resolver.versions.push(target);
+                }
+            }
         }
 
         // Sort from newest to oldest

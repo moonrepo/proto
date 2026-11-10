@@ -34,6 +34,11 @@ pub struct LockRecord {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub libc: Option<SystemLibc>,
 
+    /// The build that was downloaded, when the tool distributes more than one
+    /// for the same platform (for example, `baseline`). None is the default build.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub variant: Option<String>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub backend: Option<Id>,
 
@@ -79,6 +84,7 @@ impl LockRecord {
         record.os = None;
         record.arch = None;
         record.libc = None;
+        record.variant = None;
         record.checksum = None;
         record.source = None;
         record.metadata = FxHashMap::default();
@@ -110,8 +116,16 @@ impl LockRecord {
     }
 
     /// Return true if this record (in the lockfile) matches the other record,
-    /// by comparing the backend, spec, and platform.
+    /// by comparing the backend, spec, platform, and variant. Unlike the
+    /// platform, a record without a variant only matches another record without
+    /// one, as the default build and a variant are different downloads.
     pub fn is_match(&self, other: &Self, options: &ToolLockOptions) -> bool {
+        self.variant == other.variant && self.is_platform_match(other, options)
+    }
+
+    /// Return true if this record (in the lockfile) matches the other record,
+    /// by comparing the backend, spec, and platform, ignoring the variant.
+    fn is_platform_match(&self, other: &Self, options: &ToolLockOptions) -> bool {
         if self.backend != other.backend || self.spec != other.spec {
             return false;
         }
@@ -138,7 +152,8 @@ impl LockRecord {
     }
 
     /// Return true if this record (in the lockfile) matches the provided
-    /// backend, spec, and platform.
+    /// backend, spec, and platform, for any variant, as the variant is only
+    /// known once the plugin has been asked for the download.
     pub fn is_match_with(
         &self,
         backend: Option<&Id>,
@@ -153,7 +168,7 @@ impl LockRecord {
         };
         other.set_platform(platform);
 
-        self.is_match(&other, options)
+        self.is_platform_match(&other, options)
     }
 }
 
@@ -275,6 +290,7 @@ impl ProtoLock {
                     record.os,
                     record.arch,
                     record.libc,
+                    record.variant.clone(),
                 )
             });
         }

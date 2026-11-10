@@ -31,6 +31,7 @@ pub fn inject_proto_manifest_config(
             &HostEnvironment {
                 arch: platform.arch,
                 ci: is_ci(),
+                details: proto.get_host_details().cloned(),
                 foreign: proto.is_foreign_platform(),
                 libc: platform.libc,
                 os: platform.os,

@@ -37,10 +37,12 @@
   - Without `--platform`, locks the current platform, and every platform that already has a record for the tool, for example, to fill in the checksums that `proto outdated --update` removes from other platforms.
   - Platforms that have already been locked are not downloaded again, unless `--force` is passed, which downloads them and verifies the lockfile's checksums.
   - Tools that install natively (like backends) or build from source can only be verified by installing them, so are skipped. A warning is logged when a plugin executes a command while locking another platform, as the command's output reflects the current machine.
+- Added support for tools that distribute more than one pre-built for the same platform, like Bun's `baseline` builds for CPUs without AVX2. Each build (variant) has its own record in the lockfile, so a lockfile created on one machine no longer fails checksum verification on a machine that downloads another build. Instead, that machine adds a record for its build, and `--immutable-lockfile` errors with the name of the build that hasn't been locked.
+  - `proto lock` locks the build that the plugin chooses for each platform, and shows its variant.
 - Updated shims in `~/.proto/shims` to be hard links to the `proto-shim` executable, instead of a copy for each shim, which greatly reduces their disk usage. Shims are still copied when a hard link can't be created, for example, when `proto-shim` is on a different drive.
   - Existing shims are replaced the next time they're created, or with `proto regen`.
-- Updated executables in `~/.proto/bin` on Windows to be symlinks to the installed tool's executable, instead of copies, matching other platforms. Symlinks require Developer Mode or administrator privileges. Without them, a warning is logged once and executables are not linked, but the tool's shims will continue to work.
-  - `proto diagnose` also warns on Windows when symlinks can't be created in `~/.proto/bin`.
+- Updated executables in `~/.proto/bin` on Windows to be symlinks to the installed tool's executable, instead of copies, matching other platforms. Symlinks require Developer Mode or administrator privileges. Without them, executables are copied, as before.
+  - `proto diagnose` also warns on Windows when symlinks can't be created in `~/.proto/bin`, as copies use more disk space.
 - Updated `proto install --force` to download the pre-built archive and its checksum file as they currently exist upstream, instead of copies from the HTTP request cache, which are kept for up to 7 days.
 - Updated running a tool's self-upgrade command (for example, `bun upgrade`) through proto to offer to upgrade with `proto install` in an interactive terminal, instead of only erroring. Non-interactive runs (like CI or JSON output) still error.
   - The latest version is pinned to the config file that the current version came from, or to the local directory if it came from an ecosystem file or wasn't detected.
@@ -68,10 +70,14 @@
   - Updated `UnresolvedVersionSpec.to_partial_string` to return "latest" for `!=` requirements.
   - Plugins built with an older PDK fail to parse `!=` requirements and versions with a revision, and must be rebuilt to support them.
   - Updated `HostPlatform` to also parse the operating system first, in the format of `<os>-<arch>` or `<os>-<arch>-<libc>` (for example, `linux-x64-musl`). Platforms are still formatted with the architecture first.
+  - Added a `HostEnvironment.details` field, with details about the host machine that further distinguish it from others with the same platform: the x86-64 microarchitecture level (`x64_level`, 1 to 4), the 32-bit ARM version (`arm_version`), and the Linux distribution (`distro`, from `/etc/os-release`). Plugins can use these to choose a build without executing commands. It's `None` when `foreign` is true, or with older versions of proto, so plugins must fall back to a default build.
+  - Added a `DownloadPrebuiltOutput.variant` field, which names the build that was chosen when a tool distributes more than one for the same platform (for example, `baseline`), and is recorded in the lockfile. The default build should not have a variant.
   - Added a `HostEnvironment.foreign` field, which is true when the plugin is targeting a platform other than the machine it's running on, like when locking other platforms with `proto lock --platform`. The `arch`, `os`, and `libc` fields describe the targeted platform, but executed commands (including PDK functions like `command_exists`) and environment variables still reflect the machine, so plugins should not use them to inspect the platform when `foreign` is true.
   - Deprecated `ParseVersionFileInput.content` in favor of `path`, which plugins can use to read the file contents.
   - Added `extract_version_from_text` and `extract_version_from_file` functions, which extract the version from the contents of a plain version file, like `.nvmrc` or `.python-version`, or from the file itself, reading a line at a time.
   - Added a `ParseVersionFileOutput.stop` field. When true and no version is returned, the plugin's remaining files in that directory are skipped, while parent directories are still checked. This is useful for tools where one config file takes precedence over another, even when it doesn't define a version.
+  - Added an `ExecCommandInput.error_on_nonzero` field. When true, `exec` returns an error if the command exits with a non-zero code, which includes the exit code and stderr, instead of returning the output. Defaults to false, and `exec_captured` and `exec_streamed` still return the exit code in the output.
+  - Added a `SendRequestInput.error_on_failure` field, which defaults to true, so `fetch` still returns an error if the response has a non-2xx status (like 404 or 500) or an empty body. When false, `fetch` returns the response instead, so plugins can check `status` themselves. `fetch_bytes`, `fetch_json`, and `fetch_text` still return an error.
   - Added `get_env_vars` and `set_env_vars` host functions, which get or set multiple environment variables on the host machine with a single call.
     - `get_env_vars` omits variables that are not set, so unlike `get_env_var`, a variable set to an empty value can be told apart from one that is not set.
     - `set_env_vars` appends to `PATH` instead of overwriting it, like `set_env_var`.
@@ -81,6 +87,7 @@
 #### 🐞 Fixes
 
 - Fixed the `latest` alias resolving to a pre-release when a plugin doesn't define it. It now resolves to the highest version that isn't a pre-release.
+- Fixed aliases that point to an exact version that the plugin doesn't list in its versions (for example, Zig's `master` pointing to a dev build) failing to resolve. These versions are now added to the list, so they also appear in `proto versions`.
 - Fixed version detection failing when a plugin reads a version file through `ParseVersionFileInput.path`, and the file is in a directory that plugins cannot access, like a parent of a working directory that's outside of the home directory. Plugins are no longer asked to parse these files, so they are skipped during detection.
 - Fixed scoped requirements with an operator other than `~` or `=` (for example, `<next-12`) resolving to an alias of the same name (`next-12`), which could select a version that the requirement excludes.
 - Fixed requirements with both an operator and a wildcard (for example, `>=*`) being formatted without the wildcard, which could not be parsed again.

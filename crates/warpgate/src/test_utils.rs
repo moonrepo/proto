@@ -7,7 +7,8 @@ use std::collections::HashMap;
 use std::env;
 use std::path::{Path, PathBuf};
 use warpgate_api::{
-    HostArch, HostEnvironment, HostLibc, HostOS, HostPlatform, TestEnvironment, VirtualPath,
+    HostArch, HostDetails, HostEnvironment, HostLibc, HostOS, HostPlatform, TestEnvironment,
+    VirtualPath,
 };
 
 fn traverse_target_dir<T: AsRef<Path>, F: AsRef<str>>(
@@ -172,11 +173,13 @@ impl ConfigBuilder {
     }
 
     /// Set the `host_environment` config setting with the provided
-    /// platform (architecture, operating system, and libc).
+    /// platform (architecture, operating system, and libc). Details aren't
+    /// set, as the platform may not be this machine's.
     pub fn host(&mut self, platform: HostPlatform) -> &mut Self {
         self.host_environment(HostEnvironment {
             arch: platform.arch,
             ci: is_ci(),
+            details: None,
             foreign: false,
             libc: platform.libc,
             os: platform.os,
@@ -184,15 +187,17 @@ impl ConfigBuilder {
         })
     }
 
-    /// Set the `host_environment` config setting with default values,
-    /// which can be customized with the provided function.
+    /// Set the `host_environment` config setting with default values (this
+    /// machine's), which can be customized with the provided function.
     pub fn host_with(&mut self, mut op: impl FnMut(&mut HostEnvironment)) -> &mut Self {
         let os = HostOS::default();
+        let platform = HostPlatform::new(os, HostArch::default()).with_libc(HostLibc::detect(os));
         let mut host = HostEnvironment {
-            arch: HostArch::default(),
+            arch: platform.arch,
             ci: is_ci(),
+            details: Some(HostDetails::from_platform(&platform)),
             foreign: false,
-            libc: HostLibc::detect(os),
+            libc: platform.libc,
             os,
             home_dir: VirtualPath::default(),
         };
