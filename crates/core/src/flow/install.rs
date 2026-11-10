@@ -18,7 +18,7 @@ use starbase_utils::net::DownloadOptions;
 use starbase_utils::{fs, hash, net, path};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use system_env::System;
+use system_env::{System, SystemPlatform};
 use tokio::process::Command;
 use tracing::{debug, instrument, warn};
 use warpgate::extract_file_name_from_url;
@@ -252,13 +252,48 @@ impl<'tool> Installer<'tool> {
         let version = self.spec.get_resolved_version();
         let platform = self.tool.get_platform();
 
+        // The version's temp directory is owned by installs, which remove it
+        // when they finish, so stage downloads in a directory unique to the
+        // platform and this process instead
+        let lock_dir = self.tool.get_temp_dir().join("lock");
+        let temp_dir = lock_dir.join(hash::base64::from_bytes(format!(
+            "{platform}-{version}-{}",
+            std::process::id()
+        )));
+
+        let result = self
+            .lock_with_temp_dir(&temp_dir, options, &locker, platform, version)
+            .await;
+
+        let _ = fs::remove_dir_all(&temp_dir);
+
+        // Only removed once empty, as other platforms may still be locking
+        let _ = std::fs::remove_dir(&lock_dir);
+
+        result
+    }
+
+    async fn lock_with_temp_dir(
+        &self,
+        temp_dir: &Path,
+        options: InstallOptions,
+        locker: &Locker<'_>,
+        platform: &SystemPlatform,
+        version: VersionSpec,
+    ) -> Result<LockOutcome, ProtoInstallError> {
+        // The plugin chooses the build (variant) to download, so ask it first,
+        // even when already locked. Its output is cached (unless caching is
+        // disabled), so preparing the download doesn't call the plugin again
+        let output = self.load_prebuilt_output(temp_dir).await?;
+
         let mut record = self.tool.create_locked_record();
-        record.version = Some(version.clone());
+        record.version = Some(version);
         record.spec = Some(self.spec.req.clone());
+        record.variant = output.variant;
         record.metadata = self.tool.metadata.lock_options.metadata.clone();
 
-        // Only a record for the same platform can verify the download, as other
-        // platforms download different artifacts. The record that the spec was
+        // Only a record for the same platform and build can verify the download,
+        // as others download different artifacts. The record that the spec was
         // resolved with can't be used, as it's for the host machine
         let existing = locker
             .find_platform_record(&record)?
@@ -270,6 +305,7 @@ impl<'tool> Installer<'tool> {
             debug!(
                 tool = self.tool.context.as_str(),
                 platform = platform.to_string(),
+                variant = record.variant.as_deref(),
                 "Tool has already been locked for this version and platform, skipping",
             );
 
@@ -283,24 +319,11 @@ impl<'tool> Installer<'tool> {
         debug!(
             tool = self.tool.context.as_str(),
             platform = platform.to_string(),
+            variant = record.variant.as_deref(),
             "Locking tool by downloading a pre-built archive",
         );
 
-        // The version's temp directory is owned by installs, which remove it
-        // when they finish, so stage downloads in a directory unique to the
-        // platform and this process instead
-        let lock_dir = self.tool.get_temp_dir().join("lock");
-        let temp_dir = lock_dir.join(hash::base64::from_bytes(format!(
-            "{platform}-{version}-{}",
-            std::process::id()
-        )));
-
-        let result = self.prepare_prebuilt(&temp_dir, &options).await;
-
-        let _ = fs::remove_dir_all(&temp_dir);
-        let _ = std::fs::remove_dir(&lock_dir);
-
-        let prepared = result?;
+        let prepared = self.prepare_prebuilt(temp_dir, &options).await?;
 
         record.checksum = prepared.record.checksum;
         record.source = prepared.record.source;
@@ -417,6 +440,38 @@ impl<'tool> Installer<'tool> {
         Ok(record)
     }
 
+    /// Call the plugin's `download_prebuilt` function for the provided temp
+    /// directory. The output is cached (unless caching is disabled), so calling
+    /// again with the same temp directory doesn't call the plugin.
+    async fn load_prebuilt_output(
+        &self,
+        temp_dir: &Path,
+    ) -> Result<DownloadPrebuiltOutput, ProtoInstallError> {
+        let proto = &self.tool.proto;
+
+        // Already created when installing, but not when locking,
+        // and the plugin may write to it
+        fs::create_dir_all(temp_dir)?;
+
+        let output = proto.create_metric().record_tool_install_step(
+            &self.tool.context,
+            "prepare_download_prebuilt",
+            self.tool
+                .plugin
+                .cache_func_with(
+                    PluginFunction::DownloadPrebuilt,
+                    DownloadPrebuiltInput {
+                        context: self.tool.create_plugin_context(self.spec),
+                        install_dir: self.tool.to_virtual_path(&self.product_dir),
+                        temp_dir: self.tool.to_virtual_path(temp_dir),
+                    },
+                )
+                .await,
+        )?;
+
+        Ok(output)
+    }
+
     /// Download the tool (as an archive) from its distribution registry into
     /// the provided temp directory, and verify it against a checksum, or generate
     /// one when none is available. The download is not unpacked, so the returned
@@ -441,28 +496,10 @@ impl<'tool> Installer<'tool> {
         let proto = &self.tool.proto;
         let client = proto.get_plugin_loader()?.get_http_client()?;
         let config = proto.load_config()?;
-
-        // Already created when installing, but not when locking,
-        // and the plugin may write to it
-        fs::create_dir_all(temp_dir)?;
-
-        let output: DownloadPrebuiltOutput = proto.create_metric().record_tool_install_step(
-            &self.tool.context,
-            "prepare_download_prebuilt",
-            self.tool
-                .plugin
-                .cache_func_with(
-                    PluginFunction::DownloadPrebuilt,
-                    DownloadPrebuiltInput {
-                        context: self.tool.create_plugin_context(self.spec),
-                        install_dir: self.tool.to_virtual_path(&self.product_dir),
-                        temp_dir: self.tool.to_virtual_path(temp_dir),
-                    },
-                )
-                .await,
-        )?;
+        let output = self.load_prebuilt_output(temp_dir).await?;
 
         let mut record = self.tool.create_locked_record();
+        record.variant = output.variant.clone();
 
         // When forced, download the files as they currently exist upstream,
         // instead of copies from the HTTP cache

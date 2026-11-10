@@ -79,6 +79,12 @@ fn spawn_prebuilt_server() -> PrebuiltServer {
 fn create_sandbox(server: &PrebuiltServer, lockfile: bool) -> Sandbox {
     let sandbox = create_empty_sandbox();
 
+    write_config(&sandbox, server, lockfile, "");
+
+    sandbox
+}
+
+fn write_config(sandbox: &Sandbox, server: &PrebuiltServer, lockfile: bool, extra: &str) {
     sandbox.create_file(
         ".prototools",
         format!(
@@ -91,12 +97,11 @@ lockfile = {lockfile}
 
 [tools.api-usage]
 prebuilt-url = "{}"
+{extra}
 "#,
             server.url
         ),
     );
-
-    sandbox
 }
 
 fn create_proto(sandbox: &Sandbox) -> ProtoEnvironment {
@@ -240,6 +245,43 @@ mod installer_lock {
             .collect::<BTreeSet<_>>();
 
         assert_eq!(checksums.len(), 3);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn locks_each_variant_with_its_own_record() {
+        let server = spawn_prebuilt_server();
+        let sandbox = create_sandbox(&server, true);
+        let spec = resolved_spec("1", "1.0.0");
+
+        let default = unwrap_locked(
+            lock(
+                &load_tool(&create_proto(&sandbox), "x64-linux").await,
+                &spec,
+            )
+            .await
+            .unwrap(),
+        );
+
+        // The plugin now chooses another build for the same platform
+        write_config(&sandbox, &server, true, r#"prebuilt-variant = "baseline""#);
+
+        let tool = load_tool(&create_proto(&sandbox), "x64-linux").await;
+        let baseline = unwrap_locked(lock(&tool, &spec).await.unwrap());
+
+        assert_eq!(default.variant, None);
+        assert_eq!(baseline.variant, Some("baseline".into()));
+        assert_ne!(default.checksum, baseline.checksum);
+        assert_eq!(
+            load_records(&sandbox),
+            vec![default.for_lockfile(), baseline.for_lockfile()]
+        );
+
+        // Already locked for this variant, so nothing is downloaded
+        assert_eq!(
+            lock(&tool, &spec).await.unwrap(),
+            LockOutcome::AlreadyLocked(baseline.for_lockfile())
+        );
+        assert_eq!(server.requests(), 2);
     }
 
     #[tokio::test(flavor = "multi_thread")]
