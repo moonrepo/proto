@@ -263,12 +263,23 @@ api_struct!(
 );
 
 api_struct!(
+    no_default,
     /// Input passed to the `send_request` host function.
     #[derive(Setters)]
     pub struct SendRequestInput {
         /// The URL to send to.
         #[setters(into)]
         pub url: String,
+
+        /// Return an error if the response has a non-2xx status code (for
+        /// example, 404 or 500), or a 2xx response has an empty body, instead
+        /// of the response. Defaults to true.
+        ///
+        /// This is handled by the PDK's `fetch` function, not the
+        /// `send_request` host function, so that plugins can handle
+        /// the error.
+        #[serde(default = "default_error_on_failure")]
+        pub error_on_failure: bool,
 
         /// HTTP headers to inject into the request.
         #[serde(default, skip_serializing_if = "FxHashMap::is_empty")]
@@ -279,6 +290,21 @@ api_struct!(
         pub method: SendRequestMethod,
     }
 );
+
+fn default_error_on_failure() -> bool {
+    true
+}
+
+impl Default for SendRequestInput {
+    fn default() -> Self {
+        Self {
+            url: String::new(),
+            error_on_failure: default_error_on_failure(),
+            headers: FxHashMap::default(),
+            method: SendRequestMethod::default(),
+        }
+    }
+}
 
 impl SendRequestInput {
     /// Create a new send request with the provided url.

@@ -24,10 +24,19 @@ extern "ExtismHost" {
     fn set_env_vars(vars: Json<FxHashMap<String, String>>);
 }
 
-/// Fetch the requested input and return a response.
+/// Fetch the requested input and return a response. If
+/// [`error_on_failure`](SendRequestInput::error_on_failure) is true (the
+/// default), returns an error when the response has a non-2xx status, or
+/// an empty body.
 pub fn fetch(input: SendRequestInput) -> AnyResult<SendRequestOutput> {
     let url = input.url.clone();
+    let error_on_failure = input.error_on_failure;
     let response = send_request!(input, input);
+
+    if !error_on_failure {
+        return Ok(response);
+    }
+
     let status = response.status;
 
     if !(200..300).contains(&status) {
