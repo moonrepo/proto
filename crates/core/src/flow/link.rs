@@ -280,10 +280,9 @@ impl<'tool> Linker<'tool> {
                 );
 
                 store.unlink_bin(&output_path)?;
+                store.link_bin(&output_path, &input_path)?;
 
-                if store.link_bin(&output_path, &input_path)? {
-                    bins.push(output_path);
-                }
+                bins.push(output_path);
             }
         }
 

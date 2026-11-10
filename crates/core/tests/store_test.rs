@@ -30,7 +30,7 @@ mod link_bin {
     use super::*;
 
     #[test]
-    fn creates_a_symlink_or_skips_without_copying() {
+    fn creates_a_symlink_or_a_copy() {
         let sandbox = create_empty_sandbox();
         let store = Store::new(sandbox.path());
         let src_path = sandbox.path().join("tools/tool/1.0.0/tool");
@@ -39,17 +39,16 @@ mod link_bin {
         sandbox.create_file("tools/tool/1.0.0/tool", "exe");
         fs::create_dir_all(&store.bin_dir).unwrap();
 
-        let linked = store.link_bin(&bin_path, &src_path).unwrap();
+        store.link_bin(&bin_path, &src_path).unwrap();
 
-        // Windows may not have access to create symlinks
-        assert!(linked || cfg!(windows));
-        assert_eq!(bin_path.is_symlink(), linked);
-        assert_eq!(bin_path.exists(), linked);
+        // Windows may not have access to create symlinks, so copies instead
+        assert!(bin_path.is_symlink() || cfg!(windows));
+        assert_eq!(fs::read_to_string(&bin_path).unwrap(), "exe");
     }
 
     #[cfg(windows)]
     #[test]
-    fn skips_if_it_cant_link() {
+    fn copies_if_it_cant_link() {
         let sandbox = create_empty_sandbox();
         let store = Store::new(sandbox.path());
         let src_path = sandbox.path().join("tools/tool/1.0.0/tool.exe");
@@ -57,9 +56,12 @@ mod link_bin {
 
         sandbox.create_file("tools/tool/1.0.0/tool.exe", "exe");
 
-        // The parent directory is missing, so the link fails
-        assert!(!store.link_bin(&bin_path, &src_path).unwrap());
-        assert!(!bin_path.exists());
+        // The parent directory is missing, so the link fails, even with
+        // access to symlinks, but the copy creates it
+        store.link_bin(&bin_path, &src_path).unwrap();
+
+        assert!(!bin_path.is_symlink());
+        assert_eq!(fs::read_to_string(&bin_path).unwrap(), "exe");
     }
 
     #[cfg(unix)]
