@@ -219,7 +219,7 @@ pub async fn info(session: ProtoSession, args: PluginInfoArgs) -> SessionResult 
                             View {
                                 StyledText(
                                     content: format!(
-                                        "Override in <path>{0}</path> not used, as the config is not trusted",
+                                        "Override in <path>{0}</path> not used, as the config is not trusted. Run <shell>proto trust {0}</shell> to use it.",
                                         plugin.config.display(),
                                     ),
                                 )
