@@ -1,6 +1,7 @@
 use crate::config::PluginType;
 use crate::env::ProtoEnvironment;
 use crate::helpers::get_proto_version;
+use crate::host::{ToolVersionsSource, create_proto_host_functions};
 use crate::id::Id;
 use crate::layout::Inventory;
 use crate::lockfile::LockRecord;
@@ -21,10 +22,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use system_env::SystemPlatform;
 use tracing::{debug, instrument};
-use warpgate::{
-    PluginContainer, PluginLocator, PluginManifest, VirtualPath, Wasm,
-    host::{HostData, ToolVersionsSource, create_host_functions},
-};
+use warpgate::{PluginContainer, PluginLocator, PluginManifest, VirtualPath, Wasm, host::HostData};
 
 pub type ToolMetadata = RegisterToolOutput;
 
@@ -117,16 +115,18 @@ impl Tool {
             Arc::new(PluginContainer::new(
                 context.id.clone(),
                 manifest,
-                create_host_functions(HostData {
-                    cache_dir: proto.store.cache_dir.clone(),
-                    foreign_platform: proto
-                        .is_foreign_platform()
-                        .then(|| proto.get_host_platform().to_string()),
-                    http_client: Arc::clone(proto.get_plugin_loader()?.get_http_client()?),
-                    virtual_paths: proto.get_virtual_paths(),
-                    working_dir: proto.working_dir.clone(),
+                create_proto_host_functions(
+                    HostData {
+                        cache_dir: proto.store.cache_dir.clone(),
+                        foreign_platform: proto
+                            .is_foreign_platform()
+                            .then(|| proto.get_host_platform().to_string()),
+                        http_client: Arc::clone(proto.get_plugin_loader()?.get_http_client()?),
+                        virtual_paths: proto.get_virtual_paths(),
+                        working_dir: proto.working_dir.clone(),
+                    },
                     versions_source,
-                }),
+                ),
             )?),
         )
         .await

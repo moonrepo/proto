@@ -1,6 +1,7 @@
 mod build;
 mod checksum;
 mod source;
+mod versions;
 
 use crate::shapes::*;
 use derive_setters::Setters;
@@ -13,6 +14,7 @@ use warpgate_api::*;
 pub use build::*;
 pub use checksum::*;
 pub use source::*;
+pub use versions::*;
 
 /// Enumeration of all available plugin functions that can be implemented by plugins.
 ///

@@ -1,4 +1,5 @@
 use criterion::{BenchmarkId, Criterion, Throughput, criterion_group, criterion_main};
+use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
 use starbase_sandbox::{Sandbox, create_empty_sandbox};
 use std::hint::black_box;
 use std::path::PathBuf;
@@ -35,21 +36,33 @@ fn create_container(sandbox: &Sandbox) -> Arc<PluginContainer> {
 
     inject_default_manifest_config(&id, &sandbox.path().join("home"), &mut manifest).unwrap();
 
-    Arc::new(
-        PluginContainer::new(
-            id,
-            manifest,
-            create_host_functions(HostData {
-                cache_dir: sandbox.path().join("cache"),
-                foreign_platform: None,
-                http_client: Arc::new(create_http_client().unwrap()),
-                virtual_paths: vec![],
-                working_dir: sandbox.path().to_path_buf(),
-                versions_source: None,
-            }),
-        )
-        .unwrap(),
-    )
+    let mut functions = create_host_functions(HostData {
+        cache_dir: sandbox.path().join("cache"),
+        foreign_platform: None,
+        http_client: Arc::new(create_http_client().unwrap()),
+        virtual_paths: vec![],
+        working_dir: sandbox.path().to_path_buf(),
+    });
+    functions.push(Function::new(
+        "load_tool_versions",
+        [ValType::I64],
+        [ValType::I64],
+        UserData::new(()),
+        unused_proto_load_tool_versions,
+    ));
+
+    Arc::new(PluginContainer::new(id, manifest, functions).unwrap())
+}
+
+fn unused_proto_load_tool_versions(
+    plugin: &mut CurrentPlugin,
+    _inputs: &[Val],
+    outputs: &mut [Val],
+    _user_data: UserData<()>,
+) -> Result<(), Error> {
+    plugin.memory_set_val(&mut outputs[0], r#"{"versions":[]}"#)?;
+
+    Ok(())
 }
 
 // Spawn tasks that each run the operation `CALLS_PER_TASK` times against

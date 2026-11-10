@@ -1,3 +1,4 @@
+use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
 use starbase_sandbox::create_empty_sandbox;
 use std::env;
 use std::path::{Path, PathBuf};
@@ -25,19 +26,33 @@ fn create_container(sandbox_path: &Path) -> PluginContainer {
 
     inject_default_manifest_config(&id, &sandbox_path.join("home"), &mut manifest).unwrap();
 
-    PluginContainer::new(
-        id,
-        manifest,
-        create_host_functions(HostData {
-            cache_dir: sandbox_path.join("cache"),
-            foreign_platform: None,
-            http_client: Arc::new(create_http_client().unwrap()),
-            virtual_paths: vec![],
-            working_dir: sandbox_path.to_path_buf(),
-            versions_source: None,
-        }),
-    )
-    .unwrap()
+    let mut functions = create_host_functions(HostData {
+        cache_dir: sandbox_path.join("cache"),
+        foreign_platform: None,
+        http_client: Arc::new(create_http_client().unwrap()),
+        virtual_paths: vec![],
+        working_dir: sandbox_path.to_path_buf(),
+    });
+    functions.push(Function::new(
+        "load_tool_versions",
+        [ValType::I64],
+        [ValType::I64],
+        UserData::new(()),
+        unused_proto_load_tool_versions,
+    ));
+
+    PluginContainer::new(id, manifest, functions).unwrap()
+}
+
+fn unused_proto_load_tool_versions(
+    plugin: &mut CurrentPlugin,
+    _inputs: &[Val],
+    outputs: &mut [Val],
+    _user_data: UserData<()>,
+) -> Result<(), Error> {
+    plugin.memory_set_val(&mut outputs[0], r#"{"versions":[]}"#)?;
+
+    Ok(())
 }
 
 // Count the number of guest function calls, which excludes cache hits

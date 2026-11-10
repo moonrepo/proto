@@ -1,3 +1,4 @@
+use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
 use rustc_hash::FxHashMap;
 use starbase_sandbox::create_empty_sandbox;
 use starbase_utils::fs;
@@ -6,11 +7,8 @@ use std::net::TcpListener;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::thread;
-use warpgate::api::{
-    DownloadFileInput, DownloadFileOutput, LoadToolVersionsInput, SendRequestInput,
-    SendRequestOutput,
-};
-use warpgate::host::{HostData, ToolVersionsSource, create_host_functions};
+use warpgate::api::{DownloadFileInput, DownloadFileOutput, SendRequestInput, SendRequestOutput};
+use warpgate::host::{HostData, create_host_functions};
 use warpgate::{
     Id, PluginContainer, PluginManifest, VirtualPath, Wasm, create_http_client,
     inject_default_manifest_config, test_utils,
@@ -92,14 +90,6 @@ fn create_container_for_platform(
     sandbox_path: &std::path::Path,
     foreign_platform: Option<&str>,
 ) -> PluginContainer {
-    create_container_with_tool_version_config(sandbox_path, foreign_platform, None)
-}
-
-fn create_container_with_tool_version_config(
-    sandbox_path: &std::path::Path,
-    foreign_platform: Option<&str>,
-    versions_source: Option<ToolVersionsSource>,
-) -> PluginContainer {
     let id = Id::raw("test");
 
     let mut manifest = PluginManifest::new([Wasm::file(find_api_usage_wasm())]);
@@ -113,26 +103,44 @@ fn create_container_with_tool_version_config(
 
     inject_default_manifest_config(&id, &sandbox_path.join("home"), &mut manifest).unwrap();
 
-    PluginContainer::new(
-        id,
-        manifest,
-        create_host_functions(HostData {
-            cache_dir: sandbox_path.join("cache"),
-            foreign_platform: foreign_platform.map(|platform| platform.to_owned()),
-            http_client: Arc::new(create_http_client().unwrap()),
-            virtual_paths: vec![(sandbox_path.to_path_buf(), PathBuf::from("/sandbox"))],
-            working_dir: sandbox_path.to_path_buf(),
-            versions_source,
-        }),
-    )
-    .unwrap()
+    let functions = create_test_host_functions(HostData {
+        cache_dir: sandbox_path.join("cache"),
+        foreign_platform: foreign_platform.map(|platform| platform.to_owned()),
+        http_client: Arc::new(create_http_client().unwrap()),
+        virtual_paths: vec![(sandbox_path.to_path_buf(), PathBuf::from("/sandbox"))],
+        working_dir: sandbox_path.to_path_buf(),
+    });
+
+    PluginContainer::new(id, manifest, functions).unwrap()
+}
+
+fn create_test_host_functions(data: HostData) -> Vec<Function> {
+    let mut functions = create_host_functions(data);
+    functions.push(Function::new(
+        "load_tool_versions",
+        [ValType::I64],
+        [ValType::I64],
+        UserData::new(()),
+        unused_proto_load_tool_versions,
+    ));
+    functions
+}
+
+fn unused_proto_load_tool_versions(
+    plugin: &mut CurrentPlugin,
+    _inputs: &[Val],
+    outputs: &mut [Val],
+    _user_data: UserData<()>,
+) -> Result<(), Error> {
+    plugin.memory_set_val(&mut outputs[0], r#"{"versions":[]}"#)?;
+
+    Ok(())
 }
 
 mod path_ext {
     use super::*;
     use warpgate::api::{HostEnvironment, HostOS};
 
-    // Mimic a Windows host, where the host directories use backslashes
     fn create_windows_container(sandbox_path: &std::path::Path) -> PluginContainer {
         let id = Id::raw("test");
         let mut manifest = PluginManifest::new([Wasm::file(find_api_usage_wasm())]);
@@ -156,13 +164,12 @@ mod path_ext {
         PluginContainer::new(
             id,
             manifest,
-            create_host_functions(HostData {
+            create_test_host_functions(HostData {
                 cache_dir: sandbox_path.join("cache"),
                 foreign_platform: None,
                 http_client: Arc::new(create_http_client().unwrap()),
                 virtual_paths: vec![],
                 working_dir: sandbox_path.to_path_buf(),
-                versions_source: None,
             }),
         )
         .unwrap()
@@ -427,223 +434,6 @@ mod send_request {
             .await;
 
         assert!(result.is_err());
-    }
-}
-
-mod load_git_tags {
-    use super::*;
-    use std::path::Path;
-    use std::process::Command;
-
-    fn git(dir: &Path, args: &[&str]) {
-        let output = Command::new("git")
-            .args([
-                "-c",
-                "user.name=proto",
-                "-c",
-                "user.email=proto@moonrepo.dev",
-            ])
-            .args(["-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false"])
-            // A global fsmonitor spawns a daemon for every sandbox repo,
-            // and a commit can hang waiting on the daemon to respond
-            .args(["-c", "core.fsmonitor=false"])
-            .args(args)
-            .current_dir(dir)
-            .output()
-            .unwrap();
-
-        assert!(
-            output.status.success(),
-            "{}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
-
-    #[tokio::test(flavor = "multi_thread")]
-    async fn loads_tags_from_remote() {
-        let sandbox = create_empty_sandbox();
-        let repo = sandbox.path().join("repo");
-
-        fs::create_dir_all(&repo).unwrap();
-        git(&repo, &["init", "--quiet"]);
-        git(&repo, &["commit", "--allow-empty", "--quiet", "-m", "init"]);
-        git(&repo, &["tag", "v1.0.0"]);
-        // Annotated tags are also listed as dereferenced (^{}), which are filtered
-        git(&repo, &["tag", "--annotate", "v1.1.0", "-m", "annotated"]);
-
-        let container = create_container(sandbox.path());
-
-        let tags: Vec<String> = container
-            .call_func_with("testing_load_git_tags", repo.to_string_lossy())
-            .await
-            .unwrap();
-
-        assert_eq!(tags, ["v1.0.0", "v1.1.0"]);
-
-        let versions: Vec<String> = container
-            .call_func_with(
-                "testing_load_tool_versions",
-                LoadToolVersionsInput::Git {
-                    url: repo.to_string_lossy().into_owned(),
-                    tag_pattern: None,
-                },
-            )
-            .await
-            .unwrap();
-
-        assert_eq!(versions, tags);
-
-        let filtered_versions: Vec<String> = container
-            .call_func_with(
-                "testing_load_tool_versions",
-                LoadToolVersionsInput::Git {
-                    url: repo.to_string_lossy().into_owned(),
-                    tag_pattern: Some("^v1\\.1\\.0$".to_owned()),
-                },
-            )
-            .await
-            .unwrap();
-
-        assert_eq!(filtered_versions, ["v1.1.0"]);
-    }
-
-    #[tokio::test(flavor = "multi_thread")]
-    async fn errors_with_stderr_when_command_fails() {
-        let sandbox = create_empty_sandbox();
-        let container = create_container(sandbox.path());
-
-        let error = container
-            .call_func_with::<_, _, Vec<String>>(
-                "testing_load_git_tags",
-                sandbox.path().join("missing").to_string_lossy(),
-            )
-            .await
-            .unwrap_err()
-            .to_string();
-
-        assert!(error.contains("Failed to load Git tags from"), "{error}");
-        assert!(error.contains("returned a 128 exit code"), "{error}");
-        assert!(error.contains("fatal:"), "{error}");
-    }
-
-    #[tokio::test(flavor = "multi_thread")]
-    async fn loads_versions_from_configured_index() {
-        let sandbox = create_empty_sandbox();
-        let manifest_url = spawn_http_server("200 OK", r#"[{"name":"v1.0.0"},{"name":"v1.1.0"}]"#);
-        let container = create_container_with_tool_version_config(
-            sandbox.path(),
-            None,
-            Some(ToolVersionsSource {
-                version_pattern: None,
-                index_url: Some(manifest_url),
-                index_version_key: Some("name".to_owned()),
-                git_url: None,
-                git_tag_pattern: None,
-            }),
-        );
-
-        let versions: Vec<String> = container
-            .call_func_with(
-                "testing_load_tool_versions",
-                LoadToolVersionsInput::Git {
-                    url: "https://github.com/example/tool".to_owned(),
-                    tag_pattern: None,
-                },
-            )
-            .await
-            .unwrap();
-
-        assert_eq!(versions, ["v1.0.0", "v1.1.0"]);
-
-        let migrated_versions: Vec<String> = container
-            .call_func_with("testing_load_git_tags", "https://github.com/example/tool")
-            .await
-            .unwrap();
-
-        assert_eq!(migrated_versions, versions);
-    }
-
-    #[tokio::test(flavor = "multi_thread")]
-    async fn loads_versions_from_configured_git() {
-        let sandbox = create_empty_sandbox();
-        let repo = sandbox.path().join("repo");
-
-        fs::create_dir_all(&repo).unwrap();
-        git(&repo, &["init", "--quiet"]);
-        git(&repo, &["commit", "--allow-empty", "--quiet", "-m", "init"]);
-        git(&repo, &["tag", "v3.0.0"]);
-        git(&repo, &["tag", "unrelated"]);
-
-        let container = create_container_with_tool_version_config(
-            sandbox.path(),
-            None,
-            Some(ToolVersionsSource {
-                version_pattern: None,
-                index_url: None,
-                index_version_key: None,
-                git_url: Some(repo.to_string_lossy().into_owned()),
-                git_tag_pattern: Some("^v3\\.".to_owned()),
-            }),
-        );
-
-        let versions: Vec<String> = container
-            .call_func_with(
-                "testing_load_tool_versions",
-                LoadToolVersionsInput::Index {
-                    url: "https://example.com/unused.json".to_owned(),
-                    version_path: None,
-                },
-            )
-            .await
-            .unwrap();
-
-        assert_eq!(versions, ["v3.0.0"]);
-    }
-
-    #[tokio::test(flavor = "multi_thread")]
-    async fn loads_single_version_from_json_path() {
-        let sandbox = create_empty_sandbox();
-        let index_url = spawn_http_server("200 OK", r#"[{"version":"v1.2.3"}]"#);
-        let container = create_container(sandbox.path());
-
-        let versions: Vec<String> = container
-            .call_func_with(
-                "testing_load_tool_versions",
-                LoadToolVersionsInput::Index {
-                    url: index_url,
-                    version_path: Some(".[0].version".to_owned()),
-                },
-            )
-            .await
-            .unwrap();
-
-        assert_eq!(versions, ["v1.2.3"]);
-    }
-
-    #[tokio::test(flavor = "multi_thread")]
-    async fn loads_versions_from_wildcard_json_path() {
-        let sandbox = create_empty_sandbox();
-        let index_url = spawn_http_server(
-            "200 OK",
-            r#"[{"name":"v2.4.0"},{"name":"v2.4.1"},{"name":"v2.4.2"}]"#,
-        );
-
-        for version_path in ["*.name", "[*].name"] {
-            let container = create_container(sandbox.path());
-
-            let versions: Vec<String> = container
-                .call_func_with(
-                    "testing_load_tool_versions",
-                    LoadToolVersionsInput::Index {
-                        url: index_url.clone(),
-                        version_path: Some(version_path.to_owned()),
-                    },
-                )
-                .await
-                .unwrap();
-
-            assert_eq!(versions, ["v2.4.0", "v2.4.1", "v2.4.2"]);
-        }
     }
 }
 
