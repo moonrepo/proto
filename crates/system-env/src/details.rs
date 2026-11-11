@@ -14,6 +14,13 @@ pub struct SystemDistro {
     /// `ubuntu`, `debian`, `fedora`, or `alpine`.
     pub id: String,
 
+    /// Identifiers of the distributions that this distribution is derived from,
+    /// or closely related to (the `ID_LIKE` field), ordered from the closest to
+    /// the most distant, for example, `rhel`, `centos`, and `fedora` on Rocky
+    /// Linux. Empty when the distribution doesn't define any.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub id_like: Vec<String>,
+
     /// Version of the distribution (the `VERSION_ID` field), for example,
     /// `24.04`, `12`, `40`, or `3.20.3`. Rolling releases, like Arch Linux,
     /// don't define a version.
@@ -36,10 +43,12 @@ impl SystemDistro {
     }
 
     /// Parse the contents of an `os-release` file, which is a list of `KEY=value`
-    /// lines, where the value may be wrapped in single or double quotes. Returns
-    /// none if the contents don't define an identifier (the `ID` field).
+    /// lines, where the value may be wrapped in single or double quotes. The
+    /// `ID_LIKE` field is a space-separated list. Returns none if the contents
+    /// don't define an identifier (the `ID` field).
     pub fn parse_os_release(content: &str) -> Option<Self> {
         let mut id = None;
+        let mut id_like = vec![];
         let mut version_id = None;
 
         for line in content.lines() {
@@ -61,6 +70,12 @@ impl SystemDistro {
 
             match key.trim() {
                 "ID" => id = Some(value.to_lowercase()),
+                "ID_LIKE" => {
+                    id_like = value
+                        .split_whitespace()
+                        .map(|like| like.to_lowercase())
+                        .collect()
+                }
                 "VERSION_ID" => version_id = Some(value),
                 _ => {}
             };
@@ -68,6 +83,7 @@ impl SystemDistro {
 
         Some(Self {
             id: id?,
+            id_like,
             version_id,
         })
     }
