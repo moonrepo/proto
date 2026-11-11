@@ -5,7 +5,8 @@ use iocraft::prelude::element;
 use proto_core::flow::locate::Locator as LocatorFlow;
 use proto_core::{
     ConfigMode, Id, PluginLocator, ProtoToolConfig, ToolContext, ToolManifest, ToolMetadata,
-    UnresolvedVersionSpec, flow::locate::ExecutableLocation,
+    TrustedPluginRecord, UnresolvedVersionSpec, UntrustedPluginRecord,
+    flow::locate::ExecutableLocation,
 };
 use serde::Serialize;
 use starbase_console::ui::*;
@@ -30,6 +31,8 @@ struct PluginInfoOutput {
     plugin: PluginLocator,
     requires: Vec<ToolContext>,
     shims: Vec<ExecutableLocation>,
+    trusted_plugin: Option<TrustedPluginRecord>,
+    untrusted_plugin: Option<UntrustedPluginRecord>,
 }
 
 #[derive(Args, Clone, Debug)]
@@ -64,6 +67,20 @@ pub async fn info(session: ProtoSession, args: PluginInfoArgs) -> SessionResult 
     let shims = locator.locate_shims().await?;
     let locations = locator.locate_all().await?;
 
+    let untrusted_plugin = session.env.get_untrusted_plugin(&tool.context, tool.ty)?;
+    let trusted_plugin = tool
+        .locator
+        .as_ref()
+        .map(|locator| {
+            session
+                .env
+                .get_trusted_plugin(&tool.context, tool.ty, locator)
+        })
+        .transpose()?;
+    let has_debug_file = trusted_plugin
+        .as_ref()
+        .is_some_and(|plugin| plugin.debug_file.is_some());
+
     if session.is_json_format() {
         session.console.write_json_for_format(PluginInfoOutput {
             bins,
@@ -81,6 +98,8 @@ pub async fn info(session: ProtoSession, args: PluginInfoArgs) -> SessionResult 
             metadata: tool.metadata.clone(),
             plugin: tool.locator.clone().unwrap(),
             requires,
+            trusted_plugin,
+            untrusted_plugin,
         })?;
 
         return Ok(None);
@@ -178,6 +197,36 @@ pub async fn info(session: ProtoSession, args: PluginInfoArgs) -> SessionResult 
                         }
                     })
                 })
+                #(has_debug_file.then(|| {
+                    element! {
+                        Entry(
+                            name: "Debug build?",
+                            content: "Local WASM file replaced the built-in plugin".to_owned(),
+                        )
+                    }
+                }))
+                #(untrusted_plugin.as_ref().map(|plugin| {
+                    element! {
+                        Entry(
+                            name: "Untrusted override?",
+                            value: element! {
+                                StyledText(
+                                    content: plugin.get_display_locator(),
+                                    style: Style::Url
+                                )
+                            }.into_any()
+                        ) {
+                            View {
+                                StyledText(
+                                    content: format!(
+                                        "Override in <path>{0}</path> not used, as the config is not trusted. Run <shell>proto trust {0}</shell> to use it.",
+                                        plugin.config.display(),
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                }))
             }
         }
     })?;

@@ -70,6 +70,9 @@ pub struct LockItem {
     pub status: LockStatus,
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub variant: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub reason: Option<LockSkipReason>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -90,6 +93,7 @@ impl LockItem {
             version: spec.version.clone(),
             platform,
             status: LockStatus::Failed,
+            variant: None,
             reason: None,
             checksum: None,
             source: None,
@@ -108,11 +112,13 @@ impl LockItem {
             LockOutcome::AlreadyLocked(record) => {
                 self.status = LockStatus::AlreadyLocked;
                 self.checksum = record.checksum;
+                self.variant = record.variant;
             }
             LockOutcome::Locked(record) => {
                 self.status = LockStatus::Locked;
                 self.checksum = record.checksum;
                 self.source = record.source;
+                self.variant = record.variant;
             }
             LockOutcome::Skipped(reason) => {
                 self.status = LockStatus::Skipped;
@@ -121,6 +127,13 @@ impl LockItem {
         };
 
         self
+    }
+
+    fn get_platform_label(&self) -> Option<String> {
+        self.platform.map(|platform| match &self.variant {
+            Some(variant) => format!("{platform} ({variant})"),
+            None => platform.to_string(),
+        })
     }
 }
 
@@ -155,7 +168,7 @@ fn render_table(session: &ProtoSession, items: &[LockItem]) -> miette::Result<()
             TableHeader::new(
                 "Platform",
                 Size::Length(get_width(
-                    |item| item.platform.map_or(3, |p| p.to_string().len()),
+                    |item| item.get_platform_label().map_or(3, |p| p.len()),
                     11,
                 )),
             ),
@@ -170,8 +183,8 @@ fn render_table(session: &ProtoSession, items: &[LockItem]) -> miette::Result<()
                         Some(version) => version.to_string(),
                         None => "<mutedlight>N/A</mutedlight>".into(),
                     },
-                    match &item.platform {
-                        Some(platform) => platform.to_string(),
+                    match item.get_platform_label() {
+                        Some(platform) => platform,
                         None => "<mutedlight>any</mutedlight>".into(),
                     },
                     match item.status {

@@ -63,6 +63,16 @@ export interface ExecCommandInput {
 	 */
 	env?: Record<string, string>;
 	/**
+	 * Return an error if the command exits with a non-zero code,
+	 * instead of the output. The error includes the exit code, and
+	 * the captured stderr when the output isn't streamed.
+	 *
+	 * This is handled by the PDK's `exec` function, not the
+	 * `exec_command` host function, so that plugins can handle
+	 * the error.
+	 */
+	error_on_nonzero?: boolean;
+	/**
 	 * List of real or virtual paths to prepend to the `PATH`
 	 * environment variable when executing the command.
 	 */

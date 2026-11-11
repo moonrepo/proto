@@ -6,7 +6,7 @@ use crate::utils::tool_record::sort_contexts_by_dependency;
 use clap::Args;
 use iocraft::prelude::{FlexDirection, View, element};
 use proto_core::layout::Store;
-use proto_core::{Id, ProtoConfig, ToolContext, TrustState};
+use proto_core::{Id, PluginType, ProtoConfig, ProtoConfigFile, ToolContext, TrustState};
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 use starbase_console::ui::*;
@@ -319,7 +319,7 @@ fn gather_bin_link_warnings(store: &Store) -> Vec<Issue> {
                 .into(),
         ),
         comment: Some(
-            "Executables will not be linked in this directory, but shims will continue to work"
+            "Executables will be copied into this directory instead, which uses more disk space"
                 .into(),
         ),
     }]
@@ -390,6 +390,34 @@ fn gather_requirement_warnings(config: &ProtoConfig) -> Vec<Issue> {
     warnings
 }
 
+fn format_untrusted_plugins(file: &ProtoConfigFile) -> Option<String> {
+    let plugins = file.get_untrusted_plugins();
+
+    if plugins.is_empty() {
+        return None;
+    }
+
+    Some(format!(
+        "Untrusted plugin overrides: {}",
+        plugins
+            .iter()
+            .map(|plugin| {
+                format!(
+                    "<id>{}</id>{} (<url>{}</url>)",
+                    plugin.context,
+                    if plugin.type_of == PluginType::Backend {
+                        " backend"
+                    } else {
+                        ""
+                    },
+                    plugin.get_display_locator(),
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(", ")
+    ))
+}
+
 fn gather_trust_warnings(session: &ProtoSession) -> Result<Vec<Issue>, ProtoCliError> {
     let mut warnings = vec![];
 
@@ -417,7 +445,7 @@ fn gather_trust_warnings(session: &ProtoSession) -> Result<Vec<Issue>, ProtoCliE
                 "Review the config, then trust it with <shell>proto trust {}</shell>",
                 file.path.display()
             )),
-            comment: None,
+            comment: format_untrusted_plugins(file),
         });
     }
 

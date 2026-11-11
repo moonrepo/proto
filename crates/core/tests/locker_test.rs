@@ -2077,3 +2077,209 @@ mod locker_libc {
         ));
     }
 }
+
+mod locker_variant {
+    use super::*;
+
+    fn variant_record(version: &str, variant: Option<&str>, checksum: Option<&str>) -> LockRecord {
+        let mut record = make_record(version, "20", Some(host_platform()));
+        record.variant = variant.map(|variant| variant.into());
+        record.checksum = checksum.map(|checksum| Checksum::sha256(checksum.into()));
+        record
+    }
+
+    fn save_lockfile(sandbox_path: &Path, records: Vec<LockRecord>) {
+        let mut lock = ProtoLock::default();
+        lock.tools.insert(Id::raw("node"), records);
+        lock.path = sandbox_path.join(".protolock");
+        lock.save().unwrap();
+    }
+
+    /// A spec that was resolved with the provided record, as during an install.
+    fn resolved_spec(record: &LockRecord) -> ToolSpec {
+        let mut spec = ToolSpec::parse("20").unwrap();
+        spec.version = record.version.clone();
+        spec.version_locked = Some(record.clone());
+        spec
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn inserts_a_record_for_each_variant() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+        let tool = create_tool_in_sandbox(sandbox.path()).await;
+        let locker = Locker::new(&tool);
+
+        locker
+            .insert_record_into_lockfile(&variant_record("20.0.0", None, Some("default")))
+            .unwrap();
+        locker
+            .insert_record_into_lockfile(&variant_record("20.0.0", Some("baseline"), Some("b")))
+            .unwrap();
+
+        // A higher version only replaces the record of the same variant
+        locker
+            .insert_record_into_lockfile(&variant_record("20.1.0", Some("baseline"), Some("b2")))
+            .unwrap();
+
+        let lock = ProtoLock::load_from(sandbox.path()).unwrap();
+        let records = lock.tools.get(&Id::raw("node")).unwrap();
+
+        assert_eq!(records.len(), 2);
+        assert_eq!(records[0].variant, None);
+        assert_eq!(
+            records[0].version,
+            Some(VersionSpec::parse("20.0.0").unwrap())
+        );
+        assert_eq!(records[1].variant, Some("baseline".into()));
+        assert_eq!(
+            records[1].version,
+            Some(VersionSpec::parse("20.1.0").unwrap())
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn resolves_the_highest_version_of_every_variant() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+        save_lockfile(
+            sandbox.path(),
+            vec![
+                variant_record("20.0.0", Some("baseline"), Some("b")),
+                variant_record("20.1.0", None, Some("default")),
+            ],
+        );
+
+        let tool = create_tool_in_sandbox(sandbox.path()).await;
+        let record = Locker::new(&tool)
+            .resolve_locked_record(&ToolSpec::parse("20").unwrap())
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(record.version, Some(VersionSpec::parse("20.1.0").unwrap()));
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn verifies_against_the_downloaded_variant() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+        let default = variant_record("20.0.0", None, Some("default"));
+        let baseline = variant_record("20.0.0", Some("baseline"), Some("baseline"));
+
+        save_lockfile(sandbox.path(), vec![default.clone(), baseline.clone()]);
+
+        let tool = create_tool_in_sandbox(sandbox.path()).await;
+        let locker = Locker::new(&tool);
+
+        // Resolved with the default build's record, but downloaded the baseline
+        let spec = resolved_spec(&default);
+
+        locker.verify_locked_record(&spec, &baseline).unwrap();
+
+        assert!(matches!(
+            locker.verify_locked_record(
+                &spec,
+                &variant_record("20.0.0", Some("baseline"), Some("default")),
+            ),
+            Err(ProtoLockError::MismatchedChecksum { .. })
+        ));
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn doesnt_verify_against_another_version_of_the_variant() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+        let default = variant_record("20.1.0", None, Some("default"));
+
+        save_lockfile(
+            sandbox.path(),
+            vec![
+                default.clone(),
+                variant_record("20.0.0", Some("baseline"), Some("old")),
+            ],
+        );
+
+        let tool = create_tool_in_sandbox(sandbox.path()).await;
+
+        // The baseline record is for 20.0.0, so its checksum can't verify 20.1.0
+        Locker::new(&tool)
+            .verify_locked_record(
+                &resolved_spec(&default),
+                &variant_record("20.1.0", Some("baseline"), Some("new")),
+            )
+            .unwrap();
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn skips_verification_when_variant_isnt_locked() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+        let default = variant_record("20.0.0", None, Some("default"));
+
+        save_lockfile(sandbox.path(), vec![default.clone()]);
+
+        let tool = create_tool_in_sandbox(sandbox.path()).await;
+
+        // Different checksum, but a different build, so it's added instead
+        Locker::new(&tool)
+            .verify_locked_record(
+                &resolved_spec(&default),
+                &variant_record("20.0.0", Some("baseline"), Some("baseline")),
+            )
+            .unwrap();
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn errors_when_immutable_and_variant_isnt_locked() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+        let default = variant_record("20.0.0", None, Some("default"));
+
+        save_lockfile(sandbox.path(), vec![default.clone()]);
+
+        let tool = create_tool_in_sandbox(sandbox.path()).await;
+        let mut spec = resolved_spec(&default);
+        spec.immutable = true;
+
+        let error = Locker::new(&tool)
+            .verify_locked_record(
+                &spec,
+                &variant_record("20.0.0", Some("baseline"), Some("baseline")),
+            )
+            .unwrap_err();
+
+        assert!(matches!(
+            &error,
+            ProtoLockError::ImmutableMissingVariantRecord { variant, .. } if variant == "baseline"
+        ));
+        assert!(error.to_string().contains("baseline"), "{error}");
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn errors_when_immutable_and_default_build_isnt_locked() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+        let baseline = variant_record("20.0.0", Some("baseline"), Some("baseline"));
+
+        save_lockfile(sandbox.path(), vec![baseline.clone()]);
+
+        let tool = create_tool_in_sandbox(sandbox.path()).await;
+        let mut spec = resolved_spec(&baseline);
+        spec.immutable = true;
+
+        assert!(matches!(
+            Locker::new(&tool).verify_locked_record(
+                &spec,
+                &variant_record("20.0.0", None, Some("default")),
+            ),
+            Err(ProtoLockError::ImmutableMissingVariantRecord { variant, .. }) if variant == "default"
+        ));
+    }
+}

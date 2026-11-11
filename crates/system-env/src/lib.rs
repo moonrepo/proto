@@ -1,4 +1,5 @@
 mod deps;
+mod details;
 mod env;
 mod error;
 mod helpers;
@@ -7,6 +8,7 @@ mod pm_vendor;
 mod system;
 
 pub use deps::*;
+pub use details::*;
 pub use env::*;
 pub use error::*;
 pub use helpers::*;

@@ -694,6 +694,14 @@ api_struct!(
         /// A list of arguments to pass to the script file when executing it.
         #[serde(skip_serializing_if = "Vec::is_empty")]
         pub post_script_args: Vec<String>,
+
+        /// Name of the build that was chosen, when the tool distributes more
+        /// than one build for the same platform, for example, `baseline` for a
+        /// build that doesn't require AVX2. The default build should not have a
+        /// variant. Recorded in the lockfile, so that each build is verified
+        /// against its own checksum.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub variant: Option<String>,
     }
 );
 

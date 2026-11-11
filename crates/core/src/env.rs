@@ -1,8 +1,10 @@
-use crate::config::{ConfigMode, PROTO_CONFIG_NAME, PinLocation, ProtoConfig};
+use crate::config::{ConfigMode, PROTO_CONFIG_NAME, PinLocation, PluginType, ProtoConfig};
 use crate::config_error::ProtoConfigError;
 use crate::config_trust::{TrustState, TrustStore, get_sensitive_fields};
 use crate::env_error::ProtoEnvError;
-use crate::file_manager::{ProtoConfigFile, ProtoDirEntry, ProtoFileManager};
+use crate::file_manager::{
+    ProtoConfigFile, ProtoDirEntry, ProtoFileManager, TrustedPluginRecord, UntrustedPluginRecord,
+};
 use crate::helpers::is_offline;
 use crate::layout::Store;
 use crate::lockfile::ProtoLock;
@@ -18,10 +20,10 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLockReadGuard, RwLockWriteGuard};
 use std::time::Duration;
-use system_env::SystemPlatform;
+use system_env::{SystemDetails, SystemPlatform};
 use toml_edit::DocumentMut;
 use tracing::{debug, instrument};
-use warpgate::PluginLoader;
+use warpgate::{PluginLoader, PluginLocator};
 
 #[derive(Clone, Default)]
 pub struct ProtoEnvironment {
@@ -36,6 +38,7 @@ pub struct ProtoEnvironment {
 
     file_manager: Arc<OnceCell<ProtoFileManager>>,
     foreign_platform: bool,
+    host_details: Arc<OnceCell<SystemDetails>>,
     host_platform: Arc<OnceCell<SystemPlatform>>,
     plugin_loader: Arc<OnceCell<PluginLoader>>,
     registry: Arc<OnceCell<ProtoRegistry>>,
@@ -89,6 +92,7 @@ impl ProtoEnvironment {
             otel_enabled: false,
             file_manager: Arc::new(OnceCell::new()),
             foreign_platform: false,
+            host_details: Arc::new(OnceCell::new()),
             host_platform: Arc::new(OnceCell::new()),
             plugin_loader: Arc::new(OnceCell::new()),
             registry: Arc::new(OnceCell::new()),
@@ -141,13 +145,30 @@ impl ProtoEnvironment {
         self.host_platform = Arc::new(OnceCell::with_value(platform));
     }
 
+    /// Return details about the hardware and operating system of the host
+    /// machine, like the x86-64 microarchitecture level, or none when targeting
+    /// another platform, as they only describe the host machine. Detection is
+    /// deferred until first requested, and shared with copies of this environment.
+    pub fn get_host_details(&self) -> Option<&SystemDetails> {
+        if self.foreign_platform {
+            return None;
+        }
+
+        Some(
+            self.host_details
+                .get_or_init(|| SystemDetails::from_platform(self.get_host_platform())),
+        )
+    }
+
     /// Return a copy of this environment that targets the provided platform
     /// instead of the host machine. Tools loaded with the copy receive the
     /// platform as their plugin's host environment, and create lock records
     /// for it, while config, lockfile, and plugin state remain shared.
     ///
-    /// When the platform differs from the host machine's, plugins are not
-    /// allowed to execute commands, as the results would only reflect the host.
+    /// When the platform differs from the host machine's, the environment is
+    /// foreign: plugins receive `HostEnvironment.foreign` as true, and no host
+    /// details. Plugins can still execute commands (warpgate logs a warning),
+    /// but the results only reflect the host machine, not the platform.
     pub fn for_platform(&self, platform: SystemPlatform) -> Self {
         let mut env = self.clone();
         env.foreign_platform = self.foreign_platform || &platform != self.get_host_platform();
@@ -308,6 +329,85 @@ impl ProtoEnvironment {
             .collect())
     }
 
+    /// Return the plugin that would have been loaded for the provided tool, if
+    /// its config had been trusted. Configs are ordered by precedence, so
+    /// returns `None` when a closer config has configured an applied plugin,
+    /// as trusting a config further away wouldn't change what's loaded.
+    pub fn get_untrusted_plugin(
+        &self,
+        context: &ToolContext,
+        ty: PluginType,
+    ) -> Result<Option<UntrustedPluginRecord>, ProtoConfigError> {
+        for file in self.load_config_files()? {
+            if let Some(locator) = file.get_untrusted_plugin(context, ty) {
+                return Ok(Some(UntrustedPluginRecord {
+                    config: file.path.clone(),
+                    context: context.to_owned(),
+                    locator: locator.to_owned(),
+                    type_of: ty,
+                }));
+            }
+
+            if !file.get_plugins(context, ty).is_empty() {
+                return Ok(None);
+            }
+        }
+
+        Ok(None)
+    }
+
+    /// Return where the plugin that was loaded for the provided tool came from.
+    /// Accepts the loaded locator instead of finding it, as a plugin may not be
+    /// configured at all, and isn't always from the closest config: a plugin in
+    /// `[tools.*]` takes precedence over `[plugins.tools]` in a closer config.
+    pub fn get_trusted_plugin(
+        &self,
+        context: &ToolContext,
+        ty: PluginType,
+        locator: &PluginLocator,
+    ) -> Result<TrustedPluginRecord, ProtoConfigError> {
+        let builtin_plugins = self.load_config()?.builtin_plugins();
+        let builtin = builtin_plugins.get(context.backend.as_ref().unwrap_or(&context.id), ty);
+
+        let mut config = None;
+        let mut overrides = vec![];
+
+        for file in self.load_config_files()? {
+            for plugin in file.get_plugins(context, ty) {
+                if plugin == locator {
+                    config.get_or_insert_with(|| file.path.clone());
+                } else if !overrides.contains(plugin) {
+                    overrides.push(plugin.to_owned());
+                }
+            }
+        }
+
+        // Built-in plugins are only file locators in debug builds, while
+        // the same file configured explicitly is not a replacement
+        let debug_file = match locator {
+            PluginLocator::File(file) if config.is_none() && builtin == Some(locator) => {
+                Some(file.get_resolved_path())
+            }
+            _ => None,
+        };
+
+        if let Some(builtin) = builtin
+            && builtin != locator
+            && !overrides.contains(builtin)
+        {
+            overrides.push(builtin.to_owned());
+        }
+
+        Ok(TrustedPluginRecord {
+            config,
+            context: context.to_owned(),
+            debug_file,
+            locator: locator.to_owned(),
+            overrides,
+            type_of: ty,
+        })
+    }
+
     pub fn load_lock(
         &self,
         context: &ToolContext,
@@ -386,6 +486,7 @@ impl ProtoEnvironment {
             working_dir: self.working_dir.clone(),
             file_manager: Arc::new(OnceCell::new()),
             foreign_platform: self.foreign_platform,
+            host_details: self.host_details.clone(),
             host_platform: self.host_platform.clone(),
             plugin_loader: Arc::new(OnceCell::new()),
             registry: Arc::new(OnceCell::new()),

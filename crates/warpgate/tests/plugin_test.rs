@@ -1,6 +1,5 @@
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
 use starbase_sandbox::create_empty_sandbox;
-use std::env;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -177,29 +176,9 @@ mod cache_func_with {
         assert_eq!(calls.load(Ordering::SeqCst), 2);
     }
 
-    #[tokio::test(flavor = "multi_thread")]
-    async fn doesnt_cache_when_disabled() {
-        let sandbox = create_empty_sandbox();
-
-        unsafe { env::set_var("WARPGATE_NO_FUNC_CACHE", "true") };
-
-        let container = create_container(sandbox.path());
-
-        unsafe { env::remove_var("WARPGATE_NO_FUNC_CACHE") };
-
-        let calls = count_calls(&container);
-
-        for _ in 0..2 {
-            let output: String = container
-                .cache_func_with("testing_echo", "a")
-                .await
-                .unwrap();
-
-            assert_eq!(output, "a");
-        }
-
-        assert_eq!(calls.load(Ordering::SeqCst), 2);
-    }
+    // Disabling the cache with `WARPGATE_NO_FUNC_CACHE` is tested in its own
+    // binary (`plugin_no_cache_test.rs`), as setting the variable here would
+    // also disable caching for containers created by tests running in parallel
 
     #[tokio::test(flavor = "multi_thread")]
     async fn returns_same_result_when_concurrent() {

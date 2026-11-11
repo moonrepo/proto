@@ -629,7 +629,7 @@ mod load_tool_from_locator {
     use proto_pdk_api::{
         ExecCommandInput, ExecCommandOutput, HostEnvironment, LoadToolVersionsInput,
     };
-    use system_env::{SystemArch, SystemLibc, SystemOS, SystemPlatform};
+    use system_env::{SystemArch, SystemDetails, SystemLibc, SystemOS, SystemPlatform};
 
     fn create_proto(sandbox_path: &std::path::Path) -> ProtoEnvironment {
         let mut proto = ProtoEnvironment::new_testing(sandbox_path).unwrap();
@@ -675,6 +675,7 @@ mod load_tool_from_locator {
 
         assert_platform(&env, &SystemPlatform::from_env());
         assert!(!env.foreign);
+        assert_eq!(env.details, Some(SystemDetails::from_env()));
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -687,6 +688,8 @@ mod load_tool_from_locator {
 
         assert_platform(&env, &foreign_platform());
         assert!(env.foreign);
+        // Details only describe the host machine, not the targeted platform
+        assert_eq!(env.details, None);
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -695,7 +698,10 @@ mod load_tool_from_locator {
         let proto = create_proto(sandbox.path());
         let tool = load_tool(proto.for_platform(SystemPlatform::from_env())).await;
 
-        assert!(!get_host_environment(&tool).await.foreign);
+        let env = get_host_environment(&tool).await;
+
+        assert!(!env.foreign);
+        assert_eq!(env.details, Some(SystemDetails::from_env()));
     }
 
     #[tokio::test(flavor = "multi_thread")]

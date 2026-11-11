@@ -72,6 +72,140 @@ mod derived_latest {
     }
 }
 
+mod alias_targets {
+    use super::*;
+
+    fn create_resolver(
+        versions: &[&str],
+        aliases: &[(&str, &str)],
+        latest: Option<&str>,
+    ) -> VersionResolver<'static> {
+        VersionResolver::from_output(LoadVersionsOutput {
+            aliases: aliases
+                .iter()
+                .map(|(alias, spec)| {
+                    (
+                        alias.to_string(),
+                        UnresolvedVersionSpec::parse(spec).unwrap(),
+                    )
+                })
+                .collect(),
+            latest: latest.map(|spec| UnresolvedVersionSpec::parse(spec).unwrap()),
+            versions: versions
+                .iter()
+                .map(|version| VersionSpec::parse(version).unwrap())
+                .collect(),
+            ..Default::default()
+        })
+    }
+
+    fn alias(name: &str) -> UnresolvedVersionSpec {
+        UnresolvedVersionSpec::Alias(name.into())
+    }
+
+    fn version(value: &str) -> VersionSpec {
+        VersionSpec::parse(value).unwrap()
+    }
+
+    #[test]
+    fn resolves_unlisted_version() {
+        let resolver = create_resolver(
+            &["0.14.0", "0.15.0"],
+            &[("master", "0.16.0-dev.1234")],
+            None,
+        );
+
+        assert_eq!(
+            resolver.resolve(&alias("master")),
+            Some(version("0.16.0-dev.1234"))
+        );
+    }
+
+    #[test]
+    fn adds_unlisted_version_to_list_in_order() {
+        let resolver = create_resolver(
+            &["0.14.0", "0.15.0"],
+            &[("master", "0.16.0-dev.1234")],
+            None,
+        );
+
+        assert_eq!(
+            resolver.versions,
+            vec![
+                version("0.16.0-dev.1234"),
+                version("0.15.0"),
+                version("0.14.0")
+            ]
+        );
+    }
+
+    #[test]
+    fn resolves_unlisted_version_from_alias_chain() {
+        let resolver = create_resolver(
+            &["0.15.0"],
+            &[("master", "0.16.0-dev.1234"), ("nightly", "master")],
+            None,
+        );
+
+        assert_eq!(
+            resolver.resolve(&alias("nightly")),
+            Some(version("0.16.0-dev.1234"))
+        );
+    }
+
+    #[test]
+    fn resolves_unlisted_plugin_latest() {
+        let resolver = create_resolver(&["1.0.0", "2.0.0"], &[], Some("2.1.0"));
+
+        assert_eq!(resolver.resolve(&alias("latest")), Some(version("2.1.0")));
+    }
+
+    #[test]
+    fn doesnt_duplicate_versions() {
+        let resolver = create_resolver(
+            &["1.0.0", "2.0.0"],
+            &[
+                ("stable", "2.0.0"),
+                ("next", "3.0.0-rc.1"),
+                ("rc", "3.0.0-rc.1"),
+            ],
+            Some("2.0.0"),
+        );
+
+        assert_eq!(
+            resolver.versions,
+            vec![version("3.0.0-rc.1"), version("2.0.0"), version("1.0.0")]
+        );
+    }
+
+    #[test]
+    fn doesnt_derive_latest_from_unlisted_prerelease() {
+        let resolver = create_resolver(
+            &["0.14.0", "0.15.0"],
+            &[("master", "0.16.0-dev.1234")],
+            None,
+        );
+
+        assert_eq!(resolver.resolve(&alias("latest")), Some(version("0.15.0")));
+    }
+
+    #[test]
+    fn resolves_unlisted_requirement_against_list() {
+        let resolver = create_resolver(
+            &["1.2.0", "1.2.5", "1.3.0"],
+            &[("lts", "~1.2"), ("legacy", "^1.4")],
+            None,
+        );
+
+        assert_eq!(resolver.resolve(&alias("lts")), Some(version("1.2.5")));
+        assert_eq!(resolver.resolve(&alias("legacy")), None);
+        assert_eq!(
+            resolver.versions,
+            vec![version("1.3.0"), version("1.2.5"), version("1.2.0")]
+        );
+    }
+}
+
 mod version_resolver {
     use super::*;
 

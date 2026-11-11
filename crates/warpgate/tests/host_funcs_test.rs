@@ -426,14 +426,71 @@ mod send_request {
         let container = create_container(sandbox.path());
         let url = spawn_http_server("404 Not Found", "");
 
-        let result = container
+        let error = container
             .call_func_with::<_, _, SendRequestOutput>(
                 "testing_send_request",
                 SendRequestInput::new(url),
             )
-            .await;
+            .await
+            .unwrap_err()
+            .to_string();
 
-        assert!(result.is_err());
+        assert!(error.contains("Failed to request"), "{error}");
+        assert!(error.contains("(404)"), "{error}");
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn errors_when_response_is_a_server_error() {
+        let sandbox = create_empty_sandbox();
+        let container = create_container(sandbox.path());
+        let url = spawn_http_server("500 Internal Server Error", "oops");
+
+        let error = container
+            .call_func_with::<_, _, SendRequestOutput>(
+                "testing_send_request",
+                SendRequestInput::new(url),
+            )
+            .await
+            .unwrap_err()
+            .to_string();
+
+        assert!(error.contains("(500)"), "{error}");
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn returns_not_ok_response_when_not_erroring_on_failure() {
+        let sandbox = create_empty_sandbox();
+        let container = create_container(sandbox.path());
+        let url = spawn_http_server("404 Not Found", "missing");
+
+        let output: SendRequestOutput = container
+            .call_func_with(
+                "testing_send_request",
+                SendRequestInput::new(url).error_on_failure(false),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(output.status, 404);
+        assert_eq!(output.text().unwrap(), "missing");
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn returns_empty_body_when_not_erroring_on_failure() {
+        let sandbox = create_empty_sandbox();
+        let container = create_container(sandbox.path());
+        let url = spawn_http_server("404 Not Found", "");
+
+        let output: SendRequestOutput = container
+            .call_func_with(
+                "testing_send_request",
+                SendRequestInput::new(url).error_on_failure(false),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(output.status, 404);
+        assert!(output.body.is_empty());
     }
 }
 
@@ -456,6 +513,62 @@ mod exec_command {
 
         assert_eq!(output.exit_code, 0);
         assert!(output.stdout.contains("git version"), "{}", output.stdout);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn returns_nonzero_exit_code_by_default() {
+        let sandbox = create_empty_sandbox();
+        let container = create_container(sandbox.path());
+
+        let output: ExecCommandOutput = container
+            .call_func_with(
+                "testing_exec_command",
+                ExecCommandInput::pipe("git", ["unknown-subcommand"]),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(output.exit_code, 1);
+        assert!(
+            output.stderr.contains("is not a git command"),
+            "{}",
+            output.stderr
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn errors_with_stderr_on_nonzero_exit_code() {
+        let sandbox = create_empty_sandbox();
+        let container = create_container(sandbox.path());
+
+        let error = container
+            .call_func_with::<_, _, ExecCommandOutput>(
+                "testing_exec_command",
+                ExecCommandInput::pipe("git", ["unknown-subcommand"]).error_on_nonzero(true),
+            )
+            .await
+            .unwrap_err()
+            .to_string();
+
+        assert!(error.contains("git unknown-subcommand"), "{error}");
+        assert!(error.contains("failed with a 1 exit code"), "{error}");
+        assert!(error.contains("is not a git command"), "{error}");
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn doesnt_error_on_zero_exit_code() {
+        let sandbox = create_empty_sandbox();
+        let container = create_container(sandbox.path());
+
+        let output: ExecCommandOutput = container
+            .call_func_with(
+                "testing_exec_command",
+                ExecCommandInput::pipe("git", ["--version"]).error_on_nonzero(true),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(output.exit_code, 0);
     }
 
     // Only a warning is logged, as plugins decide with `HostEnvironment.foreign`
