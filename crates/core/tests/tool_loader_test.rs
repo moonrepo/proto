@@ -626,7 +626,9 @@ default = true
 mod load_tool_from_locator {
     use super::*;
     use proto_core::{Tool, load_tool_from_locator};
-    use proto_pdk_api::{ExecCommandInput, ExecCommandOutput, HostEnvironment};
+    use proto_pdk_api::{
+        ExecCommandInput, ExecCommandOutput, HostEnvironment, LoadToolVersionsInput,
+    };
     use system_env::{SystemArch, SystemDetails, SystemLibc, SystemOS, SystemPlatform};
 
     fn create_proto(sandbox_path: &std::path::Path) -> ProtoEnvironment {
@@ -749,6 +751,168 @@ mod load_tool_from_locator {
             .unwrap();
 
         assert_eq!(output.exit_code, 0);
+    }
+
+    mod load_tool_versions {
+        use super::*;
+        use std::io::{Read, Write};
+        use std::net::TcpListener;
+        use std::path::Path;
+        use std::process::Command;
+        use std::thread;
+
+        fn git(dir: &Path, args: &[&str]) {
+            let output = Command::new("git")
+                .args([
+                    "-c",
+                    "user.name=proto",
+                    "-c",
+                    "user.email=proto@moonrepo.dev",
+                ])
+                .args(["-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false"])
+                .args(["-c", "core.fsmonitor=false"])
+                .args(args)
+                .current_dir(dir)
+                .output()
+                .unwrap();
+
+            assert!(
+                output.status.success(),
+                "{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+        }
+
+        fn spawn_http_server(body: &'static str) -> String {
+            let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+            let addr = listener.local_addr().unwrap();
+
+            thread::spawn(move || {
+                for mut stream in listener.incoming().flatten() {
+                    let mut request = [0; 1024];
+                    let _ = stream.read(&mut request);
+                    let _ = write!(
+                        stream,
+                        "HTTP/1.1 200 OK\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}",
+                        body.len(),
+                    );
+                }
+            });
+
+            format!("http://{addr}/versions.json")
+        }
+
+        async fn load_versions(tool: &Tool, input: LoadToolVersionsInput) -> Vec<String> {
+            tool.plugin
+                .call_func_with("testing_load_tool_versions", input)
+                .await
+                .unwrap()
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn loads_and_filters_git_tags() {
+            let sandbox = create_empty_sandbox();
+            let repo = sandbox.path().join("repo");
+
+            std::fs::create_dir_all(&repo).unwrap();
+            git(&repo, &["init", "--quiet"]);
+            git(&repo, &["commit", "--allow-empty", "--quiet", "-m", "init"]);
+            git(&repo, &["tag", "v1.0.0"]);
+            git(&repo, &["tag", "--annotate", "v1.1.0", "-m", "annotated"]);
+
+            let tool = load_tool(create_proto(sandbox.path())).await;
+            let versions = load_versions(
+                &tool,
+                LoadToolVersionsInput::Git {
+                    url: repo.to_string_lossy().into_owned(),
+                    tag_pattern: Some("^v1\\.1\\.0$".to_owned()),
+                },
+            )
+            .await;
+
+            assert_eq!(versions, ["v1.1.0"]);
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn loads_versions_from_configured_index() {
+            let sandbox = create_empty_sandbox();
+            let index_url = spawn_http_server(r#"[{"name":"v1.0.0"},{"name":"v1.1.0"}]"#);
+            sandbox.create_file(
+        ".prototools",
+        format!(
+          "[tools.api-usage.versions-source]\nindex-url = \"{index_url}\"\nindex-version-key = \"name\""
+        ),
+      );
+
+            let tool = load_tool(create_proto(sandbox.path())).await;
+            let versions = load_versions(
+                &tool,
+                LoadToolVersionsInput::Git {
+                    url: "https://example.com/tool.git".to_owned(),
+                    tag_pattern: None,
+                },
+            )
+            .await;
+
+            assert_eq!(versions, ["v1.0.0", "v1.1.0"]);
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn loads_versions_from_configured_git() {
+            let sandbox = create_empty_sandbox();
+            let repo = sandbox.path().join("repo");
+
+            std::fs::create_dir_all(&repo).unwrap();
+            git(&repo, &["init", "--quiet"]);
+            git(&repo, &["commit", "--allow-empty", "--quiet", "-m", "init"]);
+            git(&repo, &["tag", "v3.0.0"]);
+            git(&repo, &["tag", "unrelated"]);
+            sandbox.create_file(
+        ".prototools",
+        format!(
+          "[tools.api-usage.versions-source]\ngit-url = '{}'\ngit-tag-pattern = \"^v3\\\\.\"",
+          repo.display()
+        ),
+      );
+
+            let tool = load_tool(create_proto(sandbox.path())).await;
+            let versions = load_versions(
+                &tool,
+                LoadToolVersionsInput::Index {
+                    url: "https://example.com/unused.json".to_owned(),
+                    version_path: None,
+                },
+            )
+            .await;
+
+            assert_eq!(versions, ["v3.0.0"]);
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn supports_explicit_and_wildcard_json_paths() {
+            let sandbox = create_empty_sandbox();
+            let index_url = spawn_http_server(
+                r#"[{"name":"v2.4.0","version":"v1.2.3"},{"name":"v2.4.1","version":"v1.2.4"}]"#,
+            );
+            let tool = load_tool(create_proto(sandbox.path())).await;
+
+            for (version_path, expected) in [
+                (".[0].version", vec!["v1.2.3"]),
+                ("*.name", vec!["v2.4.0", "v2.4.1"]),
+                ("[*].name", vec!["v2.4.0", "v2.4.1"]),
+            ] {
+                let versions = load_versions(
+                    &tool,
+                    LoadToolVersionsInput::Index {
+                        url: index_url.clone(),
+                        version_path: Some(version_path.to_owned()),
+                    },
+                )
+                .await;
+
+                assert_eq!(versions, expected);
+            }
+        }
     }
 }
 

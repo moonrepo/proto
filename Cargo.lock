@@ -4366,6 +4366,7 @@ dependencies = [
  "convert_case 0.12.0",
  "docker_credential",
  "dotenv-ng",
+ "extism",
  "indexmap",
  "iocraft",
  "miette 7.6.0",

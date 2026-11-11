@@ -164,6 +164,13 @@ pub fn detect_version_files(
 }
 
 #[plugin_fn]
+pub fn testing_load_tool_versions(
+    Json(input): Json<LoadToolVersionsInput>,
+) -> FnResult<Json<Vec<String>>> {
+    Ok(Json(load_tool_versions(input)?))
+}
+
+#[plugin_fn]
 pub fn load_versions(Json(_): Json<LoadVersionsInput>) -> FnResult<Json<LoadVersionsOutput>> {
     Ok(Json(LoadVersionsOutput::from(vec![
         "1.0.0".into(),
