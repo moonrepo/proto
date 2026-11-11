@@ -1,6 +1,7 @@
 use crate::config::PluginType;
 use crate::env::ProtoEnvironment;
 use crate::helpers::get_proto_version;
+use crate::host::{ToolVersionsSource, create_proto_host_functions};
 use crate::id::Id;
 use crate::layout::Inventory;
 use crate::lockfile::LockRecord;
@@ -21,10 +22,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use system_env::SystemPlatform;
 use tracing::{debug, instrument};
-use warpgate::{
-    PluginContainer, PluginLocator, PluginManifest, VirtualPath, Wasm,
-    host::{HostData, create_host_functions},
-};
+use warpgate::{PluginContainer, PluginLocator, PluginManifest, VirtualPath, Wasm, host::HostData};
 
 pub type ToolMetadata = RegisterToolOutput;
 
@@ -94,6 +92,17 @@ impl Tool {
     ) -> Result<Self, ProtoToolError> {
         let context = context.as_ref();
         let proto = proto.as_ref();
+        let config = proto.load_config()?;
+        let versions_source = config
+            .get_tool_config(context)
+            .and_then(|tool_config| tool_config.versions_source.as_ref())
+            .map(|source| ToolVersionsSource {
+                version_pattern: source.version_pattern.clone(),
+                index_url: source.index_url.clone(),
+                index_version_key: source.index_version_key.clone(),
+                git_url: source.git_url.clone(),
+                git_tag_pattern: source.git_tag_pattern.clone(),
+            });
 
         debug!(
             "Creating tool {} and instantiating plugin",
@@ -106,15 +115,18 @@ impl Tool {
             Arc::new(PluginContainer::new(
                 context.id.clone(),
                 manifest,
-                create_host_functions(HostData {
-                    cache_dir: proto.store.cache_dir.clone(),
-                    foreign_platform: proto
-                        .is_foreign_platform()
-                        .then(|| proto.get_host_platform().to_string()),
-                    http_client: Arc::clone(proto.get_plugin_loader()?.get_http_client()?),
-                    virtual_paths: proto.get_virtual_paths(),
-                    working_dir: proto.working_dir.clone(),
-                }),
+                create_proto_host_functions(
+                    HostData {
+                        cache_dir: proto.store.cache_dir.clone(),
+                        foreign_platform: proto
+                            .is_foreign_platform()
+                            .then(|| proto.get_host_platform().to_string()),
+                        http_client: Arc::clone(proto.get_plugin_loader()?.get_http_client()?),
+                        virtual_paths: proto.get_virtual_paths(),
+                        working_dir: proto.working_dir.clone(),
+                    },
+                    versions_source,
+                ),
             )?),
         )
         .await
