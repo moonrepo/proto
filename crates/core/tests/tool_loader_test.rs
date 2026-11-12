@@ -880,7 +880,7 @@ mod load_tool_from_locator {
                 &tool,
                 LoadToolVersionsInput::Index {
                     url: "https://example.com/unused.json".to_owned(),
-                    version_path: None,
+                    version_key: None,
                 },
             )
             .await;
@@ -905,7 +905,7 @@ mod load_tool_from_locator {
                     &tool,
                     LoadToolVersionsInput::Index {
                         url: index_url.clone(),
-                        version_path: Some(version_path.to_owned()),
+                        version_key: Some(version_path.to_owned()),
                     },
                 )
                 .await;

@@ -1,28 +1,27 @@
+use crate::settings::ProtoToolVersionsSourceConfig;
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
 use proto_pdk_api::{LoadToolVersionsInput, LoadToolVersionsOutput};
 use regex::Regex;
+use starbase_styles::color;
 use std::process::{Command, Stdio};
+use std::time::Instant;
 use tokio::runtime::Handle;
-use tracing::{debug, instrument};
-use warpgate::{HttpClient, WarpgateHttpClientError, host::HostData};
+use tracing::{instrument, trace};
+use warpgate::{HttpClient, WarpgateHttpClientError, api::select_json_path, host::HostData};
 
-#[derive(Clone, Debug)]
-pub(crate) struct ToolVersionsSource {
-    pub version_pattern: Option<String>,
-    pub index_url: Option<String>,
-    pub index_version_key: Option<String>,
-    pub git_url: Option<String>,
-    pub git_tag_pattern: Option<String>,
+/// Data passed to proto specific host functions.
+pub struct ProtoHostData {
+    /// Shared host data.
+    pub host: HostData,
+
+    /// Tool override for where to source versions from.
+    pub versions_source: Option<ProtoToolVersionsSourceConfig>,
 }
 
-struct ProtoHostData {
+/// Create a list of our built-in host function with warpgate provided host functions.
+pub fn create_proto_host_functions(
     host: HostData,
-    versions_source: Option<ToolVersionsSource>,
-}
-
-pub(crate) fn create_proto_host_functions(
-    host: HostData,
-    versions_source: Option<ToolVersionsSource>,
+    versions_source: Option<ProtoToolVersionsSourceConfig>,
 ) -> Vec<Function> {
     let mut functions = warpgate::host::create_host_functions(host.clone());
 
@@ -47,10 +46,13 @@ fn load_tool_versions(
     outputs: &mut [Val],
     user_data: UserData<ProtoHostData>,
 ) -> Result<(), Error> {
+    let instant = Instant::now();
     let input_raw: String = plugin.memory_get_val(&inputs[0])?;
     let input: LoadToolVersionsInput = serde_json::from_str(&input_raw)?;
+    let uuid = plugin.id().to_string();
     let data = user_data.get()?;
     let data = data.lock().unwrap();
+
     let source = data.versions_source.as_ref();
     let git_url = source.and_then(|source| source.git_url.as_deref());
     let index_url = source.and_then(|source| source.index_url.as_deref());
@@ -84,12 +86,16 @@ fn load_tool_versions(
         ),
     };
 
-    debug!(
+    trace!(
+        plugin = &uuid,
+        input = %input_raw,
         source_type,
-        source_url, override_used, "Loading tool versions"
+        source_url, override_used,
+        "Calling host function {}",
+        color::label("load_tool_versions"),
     );
 
-    let versions = match input {
+    let versions = match &input {
         LoadToolVersionsInput::Git { url, tag_pattern } => {
             if let Some(index_url) = index_url {
                 load_index_source(&data.host, source, index_url, None, plugin.time_remaining())?
@@ -97,25 +103,35 @@ fn load_tool_versions(
                 load_git_source(
                     &data.host,
                     source,
-                    git_url.unwrap_or(&url),
+                    git_url.unwrap_or(url),
                     tag_pattern.as_deref(),
                 )?
             }
         }
-        LoadToolVersionsInput::Index { url, version_path } => {
+        LoadToolVersionsInput::Index { url, version_key } => {
             if let Some(git_url) = git_url {
                 load_git_source(&data.host, source, git_url, None)?
             } else {
                 load_index_source(
                     &data.host,
                     source,
-                    index_url.unwrap_or(&url),
-                    version_path.as_deref(),
+                    index_url.unwrap_or(url),
+                    version_key.as_deref(),
                     plugin.time_remaining(),
                 )?
             }
         }
     };
+
+    trace!(
+        plugin = &uuid,
+        input = %input_raw,
+        source_type,
+        source_url, override_used,
+        "Called host function {} in {:?}",
+        color::label("load_tool_versions"),
+        instant.elapsed()
+    );
 
     plugin.memory_set_val(
         &mut outputs[0],
@@ -127,7 +143,7 @@ fn load_tool_versions(
 
 fn load_git_source(
     data: &HostData,
-    source: Option<&ToolVersionsSource>,
+    source: Option<&ProtoToolVersionsSourceConfig>,
     url: &str,
     input_pattern: Option<&str>,
 ) -> Result<Vec<String>, Error> {
@@ -151,6 +167,7 @@ fn load_tool_versions_from_git(data: &HostData, url: &str) -> Result<Vec<String>
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
+
         return Err(Error::msg(format!(
             "Failed to load Git tags from <url>{url}</url>, as <shell>git ls-remote</shell> returned a {} exit code.{}",
             output.status.code().unwrap_or(1),
@@ -182,7 +199,7 @@ fn load_tool_versions_from_git(data: &HostData, url: &str) -> Result<Vec<String>
 
 fn load_index_source(
     data: &HostData,
-    source: Option<&ToolVersionsSource>,
+    source: Option<&ProtoToolVersionsSourceConfig>,
     url: &str,
     input_path: Option<&str>,
     timeout: Option<std::time::Duration>,
@@ -277,135 +294,4 @@ fn filter_versions(
         .into_iter()
         .filter(|version| regex.is_match(version))
         .collect())
-}
-
-fn select_json_path<'a>(
-    root: &'a serde_json::Value,
-    path: &str,
-) -> Result<Vec<&'a serde_json::Value>, Error> {
-    enum Segment {
-        Key(String),
-        Index(usize),
-        Wildcard,
-    }
-
-    let mut segments = vec![];
-    let mut chars = path.chars().peekable();
-
-    if chars.peek() == Some(&'$') {
-        chars.next();
-    }
-
-    while let Some(character) = chars.next() {
-        match character {
-            '.' => {
-                let mut key = String::new();
-
-                while let Some(&next) = chars.peek() {
-                    if matches!(next, '.' | '[' | ']') {
-                        break;
-                    }
-                    key.push(next);
-                    chars.next();
-                }
-
-                if key == "*" {
-                    segments.push(Segment::Wildcard);
-                } else if !key.is_empty() {
-                    segments.push(Segment::Key(key));
-                }
-            }
-            '[' => {
-                let mut token = String::new();
-
-                while let Some(&next) = chars.peek() {
-                    if next == ']' {
-                        break;
-                    }
-                    token.push(next);
-                    chars.next();
-                }
-
-                if chars.next() != Some(']') {
-                    return Err(Error::msg(format!("Invalid JSON path {path:?}")));
-                }
-
-                if token == "*" {
-                    segments.push(Segment::Wildcard);
-                } else {
-                    let index = token
-                        .parse::<usize>()
-                        .map_err(|_| Error::msg(format!("Invalid JSON path {path:?}")))?;
-                    segments.push(Segment::Index(index));
-                }
-            }
-            ']' => return Err(Error::msg(format!("Invalid JSON path {path:?}"))),
-            _ => {
-                let mut key = String::from(character);
-
-                while let Some(&next) = chars.peek() {
-                    if matches!(next, '.' | '[' | ']') {
-                        break;
-                    }
-                    key.push(next);
-                    chars.next();
-                }
-
-                if key == "*" {
-                    segments.push(Segment::Wildcard);
-                } else {
-                    segments.push(Segment::Key(key));
-                }
-            }
-        }
-    }
-
-    let mut current = vec![root];
-
-    for segment in segments {
-        let mut next = vec![];
-
-        match segment {
-            Segment::Key(key) => {
-                for value in current {
-                    next.push(
-                        value.get(&key).ok_or_else(|| {
-                            Error::msg(format!("JSON path {path:?} did not match"))
-                        })?,
-                    );
-                }
-            }
-            Segment::Index(index) => {
-                for value in current {
-                    next.push(
-                        value
-                            .as_array()
-                            .and_then(|array| array.get(index))
-                            .ok_or_else(|| {
-                                Error::msg(format!("JSON path {path:?} did not match"))
-                            })?,
-                    );
-                }
-            }
-            Segment::Wildcard => {
-                for value in current {
-                    if let Some(array) = value.as_array() {
-                        next.extend(array);
-                    } else if let Some(object) = value.as_object() {
-                        next.extend(object.values());
-                    } else {
-                        return Err(Error::msg(format!("JSON path {path:?} did not match")));
-                    }
-                }
-            }
-        }
-
-        if next.is_empty() {
-            return Err(Error::msg(format!("JSON path {path:?} did not match")));
-        }
-
-        current = next;
-    }
-
-    Ok(current)
 }

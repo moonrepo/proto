@@ -1,5 +1,7 @@
 use warpgate_api::api_struct;
 
+// Note: We don't use `api_struct!` for named enums because they are not supported by schematic!
+
 /// Input passed to the `load_tool_versions` host function.
 #[derive(Clone, Debug, serde::Deserialize, PartialEq, serde::Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -14,8 +16,8 @@ pub enum LoadToolVersionsInput {
     /// Load versions from a JSON index.
     Index {
         url: String,
-        #[serde(default)]
-        version_path: Option<String>,
+        #[serde(default, alias = "version_path")]
+        version_key: Option<String>,
     },
 }
 

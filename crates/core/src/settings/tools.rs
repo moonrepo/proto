@@ -19,7 +19,7 @@ pub struct ProtoToolVersionsSourceConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub index_url: Option<String>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", alias = "index_version_path")]
     pub index_version_key: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
