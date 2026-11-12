@@ -26,13 +26,13 @@ futures = "0.3.34"
 hex = { version = "0.4.3", features = ["alloc"] }
 http-cache-reqwest = "1.0.0-alpha.10"
 indexmap = "2.14.2"
-iocraft = "0.9.3"
+iocraft = "0.9.5"
 # iocraft = { git = "https://github.com/ccbrown/iocraft.git", branch = "main" }
 miette = "7.6.0"
 oci-client = "0.18.0"
 once_cell = "1.21.4"
 opentelemetry = "0.33.1"
-pgp = { version = "0.21.0", default-features = false }
+pgp = { version = "0.21.1", default-features = false }
 regex = { version = "1.13.1", default-features = false, features = ["std"] }
 reqwest = { version = "0.13.5", default-features = false, features = [
     "charset",
@@ -57,7 +57,7 @@ serde_json = { version = "1.0.154", features = ["preserve_order"] }
 sha2 = "0.11.1"
 shell-words = "1.1.1"
 starbase = { version = "0.13.4", features = ["miette", "tracing"] }
-starbase_archive = { version = "0.14.7", features = [
+starbase_archive = { version = "0.14.8", features = [
     "bz2",
     "dmg",
     "gz",
@@ -70,12 +70,12 @@ starbase_archive = { version = "0.14.7", features = [
     "z",
 ] }
 starbase_args = { version = "0.1.16" }
-starbase_console = { version = "0.7.0", features = ["miette", "ui"] }
+starbase_console = { version = "0.7.1", features = ["miette", "ui"] }
 starbase_id = { version = "0.4.0", features = ["miette", "schematic"] }
 starbase_sandbox = { version = "0.12.1" }
-starbase_shell = { version = "0.14.3", features = ["miette"] }
+starbase_shell = { version = "0.14.4", features = ["miette"] }
 starbase_styles = { version = "0.6.10" }
-starbase_utils = { version = "0.14.10", default-features = false, features = [
+starbase_utils = { version = "0.14.11", default-features = false, features = [
     "fs-lock",
     "json",
     "miette",
@@ -88,4 +88,4 @@ toml_edit = "0.25.19"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", default-features = false }
 url = "2.5.8"
-uuid = { version = "1.29.0", features = ["v4"] }
+uuid = { version = "1.29.2", features = ["v4"] }
