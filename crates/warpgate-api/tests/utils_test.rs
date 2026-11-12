@@ -1,4 +1,5 @@
 use serde_json::{Value, json};
+use std::borrow::Cow;
 use warpgate_api::select_json_path;
 
 fn create_index() -> Value {
@@ -17,11 +18,11 @@ fn create_index() -> Value {
     })
 }
 
-fn select_strings<'a>(root: &'a Value, path: &str) -> Vec<&'a str> {
+fn select_strings(root: &Value, path: &str) -> Vec<String> {
     select_json_path(root, path)
         .unwrap()
         .into_iter()
-        .map(|value| value.as_str().unwrap())
+        .map(|value| value.as_str().unwrap().to_owned())
         .collect()
 }
 
@@ -32,9 +33,18 @@ mod select_json_path {
     fn returns_root_for_empty_paths() {
         let index = create_index();
 
-        assert_eq!(select_json_path(&index, "").unwrap(), [&index]);
-        assert_eq!(select_json_path(&index, "$").unwrap(), [&index]);
-        assert_eq!(select_json_path(&index, ".").unwrap(), [&index]);
+        assert_eq!(
+            select_json_path(&index, "").unwrap(),
+            [Cow::Borrowed(&index)]
+        );
+        assert_eq!(
+            select_json_path(&index, "$").unwrap(),
+            [Cow::Borrowed(&index)]
+        );
+        assert_eq!(
+            select_json_path(&index, ".").unwrap(),
+            [Cow::Borrowed(&index)]
+        );
     }
 
     #[test]
@@ -87,7 +97,7 @@ mod select_json_path {
 
         assert_eq!(
             select_json_path(&index, "releases[0].assets").unwrap(),
-            [&json!(["a", "b"])]
+            [Cow::Borrowed(&json!(["a", "b"]))]
         );
     }
 
@@ -139,6 +149,31 @@ mod select_json_path {
     }
 
     #[test]
+    fn selects_object_keys_with_wildcards() {
+        let index = create_index();
+
+        assert_eq!(select_strings(&index, "latest.*~"), ["beta", "stable"]);
+        assert_eq!(select_strings(&index, "latest[*]~"), ["beta", "stable"]);
+        assert_eq!(select_strings(&index, "$.latest.*~"), ["beta", "stable"]);
+    }
+
+    #[test]
+    fn selects_keys_from_root_object() {
+        let index = json!({ "1.0.0": {}, "1.1.0": { "date": "2026-01-01" } });
+
+        assert_eq!(select_strings(&index, "*~"), ["1.0.0", "1.1.0"]);
+        assert_eq!(select_strings(&index, "[*]~"), ["1.0.0", "1.1.0"]);
+        assert_eq!(select_strings(&index, "$.*~"), ["1.0.0", "1.1.0"]);
+    }
+
+    #[test]
+    fn selects_keys_of_every_wildcard_value() {
+        let index = json!([{ "a": 1 }, { "b": 2, "c": 3 }]);
+
+        assert_eq!(select_strings(&index, "[*].*~"), ["a", "b", "c"]);
+    }
+
+    #[test]
     fn errors_for_invalid_paths() {
         let index = create_index();
 
@@ -152,6 +187,10 @@ mod select_json_path {
             "releases[-1]",
             "releases[ 0 ]",
             "releases[0]]",
+            // Keys that aren't selected last
+            "*~.version",
+            "latest.*~[0]",
+            "[*]~.name",
         ] {
             assert_eq!(
                 select_json_path(&index, path).unwrap_err().to_string(),
@@ -186,6 +225,11 @@ mod select_json_path {
             "nothing.*",
             // Keys missing from some wildcard values
             "releases[*].notes",
+            // Keys of non-objects
+            "name.*~",
+            "releases[*]~",
+            // Keys of empty objects
+            "nothing.*~",
         ] {
             assert_eq!(
                 select_json_path(&index, path).unwrap_err().to_string(),

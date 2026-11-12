@@ -1,13 +1,14 @@
 use crate::settings::ProtoToolVersionsSourceConfig;
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
-use proto_pdk_api::{LoadToolVersionsInput, LoadToolVersionsOutput};
+use proto_pdk_api::{LoadToolVersionsInput, LoadToolVersionsOutput, select_index_versions};
 use regex::Regex;
+use rustc_hash::FxHashMap;
 use starbase_styles::color;
 use std::process::{Command, Stdio};
 use std::time::Instant;
 use tokio::runtime::Handle;
 use tracing::{instrument, trace};
-use warpgate::{HttpClient, WarpgateHttpClientError, api::select_json_path, host::HostData};
+use warpgate::{HttpClient, WarpgateHttpClientError, host::HostData};
 
 /// Data passed to proto specific host functions.
 pub struct ProtoHostData {
@@ -95,29 +96,58 @@ fn load_tool_versions(
         color::label("load_tool_versions"),
     );
 
-    let versions = match &input {
+    let output = match &input {
         LoadToolVersionsInput::Git { url, tag_pattern } => {
             if let Some(index_url) = index_url {
-                load_index_source(&data.host, source, index_url, None, plugin.time_remaining())?
-            } else {
-                load_git_source(
-                    &data.host,
-                    source,
-                    git_url.unwrap_or(url),
-                    tag_pattern.as_deref(),
-                )?
-            }
-        }
-        LoadToolVersionsInput::Index { url, version_key } => {
-            if let Some(git_url) = git_url {
-                load_git_source(&data.host, source, git_url, None)?
-            } else {
                 load_index_source(
                     &data.host,
                     source,
-                    index_url.unwrap_or(url),
+                    IndexRequest {
+                        url: index_url,
+                        headers: None,
+                        include_body: false,
+                        timeout: plugin.time_remaining(),
+                    },
+                    None,
+                )?
+            } else {
+                LoadToolVersionsOutput {
+                    versions: load_git_source(
+                        &data.host,
+                        source,
+                        git_url.unwrap_or(url),
+                        tag_pattern.as_deref(),
+                    )?,
+                    ..Default::default()
+                }
+            }
+        }
+        LoadToolVersionsInput::Index {
+            url,
+            version_key,
+            headers,
+            include_body,
+        } => {
+            if let Some(git_url) = git_url {
+                LoadToolVersionsOutput {
+                    versions: load_git_source(&data.host, source, git_url, None)?,
+                    ..Default::default()
+                }
+            } else {
+                // The plugin's headers and body only apply to its own URL, as a
+                // configured URL is another host, with another index format
+                let own_url = index_url.is_none();
+
+                load_index_source(
+                    &data.host,
+                    source,
+                    IndexRequest {
+                        url: index_url.unwrap_or(url),
+                        headers: own_url.then_some(headers),
+                        include_body: own_url && *include_body,
+                        timeout: plugin.time_remaining(),
+                    },
                     version_key.as_deref(),
-                    plugin.time_remaining(),
                 )?
             }
         }
@@ -133,10 +163,7 @@ fn load_tool_versions(
         instant.elapsed()
     );
 
-    plugin.memory_set_val(
-        &mut outputs[0],
-        serde_json::to_string(&LoadToolVersionsOutput { versions })?,
-    )?;
+    plugin.memory_set_val(&mut outputs[0], serde_json::to_string(&output)?)?;
 
     Ok(())
 }
@@ -197,39 +224,51 @@ fn load_tool_versions_from_git(data: &HostData, url: &str) -> Result<Vec<String>
     Ok(versions)
 }
 
+struct IndexRequest<'a> {
+    url: &'a str,
+    headers: Option<&'a FxHashMap<String, String>>,
+    include_body: bool,
+    timeout: Option<std::time::Duration>,
+}
+
 fn load_index_source(
     data: &HostData,
     source: Option<&ProtoToolVersionsSourceConfig>,
-    url: &str,
+    request: IndexRequest,
     input_path: Option<&str>,
-    timeout: Option<std::time::Duration>,
-) -> Result<Vec<String>, Error> {
+) -> Result<LoadToolVersionsOutput, Error> {
     let version_path = source
         .and_then(|source| source.index_version_key.as_ref())
         .map(|key| format!("*.{key}"))
         .or_else(|| input_path.map(str::to_owned))
         .unwrap_or_else(|| "*.version".to_owned());
 
-    let versions = load_tool_versions_from_index(data, url, &version_path, timeout)?;
+    let mut output = load_tool_versions_from_index(data, request, &version_path)?;
 
-    filter_versions(
-        versions,
+    output.versions = filter_versions(
+        output.versions,
         source.and_then(|source| source.version_pattern.as_deref()),
         "Index version",
-    )
+    )?;
+
+    Ok(output)
 }
 
 fn load_tool_versions_from_index(
     data: &HostData,
-    url: &str,
+    input: IndexRequest,
     version_path: &str,
-    timeout: Option<std::time::Duration>,
-) -> Result<Vec<String>, Error> {
+) -> Result<LoadToolVersionsOutput, Error> {
+    let url = input.url;
     let (status, body) = Handle::current().block_on(async {
         let mut request = data.http_client.get(url);
 
-        if let Some(timeout) = timeout {
+        if let Some(timeout) = input.timeout {
             request = request.timeout(timeout);
+        }
+
+        for (name, value) in input.headers.into_iter().flatten() {
+            request = request.header(name, value);
         }
 
         let response = request
@@ -256,26 +295,13 @@ fn load_tool_versions_from_index(
     }
 
     let index: serde_json::Value = serde_json::from_slice(&body)?;
-    let values = select_json_path(&index, version_path)?;
-    let values = if values.len() == 1 {
-        values[0]
-            .as_array()
-            .map(|array| array.iter().collect())
-            .unwrap_or(values)
-    } else {
-        values
-    };
 
-    values
-        .iter()
-        .map(|value| {
-            value.as_str().map(str::to_owned).ok_or_else(|| {
-                Error::msg(format!(
-                    "Tool versions at path {version_path:?} must be a string or contain only strings"
-                ))
-            })
-        })
-        .collect()
+    Ok(LoadToolVersionsOutput {
+        versions: select_index_versions(&index, version_path)?,
+        body: input
+            .include_body
+            .then(|| String::from_utf8_lossy(&body).into_owned()),
+    })
 }
 
 fn filter_versions(

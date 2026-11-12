@@ -755,10 +755,12 @@ mod load_tool_from_locator {
 
     mod load_tool_versions {
         use super::*;
+        use proto_pdk_api::LoadToolVersionsOutput;
         use std::io::{Read, Write};
         use std::net::TcpListener;
         use std::path::Path;
         use std::process::Command;
+        use std::sync::{Arc, Mutex};
         use std::thread;
 
         fn git(dir: &Path, args: &[&str]) {
@@ -784,13 +786,25 @@ mod load_tool_from_locator {
         }
 
         fn spawn_http_server(body: &'static str) -> String {
+            spawn_recording_http_server(body).0
+        }
+
+        fn spawn_recording_http_server(body: &'static str) -> (String, Arc<Mutex<Vec<String>>>) {
             let listener = TcpListener::bind("127.0.0.1:0").unwrap();
             let addr = listener.local_addr().unwrap();
+            let requests = Arc::new(Mutex::new(vec![]));
+            let recorded = Arc::clone(&requests);
 
             thread::spawn(move || {
                 for mut stream in listener.incoming().flatten() {
                     let mut request = [0; 1024];
-                    let _ = stream.read(&mut request);
+                    let size = stream.read(&mut request).unwrap_or(0);
+
+                    recorded
+                        .lock()
+                        .unwrap()
+                        .push(String::from_utf8_lossy(&request[..size]).to_lowercase());
+
                     let _ = write!(
                         stream,
                         "HTTP/1.1 200 OK\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}",
@@ -799,14 +813,27 @@ mod load_tool_from_locator {
                 }
             });
 
-            format!("http://{addr}/versions.json")
+            (format!("http://{addr}/versions.json"), requests)
         }
 
-        async fn load_versions(tool: &Tool, input: LoadToolVersionsInput) -> Vec<String> {
+        async fn load_output(tool: &Tool, input: LoadToolVersionsInput) -> LoadToolVersionsOutput {
             tool.plugin
                 .call_func_with("testing_load_tool_versions", input)
                 .await
                 .unwrap()
+        }
+
+        async fn load_versions(tool: &Tool, input: LoadToolVersionsInput) -> Vec<String> {
+            load_output(tool, input).await.versions
+        }
+
+        fn index_input(url: &str, version_key: Option<&str>) -> LoadToolVersionsInput {
+            LoadToolVersionsInput::Index {
+                url: url.to_owned(),
+                version_key: version_key.map(str::to_owned),
+                headers: Default::default(),
+                include_body: false,
+            }
         }
 
         #[tokio::test(flavor = "multi_thread")]
@@ -876,14 +903,8 @@ mod load_tool_from_locator {
       );
 
             let tool = load_tool(create_proto(sandbox.path())).await;
-            let versions = load_versions(
-                &tool,
-                LoadToolVersionsInput::Index {
-                    url: "https://example.com/unused.json".to_owned(),
-                    version_key: None,
-                },
-            )
-            .await;
+            let versions =
+                load_versions(&tool, index_input("https://example.com/unused.json", None)).await;
 
             assert_eq!(versions, ["v3.0.0"]);
         }
@@ -901,17 +922,78 @@ mod load_tool_from_locator {
                 ("*.name", vec!["v2.4.0", "v2.4.1"]),
                 ("[*].name", vec!["v2.4.0", "v2.4.1"]),
             ] {
-                let versions = load_versions(
-                    &tool,
-                    LoadToolVersionsInput::Index {
-                        url: index_url.clone(),
-                        version_key: Some(version_path.to_owned()),
-                    },
-                )
-                .await;
+                let versions =
+                    load_versions(&tool, index_input(&index_url, Some(version_path))).await;
 
                 assert_eq!(versions, expected);
             }
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn selects_object_keys_as_versions() {
+            let sandbox = create_empty_sandbox();
+            let index_url = spawn_http_server(r#"{"1.0.0":{"date":"2026"},"1.1.0":{}}"#);
+            let tool = load_tool(create_proto(sandbox.path())).await;
+
+            for version_path in ["*~", "[*]~", "$.*~"] {
+                let versions =
+                    load_versions(&tool, index_input(&index_url, Some(version_path))).await;
+
+                assert_eq!(versions, ["1.0.0", "1.1.0"], "{version_path}");
+            }
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn sends_headers_and_returns_body_for_the_plugin_url() {
+            let sandbox = create_empty_sandbox();
+            let body = r#"[{"version":"v1.0.0"}]"#;
+            let (index_url, requests) = spawn_recording_http_server(body);
+            let tool = load_tool(create_proto(sandbox.path())).await;
+
+            let output = load_output(
+                &tool,
+                LoadToolVersionsInput::Index {
+                    url: index_url,
+                    version_key: None,
+                    headers: [("Authorization".into(), "Bearer secret".into())]
+                        .into_iter()
+                        .collect(),
+                    include_body: true,
+                },
+            )
+            .await;
+
+            assert_eq!(output.versions, ["v1.0.0"]);
+            assert_eq!(output.body.as_deref(), Some(body));
+            assert!(requests.lock().unwrap()[0].contains("authorization: bearer secret"));
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
+        async fn doesnt_send_headers_or_return_body_for_a_configured_index() {
+            let sandbox = create_empty_sandbox();
+            let (index_url, requests) = spawn_recording_http_server(r#"[{"version":"v2.0.0"}]"#);
+            sandbox.create_file(
+                ".prototools",
+                format!("[tools.api-usage.versions-source]\nindex-url = \"{index_url}\""),
+            );
+
+            let tool = load_tool(create_proto(sandbox.path())).await;
+            let output = load_output(
+                &tool,
+                LoadToolVersionsInput::Index {
+                    url: "https://example.com/unused.json".into(),
+                    version_key: None,
+                    headers: [("Authorization".into(), "Bearer secret".into())]
+                        .into_iter()
+                        .collect(),
+                    include_body: true,
+                },
+            )
+            .await;
+
+            assert_eq!(output.versions, ["v2.0.0"]);
+            assert_eq!(output.body, None);
+            assert!(!requests.lock().unwrap()[0].contains("authorization"));
         }
     }
 }

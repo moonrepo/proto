@@ -83,6 +83,10 @@
     - `set_env_vars` appends to `PATH` instead of overwriting it, like `set_env_var`.
     - Added `get_host_env_vars` and `set_host_env_vars` functions to the PDK.
   - Added `BuildInstructionsInput.temp_dir`, `DownloadPrebuiltInput.temp_dir`, and `NativeInstallInput.temp_dir` fields, a temporary directory unique to the install (or download when locking), which is removed once it finishes. Pre-builts are also downloaded to this directory.
+  - Added `headers` and `include_body` fields to the `LoadToolVersionsInput::Index` source. Headers are sent with the request, for example, to authenticate with a private registry. `include_body` returns the response body in a new `LoadToolVersionsOutput.body` field, for data other than versions, like aliases. Neither applies when `[tools.*.versions-source]` configures another index or Git repository, as the headers could leak to another host, and the plugin can't parse an unknown format.
+    - `load_tool_versions` in the PDK now returns the `LoadToolVersionsOutput`, instead of only its versions.
+  - Updated `select_json_path` to select the keys of objects with a final `*~` or `[*]~` (for example, `versions.*~`), for indexes that are keyed by version. It now returns `Cow` values, as keys are not part of the document.
+  - Added a `select_index_versions` function, which selects the versions at a JSON path of an index, like the `load_tool_versions` host function.
 
 #### 🐞 Fixes
 
