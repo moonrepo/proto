@@ -1,6 +1,6 @@
 [package]
 name = "proto_core"
-version = "0.64.0"
+version = "0.64.1"
 edition = "2024"
 license = "MIT"
 description = "Core proto APIs."
@@ -9,7 +9,7 @@ repository = "https://github.com/moonrepo/proto"
 rust-version = "1.89.0"
 
 [dependencies]
-proto_pdk_api = { version = "0.36.0", path = "../pdk-api", features = [
+proto_pdk_api = { version = "0.36.1", path = "../pdk-api", features = [
     "schematic",
 ] }
 proto_shim = { version = "0.10.0", path = "../shim" }

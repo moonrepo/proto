@@ -12,7 +12,7 @@ all-features = true
 
 [dependencies]
 system_env = { version = "0.10.6", path = "../system-env" }
-warpgate_api = { version = "0.21.0", path = "../warpgate-api" }
+warpgate_api = { version = "0.21.1", path = "../warpgate-api" }
 async-trait = { workspace = true }
 compact_str = { workspace = true }
 docker_credential = { workspace = true }

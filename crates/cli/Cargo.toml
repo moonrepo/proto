@@ -33,11 +33,11 @@ name = "proto-shim"
 path = "src/main_shim.rs"
 
 [dependencies]
-proto_core = { version = "0.64.0", path = "../core", features = [
+proto_core = { version = "0.64.1", path = "../core", features = [
     "clap",
     "otel",
 ] }
-proto_pdk_api = { version = "0.36.0", path = "../pdk-api" }
+proto_pdk_api = { version = "0.36.1", path = "../pdk-api" }
 proto_shim = { version = "0.10.0", path = "../shim" }
 system_env = { version = "0.10.6", path = "../system-env" }
 ai_env = { workspace = true }

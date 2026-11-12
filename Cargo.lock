@@ -4409,7 +4409,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.64.0"
+version = "0.64.1"
 dependencies = [
  "ai_env",
  "ci_env",
@@ -4457,7 +4457,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.37.0"
+version = "0.37.1"
 dependencies = [
  "extism-pdk",
  "proto_pdk",
@@ -4469,7 +4469,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.36.0"
+version = "0.36.1"
 dependencies = [
  "derive_setters",
  "proto_pdk_api",
@@ -6950,7 +6950,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_api"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "anyhow",
  "derive_setters",
