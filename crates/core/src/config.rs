@@ -266,7 +266,7 @@ impl ProtoConfig {
         if !tools.contains_key("swift") && is_tool_allowed("swift") {
             tools.insert(
                 Id::raw("swift"),
-                find_debug_locator_with_fallback("swift_tool", "0.2.0"),
+                find_debug_locator_with_fallback("swift_tool", "0.2.1"),
             );
         }
 
