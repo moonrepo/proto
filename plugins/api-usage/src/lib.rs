@@ -166,7 +166,7 @@ pub fn detect_version_files(
 #[plugin_fn]
 pub fn testing_load_tool_versions(
     Json(input): Json<LoadToolVersionsInput>,
-) -> FnResult<Json<Vec<String>>> {
+) -> FnResult<Json<LoadToolVersionsOutput>> {
     Ok(Json(load_tool_versions(input)?))
 }
 

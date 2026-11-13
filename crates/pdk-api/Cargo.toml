@@ -1,6 +1,6 @@
 [package]
 name = "proto_pdk_api"
-version = "0.35.0"
+version = "0.36.1"
 edition = "2024"
 license = "MIT"
 description = "Core APIs for creating proto WASM plugins."
@@ -12,9 +12,9 @@ rust-version = "1.85.0"
 all-features = true
 
 [dependencies]
-system_env = { version = "0.10.5", path = "../system-env" }
-version_spec = { version = "0.11.7", path = "../version-spec" }
-warpgate_api = { version = "0.20.1", path = "../warpgate-api" }
+system_env = { version = "0.10.6", path = "../system-env" }
+version_spec = { version = "0.11.8", path = "../version-spec" }
+warpgate_api = { version = "0.21.1", path = "../warpgate-api" }
 derive_setters = { workspace = true }
 rustc-hash = { workspace = true }
 schematic = { workspace = true, features = ["schema", "schema_serde"] }

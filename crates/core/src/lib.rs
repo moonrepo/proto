@@ -34,6 +34,7 @@ pub use env::*;
 pub use env_error::*;
 pub use file_manager::*;
 pub use helpers::*;
+pub use host::*;
 pub use id::*;
 pub use loader::*;
 pub use loader_error::*;
