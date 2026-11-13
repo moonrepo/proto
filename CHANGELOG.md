@@ -21,60 +21,50 @@
 - [Zig](https://github.com/moonrepo/plugins/blob/master/tools/zig/CHANGELOG.md)
 - [ZLS](https://github.com/moonrepo/plugins/blob/master/tools/zig-ls/CHANGELOG.md)
 
-## Next
-
-#### 💥 Breaking
-
-- **WASM API**
-  - Changed the `scope`, `prerelease`, and `build` fields of `Version`, and the `scope` and `prerelease` fields of `Requirement`, from `CompactString` to a new `SharedString` type, which is a single pointer and cheap to clone. This reduces the size of `Version` from 88 to 48 bytes, and `Requirement` from 80 to 56 bytes, as tools may load thousands of versions.
-    - `SharedString` dereferences to `str`, and converts from and compares with `&str`, `String`, and `CompactString`, so most code is unchanged, like `version.prerelease.as_deref()` and `Some("alpha".into())`. Code that requires a `CompactString` must convert it with `.into()`.
-    - Versions and requirements are still serialized as strings, so plugins built with an older PDK are not affected.
+## Unreleased
 
 #### 🚀 Updates
 
-- Added a `proto lock [tool] [spec]` command, which resolves versions, and records the checksum of each tool's pre-built in the lockfile, without installing them. (#1129)
-  - Supports locking other platforms with `--platform` (for example, `--platform x64-linux,arm64-macos`), so that a lockfile created on one machine can verify installs on CI and other machines, including with `--immutable-lockfile`. The plugin receives the platform as its host environment, and downloads that platform's pre-built.
-  - Without `--platform`, locks the current platform, and every platform that already has a record for the tool, for example, to fill in the checksums that `proto outdated --update` removes from other platforms.
-  - Platforms that have already been locked are not downloaded again, unless `--force` is passed, which downloads them and verifies the lockfile's checksums.
-  - Tools that install natively (like backends) or build from source can only be verified by installing them, so are skipped. A warning is logged when a plugin executes a command while locking another platform, as the command's output reflects the current machine.
-- Added support for tools that distribute more than one pre-built for the same platform, like Bun's `baseline` builds for CPUs without AVX2. Each build (variant) has its own record in the lockfile, so a lockfile created on one machine no longer fails checksum verification on a machine that downloads another build. Instead, that machine adds a record for its build, and `--immutable-lockfile` errors with the name of the build that hasn't been locked.
-  - `proto lock` locks the build that the plugin chooses for each platform, and shows its variant.
-- Updated shims in `~/.proto/shims` to be hard links to the `proto-shim` executable, instead of a copy for each shim, which greatly reduces their disk usage. Shims are still copied when a hard link can't be created, for example, when `proto-shim` is on a different drive.
-  - Existing shims are replaced the next time they're created, or with `proto regen`.
-- Updated executables in `~/.proto/bin` on Windows to be symlinks to the installed tool's executable, instead of copies, matching other platforms. Symlinks require Developer Mode or administrator privileges. Without them, executables are copied, as before.
-  - `proto diagnose` also warns on Windows when symlinks can't be created in `~/.proto/bin`, as copies use more disk space.
-- Updated `proto install --force` to download the pre-built archive and its checksum file as they currently exist upstream, instead of copies from the HTTP request cache, which are kept for up to 7 days.
-- Updated running a tool's self-upgrade command (for example, `bun upgrade`) through proto to offer to upgrade with `proto install` in an interactive terminal, instead of only erroring. Non-interactive runs (like CI or JSON output) still error.
-  - The latest version is pinned to the config file that the current version came from, or to the local directory if it came from an ecosystem file or wasn't detected.
-- Updated version files for plugins without a `parse_version_file` function to use the first line with content, skipping blank lines and comments (everything after a `#` or `//`). Files without a version are now skipped, instead of failing detection.
-- Added a `[tools.*].requires` setting, which declares other tools that the tool depends on, in addition to those required by its plugin. For example, `requires = ["node"]`.
-  - When installing, the required tools must have a configured version, and are installed first.
-  - When running (including shims), the required tools are added to the environment.
-  - Requirements that form a cycle now error, instead of waiting forever when installing.
-  - `proto diagnose` warns about requirements without a configured version, and cycles.
-  - This setting is security-sensitive, and is ignored in untrusted configs.
-- Added support for `!=` (not equal) version requirements, which match every version except the one defined, and are typically combined with other requirements, for example, `>=1.2, !=1.2.3`.
-  - A partial requirement excludes every version with the defined parts, for example, `!=1.2` excludes both `1.2.0` and `1.2.9`.
-  - Unlike other requirements, a `!=` requirement never allows pre-releases to match, even when it excludes a pre-release.
-- Added support for a 4th number (a revision) in semantic versions, requirements, and ranges, for example, `18.0.2.1`, `>=18.0.2.1`, and `18.0.2.*`. Calendar versions do not support a revision.
-  - A version without a revision matches and orders like a revision of 0, but is not equal to one, so that `1.2.3` and `1.2.3.0` both remain as written.
-  - A requirement without a revision matches any revision, for example, `=18.0.2`, `~18.0.2`, and `<=18.0.2` all match `18.0.2.1`, while `>18.0.2` does not. A version like `18.0.2` is still resolved exactly, so use `~18.0.2` or `18.0.2.*` to resolve the latest revision.
-  - A caret requirement with a major, minor, and patch of 0 locks the revision, for example, `^0.0.0.4` only matches `0.0.0.4`, while `^0.0.3` matches `0.0.3.7`.
-- `proto plugin info` and `proto diagnose` now show plugin overrides that were ignored because their config isn't trusted.
-  - A tool with a built-in plugin still runs when its override is ignored, so a warning now names the tool and the ignored plugin.
+- **CLI**
+  - Added a `proto lock [tool] [spec]` command, which resolves versions, and records the checksum of each tool's pre-built in the lockfile, without installing them. (#1129)
+    - Supports locking other platforms with `--platform` (for example, `--platform x64-linux,arm64-macos`), so that a lockfile created on one machine can verify installs on CI and other machines, including with `--immutable-lockfile`. The plugin receives the platform as its host environment, and downloads that platform's pre-built.
+    - Without `--platform`, locks the current platform, and every platform that already has a record for the tool, for example, to fill in the checksums that `proto outdated --update` removes from other platforms.
+    - Platforms that have already been locked are not downloaded again, unless `--force` is passed, which downloads them and verifies the lockfile's checksums.
+    - Tools that install natively (like backends) or build from source can only be verified by installing them, so are skipped. A warning is logged when a plugin executes a command while locking another platform, as the command's output reflects the current machine.
+  - Updated `proto install --force` to download the pre-built archive and its checksum file as they currently exist upstream, instead of copies from the HTTP request cache, which are kept for up to 7 days.
+  - Updated `proto diagnose` to warn on Windows when symlinks can't be created in `~/.proto/bin`, as copies use more disk space.
+  - Updated `proto plugin info` and `proto diagnose` to now show plugin overrides that were ignored because their config isn't trusted.
+  - Updated running a tool's self-upgrade command (for example, `bun upgrade`) through proto to offer to upgrade with `proto install` in an interactive terminal, instead of only erroring. Non-interactive runs (like CI or JSON output) still error.
+- **Config**
+  - Added a `[tools.*].requires` setting, which declares other tools that the tool depends on, in addition to those required by its plugin. For example, `requires = ["node"]`.
+    - When installing, the required tools must have a configured version, and are installed first.
+    - When running (including shims), the required tools are added to the environment.
+    - Requirements that form a cycle now error, instead of waiting forever when installing.
+    - `proto diagnose` warns about requirements without a configured version, and cycles.
+    - This setting is security-sensitive, and is ignored in untrusted configs.
+- **Detector**
+  - Updated version files for plugins without a `parse_version_file` function to use the first line with content, skipping blank lines and comments (everything after a `#` or `//`). Files without a version are now skipped, instead of failing detection.
+- **Installer**
+  - Added support for tools that distribute more than one pre-built for the same platform, like Bun's `baseline` builds for CPUs without AVX2. Each build (variant) has its own record in the lockfile, so a lockfile created on one machine no longer fails checksum verification on a machine that downloads another build. Instead, that machine adds a record for its build, and `--immutable-lockfile` errors with the name of the build that hasn't been locked.
+  - Plugins now receive their host environment from the platform proto has detected, instead of detecting it again for every plugin. On Linux, this avoids running `ldd --version` each time a plugin is loaded.
+- **Linker**
+  - Updated shims in `~/.proto/shims` to be hard links to the `proto-shim` executable, instead of a copy for each shim, which greatly reduces their disk usage. Shims are still copied when a hard link can't be created, for example, when `proto-shim` is on a different drive.
+  - Updated executables in `~/.proto/bin` on Windows to be symlinks to the installed tool's executable, instead of copies, matching other platforms. Symlinks require Developer Mode or administrator privileges. Without them, executables are copied, as before.
+- **Versions**
+  - Added support for `!=` (not equal) version requirements, which match every version except the one defined, and are typically combined with other requirements, for example, `>=1.2, !=1.2.3`.
+    - A partial requirement excludes every version with the defined parts, for example, `!=1.2` excludes both `1.2.0` and `1.2.9`.
+    - Unlike other requirements, a `!=` requirement never allows pre-releases to match, even when it excludes a pre-release.
+  - Added support for a 4th number (a revision) in semantic versions, requirements, and ranges, for example, `18.0.2.1`, `>=18.0.2.1`, and `18.0.2.*`. Calendar versions do not support a revision.
+    - A version without a revision matches and orders like a revision of 0, but is not equal to one, so that `1.2.3` and `1.2.3.0` both remain as written.
+    - A requirement without a revision matches any revision, for example, `=18.0.2`, `~18.0.2`, and `<=18.0.2` all match `18.0.2.1`, while `>18.0.2` does not. A version like `18.0.2` is still resolved exactly, so use `~18.0.2` or `18.0.2.*` to resolve the latest revision.
+    - A caret requirement with a major, minor, and patch of 0 locks the revision, for example, `^0.0.0.4` only matches `0.0.0.4`, while `^0.0.3` matches `0.0.3.7`.
 - **WASM API**
   - Added `Version.revision` and `Requirement.revision` fields, and `FormatOptions.include_revision` and `FormatOptions.pad_revision` fields.
-  - Added a `normalize_version` function, which converts a version in a format that some tools publish into one that proto can parse, by separating an attached pre-release that starts with a letter, and removing leading zeros. For example, `3.15.0rc2` becomes `3.15.0-rc.2`, `3.0rc1` becomes `3.0.0-rc.1`, `3.13.0t` becomes `3.13.0-t`, and `2021.01.07` becomes `2021.1.7`. Values that already parse are not changed, and neither are pre-releases that couldn't be converted back exactly, like `1.0.0rc.1`.
   - Added a `FormatOptions.attach_prerelease` field, which formats the pre-release without separators (for example, `3.15.0rc2`), to convert a normalized version back into the tool's format.
   - Added a `MatchesRange` trait, implemented for `Range`, `Clause`, and `Requirement`, whose `matches_range` method returns true if two ranges share at least one version. Unlike checking each requirement of a clause with `matches_req`, all of them must be satisfied by the same version, so `>=1.2.3 !=1.2.3` does not overlap `<=1.2.3`.
-  - Updated `UnresolvedVersionSpec.to_partial_string` to return "latest" for `!=` requirements.
-  - Plugins built with an older PDK fail to parse `!=` requirements and versions with a revision, and must be rebuilt to support them.
-  - Updated `HostPlatform` to also parse the operating system first, in the format of `<os>-<arch>` or `<os>-<arch>-<libc>` (for example, `linux-x64-musl`). Platforms are still formatted with the architecture first.
   - Added a `HostEnvironment.details` field, with details about the host machine that further distinguish it from others with the same platform: the x86-64 microarchitecture level (`x64_level`, 1 to 4), the 32-bit ARM version (`arm_version`), and the Linux distribution (`distro`, from `/etc/os-release`, with its `id`, `id_like`, and `version_id`). The `id_like` list names the distributions it's derived from (for example, `rhel`, `centos`, and `fedora` on Rocky Linux), so plugins can match a derivative to a parent's build. Plugins can use these to choose a build without executing commands. It's `None` when `foreign` is true, or with older versions of proto, so plugins must fall back to a default build.
   - Added a `DownloadPrebuiltOutput.variant` field, which names the build that was chosen when a tool distributes more than one for the same platform (for example, `baseline`), and is recorded in the lockfile. The default build should not have a variant.
   - Added a `HostEnvironment.foreign` field, which is true when the plugin is targeting a platform other than the machine it's running on, like when locking other platforms with `proto lock --platform`. The `arch`, `os`, and `libc` fields describe the targeted platform, but executed commands (including PDK functions like `command_exists`) and environment variables still reflect the machine, so plugins should not use them to inspect the platform when `foreign` is true.
-  - Deprecated `ParseVersionFileInput.content` in favor of `path`, which plugins can use to read the file contents.
-  - Added `extract_version_from_text` and `extract_version_from_file` functions, which extract the version from the contents of a plain version file, like `.nvmrc` or `.python-version`, or from the file itself, reading a line at a time.
   - Added a `ParseVersionFileOutput.stop` field. When true and no version is returned, the plugin's remaining files in that directory are skipped, while parent directories are still checked. This is useful for tools where one config file takes precedence over another, even when it doesn't define a version.
   - Added an `ExecCommandInput.error_on_nonzero` field. When true, `exec` returns an error if the command exits with a non-zero code, which includes the exit code and stderr, instead of returning the output. Defaults to false, and `exec_captured` and `exec_streamed` still return the exit code in the output.
   - Added a `SendRequestInput.error_on_failure` field, which defaults to true, so `fetch` still returns an error if the response has a non-2xx status (like 404 or 500) or an empty body. When false, `fetch` returns the response instead, so plugins can check `status` themselves. `fetch_bytes`, `fetch_json`, and `fetch_text` still return an error.
@@ -83,10 +73,10 @@
     - `set_env_vars` appends to `PATH` instead of overwriting it, like `set_env_var`.
     - Added `get_host_env_vars` and `set_host_env_vars` functions to the PDK.
   - Added `BuildInstructionsInput.temp_dir`, `DownloadPrebuiltInput.temp_dir`, and `NativeInstallInput.temp_dir` fields, a temporary directory unique to the install (or download when locking), which is removed once it finishes. Pre-builts are also downloaded to this directory.
-  - Added `headers` and `include_body` fields to the `LoadToolVersionsInput::Index` source. Headers are sent with the request, for example, to authenticate with a private registry. `include_body` returns the response body in a new `LoadToolVersionsOutput.body` field, for data other than versions, like aliases. Neither applies when `[tools.*.versions-source]` configures another index or Git repository, as the headers could leak to another host, and the plugin can't parse an unknown format.
-    - `load_tool_versions` in the PDK now returns the `LoadToolVersionsOutput`, instead of only its versions.
-  - Updated `select_json_path` to select the keys of objects with a final `*~` or `[*]~` (for example, `versions.*~`), for indexes that are keyed by version. It now returns `Cow` values, as keys are not part of the document.
-  - Added a `select_index_versions` function, which selects the versions at a JSON path of an index, like the `load_tool_versions` host function.
+  - Added `headers` and `include_body` fields to the `LoadToolVersionsInput::Index` source. Headers are sent with the request, for example, to authenticate with a private registry. `include_body` returns the response body in a new `LoadToolVersionsOutput.body` field, for data other than versions, like aliases.
+  - Updated `UnresolvedVersionSpec.to_partial_string` to return "latest" for `!=` requirements.
+  - Updated `HostPlatform` to also parse the operating system first, in the format of `<os>-<arch>` or `<os>-<arch>-<libc>` (for example, `linux-x64-musl`). Platforms are still formatted with the architecture first.
+  - Deprecated `ParseVersionFileInput.content` in favor of `path`, which plugins can use to read the file contents.
 
 #### 🐞 Fixes
 
@@ -108,10 +98,8 @@
 #### ⚙️ Internal
 
 - Updated wasmtime to v49 (from 43).
-- Plugins now receive their host environment from the platform proto has detected, instead of detecting it again for every plugin. On Linux, this avoids running `ldd --version` each time a plugin is loaded.
-- Added a `foreign_platform` field to warpgate's `HostData`, which logs a warning when the `exec_command` host function is called while set.
-- Added `HttpDownloader::without_cache` to warpgate, which never reads from or writes to the HTTP cache.
-- Changed `LocatorResponse.exe_file` to an `Option`, which is `None` when the tool has no primary executable, and added `Locator.try_locate_exe_file`.
+- Updated Rust to v1.100.0.
+- Updated dependencies.
 
 ## 0.63.2
 

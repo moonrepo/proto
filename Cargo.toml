@@ -23,7 +23,6 @@ docker_credential = { version = "1.4.0" }
 extism = ">=1.6.0" # Lower for consumers
 extism-pdk = "1.4.1"
 futures = "0.3.34"
-hex = { version = "0.4.3", features = ["alloc"] }
 http-cache-reqwest = "1.0.0-alpha.10"
 indexmap = "2.14.2"
 iocraft = "0.9.5"
@@ -54,7 +53,6 @@ schemars = "1.2.3"
 schematic = { version = "0.20.12", default-features = false }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = { version = "1.0.154", features = ["preserve_order"] }
-sha2 = "0.11.1"
 shell-words = "1.1.1"
 starbase = { version = "0.13.4", features = ["miette", "tracing"] }
 starbase_archive = { version = "0.14.8", features = [

@@ -6125,7 +6125,6 @@ dependencies = [
  "schematic",
  "serde",
  "serde_json",
- "shell-words",
  "thiserror 2.0.21",
 ]
 
