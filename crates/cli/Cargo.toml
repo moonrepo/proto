@@ -33,7 +33,7 @@ name = "proto-shim"
 path = "src/main_shim.rs"
 
 [dependencies]
-proto_core = { version = "0.64.1", path = "../core", features = [
+proto_core = { version = "0.64.2", path = "../core", features = [
     "clap",
     "otel",
 ] }
