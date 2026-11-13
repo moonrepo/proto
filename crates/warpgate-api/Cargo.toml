@@ -12,7 +12,7 @@ rust-version = "1.91.0"
 all-features = true
 
 [dependencies]
-system_env = { version = "0.10.6", path = "../system-env" }
+system_env = { version = "0.10.7", path = "../system-env" }
 anyhow = { workspace = true }
 derive_setters = { workspace = true }
 rustc-hash = { workspace = true }
