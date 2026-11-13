@@ -980,19 +980,6 @@
       ]
     },
     {
-      "id": "pkl",
-      "locator": "https://raw.githubusercontent.com/milesj/proto-plugins/refs/heads/master/pkl.toml",
-      "format": "toml",
-      "name": "pkl",
-      "description": "Configuration that is Programmable, Scalable, and Safe.",
-      "author": "milesj",
-      "homepageUrl": "https://pkl-lang.org/",
-      "repositoryUrl": "https://github.com/milesj/proto-plugins/blob/master/pkl.toml",
-      "bins": [
-        "pkl"
-      ]
-    },
-    {
       "id": "protoc",
       "locator": "https://raw.githubusercontent.com/b4nst/proto-plugins/refs/heads/main/toml/protoc.toml",
       "format": "toml",

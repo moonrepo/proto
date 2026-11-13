@@ -11,6 +11,7 @@
 - [Node](https://github.com/moonrepo/plugins/blob/master/tools/node/CHANGELOG.md)
 - [npm, pnpm, yarn](https://github.com/moonrepo/plugins/blob/master/tools/node-depman/CHANGELOG.md)
 - [Nub](https://github.com/moonrepo/plugins/blob/master/tools/node-depman/CHANGELOG.md)
+- [Pkl](https://github.com/moonrepo/plugins/blob/master/tools/pkl/CHANGELOG.md)
 - [Poetry](https://github.com/moonrepo/plugins/blob/master/tools/python-poetry/CHANGELOG.md)
 - [Python](https://github.com/moonrepo/plugins/blob/master/tools/python/CHANGELOG.md)
 - [uv](https://github.com/moonrepo/plugins/blob/master/tools/python-uv/CHANGELOG.md)

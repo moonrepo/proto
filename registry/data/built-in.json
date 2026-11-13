@@ -234,6 +234,19 @@
       ]
     },
     {
+      "id": "pkl",
+      "locator": "github://moonrepo/plugins/pkl_tool",
+      "format": "wasm",
+      "name": "Pkl",
+      "description": "Pkl is a configuration as code language with rich validation and tooling.",
+      "author": "moonrepo",
+      "homepageUrl": "https://pkl-lang.org/",
+      "repositoryUrl": "https://github.com/moonrepo/plugins",
+      "bins": [
+        "pkl"
+      ]
+    },
+    {
       "id": "pnpm",
       "locator": "github://moonrepo/plugins/node_depman_tool",
       "format": "wasm",

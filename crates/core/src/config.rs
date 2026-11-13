@@ -228,6 +228,13 @@ impl ProtoConfig {
             }
         }
 
+        if !tools.contains_key("pkl") && is_tool_allowed("pkl") {
+            tools.insert(
+                Id::raw("pkl"),
+                find_debug_locator_with_fallback("pkl_tool", "0.1.0"),
+            );
+        }
+
         if !tools.contains_key("poetry") && is_tool_allowed("poetry") {
             tools.insert(
                 Id::raw("poetry"),
