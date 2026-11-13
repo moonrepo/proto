@@ -1,15 +1,19 @@
 name: Release nightly / canary
 
 on:
-  # Canary from develop branches
-  push:
-    branches:
-      - develop-*
-  # Nightly every day at midnight
-  schedule:
-    - cron: "0 0 * * *"
+  # Disabled, as every run has been failing. Uncomment these triggers to re-enable.
+  # # Canary from develop branches
+  # push:
+  #   branches:
+  #     - develop-*
+  # # Nightly every day at midnight
+  # schedule:
+  #   - cron: "0 0 * * *"
   # Uncomment to test in PRs (its safe)
   # pull_request:
+  # Can still be run manually, but only builds, as the release steps
+  # require a push or schedule event
+  workflow_dispatch:
 
 permissions:
   contents: write
