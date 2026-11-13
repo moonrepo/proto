@@ -21,60 +21,50 @@
 - [Zig](https://github.com/moonrepo/plugins/blob/master/tools/zig/CHANGELOG.md)
 - [ZLS](https://github.com/moonrepo/plugins/blob/master/tools/zig-ls/CHANGELOG.md)
 
-## Next
-
-#### 💥 Breaking
-
-- **WASM API**
-  - Changed the `scope`, `prerelease`, and `build` fields of `Version`, and the `scope` and `prerelease` fields of `Requirement`, from `CompactString` to a new `SharedString` type, which is a single pointer and cheap to clone. This reduces the size of `Version` from 88 to 48 bytes, and `Requirement` from 80 to 56 bytes, as tools may load thousands of versions.
-    - `SharedString` dereferences to `str`, and converts from and compares with `&str`, `String`, and `CompactString`, so most code is unchanged, like `version.prerelease.as_deref()` and `Some("alpha".into())`. Code that requires a `CompactString` must convert it with `.into()`.
-    - Versions and requirements are still serialized as strings, so plugins built with an older PDK are not affected.
+## Unreleased
 
 #### 🚀 Updates
 
-- Added a `proto lock [tool] [spec]` command, which resolves versions, and records the checksum of each tool's pre-built in the lockfile, without installing them. (#1129)
-  - Supports locking other platforms with `--platform` (for example, `--platform x64-linux,arm64-macos`), so that a lockfile created on one machine can verify installs on CI and other machines, including with `--immutable-lockfile`. The plugin receives the platform as its host environment, and downloads that platform's pre-built.
-  - Without `--platform`, locks the current platform, and every platform that already has a record for the tool, for example, to fill in the checksums that `proto outdated --update` removes from other platforms.
-  - Platforms that have already been locked are not downloaded again, unless `--force` is passed, which downloads them and verifies the lockfile's checksums.
-  - Tools that install natively (like backends) or build from source can only be verified by installing them, so are skipped. A warning is logged when a plugin executes a command while locking another platform, as the command's output reflects the current machine.
-- Added support for tools that distribute more than one pre-built for the same platform, like Bun's `baseline` builds for CPUs without AVX2. Each build (variant) has its own record in the lockfile, so a lockfile created on one machine no longer fails checksum verification on a machine that downloads another build. Instead, that machine adds a record for its build, and `--immutable-lockfile` errors with the name of the build that hasn't been locked.
-  - `proto lock` locks the build that the plugin chooses for each platform, and shows its variant.
-- Updated shims in `~/.proto/shims` to be hard links to the `proto-shim` executable, instead of a copy for each shim, which greatly reduces their disk usage. Shims are still copied when a hard link can't be created, for example, when `proto-shim` is on a different drive.
-  - Existing shims are replaced the next time they're created, or with `proto regen`.
-- Updated executables in `~/.proto/bin` on Windows to be symlinks to the installed tool's executable, instead of copies, matching other platforms. Symlinks require Developer Mode or administrator privileges. Without them, executables are copied, as before.
-  - `proto diagnose` also warns on Windows when symlinks can't be created in `~/.proto/bin`, as copies use more disk space.
-- Updated `proto install --force` to download the pre-built archive and its checksum file as they currently exist upstream, instead of copies from the HTTP request cache, which are kept for up to 7 days.
-- Updated running a tool's self-upgrade command (for example, `bun upgrade`) through proto to offer to upgrade with `proto install` in an interactive terminal, instead of only erroring. Non-interactive runs (like CI or JSON output) still error.
-  - The latest version is pinned to the config file that the current version came from, or to the local directory if it came from an ecosystem file or wasn't detected.
-- Updated version files for plugins without a `parse_version_file` function to use the first line with content, skipping blank lines and comments (everything after a `#` or `//`). Files without a version are now skipped, instead of failing detection.
-- Added a `[tools.*].requires` setting, which declares other tools that the tool depends on, in addition to those required by its plugin. For example, `requires = ["node"]`.
-  - When installing, the required tools must have a configured version, and are installed first.
-  - When running (including shims), the required tools are added to the environment.
-  - Requirements that form a cycle now error, instead of waiting forever when installing.
-  - `proto diagnose` warns about requirements without a configured version, and cycles.
-  - This setting is security-sensitive, and is ignored in untrusted configs.
-- Added support for `!=` (not equal) version requirements, which match every version except the one defined, and are typically combined with other requirements, for example, `>=1.2, !=1.2.3`.
-  - A partial requirement excludes every version with the defined parts, for example, `!=1.2` excludes both `1.2.0` and `1.2.9`.
-  - Unlike other requirements, a `!=` requirement never allows pre-releases to match, even when it excludes a pre-release.
-- Added support for a 4th number (a revision) in semantic versions, requirements, and ranges, for example, `18.0.2.1`, `>=18.0.2.1`, and `18.0.2.*`. Calendar versions do not support a revision.
-  - A version without a revision matches and orders like a revision of 0, but is not equal to one, so that `1.2.3` and `1.2.3.0` both remain as written.
-  - A requirement without a revision matches any revision, for example, `=18.0.2`, `~18.0.2`, and `<=18.0.2` all match `18.0.2.1`, while `>18.0.2` does not. A version like `18.0.2` is still resolved exactly, so use `~18.0.2` or `18.0.2.*` to resolve the latest revision.
-  - A caret requirement with a major, minor, and patch of 0 locks the revision, for example, `^0.0.0.4` only matches `0.0.0.4`, while `^0.0.3` matches `0.0.3.7`.
-- `proto plugin info` and `proto diagnose` now show plugin overrides that were ignored because their config isn't trusted.
-  - A tool with a built-in plugin still runs when its override is ignored, so a warning now names the tool and the ignored plugin.
+- **CLI**
+  - Added a `proto lock [tool] [spec]` command, which resolves versions, and records the checksum of each tool's pre-built in the lockfile, without installing them. (#1129)
+    - Supports locking other platforms with `--platform` (for example, `--platform x64-linux,arm64-macos`), so that a lockfile created on one machine can verify installs on CI and other machines, including with `--immutable-lockfile`. The plugin receives the platform as its host environment, and downloads that platform's pre-built.
+    - Without `--platform`, locks the current platform, and every platform that already has a record for the tool, for example, to fill in the checksums that `proto outdated --update` removes from other platforms.
+    - Platforms that have already been locked are not downloaded again, unless `--force` is passed, which downloads them and verifies the lockfile's checksums.
+    - Tools that install natively (like backends) or build from source can only be verified by installing them, so are skipped. A warning is logged when a plugin executes a command while locking another platform, as the command's output reflects the current machine.
+  - Updated `proto install --force` to download the pre-built archive and its checksum file as they currently exist upstream, instead of copies from the HTTP request cache, which are kept for up to 7 days.
+  - Updated `proto diagnose` to warn on Windows when symlinks can't be created in `~/.proto/bin`, as copies use more disk space.
+  - Updated `proto plugin info` and `proto diagnose` to now show plugin overrides that were ignored because their config isn't trusted.
+  - Updated running a tool's self-upgrade command (for example, `bun upgrade`) through proto to offer to upgrade with `proto install` in an interactive terminal, instead of only erroring. Non-interactive runs (like CI or JSON output) still error.
+- **Config**
+  - Added a `[tools.*].requires` setting, which declares other tools that the tool depends on, in addition to those required by its plugin. For example, `requires = ["node"]`.
+    - When installing, the required tools must have a configured version, and are installed first.
+    - When running (including shims), the required tools are added to the environment.
+    - Requirements that form a cycle now error, instead of waiting forever when installing.
+    - `proto diagnose` warns about requirements without a configured version, and cycles.
+    - This setting is security-sensitive, and is ignored in untrusted configs.
+- **Detector**
+  - Updated version files for plugins without a `parse_version_file` function to use the first line with content, skipping blank lines and comments (everything after a `#` or `//`). Files without a version are now skipped, instead of failing detection.
+- **Installer**
+  - Added support for tools that distribute more than one pre-built for the same platform, like Bun's `baseline` builds for CPUs without AVX2. Each build (variant) has its own record in the lockfile, so a lockfile created on one machine no longer fails checksum verification on a machine that downloads another build. Instead, that machine adds a record for its build, and `--immutable-lockfile` errors with the name of the build that hasn't been locked.
+  - Plugins now receive their host environment from the platform proto has detected, instead of detecting it again for every plugin. On Linux, this avoids running `ldd --version` each time a plugin is loaded.
+- **Linker**
+  - Updated shims in `~/.proto/shims` to be hard links to the `proto-shim` executable, instead of a copy for each shim, which greatly reduces their disk usage. Shims are still copied when a hard link can't be created, for example, when `proto-shim` is on a different drive.
+  - Updated executables in `~/.proto/bin` on Windows to be symlinks to the installed tool's executable, instead of copies, matching other platforms. Symlinks require Developer Mode or administrator privileges. Without them, executables are copied, as before.
+- **Versions**
+  - Added support for `!=` (not equal) version requirements, which match every version except the one defined, and are typically combined with other requirements, for example, `>=1.2, !=1.2.3`.
+    - A partial requirement excludes every version with the defined parts, for example, `!=1.2` excludes both `1.2.0` and `1.2.9`.
+    - Unlike other requirements, a `!=` requirement never allows pre-releases to match, even when it excludes a pre-release.
+  - Added support for a 4th number (a revision) in semantic versions, requirements, and ranges, for example, `18.0.2.1`, `>=18.0.2.1`, and `18.0.2.*`. Calendar versions do not support a revision.
+    - A version without a revision matches and orders like a revision of 0, but is not equal to one, so that `1.2.3` and `1.2.3.0` both remain as written.
+    - A requirement without a revision matches any revision, for example, `=18.0.2`, `~18.0.2`, and `<=18.0.2` all match `18.0.2.1`, while `>18.0.2` does not. A version like `18.0.2` is still resolved exactly, so use `~18.0.2` or `18.0.2.*` to resolve the latest revision.
+    - A caret requirement with a major, minor, and patch of 0 locks the revision, for example, `^0.0.0.4` only matches `0.0.0.4`, while `^0.0.3` matches `0.0.3.7`.
 - **WASM API**
   - Added `Version.revision` and `Requirement.revision` fields, and `FormatOptions.include_revision` and `FormatOptions.pad_revision` fields.
-  - Added a `normalize_version` function, which converts a version in a format that some tools publish into one that proto can parse, by separating an attached pre-release that starts with a letter, and removing leading zeros. For example, `3.15.0rc2` becomes `3.15.0-rc.2`, `3.0rc1` becomes `3.0.0-rc.1`, `3.13.0t` becomes `3.13.0-t`, and `2021.01.07` becomes `2021.1.7`. Values that already parse are not changed, and neither are pre-releases that couldn't be converted back exactly, like `1.0.0rc.1`.
   - Added a `FormatOptions.attach_prerelease` field, which formats the pre-release without separators (for example, `3.15.0rc2`), to convert a normalized version back into the tool's format.
   - Added a `MatchesRange` trait, implemented for `Range`, `Clause`, and `Requirement`, whose `matches_range` method returns true if two ranges share at least one version. Unlike checking each requirement of a clause with `matches_req`, all of them must be satisfied by the same version, so `>=1.2.3 !=1.2.3` does not overlap `<=1.2.3`.
-  - Updated `UnresolvedVersionSpec.to_partial_string` to return "latest" for `!=` requirements.
-  - Plugins built with an older PDK fail to parse `!=` requirements and versions with a revision, and must be rebuilt to support them.
-  - Updated `HostPlatform` to also parse the operating system first, in the format of `<os>-<arch>` or `<os>-<arch>-<libc>` (for example, `linux-x64-musl`). Platforms are still formatted with the architecture first.
   - Added a `HostEnvironment.details` field, with details about the host machine that further distinguish it from others with the same platform: the x86-64 microarchitecture level (`x64_level`, 1 to 4), the 32-bit ARM version (`arm_version`), and the Linux distribution (`distro`, from `/etc/os-release`, with its `id`, `id_like`, and `version_id`). The `id_like` list names the distributions it's derived from (for example, `rhel`, `centos`, and `fedora` on Rocky Linux), so plugins can match a derivative to a parent's build. Plugins can use these to choose a build without executing commands. It's `None` when `foreign` is true, or with older versions of proto, so plugins must fall back to a default build.
   - Added a `DownloadPrebuiltOutput.variant` field, which names the build that was chosen when a tool distributes more than one for the same platform (for example, `baseline`), and is recorded in the lockfile. The default build should not have a variant.
   - Added a `HostEnvironment.foreign` field, which is true when the plugin is targeting a platform other than the machine it's running on, like when locking other platforms with `proto lock --platform`. The `arch`, `os`, and `libc` fields describe the targeted platform, but executed commands (including PDK functions like `command_exists`) and environment variables still reflect the machine, so plugins should not use them to inspect the platform when `foreign` is true.
-  - Deprecated `ParseVersionFileInput.content` in favor of `path`, which plugins can use to read the file contents.
-  - Added `extract_version_from_text` and `extract_version_from_file` functions, which extract the version from the contents of a plain version file, like `.nvmrc` or `.python-version`, or from the file itself, reading a line at a time.
   - Added a `ParseVersionFileOutput.stop` field. When true and no version is returned, the plugin's remaining files in that directory are skipped, while parent directories are still checked. This is useful for tools where one config file takes precedence over another, even when it doesn't define a version.
   - Added an `ExecCommandInput.error_on_nonzero` field. When true, `exec` returns an error if the command exits with a non-zero code, which includes the exit code and stderr, instead of returning the output. Defaults to false, and `exec_captured` and `exec_streamed` still return the exit code in the output.
   - Added a `SendRequestInput.error_on_failure` field, which defaults to true, so `fetch` still returns an error if the response has a non-2xx status (like 404 or 500) or an empty body. When false, `fetch` returns the response instead, so plugins can check `status` themselves. `fetch_bytes`, `fetch_json`, and `fetch_text` still return an error.
@@ -83,6 +73,322 @@
     - `set_env_vars` appends to `PATH` instead of overwriting it, like `set_env_var`.
     - Added `get_host_env_vars` and `set_host_env_vars` functions to the PDK.
   - Added `BuildInstructionsInput.temp_dir`, `DownloadPrebuiltInput.temp_dir`, and `NativeInstallInput.temp_dir` fields, a temporary directory unique to the install (or download when locking), which is removed once it finishes. Pre-builts are also downloaded to this directory.
+  - Added `headers` and `include_body` fields to the `LoadToolVersionsInput::Index` source. Headers are sent with the request, for example, to authenticate with a private registry. `include_body` returns the response body in a new `LoadToolVersionsOutput.body` field, for data other than versions, like aliases.
+  - Updated `UnresolvedVersionSpec.to_partial_string` to return "latest" for `!=` requirements.
+  - Updated `HostPlatform` to also parse the operating system first, in the format of `<os>-<arch>` or `<os>-<arch>-<libc>` (for example, `linux-x64-musl`). Platforms are still formatted with the architecture first.
+  - Deprecated `ParseVersionFileInput.content` in favor of `path`, which plugins can use to read the file contents.
+
+#### 🧩 Plugins
+
+- Panics now report their message, instead of an `unreachable` WASM trap error.
+- Version files are now read from their path, as the `content` input is deprecated.
+- Versions are now loaded with proto's `load_tool_versions` host function, so another Git
+  repository or index can be configured with `[tools.*.versions-source]`.
+
+#### 🔩 Backends
+
+- **asdf**
+  - Versions with a 4th number, like `1.2.3.4`, are now listed, as proto supports a revision. They
+    were skipped.
+  - Improved the error when a tool is not in the asdf shortname index, to point to the `shortname` and `repository` settings.
+  - Fixed the `latest` version resolving to a pre-release, as it was not set and proto used the highest version.
+  - Fixed `bin/latest-stable` not receiving an (empty) filter query argument like asdf, which failed scripts that read `$1` (asdf-golang).
+  - Fixed only the first `bin/list-bin-paths` directory being scanned for executables (asdf-golang's `go` was missing), and directories being returned as executables.
+  - Fixed `.tool-versions` lines with fallback versions or extra whitespace failing to parse. The first version is used, and lines are also matched by the `shortname` setting.
+  - Fixed `bin/exec-env` multi-line variables being split into bogus variables. The script is now always sourced with bash, like asdf.
+  - Fixed `ASDF_CONCURRENCY` overriding the variable when already set in the environment.
+  - Fixed a version file outside of the directories that proto can access panicking instead of returning an error.
+  - Fixed a failed `nproc` or `sysctl` setting an empty `ASDF_CONCURRENCY`. It now falls back to 1.
+- **cargo**
+  - Updated `cargo-binstall` detection to also find the executable on `PATH`, not just in `CARGO_HOME/bin`.
+  - Fixed the `latest` version resolving to a pre-release, as it was not set and proto used the highest version.
+- **npm**
+  - Fixed the `latest` version resolving to a pre-release when the `latest` dist-tag points to one. It now falls back to the highest stable version.
+  - Fixed extensionless bins that are native binaries or non-Node scripts (like `esbuild` after its postinstall) being run with `node`/`bun`. The shebang is now checked.
+  - Fixed the package's install scripts not running with npm v12, which blocks them by default. The package is now passed to `--allow-scripts`.
+  - Fixed a cryptic JSON error when loading versions fails (for example, an unknown package). The npm/bun error is now shown.
+
+#### 🛠️ Tools
+
+- **bun**
+  - `packageManager` (`bun@x`) in `package.json` now takes precedence over `engines.bun`, like
+    setup-bun, as an exact version should win over a range.
+  - The baseline build, for x64 CPUs without AVX2, is now chosen from the CPU level that proto
+    provides, instead of running `grep` or `sysctl`, and is now also used on Windows and FreeBSD.
+    It's recorded as the `baseline` variant in the lockfile, so machines with different CPUs no
+    longer fail checksum verification. Locking another platform uses the default build.
+  - `$BUN_INSTALL` is now used as-is for the globals directory when it already is a `bin` directory,
+    instead of appending another `bin`.
+  - Added support for FreeBSD (x64 and arm64), which Bun added in v1.3.14.
+  - Fixed pinning when `.bumrc` or `.bun-version` exists, which overrode the `package.json` it wrote
+    to. The existing version file is now updated (and removed when unpinning). `package.json` pins now
+    only write `devEngines.runtime`, as also writing `devEngines.packageManager` turned another package
+    manager's entry into a list.
+  - Fixed pinning an alias, like `lts` or `latest`, writing it to `devEngines` in `package.json`, which
+    only supports versions and ranges. It now errors instead.
+  - Fixed a comment after the version in `.bun-version` or `.bumrc`, like `1.3 # stable`, failing
+    to parse. Everything after `#` is now ignored.
+  - Fixed Intel macOS machines without AVX2 (and x64 under Rosetta) installing a Bun build that
+    crashes on start. They now install the baseline build, like Bun's own installer. Only affects
+    versions before v1.4, where every x64 build became baseline.
+  - Fixed globals directories not including `$BUN_INSTALL_BIN`, `$BUN_INSTALL/bin`, and
+    `$XDG_CACHE_HOME/.bun/bin`, which `bun add --global` uses when set.
+- **deno**
+  - Installing on musl Linux (like Alpine) now errors, as Deno only publishes glibc builds. A glibc
+    build was installed instead, which fails to run without a glibc compatibility layer.
+  - Added `engines.deno` in `package.json` as a fallback for version detection, which Deno v2.9+
+    also checks.
+  - Added checksum verification for `canary` downloads.
+  - Fixed pinning an alias, like `lts` or `latest`, writing it to `devEngines` in `package.json`, which
+    only supports versions and ranges. It now errors instead.
+  - Fixed building from source:
+    - Linux always failed, as the `llvm.sh` script it ran must be run as root. `clang` and `lld` are
+      now installed as system dependencies instead.
+    - Python is no longer required, as Deno only uses it for running WPT tests.
+    - The source is now the `deno_src.tar.gz` release asset, which includes the submodules that
+      GitHub's tag archives lack.
+  - Fixed a comment after the version in `.dvmrc`, like `2.9 # stable`, failing to parse.
+    Everything after `#` is now ignored.
+  - Fixed `.dvmrc` files written by dvm v1.8+ (`deno_version=<version>`) failing to parse.
+  - Fixed the globals directory when `DENO_INSTALL_ROOT` ends with `bin`, which Deno v2.2.11+ uses
+    as-is instead of its `bin` subdirectory. The same applies to `DENO_HOME`.
+  - Fixed the build from source help links, which pointed to removed documentation pages.
+- **go**
+  - The `toolchain` line in `go.mod` and `go.work` now takes precedence over the `go` line when
+    detecting a version, as Go runs at least that toolchain and would otherwise download it itself.
+  - Added `activate_environment`, which sets `GOROOT` to the installed Go. An inherited `GOROOT` for
+    another Go (set by goenv, for example) made builds fail with mismatched tool versions.
+  - Removed `$GOROOT/bin` from the globals directories. It's a Go installation, not where `go install`
+    writes, and was placed before this tool's `bin` on `PATH`, so moon ran that Go instead.
+  - `$GOPATH` is now used as-is for the globals directory when it already is a `bin` directory,
+    instead of appending another `bin`.
+  - Added Linux riscv64, ppc64le and loong64, and FreeBSD arm64 support.
+  - Fixed downloads of prereleases from 1.21 onward, like `1.27.0-rc1`, which used `go1.27.0-rc1`
+    instead of Go's `go1.27rc1` file names.
+  - Fixed building from source, which ran Go's entire test suite with `all.bash`, and then deleted
+    everything except `bin`, which Go can't run without.
+- **schema**
+  - An `index-url` index of objects now fails when an object doesn't have the version key, instead
+    of skipping it, as proto selects every object's version key.
+  - `resolve.index_version_key` (format v2) and `resolve.manifest-version-key` (format v1) now accept
+    a JSON path, like `releases[*].tag`, or `*~` for an index keyed by version. A plain key, like
+    `version`, still selects that key of each object.
+  - Added a `revision` group to version patterns, for a 4th version number. The default pattern now
+    matches versions like `1.2.3.4`, which were skipped.
+  - Fixed an override's `range` matching a requested range with a `!=` requirement, when no version
+    satisfies both, for example `<=1.2.3` and `>=1.2.3, !=1.2.3`.
+  - Fixed a version pattern without a capture group panicking, which surfaced as an unclear WASM
+    error. It now errors with how to fix the pattern.
+  - Fixed a format v1 canary with its own `download-url-canary` using the stable `checksum-url` (with
+    `canary` as the version), which doesn't exist. The checksum is now skipped, unless
+    `checksum-url-canary` is configured.
+  - Fixed comments in version files, like `1.4 # stable`, failing to parse. The first line with a
+    version is now used, and everything after `#` is ignored.
+  - Fixed the `latest` version resolving to a pre-release or a version with build metadata, when configured as such. It now falls back to the highest stable version.
+  - Fixed the `year`, `month`, and `day` version pattern groups being ignored, unless a `major` group was also matched.
+  - Fixed a single version with leading zeros, like `2024.01.05`, failing to load all versions. Leading zeros are now removed, for example `2024.1.5`.
+  - Fixed `{download_file}` not being replaced in the format v1 `checksum-url` setting.
+  - Fixed the checksum file being named `CHECKSUM.txt` when the format v1 `checksum-file` setting is not configured, which failed to detect the algorithm of files like `.minisig` and `.sha256`. The name is now extracted from the checksum URL.
+- **java**
+  - Removed the `debian`, `graalvm-ce20`, and `zulu-prime` distributions, which foojay no longer
+    lists or returns packages for.
+  - The default distribution is now `temurin` instead of `openjdk`, which applies to versions without a
+    vendor, like `21`. jdk.java.net's `openjdk` builds stop receiving updates 6 months after a release,
+    so `21` resolved to 21.0.2 from January 2024. Use `openjdk-21` to keep the previous behavior.
+  - Versions with a 4th number, like `18.0.2.1`, now use proto's revision support, instead of
+    encoding it into the pre-release (`18.0.2-v1`), including those in `.sdkmanrc`. Existing pins
+    with the encoding still resolve, to the revision.
+  - Fixed Linux ppc64 requesting big-endian builds, which most vendors don't publish, instead of the
+    little-endian (`ppc64le`) builds that Linux uses.
+  - Fixed comments in `.java-version`, like `21 # LTS`, failing to parse. Everything after `#` is
+    now ignored.
+  - Fixed versions without build metadata, like `temurin-21.0.11` or `21.0.2` in `.java-version`,
+    failing to resolve, as every listed version has one (`21.0.11+10`). They now match any build.
+  - Fixed `.sdkmanrc` parsing:
+    - Supports SDKMAN's newer identifiers, like `21.0.13.0+9-tem`, which failed to parse.
+    - Supports the `jbr` (JetBrains) vendor.
+    - Ignores comments and whitespace, like SDKMAN does.
+  - Fixed legacy `1.x` versions in `.java-version`, like `1.8`, which never resolved.
+  - Fixed installs of SapMachine and Tencent Kona failing checksum verification, as proto can't detect
+    the algorithm of SapMachine's checksum files, nor verify Kona's md5 checksums.
+  - Fixed versions that require a login to download, like Oracle JDK 17.0.13 and later, being listed
+    and installed with an empty URL.
+  - Removed `$JAVA_HOME/bin` from the globals directories. It's another JDK, not where globals are
+    installed, and was added to `PATH`.
+- **moon**
+  - The `canary` version now errors. moon stopped publishing canary builds in v2, and the old `canary`
+    release on GitHub only has a moon v1 build from December 2025, which was installed instead.
+  - `moon upgrade` is no longer blocked by proto. moon v2.2.2+ detects that proto installed it, and
+    upgrades with `proto install moon latest --pin local`.
+  - Fixed building moon v1 from source, which tried to build a `moonx` binary that only exists in v2.
+  - Fixed building moon v2.2+ from source without `protoc`, which it requires. It's now installed with
+    apt or Homebrew when missing.
+  - moon v2.0 and v2.1 now error as unsupported on macOS x64, instead of failing to download a build
+    that was never published.
+- **node**
+  - Added Linux ARMv6 support (like the Raspberry Pi Zero and 1), which proto detects. It installs
+    `armv6l` builds (unofficial builds from v12 to v22), instead of ARMv7 builds that can't run.
+    v23 and later have no ARMv6 builds.
+  - Added Linux riscv64 and loong64 support, using [unofficial builds](https://github.com/nodejs/unofficial-builds).
+  - Windows arm64 now uses x64 builds (through emulation) for versions before v20, which have no arm64 builds.
+  - Fixed pinning an alias, like `lts` or `latest`, writing it to `devEngines` in `package.json`, which
+    only supports versions and ranges. It now errors instead.
+  - Fixed building from source:
+    - The built `node` was never found, as it stayed in the source's `out/Release` directory. Builds
+      are now installed like the pre-built archives, including npm and corepack.
+    - macOS forced GCC 12 (`CXX=g++-12`), while Node.js requires the Xcode toolchain. Linux now uses
+      the default compiler (or `CXX` when set), as `g++-12` was only installed with apt, and failed
+      elsewhere.
+    - Python is now required as `python3`, which Node.js' `configure` uses.
+  - Fixed a comment after the version in `.nvmrc` or `.node-version`, like `20 # LTS`, failing to
+    parse. Like nvm, everything after `#` is now ignored.
+  - Updated the `latest` version to never be a pre-release or contain build metadata.
+  - Fixed `.nvmrc` and `.node-version` files containing `lts/*` or `lts-*` failing to parse. They now
+    resolve to the latest LTS, like nvm and fnm.
+  - Fixed Linux arm64 installing x64 builds for versions before v16, which can't run. Only macOS
+    (through Rosetta) uses x64 builds for those versions.
+  - Fixed musl Linux on architectures other than x64 and arm64 installing glibc builds, which can't
+    run. It now errors, as no musl builds exist for them.
+  - Fixed `canary` on musl Linux downloading from the unofficial builds host, which doesn't have the
+    official nightly it resolved.
+  - Fixed `bundled-npm` installing the npm bundled with the Node.js version configured in the working
+    directory, instead of the version that was just installed.
+  - Fixed an empty nightly index, or an empty version in an index, panicking instead of returning an error.
+  - Fixed a failed install of the bundled npm being ignored. It now logs a warning.
+- **npm, pnpm, yarn, nub**
+  - Added Linux s390x, ppc64, and riscv64, and FreeBSD x64 support for pnpm v12.4+, which were only
+    supported by pnpm v11 and below.
+  - Added `$NPM_CONFIG_PREFIX` (npm) and `$YARN_PREFIX` (Yarn) to the globals directories.
+  - `latest` for Yarn now follows `@yarnpkg/cli-dist`'s latest version, instead of being fixed to v4.
+  - `$PREFIX`, and `$PNPM_HOME` for pnpm v11+, are now used as-is for the globals directories when
+    they already are a `bin` directory, instead of appending another `bin`.
+  - Added a `nubr` executable for Nub v0.9.3+.
+  - Added Windows x64 support for Yarn v6 (from `6.0.0-rc.23`).
+  - Fixed pinning an alias, like `latest`, writing it to `devEngines` in `package.json`, which only
+    supports versions and ranges. It now errors instead.
+  - Fixed the `latest` version resolving to a pre-release when the npm `latest` dist-tag points to one. It now falls back to the highest stable version.
+  - Fixed the `nubx` shim running `nub` instead of `nubx`.
+  - Fixed the `node-gyp` executable pointing to a non-existent `.cmd` file on Windows.
+  - Fixed global directories for pnpm v11+, which links global bins into `$PNPM_HOME/bin`, and Nub v0.9+, which links them into `~/.local/bin` (or `$XDG_BIN_HOME`).
+  - Fixed npm global directories on Windows, where bins are linked directly into the prefix.
+  - Fixed `shared-globals-dir` for pnpm v10 and below, which ignore `pnpm_config_*` environment variables. They now receive `npm_config_global_dir` and `npm_config_global_bin_dir`.
+  - Fixed Yarn v6 on macOS x64 attempting a download that doesn't exist, instead of failing as unsupported.
+  - Fixed the archive prefix for Yarn v0 versions.
+  - Fixed an empty version in the Node.js index panicking while inferring the npm version.
+- **python**
+  - Added uv's `.python-versions` file to version detection, after `.python-version`.
+  - Added `$PYTHONUSERBASE/bin` as a globals directory on Unix, which is where `pip install --user`
+    writes when the user base is overridden. When it already is a `bin` directory, it's used as-is.
+  - Added `git`, `bash`, and `libzstd-dev` to the build from source system dependencies, as suggested
+    by pyenv. Without them, Alpine couldn't run `python-build`, and Debian/Ubuntu built 3.14+ without
+    the `compression.zstd` module.
+  - Fixed free-threaded and debug builds in `.python-version`, like `3.13t` or `3.13+freethreaded`
+    (written by `uv python pin`), installing the standard build or failing to parse. They're now
+    ignored with a warning, as only standard builds are available.
+  - Fixed 32-bit ARM Linux installing the soft-float (`gnueabi`) build, which hard-float distros,
+    like Raspberry Pi OS, can't run. The hard-float (`gnueabihf`) build is now preferred.
+  - Fixed a comment after the version in `.python-version`, like `3.13 # stable`, failing to
+    parse. Everything after `#` is now ignored.
+  - Fixed `.python-version` files failing to resolve when they contain comments or several versions
+    (one per line, as written by pyenv), in which case the first is used, or a CPython prerelease,
+    like `3.15.0rc2`. Files for other implementations, like `pypy3.10-7.3.12`, or `system`, are now
+    ignored with a warning instead of failing.
+- **poetry**
+  - Git tags that aren't versions are now skipped when loading versions, instead of failing.
+  - A `requires-poetry` in `pyproject.toml` that can't be parsed is now logged at the debug level,
+    instead of with a warning.
+  - Fixed the post-install hook writing `virtualenvs.use-poetry-python` to the global Poetry config
+    for Poetry 2, overriding the user's own choice, when it's already the default. Only Poetry
+    1.2-1.8 is still configured.
+  - Fixed the installer script being reused until Poetry is uninstalled. It's now fetched for every
+    install.
+  - Fixed a `requires-poetry` that can't be translated, like `~=2`, failing version detection. It's now
+    ignored with a warning.
+  - Fixed comments in `.poetry-version`, like `2.1.1 # stable`, failing to parse. Everything
+    after `#` is now ignored.
+  - Fixed installing prereleases, like `1.2.0-rc2`, which the installer rejected as it only accepts
+    PyPI's `1.2.0rc2` form.
+  - Fixed the post-install hook running whichever `poetry` was on `PATH` instead of the version that
+    was just installed. Without proto's bins on `PATH` (a fresh CI machine, for example) the install
+    failed, and through a shim it configured another version, or nothing when no version was pinned.
+  - Fixed `~=X.Y` in `requires-poetry` only allowing `X.Y.*`. Per PEP 440 it allows `X.*`, so `~=2.1`
+    now resolves to the latest 2.x.
+  - Fixed `==X.Y` in `requires-poetry` resolving to the latest `X.Y` patch, instead of `X.Y.0`. Short
+    versions are now zero-padded, as PEP 440 compares them.
+  - Fixed `!=` in `requires-poetry` failing version detection. It's now converted to a proto `!=`
+    requirement, for example, `>=2.0, !=2.1.0`.
+  - Install failures now include the installer's output, instead of an empty error.
+  - Fixed a failed `poetry config` in the post-install hook being ignored. It now logs a warning.
+- **uv**
+  - `~=X.Y` in `required-version` now allows any `X.*` from `X.Y`, as PEP 440 and uv define it. For
+    example, `~=0.5` resolves to the latest 0.x, instead of the latest 0.5.x.
+  - A `uv.toml` without a `required-version` now stops detection in its directory, as uv ignores
+    `[tool.uv]` in a `pyproject.toml` next to it.
+  - Added Windows arm64 and x86, and Linux x86, arm, ppc64le, s390x, and riscv64 support.
+  - Fixed `uv self update` not being blocked, as `uv self upgrade` was blocked instead.
+  - Fixed exact versions in `required-version`, like `==0.5`, `0.5`, or `===0.5.0`, resolving to the
+    latest 0.5 patch instead of 0.5.0, which uv then refused to run. Short versions are now
+    zero-padded, as PEP 440 compares them, which also applies to `<=`.
+  - Fixed `!=` in `required-version` failing version detection. It's now converted to a proto `!=`
+    requirement, for example, `>=2.0, !=2.1.0`.
+- **ruby**
+  - Fixed `.ruby-version` files with the `ruby-` prefix (written by RVM, and accepted by rbenv and
+    chruby) failing to resolve, like `ruby-3.4.5`. Files for other engines, like `jruby-9.4.5.0`, are
+    now ignored with a warning instead of failing.
+- **rust**
+  - `$CARGO_INSTALL_ROOT` and `$CARGO_HOME` are now used as-is for the globals directories when they
+    already are a `bin` directory, instead of appending another `bin`.
+  - Added a warning when a toolchain file uses a partial version like `1.80`, which rustup installs as a
+    separate toolchain from proto's.
+  - Fixed comments in a legacy `rust-toolchain` file, like `1.80.0 # MSRV`, failing to parse.
+    Everything after `#` is now ignored.
+  - Fixed `rust-toolchain.toml` taking precedence over `rust-toolchain` when both exist. Rustup uses
+    the legacy file, so proto now does too.
+  - Fixed a legacy `rust-toolchain` file with TOML content failing to parse.
+  - Fixed Windows ARM64 downloading the x64 `rustup-init`.
+  - Fixed failed `rustup` commands being ignored, which reported toolchains as installed or
+    uninstalled when they weren't. They now return an error.
+- **swift**
+  - The `swift-tools-version` in `Package.swift` is now a minimum requirement (`>=5.9`) instead of a
+    caret range (`^5.9`), as it declares the oldest toolchain that can build the package, and newer
+    toolchains build older manifests. Pin a version in `.swift-version` to stay on a major version.
+  - When `linux-platform` isn't configured, the Linux distribution is now detected from
+    `/etc/os-release`, like swiftly, instead of always using `ubuntu-24.04`. Other distributions were
+    installing an Ubuntu toolchain that can fail with missing or mismatched libraries. Unsupported
+    distributions still fall back to `ubuntu-24.04`, with a warning.
+  - Added `debian-13`, `redhat-ubi-10`, and `ubuntu-26.04` Linux platforms, available from Swift 6.4.
+  - Fixed a lockfile shared by machines with different Linux distributions failing checksum
+    verification, as each downloads a different toolchain. Distributions other than `ubuntu-24.04`
+    are now recorded as a variant in the lockfile (for example, `debian-12`).
+  - Fixed comments in `.swift-version`, like `6.1.2 # stable`, failing to parse. Everything after
+    `#` is now ignored.
+  - Fixed downloads of 6.4.0 and later `.0` releases, which Swift.org names `swift-6.4.0-RELEASE`
+    instead of `swift-6.4-RELEASE`.
+  - Fixed the globals directory, which pointed at the toolchain's own `usr/bin` instead of
+    `~/.swiftpm/bin`, where `swift package experimental-install` writes executables.
+  - Fixed `Package.swift` version detection, which failed on trailing settings like
+    `// swift-tools-version: 6.3;(experimentalCGen)`, and ignored the spacing and casing that SwiftPM
+    allows, like `//swift-tools-version:5.10`.
+- **zig**
+  - `minimum_zig_version` in `build.zig.zon` now resolves within its minor version (`~0.14.0`) instead
+    of to any newer version (`>=0.14.0`), as Zig changes APIs between minor versions. A 0.14 project
+    was installing the latest Zig, which fails to build it. setup-zig, anyzig, and zvm install the
+    exact version, while this also allows newer patches.
+  - A `master` version that can't be parsed is now skipped, instead of failing to load versions.
+  - Fixed comments in `.zig-version` and `.zigversion`, like `0.15.2 # stable`, failing to parse.
+    Everything after `#` is now ignored.
+  - Fixed the `master` alias (`proto install zig master`, or `master` in `.zig-version`) failing to
+    resolve, as the master build wasn't in the version list.
+  - No longer creates a `~/.proto/bin/zig.exe` on Windows. It's a copy of the executable, which can't
+    find Zig's `lib` directory and fails on every run. Use the `zig` shim instead.
+- **zls**
+  - `minimum_zig_version` in `build.zig.zon` now resolves to a ZLS within the same minor version
+    (`~0.14`) instead of any newer version (`>=0.14`), matching the Zig plugin.
+  - Fixed comments in `.zig-version` and `.zigversion`, like `0.15.2 # stable`, failing to parse.
+    Everything after `#` is now ignored.
+  - Removed the archive prefix from downloads, as ZLS archives have no top-level directory.
+  - Fixed partial versions and aliases in Zig version files, like `0.15` or `latest` in
+    `.zig-version`, failing to parse and stopping ZLS from installing.
 
 #### 🐞 Fixes
 
@@ -104,10 +410,8 @@
 #### ⚙️ Internal
 
 - Updated wasmtime to v49 (from 43).
-- Plugins now receive their host environment from the platform proto has detected, instead of detecting it again for every plugin. On Linux, this avoids running `ldd --version` each time a plugin is loaded.
-- Added a `foreign_platform` field to warpgate's `HostData`, which logs a warning when the `exec_command` host function is called while set.
-- Added `HttpDownloader::without_cache` to warpgate, which never reads from or writes to the HTTP cache.
-- Changed `LocatorResponse.exe_file` to an `Option`, which is `None` when the tool has no primary executable, and added `Locator.try_locate_exe_file`.
+- Updated Rust to v1.100.0.
+- Updated dependencies.
 
 ## 0.63.2
 

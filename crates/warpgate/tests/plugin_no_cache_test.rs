@@ -2,6 +2,7 @@
 // created, so it runs in its own binary (process). Otherwise it would disable
 // caching for containers created by other tests running in parallel.
 
+use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
 use starbase_sandbox::create_empty_sandbox;
 use std::env;
 use std::path::PathBuf;
@@ -22,6 +23,19 @@ fn find_api_usage_wasm() -> PathBuf {
         .expect("proto_api_usage.wasm does not exist. Please build it with `just build-wasm` before running tests!")
 }
 
+// The plugin imports proto's `load_tool_versions` host function, which
+// warpgate doesn't provide, so it must be defined for the plugin to load
+fn unused_proto_load_tool_versions(
+    plugin: &mut CurrentPlugin,
+    _inputs: &[Val],
+    outputs: &mut [Val],
+    _user_data: UserData<()>,
+) -> Result<(), Error> {
+    plugin.memory_set_val(&mut outputs[0], r#"{"versions":[]}"#)?;
+
+    Ok(())
+}
+
 #[tokio::test(flavor = "multi_thread")]
 async fn doesnt_cache_when_disabled() {
     let sandbox = create_empty_sandbox();
@@ -33,18 +47,22 @@ async fn doesnt_cache_when_disabled() {
     // Safe, as this is the only test in this binary
     unsafe { env::set_var("WARPGATE_NO_FUNC_CACHE", "true") };
 
-    let container = PluginContainer::new(
-        id,
-        manifest,
-        create_host_functions(HostData {
-            cache_dir: sandbox.path().join("cache"),
-            foreign_platform: None,
-            http_client: Arc::new(create_http_client().unwrap()),
-            virtual_paths: vec![],
-            working_dir: sandbox.path().to_path_buf(),
-        }),
-    )
-    .unwrap();
+    let mut functions = create_host_functions(HostData {
+        cache_dir: sandbox.path().join("cache"),
+        foreign_platform: None,
+        http_client: Arc::new(create_http_client().unwrap()),
+        virtual_paths: vec![],
+        working_dir: sandbox.path().to_path_buf(),
+    });
+    functions.push(Function::new(
+        "load_tool_versions",
+        [ValType::I64],
+        [ValType::I64],
+        UserData::new(()),
+        unused_proto_load_tool_versions,
+    ));
+
+    let container = PluginContainer::new(id, manifest, functions).unwrap();
 
     // Count guest function calls, which excludes cache hits
     let calls = Arc::new(AtomicUsize::new(0));

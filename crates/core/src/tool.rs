@@ -1,7 +1,7 @@
 use crate::config::PluginType;
 use crate::env::ProtoEnvironment;
 use crate::helpers::get_proto_version;
-use crate::host::{ToolVersionsSource, create_proto_host_functions};
+use crate::host::create_proto_host_functions;
 use crate::id::Id;
 use crate::layout::Inventory;
 use crate::lockfile::LockRecord;
@@ -93,16 +93,6 @@ impl Tool {
         let context = context.as_ref();
         let proto = proto.as_ref();
         let config = proto.load_config()?;
-        let versions_source = config
-            .get_tool_config(context)
-            .and_then(|tool_config| tool_config.versions_source.as_ref())
-            .map(|source| ToolVersionsSource {
-                version_pattern: source.version_pattern.clone(),
-                index_url: source.index_url.clone(),
-                index_version_key: source.index_version_key.clone(),
-                git_url: source.git_url.clone(),
-                git_tag_pattern: source.git_tag_pattern.clone(),
-            });
 
         debug!(
             "Creating tool {} and instantiating plugin",
@@ -125,7 +115,10 @@ impl Tool {
                         virtual_paths: proto.get_virtual_paths(),
                         working_dir: proto.working_dir.clone(),
                     },
-                    versions_source,
+                    config
+                        .get_tool_config(context)
+                        .and_then(|tool_config| tool_config.versions_source.as_ref())
+                        .map(|source| source.to_owned()),
                 ),
             )?),
         )

@@ -36,6 +36,7 @@ pub struct ProtoOfflineConfig {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     #[setting(env = "PROTO_OFFLINE_HOSTS", parse_env = env::split_comma)]
     pub custom_hosts: Vec<String>,
+
     #[setting(env = "PROTO_OFFLINE_OVERRIDE_HOSTS", parse_env = env::parse_bool)]
     pub override_default_hosts: bool,
 

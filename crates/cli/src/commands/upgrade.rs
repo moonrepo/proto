@@ -196,7 +196,17 @@ fn is_running() -> Option<sysinfo::Pid> {
         "Checking if proto is currently running in a separate process"
     );
 
-    let mut system = sysinfo::System::new();
+    let mut system = match sysinfo::System::new() {
+        Ok(system) => system,
+        Err(error) => {
+            debug!(
+                "Unable to check for running proto processes, as system information couldn't be loaded: {error}"
+            );
+
+            return None;
+        }
+    };
+
     system.refresh_processes(ProcessesToUpdate::All, true);
 
     for process in system.processes_by_name("proto".as_ref()) {
