@@ -1,44 +1,43 @@
 use rustc_hash::FxHashMap;
 use serde_json::Value;
-use warpgate_api::{AnyResult, anyhow, api_struct, select_json_path};
+use warpgate_api::{AnyResult, anyhow, api_enum, api_struct, select_json_path};
 
-// Note: We don't use `api_struct!` for named enums because they are not supported by schematic!
+api_enum!(
+    /// Input passed to the `load_tool_versions` host function.
+    #[serde(tag = "type", rename_all = "snake_case")]
+    pub enum LoadToolVersionsInput {
+        /// Load versions from Git tags.
+        Git {
+            /// The URL of the Git remote.
+            url: String,
 
-/// Input passed to the `load_tool_versions` host function.
-#[derive(Clone, Debug, serde::Deserialize, PartialEq, serde::Serialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum LoadToolVersionsInput {
-    /// Load versions from Git tags.
-    Git {
-        /// The URL of the Git remote.
-        url: String,
+            /// A regex pattern to match Git tags.
+            #[serde(default)]
+            tag_pattern: Option<String>,
+        },
 
-        /// A regex pattern to match Git tags.
-        #[serde(default)]
-        tag_pattern: Option<String>,
-    },
+        /// Load versions from a JSON index.
+        Index {
+            /// The URL of the JSON index.
+            url: String,
 
-    /// Load versions from a JSON index.
-    Index {
-        /// The URL of the JSON index.
-        url: String,
+            /// A JSON path to the version(s) in the index.
+            #[serde(default, alias = "version_path")]
+            version_key: Option<String>,
 
-        /// A JSON path to the version(s) in the index.
-        #[serde(default, alias = "version_path")]
-        version_key: Option<String>,
+            /// HTTP headers to send with the request. Only sent to this URL,
+            /// not to an index URL configured by the user.
+            #[serde(default, skip_serializing_if = "FxHashMap::is_empty")]
+            headers: FxHashMap<String, String>,
 
-        /// HTTP headers to send with the request. Only sent to this URL,
-        /// not to an index URL configured by the user.
-        #[serde(default, skip_serializing_if = "FxHashMap::is_empty")]
-        headers: FxHashMap<String, String>,
-
-        /// Return the response body in the output, for data other than
-        /// versions, like aliases. Only returned for this URL, not for a
-        /// source configured by the user.
-        #[serde(default)]
-        include_body: bool,
-    },
-}
+            /// Return the response body in the output, for data other than
+            /// versions, like aliases. Only returned for this URL, not for a
+            /// source configured by the user.
+            #[serde(default)]
+            include_body: bool,
+        },
+    }
+);
 
 impl LoadToolVersionsInput {
     /// Create a `LoadToolVersionsInput` for loading versions from a Git remote.

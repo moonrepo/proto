@@ -735,18 +735,12 @@ KEY = "from=${FILE}"
     mod builtins {
         use super::*;
         use proto_core::BuiltinPlugins;
-        use schematic::{Config, PartialConfig};
         use std::path::Path;
 
         // Unlike `ProtoConfig::from_partial` directly, this applies setting
-        // defaults (via finalize), like `ProtoFileManager` does in production
+        // defaults and environment variables, like `ProtoFileManager` does
         fn load_config(dir: &Path) -> ProtoConfig {
-            ProtoConfig::from_partial(
-                ProtoConfig::load_from(dir, false)
-                    .unwrap()
-                    .finalize(&())
-                    .unwrap(),
-            )
+            ProtoConfig::from_merged_partial(ProtoConfig::load_from(dir, false).unwrap()).unwrap()
         }
 
         #[test]

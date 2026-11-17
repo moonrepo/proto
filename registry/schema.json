@@ -22,10 +22,11 @@
     },
     "version": {
       "description": "Current version of the registry document.",
-      "type": "number"
+      "type": "integer",
+      "maximum": 255,
+      "minimum": 0
     }
   },
-  "additionalProperties": false,
   "definitions": {
     "Id": {
       "title": "Id",
@@ -75,8 +76,7 @@
             }
           ]
         }
-      },
-      "additionalProperties": false
+      }
     },
     "PluginEntry": {
       "title": "PluginEntry",
@@ -188,8 +188,7 @@
             }
           ]
         }
-      },
-      "additionalProperties": false
+      }
     },
     "PluginFormat": {
       "title": "PluginFormat",
@@ -239,8 +238,7 @@
             }
           ]
         }
-      },
-      "additionalProperties": false
+      }
     }
   }
 }

@@ -5271,9 +5271,9 @@ dependencies = [
 
 [[package]]
 name = "schematic"
-version = "0.20.12"
+version = "0.21.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00e36179a1f783009cabbd72afbda7ea34f21490f222127cb4ad5a5d835085d2"
+checksum = "24e53e928bd39b81f12146304275e267b2ed2d5ec3d1f8223336388b5229f49e"
 dependencies = [
  "convert_case 0.12.0",
  "garde",
@@ -5297,9 +5297,9 @@ dependencies = [
 
 [[package]]
 name = "schematic_core"
-version = "0.1.11"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c7682baa49b42244e239897768766ed59927cbd26e59b7862a768ae71c2bfb2"
+checksum = "04cf4ef28e1264330732365ece7ef5026dc0711a8a3d9e1c4e3a530c0a8b0813"
 dependencies = [
  "convert_case 0.12.0",
  "darling 0.24.1",
@@ -5310,11 +5310,10 @@ dependencies = [
 
 [[package]]
 name = "schematic_macros"
-version = "0.20.11"
+version = "0.21.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92b7052d5e38ff752cb86d76ca7c38cc6e8fb9464e364263473be78df30e4e6e"
+checksum = "18d25801e8d87b612fd4218a853ed06e31cc1a1552e40e90183e504770df0386"
 dependencies = [
- "proc-macro2",
  "quote",
  "schematic_core",
  "syn 3.0.10",
@@ -5322,10 +5321,11 @@ dependencies = [
 
 [[package]]
 name = "schematic_types"
-version = "0.12.11"
+version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0f114a9a2a81e9fbba88eb50b5ec299209cd2b6795a2737ec505c1b36da202e6"
+checksum = "e4bd7888b07a7ffa2056b53693face9cbd44496c0de411917f276675746b3d53"
 dependencies = [
+ "compact_str 0.10.0",
  "indexmap",
  "regex",
  "serde",
@@ -5912,9 +5912,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_id"
-version = "0.4.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ef7785e941528856cab3a8e330df2970a9ac40cf6194a7e640c5ccc9345f0379"
+checksum = "159e298cf7dfed5b14c48557a4c43a911fac1c24df638a2146c2dd291e93bad6"
 dependencies = [
  "compact_str 0.10.0",
  "miette 7.6.0",

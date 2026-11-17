@@ -74,6 +74,32 @@ pub struct ProtoConfig {
 }
 
 impl ProtoConfig {
+    /// Convert a partial config, that every config file has been merged into,
+    /// into a full config, by layering setting defaults under it and environment
+    /// variables over the result, and then finalizing it. Finalizing a partial
+    /// on its own does not apply defaults or variables.
+    pub fn from_merged_partial(
+        partial: PartialProtoConfig,
+    ) -> Result<ProtoConfig, ProtoConfigError> {
+        let context = &();
+
+        // Defaults are read against the sources, and go under them
+        let mut partial = match partial.default_values(context)? {
+            Some(mut defaults) => {
+                defaults.merge(context, partial)?;
+                defaults
+            }
+            None => partial,
+        };
+
+        // Variables are read against the result, and go over it
+        if let Some(env) = partial.env_values()? {
+            partial.merge(context, env)?;
+        }
+
+        Ok(ProtoConfig::from_partial(partial.finalize(context)?))
+    }
+
     pub fn get_backend_config(&self, context: &ToolContext) -> Option<&ProtoBackendConfig> {
         context
             .backend

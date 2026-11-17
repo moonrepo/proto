@@ -184,28 +184,28 @@ impl Requirement {
     /// parts of this requirement, including the pre-release. Omitted
     /// parts match any value.
     pub fn matches_exact(&self, version: &Version) -> bool {
-        if let Some(major) = self.major {
-            if version.major != major {
-                return false;
-            }
+        if let Some(major) = self.major
+            && version.major != major
+        {
+            return false;
         }
 
-        if let Some(minor) = self.minor {
-            if version.minor != minor {
-                return false;
-            }
+        if let Some(minor) = self.minor
+            && version.minor != minor
+        {
+            return false;
         }
 
-        if let Some(patch) = self.patch {
-            if version.patch != patch {
-                return false;
-            }
+        if let Some(patch) = self.patch
+            && version.patch != patch
+        {
+            return false;
         }
 
-        if let Some(revision) = self.revision_bound() {
-            if version.revision.unwrap_or(0) != revision {
-                return false;
-            }
+        if let Some(revision) = self.revision_bound()
+            && version.revision.unwrap_or(0) != revision
+        {
+            return false;
         }
 
         self.prerelease == version.prerelease
@@ -305,16 +305,16 @@ impl Requirement {
             return false;
         }
 
-        if let Some(minor) = self.minor {
-            if version.minor != minor {
-                return false;
-            }
+        if let Some(minor) = self.minor
+            && version.minor != minor
+        {
+            return false;
         }
 
-        if let Some(patch) = self.patch {
-            if version.patch != patch {
-                return version.patch > patch;
-            }
+        if let Some(patch) = self.patch
+            && version.patch != patch
+        {
+            return version.patch > patch;
         }
 
         if let Some(revision) = self.revision_bound() {
@@ -469,6 +469,7 @@ impl schematic::Schematic for Requirement {
     }
 
     fn build_schema(mut schema: schematic::SchemaBuilder) -> schematic::Schema {
+        schema.set_description("A version requirement composed of a comparison operator and a full or partial version to match against.");
         schema.string_default()
     }
 }

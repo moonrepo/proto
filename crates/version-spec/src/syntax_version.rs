@@ -212,6 +212,9 @@ impl schematic::Schematic for Version {
     }
 
     fn build_schema(mut schema: schematic::SchemaBuilder) -> schematic::Schema {
+        schema.set_description(
+            "A version in either calendar or semantic format, with support for scopes, pre-releases, and build metadata.",
+        );
         schema.string_default()
     }
 }

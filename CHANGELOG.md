@@ -21,6 +21,17 @@
 - [Zig](https://github.com/moonrepo/plugins/blob/master/tools/zig/CHANGELOG.md)
 - [ZLS](https://github.com/moonrepo/plugins/blob/master/tools/zig-ls/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- **Config**
+  - Updated boolean settings that are read from environment variables (like `PROTO_AUTO_INSTALL` and `PROTO_TELEMETRY`) to error on a value that isn't recognized, instead of treating it as `false`. An empty value is now treated as unset, so the setting's default applies. `0`, `false`, `no`, `off`, `disable`, and `disabled` are accepted as `false`.
+
+#### ⚙️ Internal
+
+- Updated schematic to v0.21.
+
 ## 0.64.0
 
 #### 🚀 Updates
