@@ -99,6 +99,46 @@ export interface ExecCommandOutput {
 	streamed?: boolean;
 }
 
+/** A Linux distribution, as defined by its `os-release` file. */
+export interface SystemDistro {
+	/**
+	 * Identifier of the distribution (the `ID` field), for example,
+	 * `ubuntu`, `debian`, `fedora`, or `alpine`.
+	 */
+	id?: string;
+	/**
+	 * Identifiers of the distributions that this distribution is derived from,
+	 * or closely related to (the `ID_LIKE` field), ordered from the closest to
+	 * the most distant, for example, `rhel`, `centos`, and `fedora` on Rocky
+	 * Linux. Empty when the distribution doesn't define any.
+	 */
+	id_like?: string[];
+	/**
+	 * Version of the distribution (the `VERSION_ID` field), for example,
+	 * `24.04`, `12`, `40`, or `3.20.3`. Rolling releases, like Arch Linux,
+	 * don't define a version.
+	 */
+	version_id?: string | null;
+}
+
+/**
+ * Details about the hardware and operating system of the system environment,
+ * that further distinguish it from other machines with the same platform
+ * (architecture, operating system, and libc). Each detail is only available
+ * where it applies, and when it could be detected.
+ */
+export interface SystemDetails {
+	/** Version of the ARM architecture (for example, 6 or 7), on 32-bit ARM. */
+	arm_version?: number | null;
+	/** The Linux distribution, on Linux. */
+	distro?: SystemDistro | null;
+	/**
+	 * The x86-64 microarchitecture level (1 to 4), on x64. Each level supports
+	 * the instructions of the levels below it, for example, AVX2 is level 3.
+	 */
+	x64_level?: number | null;
+}
+
 /** Information about the host environment (the current runtime). */
 export interface HostEnvironment {
 	/**
@@ -109,6 +149,16 @@ export interface HostEnvironment {
 	arch: SystemArch;
 	/** Whether the plugin is running in a CI environment. */
 	ci: boolean;
+	/**
+	 * Details about the hardware and operating system of the host system,
+	 * like the x86-64 microarchitecture level or Linux distribution, that
+	 * plugins can use to choose between builds for the same platform.
+	 *
+	 * Not available when targeting another platform (when `foreign` is
+	 * true), or when the host doesn't provide them (for example, older
+	 * versions), so plugins must fall back to a default.
+	 */
+	details?: SystemDetails | null;
 	/**
 	 * Whether the plugin is targeting a platform other than the machine
 	 * it's running on, for example, when locking other platforms. When
@@ -148,6 +198,7 @@ export type PluginLocator = string;
 /** Represents a virtual absolute path on the guest system. */
 export type VirtualPath = string;
 
+/** A version in either calendar or semantic format, with support for scopes, pre-releases, and build metadata. */
 export type Version = string;
 
 /**
@@ -293,22 +344,20 @@ export interface RegisterBackendInput {
 	id: Id;
 }
 
-/** Downloaded from an archive. */
+/** Source code is contained in an archive. */
 export interface ArchiveSource {
 	/** A path prefix within the archive to remove. */
 	prefix?: string | null;
-	type: 'archive';
 	/** The URL to download the archive from. */
 	url: string;
 }
 
-/** Cloned from a Git repository. */
+/** Source code is located in a Git repository. */
 export interface GitSource {
 	/** The branch/commit/tag to checkout. */
 	reference?: string | null;
 	/** Include submodules during checkout. */
 	submodules?: boolean;
-	type: 'git';
 	/** The URL of the Git remote. */
 	url: string;
 }
@@ -473,6 +522,14 @@ export interface DownloadPrebuiltOutput {
 	post_script?: string | null;
 	/** A list of arguments to pass to the script file when executing it. */
 	post_script_args?: string[];
+	/**
+	 * Name of the build that was chosen, when the tool distributes more
+	 * than one build for the same platform, for example, `baseline` for a
+	 * build that doesn't require AVX2. The default build should not have a
+	 * variant. Recorded in the lockfile, so that each build is verified
+	 * against its own checksum.
+	 */
+	variant?: string | null;
 }
 
 /** Input passed to the `unpack_archive` function. */
@@ -685,9 +742,9 @@ export interface RunHook {
 	/** Current tool context. */
 	context: PluginContext;
 	/** Path to the global packages directory for the tool, if found. */
-	globals_dir: VirtualPath | null;
+	globals_dir?: VirtualPath | null;
 	/** A prefix applied to the file names of globally installed packages. */
-	globals_prefix: string | null;
+	globals_prefix?: string | null;
 	/** Arguments passed after `--` that was directly passed to the tool's executable. */
 	passthrough_args: string[];
 }
@@ -706,21 +763,43 @@ export interface RunHookResult {
 }
 
 /** The location in which source code can be acquired. */
-export type SourceLocation = ArchiveSource | GitSource;
+export type SourceLocation = ({
+	type: 'archive';
+} & ArchiveSource) | ({
+	type: 'git';
+} & GitSource);
+
+/** A builder and its parameters for installing the builder. */
+export interface BuilderInstruction {
+	/** Primary executable, relative from the source root. */
+	exe: string;
+	/** Secondary executables, relative from the source root. */
+	exes?: Record<string, string>;
+	/** The Git source location for the builder. */
+	git: GitSource;
+	/** Unique identifier for this builder. */
+	id: Id;
+}
+
+/** A command and its parameters to be executed as a child process. */
+export interface CommandInstruction {
+	/** List of arguments. */
+	args?: string[];
+	/** If the executable should reference a builder executable. */
+	builder: boolean;
+	/** The working directory. */
+	cwd?: VirtualPath | null;
+	/** Map of environment variables. */
+	env?: Record<string, string>;
+	/** The executable on `PATH`. */
+	bin?: string;
+	/** The executable on `PATH`. */
+	exe: string;
+}
 
 /** An instruction to execute. All paths are relative from the build directory. */
 export type BuildInstruction = {
-	/** A builder and its parameters for installing the builder. */
-	instruction: {
-		/** Primary executable, relative from the source root. */
-		exe: string;
-		/** Secondary executables, relative from the source root. */
-		exes?: Record<string, string>;
-		/** The Git source location for the builder. */
-		git: GitSource;
-		/** Unique identifier for this builder. */
-		id: Id;
-	};
+	instruction: BuilderInstruction;
 	type: 'install-builder';
 } | {
 	instruction: string;
@@ -741,27 +820,14 @@ export type BuildInstruction = {
 	instruction: string;
 	type: 'request-script';
 } | {
-	/** A command and its parameters to be executed as a child process. */
-	instruction: {
-		/** List of arguments. */
-		args?: string[];
-		/** If the executable should reference a builder executable. */
-		builder: boolean;
-		/** The working directory. */
-		cwd?: VirtualPath | null;
-		/** Map of environment variables. */
-		env?: Record<string, string>;
-		/** The executable on `PATH`. */
-		bin?: string;
-		/** The executable on `PATH`. */
-		exe: string;
-	};
+	instruction: CommandInstruction;
 	type: 'run-command';
 } | {
 	instruction: [string, string];
 	type: 'set-env-var';
 };
 
+/** A version requirement composed of a comparison operator and a full or partial version to match against. */
 export type Requirement = string;
 
 /** Is required and must exist in the current environment. */
@@ -789,8 +855,11 @@ export type BuildRequirement = {
 /** A system dependency name in multiple formats. */
 export type DependencyName = string | Record<SystemPackageManager, string> | string[] | Record<SystemPackageManager, string[]>;
 
-/** Represents a system dependency (one or many packages) to install. */
-export type SystemDependency = string | Record<SystemPackageManager, string> | string[] | Record<SystemPackageManager, string[]> | {
+/**
+ * Either a single or multiple package, defined as an
+ * explicit configuration object.
+ */
+export interface DependencyConfig {
 	/** Only install on this architecture. */
 	arch?: SystemArch | null;
 	/** The dependency name or name(s) to install. */
@@ -806,7 +875,10 @@ export type SystemDependency = string | Record<SystemPackageManager, string> | s
 	os?: SystemOS | null;
 	/** The version to install. */
 	version?: string | null;
-};
+}
+
+/** Represents a system dependency (one or many packages) to install. */
+export type SystemDependency = string | Record<SystemPackageManager, string> | string[] | Record<SystemPackageManager, string[]> | DependencyConfig;
 
 /** Output returned by the `build_instructions` function. */
 export interface BuildInstructionsOutput {

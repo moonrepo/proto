@@ -615,6 +615,9 @@ impl schematic::Schematic for SystemPlatform {
     }
 
     fn build_schema(mut schema: schematic::SchemaBuilder) -> schematic::Schema {
+        schema.set_description(
+            "A platform target, composed of an architecture, operating system, and libc.",
+        );
         schema.string_default()
     }
 }

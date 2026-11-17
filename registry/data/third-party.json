@@ -1103,7 +1103,7 @@
       "name": "sp",
       "description": "CLI for SolidPing, an open source uptime monitoring server. Manage checks and incidents, or keep checks in YAML and apply them.",
       "author": "fclairamb",
-      "homepageUrl": "https://www.solidping.io",
+      "homepageUrl": "https://www.solidping.io/",
       "repositoryUrl": "https://github.com/fclairamb/proto-plugins/blob/main/sp.toml",
       "bins": [
         "sp"

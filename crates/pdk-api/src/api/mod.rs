@@ -951,8 +951,8 @@ impl LoadVersionsOutput {
         let mut latest: Option<&VersionSpec> = None;
 
         for version in &versions {
-            if let Some(inner) = version.as_version() {
-                if inner.prerelease.is_none()
+            if let Some(inner) = version.as_version()
+                && inner.prerelease.is_none()
                     && inner.build.is_none()
                     && latest
                         .and_then(|spec| spec.as_version())
@@ -960,7 +960,6 @@ impl LoadVersionsOutput {
                 {
                     latest = Some(version);
                 }
-            }
         }
 
         output.latest = Some(match latest {

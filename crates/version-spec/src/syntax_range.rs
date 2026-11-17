@@ -281,6 +281,8 @@ impl schematic::Schematic for Range {
     }
 
     fn build_schema(mut schema: schematic::SchemaBuilder) -> schematic::Schema {
+        schema
+            .set_description("A version range composed of clauses, in which any clause may match.");
         schema.string_default()
     }
 }
