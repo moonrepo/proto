@@ -5,7 +5,7 @@ use crate::id::Id;
 use crate::lockfile::*;
 use crate::tool_context::ToolContext;
 use once_cell::sync::OnceCell;
-use schematic::{Config, PartialConfig};
+use schematic::PartialConfig;
 use serde::Serialize;
 use starbase_styles::encode_style_tags;
 use starbase_utils::fs;
@@ -591,7 +591,7 @@ impl ProtoFileManager {
             }
         }
 
-        let mut config = ProtoConfig::from_partial(partial.finalize(context)?);
+        let mut config = ProtoConfig::from_merged_partial(partial)?;
         config.inherit_builtin_plugins();
         config.setup_env_vars();
 
