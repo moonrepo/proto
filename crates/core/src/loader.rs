@@ -7,7 +7,7 @@ use crate::tool_context::ToolContext;
 use convert_case::{Case, Casing};
 use proto_pdk_api::HostEnvironment;
 use rustc_hash::FxHashSet;
-use starbase_utils::envx::is_ci;
+use starbase_utils::envx::{is_ci, is_docker, is_podman};
 use starbase_utils::{json, toml, yaml};
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
@@ -31,6 +31,7 @@ pub fn inject_proto_manifest_config(
             &HostEnvironment {
                 arch: platform.arch,
                 ci: is_ci(),
+                container: is_docker() || is_podman(),
                 details: proto.get_host_details().cloned(),
                 foreign: proto.is_foreign_platform(),
                 libc: platform.libc,

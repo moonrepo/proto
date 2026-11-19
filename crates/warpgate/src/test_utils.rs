@@ -179,6 +179,7 @@ impl ConfigBuilder {
         self.host_environment(HostEnvironment {
             arch: platform.arch,
             ci: is_ci(),
+            container: false,
             details: None,
             foreign: false,
             libc: platform.libc,
@@ -195,6 +196,7 @@ impl ConfigBuilder {
         let mut host = HostEnvironment {
             arch: platform.arch,
             ci: is_ci(),
+            container: false,
             details: Some(HostDetails::from_platform(&platform)),
             foreign: false,
             libc: platform.libc,

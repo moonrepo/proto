@@ -27,11 +27,12 @@
 
 - **Config**
   - Updated boolean settings that are read from environment variables (like `PROTO_AUTO_INSTALL` and `PROTO_TELEMETRY`) to error on a value that isn't recognized, instead of treating it as `false`. An empty value is now treated as unset, so the setting's default applies. `0`, `false`, `no`, `off`, `disable`, and `disabled` are accepted as `false`.
+- **WASM API**
+  - Added `HostEnvironment.container` to indicate if the host environment is running inside a container (Docker or Podman).
 
 #### ⚙️ Internal
 
-- Updated schematic to v0.21.
-- Migrated child process execution to `starbase_process` v0.4 (build from source, post-install scripts, Git, the plugin `exec_command` host function, and `proto exec`/`proto run`).
+- Migrated child process execution to `starbase_process`.
 
 ## 0.64.0
 
