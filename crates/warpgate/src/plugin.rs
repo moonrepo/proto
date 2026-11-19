@@ -4,7 +4,7 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use starbase_styles::{apply_style_tags, color};
 use starbase_utils::{
-    envx::{bool_var, is_ci},
+    envx::{bool_var, is_ci, is_docker, is_podman},
     hash,
 };
 use std::fmt::Debug;
@@ -56,6 +56,7 @@ pub fn inject_default_manifest_config(
         let env = serde_json::to_string(&HostEnvironment {
             arch: platform.arch,
             ci: is_ci(),
+            container: is_docker() || is_podman(),
             details: Some(SystemDetails::from_platform(&platform)),
             foreign: false,
             libc: platform.libc,

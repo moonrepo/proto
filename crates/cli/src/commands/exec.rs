@@ -108,7 +108,7 @@ pub async fn exec(session: ProtoSession, args: ExecArgs) -> SessionResult {
     )?;
 
     // Must be the last line!
-    exec_command_and_replace(command)
+    exec_command_and_replace(command.create_sync_command()?)
         .into_diagnostic()
         .map(|_| None)
 }

@@ -9,6 +9,7 @@ use proto_core::flow::detect::{Detector, ProtoDetectError};
 use proto_core::flow::locate::{Locator, ProtoLocateError};
 use proto_core::flow::resolve::Resolver;
 use proto_core::layout::ShimRegistry;
+use proto_core::utils::process::ProtoCommand;
 use proto_core::{
     Id, PROTO_PLUGIN_KEY, PinLocation, ProtoConfig, ProtoEnvironment, ProtoLoaderError, Tool,
     ToolContext, ToolSpec,
@@ -23,7 +24,6 @@ use std::env;
 use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use tracing::{debug, instrument};
 
 #[derive(Args, Clone, Debug)]
@@ -353,11 +353,13 @@ fn run_global_tool(
             color::shell(args.context.id),
         );
 
-        let mut command = Command::new(global_exe);
-        command.args(args.passthrough);
-        command.env(FALLBACK_GUARD_VAR, append_fallback(&guard, &id, pid));
+        let mut command = ProtoCommand::new(global_exe);
+        command
+            .no_shell()
+            .args(args.passthrough)
+            .env(FALLBACK_GUARD_VAR, append_fallback(&guard, &id, pid));
 
-        return exec_command_and_replace(command).into_diagnostic();
+        return exec_command_and_replace(command.create_sync_command()?).into_diagnostic();
     }
 
     Err(error)
@@ -604,7 +606,7 @@ pub async fn run(session: ProtoSession, mut args: RunArgs) -> SessionResult {
     let command = create_command(workflow, tool_name, exe_config, args.passthrough)?;
 
     // Must be the last line!
-    exec_command_and_replace(command)
+    exec_command_and_replace(command.create_sync_command()?)
         .into_diagnostic()
         .map(|_| None)
 }
@@ -614,7 +616,7 @@ fn create_command(
     tool_name: String,
     exe_config: ExecutableConfig,
     passthrough_args: Vec<String>,
-) -> miette::Result<Command> {
+) -> miette::Result<ProtoCommand> {
     let exe_path = exe_config
         .exe_path
         .as_ref()

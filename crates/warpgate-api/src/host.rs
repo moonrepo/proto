@@ -15,6 +15,10 @@ api_struct!(
         /// Whether the plugin is running in a CI environment.
         pub ci: bool,
 
+        /// Whether the plugin is running in a container (Docker or Podman).
+        #[serde(default)]
+        pub container: bool,
+
         /// Details about the hardware and operating system of the host system,
         /// like the x86-64 microarchitecture level or Linux distribution, that
         /// plugins can use to choose between builds for the same platform.
