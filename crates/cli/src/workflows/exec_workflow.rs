@@ -6,6 +6,7 @@ use miette::IntoDiagnostic;
 use proto_core::flow::locate::Locator;
 use proto_core::flow::manage::ProtoManageError;
 use proto_core::flow::resolve::Resolver;
+use proto_core::utils::process::ProtoCommand;
 use proto_core::{ProtoConfig, ProtoConfigEnvOptions, ToolContext, ToolSpec};
 use proto_pdk_api::{
     ActivateEnvironmentInput, ActivateEnvironmentOutput, HookFunction, PluginFunction, RunHook,
@@ -13,13 +14,13 @@ use proto_pdk_api::{
 };
 use rustc_hash::FxHashMap;
 use starbase_args::parse as parse_args;
+use starbase_process::get_default_shell;
 use starbase_shell::{BoxedShell, ShellType, join_args};
 use starbase_utils::envx;
 use std::collections::VecDeque;
 use std::env;
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use tracing::{instrument, trace};
 
 /// Fake marker paths that denote the boundary of the paths that an
@@ -183,95 +184,87 @@ impl<'app> ExecWorkflow<'app> {
         out
     }
 
+    /// Create a command to execute, which is only built here, and must be
+    /// converted with `create_sync_command`, as it replaces the process.
     #[instrument(skip(self))]
     pub fn create_command(
         self,
         mut args: Vec<String>,
         shell_type: Option<ShellType>,
         options: ExecCommandOptions,
-    ) -> miette::Result<Command> {
+    ) -> miette::Result<ProtoCommand> {
         if let Some(shell_type) = shell_type {
-            return self.create_command_with_shell(shell_type.build(), args, options.raw_args);
+            return self.create_command_with_shell(shell_type, args, options.raw_args);
         }
 
         // We unfortunately need a shell to determine if the args must run in a shell!
         if options.check_shell {
-            let shell = ShellType::detect_with_fallback().build();
+            let shell_type = get_default_shell();
 
-            if self.requires_shell(&shell, &args, options.raw_args) {
-                return self.create_command_with_shell(shell, args, options.raw_args);
+            if self.requires_shell(&shell_type.build(), &args, options.raw_args) {
+                return self.create_command_with_shell(shell_type, args, options.raw_args);
             }
         }
 
         self.create_command_without_shell(args.remove(0), args)
     }
 
-    pub fn create_command_without_shell<E, I, A>(self, exe: E, args: I) -> miette::Result<Command>
+    pub fn create_command_without_shell<E, I, A>(
+        self,
+        exe: E,
+        args: I,
+    ) -> miette::Result<ProtoCommand>
     where
         E: AsRef<OsStr>,
         I: IntoIterator<Item = A>,
         A: AsRef<OsStr>,
     {
-        let mut command = Command::new(exe);
-        command.args(args);
+        let mut command = ProtoCommand::new(exe);
+        command
+            .no_shell()
+            .args(args.into_iter().map(|arg| arg.as_ref().to_os_string()));
 
         if !self.multiple && !self.args.is_empty() {
             command.args(&self.args);
         }
 
-        self.apply_to_command(&mut command)?;
+        self.apply_to_command(&mut command);
 
         Ok(command)
     }
 
     pub fn create_command_with_shell<I, A>(
         self,
-        shell: BoxedShell,
+        shell_type: ShellType,
         args: I,
         raw: bool,
-    ) -> miette::Result<Command>
+    ) -> miette::Result<ProtoCommand>
     where
         I: IntoIterator<Item = A>,
         A: AsRef<OsStr>,
     {
+        // The command line is already quoted (or raw) for this shell
         let mut command =
-            shell.create_wrapped_command_with(self.create_command_line(&shell, args, raw));
+            ProtoCommand::new_script(self.create_command_line(&shell_type.build(), args, raw));
+        command.set_shell(shell_type);
 
-        self.apply_to_command(&mut command)?;
+        self.apply_to_command(&mut command);
 
         Ok(command)
     }
 
-    pub fn apply_to_command(self, command: &mut Command) -> miette::Result<()> {
-        if let Some(path) = self.join_paths()? {
-            command.env("PATH", path);
-        }
+    pub fn apply_to_command(self, command: &mut ProtoCommand) {
+        // Prepended to the inherited `PATH`, unless `PATH` is explicitly set
+        command.prepend_paths(&self.paths);
 
         for (key, value) in self.env {
-            match value {
-                Some(value) => command.env(key, value),
-                None => command.env_remove(key),
-            };
+            command.env_opt(key, value);
         }
 
         trace!(
-            exe = ?command.get_program().to_string_lossy(),
-            args = ?command.get_args().map(|arg| arg.to_string_lossy()).collect::<Vec<_>>(),
+            command = command.get_command_line(true, false),
             "Created command to execute",
         );
-
-        Ok(())
-    }
-
-    pub fn join_paths(&self) -> miette::Result<Option<OsString>> {
-        if !self.paths.is_empty() {
-            let env_paths = envx::paths();
-            let joined = env::join_paths(self.paths.iter().chain(&env_paths)).into_diagnostic()?;
-
-            return Ok(Some(joined));
-        }
-
-        Ok(None)
     }
 
     pub fn join_activated_paths_for_shell(
@@ -849,22 +842,89 @@ mod tests {
             assert_eq!(remove_activated_paths(&store, paths.clone()), paths);
         }
 
-        #[test]
-        fn join_paths_returns_none_when_empty() {
-            let wf = make_workflow();
-            assert!(wf.join_paths().unwrap().is_none());
+        fn get_env(command: &std::process::Command, key: &str) -> Option<Option<OsString>> {
+            command
+                .get_envs()
+                .find(|(k, _)| *k == OsStr::new(key))
+                .map(|(_, v)| v.map(|v| v.to_os_string()))
         }
 
         #[test]
-        fn join_paths_returns_some_when_non_empty() {
+        fn doesnt_set_path_when_no_paths() {
+            let wf = make_workflow();
+            let command = wf
+                .create_command_without_shell("node", ["--version"])
+                .unwrap()
+                .create_sync_command()
+                .unwrap();
+
+            assert_eq!(command.get_program(), "node");
+            assert_eq!(command.get_args().collect::<Vec<_>>(), ["--version"]);
+            assert!(get_env(&command, "PATH").is_none());
+        }
+
+        #[test]
+        fn prepends_paths_to_path() {
             let mut wf = make_workflow();
             wf.paths.push_back(PathBuf::from("/test/bin"));
+            wf.paths.push_back(PathBuf::from("/test/other"));
 
-            let result = wf.join_paths().unwrap();
-            assert!(result.is_some());
+            let command = wf
+                .create_command_without_shell("node", Vec::<String>::new())
+                .unwrap()
+                .create_sync_command()
+                .unwrap();
 
-            let joined = result.unwrap().to_string_lossy().to_string();
-            assert!(joined.starts_with("/test/bin"));
+            let path = get_env(&command, "PATH").unwrap().unwrap();
+            let paths = env::split_paths(&path).collect::<Vec<_>>();
+
+            assert_eq!(paths[0], PathBuf::from("/test/bin"));
+            assert_eq!(paths[1], PathBuf::from("/test/other"));
+        }
+
+        #[test]
+        fn sets_and_removes_env_vars() {
+            let mut wf = make_workflow();
+            wf.env.insert("SET".into(), Some("value".into()));
+            wf.env.insert("UNSET".into(), None);
+
+            let command = wf
+                .create_command_without_shell("node", Vec::<String>::new())
+                .unwrap()
+                .create_sync_command()
+                .unwrap();
+
+            assert_eq!(get_env(&command, "SET"), Some(Some("value".into())));
+            assert_eq!(get_env(&command, "UNSET"), Some(None));
+        }
+
+        #[cfg(unix)]
+        #[test]
+        fn wraps_in_shell_with_quoted_args() {
+            let wf = make_workflow();
+            let command = wf
+                .create_command_with_shell(ShellType::Bash, ["echo", "a b", "$HOME"], false)
+                .unwrap()
+                .create_sync_command()
+                .unwrap();
+
+            // Variables are left for the shell to expand
+            assert_eq!(command.get_program(), "bash");
+            assert_eq!(command.get_args().last().unwrap(), "echo $'a b' $HOME");
+        }
+
+        #[cfg(unix)]
+        #[test]
+        fn wraps_in_shell_with_raw_args() {
+            let wf = make_workflow();
+            let command = wf
+                .create_command_with_shell(ShellType::Bash, ["echo", "a", "&&", "$HOME"], true)
+                .unwrap()
+                .create_sync_command()
+                .unwrap();
+
+            assert_eq!(command.get_program(), "bash");
+            assert_eq!(command.get_args().last().unwrap(), "echo a && $HOME");
         }
 
         #[cfg(windows)]

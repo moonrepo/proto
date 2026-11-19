@@ -31,6 +31,7 @@
 #### ⚙️ Internal
 
 - Updated schematic to v0.21.
+- Migrated child process execution to `starbase_process` v0.4 (build from source, post-install scripts, Git, the plugin `exec_command` host function, and `proto exec`/`proto run`).
 
 ## 0.64.0
 

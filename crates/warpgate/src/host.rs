@@ -5,13 +5,14 @@ use crate::clients::{HttpClient, WarpgateHttpClientError};
 use crate::plugin_error::WarpgatePluginError;
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
 use rustc_hash::FxHashMap;
-use starbase_shell::{ShellType, join_exe_args};
+use starbase_console::EmptyReporter;
+use starbase_process::{Command, Env, ProcessError, output_to_string};
+use starbase_shell::ShellType;
 use starbase_styles::{apply_style_tags, color};
 use starbase_utils::net::{self, DownloadOptions};
 use starbase_utils::{envx, fs};
 use std::env;
 use std::path::PathBuf;
-use std::process::{Command, Stdio};
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Instant;
@@ -229,26 +230,22 @@ fn exec_command(
     // Determine the shell
     let shell_name = input.shell.or_else(|| env::var("PROTO_SHELL").ok());
 
-    // Create and execute command
-    let mut command = match &shell_name {
+    // Create the command
+    let mut command = Command::<EmptyReporter>::new(exe);
+    command.args(&input.args).cwd(&cwd);
+
+    match &shell_name {
         Some(shell_name) => {
-            let shell = ShellType::from_str(shell_name)?.build();
-            shell.create_wrapped_command_with(join_exe_args(&shell, exe, &input.args, false))
+            command.set_shell(ShellType::from_str(shell_name)?);
         }
         None => {
-            let mut command = Command::new(exe);
-            command.args(&input.args);
-            command
+            command.no_shell();
         }
     };
 
-    command.current_dir(&cwd);
-
     for (key, value) in &input.env {
         if let Some(key) = key.strip_suffix('?') {
-            if env::var_os(key).is_none() {
-                command.env(key, value);
-            }
+            command.env_with_behavior(key, Env::SetIfMissing(value.into()));
         } else if let Some(key) = key.strip_suffix('!') {
             command.env_remove(key);
         } else {
@@ -268,19 +265,16 @@ fn exec_command(
         );
         paths.extend(env_paths);
 
+        // Set explicitly instead of with `prepend_paths`, so that these
+        // paths take precedence over a `PATH` passed in `env`
         command.env("PATH", env::join_paths(paths)?);
     }
 
-    command.stdin(Stdio::null());
-
-    if should_stream {
-        command.stderr(Stdio::inherit()).stdout(Stdio::inherit());
-    } else {
-        command.stderr(Stdio::piped()).stdout(Stdio::piped());
-    }
-
-    let mut child = command.spawn()?;
-    let pid = child.id();
+    // Plugins inspect the exit code themselves (see `error_on_nonzero` in the
+    // PDK). The child isn't contained (the default), so it stays in our
+    // process group, and can prompt through the terminal (like Git for
+    // credentials) without being stopped.
+    command.set_error_on_nonzero(false);
 
     trace!(
         plugin = &uuid,
@@ -288,37 +282,41 @@ fn exec_command(
         exe = &input.command,
         args = ?input.args,
         cwd = ?cwd,
-        pid = pid,
         "Executing command on host machine"
     );
 
-    let output = if should_stream {
-        let result = child.wait()?;
-
-        ExecCommandOutput {
-            command: input.command.clone(),
-            exit_code: result.code().unwrap_or(-1),
-            stderr: String::new(),
-            stdout: String::new(),
-            streamed: true,
-        }
+    // Host functions are synchronous, so block until the child exits
+    let result = if should_stream {
+        command.exec_stream_output_blocking()
     } else {
-        let result = child.wait_with_output()?;
+        command.exec_capture_output_blocking()
+    }
+    // Failing to spawn or communicate with the child wraps the
+    // underlying IO error, so return that as-is, as we did before
+    .map_err(|report| match report.downcast::<ProcessError>() {
+        Ok(
+            ProcessError::Capture { error, .. }
+            | ProcessError::Stream { error, .. }
+            | ProcessError::StreamCapture { error, .. }
+            | ProcessError::WriteInput { error, .. },
+        ) => Error::new(*error),
+        Ok(error) => Error::new(error),
+        Err(report) => Error::msg(report.to_string()),
+    })?;
 
-        ExecCommandOutput {
-            command: input.command.clone(),
-            exit_code: result.status.code().unwrap_or(-1),
-            stderr: String::from_utf8_lossy(&result.stderr).to_string(),
-            stdout: String::from_utf8_lossy(&result.stdout).to_string(),
-            streamed: false,
-        }
+    let output = ExecCommandOutput {
+        command: input.command.clone(),
+        exit_code: result.code().unwrap_or(-1),
+        stderr: output_to_string(&result.stderr),
+        stdout: output_to_string(&result.stdout),
+        streamed: should_stream,
     };
 
     trace!(
         plugin = plugin.id().to_string(),
         shell = &shell_name,
         exe = ?exe,
-        pid = pid,
+        pid = result.pid,
         exit_code = output.exit_code,
         stderr = if debug_output.is_some() {
             Some(&output.stderr)

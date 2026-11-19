@@ -1,10 +1,11 @@
 use crate::settings::ProtoToolVersionsSourceConfig;
+use crate::utils::process::{extract_io_error, new_command};
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
 use proto_pdk_api::{LoadToolVersionsInput, LoadToolVersionsOutput, select_index_versions};
 use regex::Regex;
 use rustc_hash::FxHashMap;
+use starbase_process::{StdinMode, output_to_string};
 use starbase_styles::color;
-use std::process::{Command, Stdio};
 use std::time::Instant;
 use tokio::runtime::Handle;
 use tracing::{instrument, trace};
@@ -183,30 +184,32 @@ fn load_git_source(
 }
 
 fn load_tool_versions_from_git(data: &HostData, url: &str) -> Result<Vec<String>, Error> {
-    let mut command = Command::new("git");
+    let mut command = new_command("git");
     command
         .args(["ls-remote", "--tags", "--sort", "version:refname", url])
-        .current_dir(&data.working_dir)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
+        .cwd(&data.working_dir)
+        .set_stdin(StdinMode::Null);
 
-    let output = command.output()?;
+    // Host functions are synchronous
+    let output = command
+        .exec_capture_output_blocking()
+        .map_err(|report| Error::new(extract_io_error(report)))?;
 
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
+    if !output.success() {
+        let stderr = output.stderr_trimmed();
 
         return Err(Error::msg(format!(
             "Failed to load Git tags from <url>{url}</url>, as <shell>git ls-remote</shell> returned a {} exit code.{}",
-            output.status.code().unwrap_or(1),
-            if stderr.trim().is_empty() {
+            output.code().unwrap_or(1),
+            if stderr.is_empty() {
                 String::new()
             } else {
-                format!("\n<mutedlight>{}</mutedlight>", stderr.trim())
+                format!("\n<mutedlight>{stderr}</mutedlight>")
             }
         )));
     }
 
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stdout = output_to_string(&output.stdout);
     let mut versions = vec![];
 
     for line in stdout.lines() {
