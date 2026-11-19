@@ -4,7 +4,7 @@ use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
 use proto_pdk_api::{LoadToolVersionsInput, LoadToolVersionsOutput, select_index_versions};
 use regex::Regex;
 use rustc_hash::FxHashMap;
-use starbase_process::{StdinMode, output_to_string};
+use starbase_process::StdinMode;
 use starbase_styles::color;
 use std::time::Instant;
 use tokio::runtime::Handle;
@@ -209,7 +209,7 @@ fn load_tool_versions_from_git(data: &HostData, url: &str) -> Result<Vec<String>
         )));
     }
 
-    let stdout = output_to_string(&output.stdout);
+    let stdout = output.stdout_trimmed();
     let mut versions = vec![];
 
     for line in stdout.lines() {

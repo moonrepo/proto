@@ -1,5 +1,5 @@
 use crate::reporter::ProtoReporter;
-use starbase_process::{Arg, Command, ProcessError, StdinMode, output_to_string};
+use starbase_process::{Arg, Command, ProcessError, StdinMode};
 use starbase_styles::{Style, Stylize, color};
 use starbase_utils::fs::FsError;
 use std::ffi::OsStr;
@@ -105,8 +105,8 @@ async fn exec(
     })?;
 
     let code = output.code().unwrap_or(-1);
-    let stderr = output_to_string(&output.stderr);
-    let stdout = output_to_string(&output.stdout);
+    let stderr = output.stderr();
+    let stdout = output.stdout();
 
     trace!(
         code,
