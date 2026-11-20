@@ -400,11 +400,11 @@ mod pm {
 
             assert_eq!(
                 pm.get_update_index_command(false).unwrap().unwrap(),
-                vec!["dnf", "check-update", "-y"]
+                vec!["dnf", "makecache", "-y"]
             );
             assert_eq!(
                 pm.get_update_index_command(true).unwrap().unwrap(),
-                vec!["dnf", "check-update"]
+                vec!["dnf", "makecache"]
             );
         }
     }
@@ -790,11 +790,11 @@ mod pm {
 
             assert_eq!(
                 pm.get_update_index_command(false).unwrap().unwrap(),
-                vec!["yum", "check-update"]
+                vec!["yum", "makecache"]
             );
             assert_eq!(
                 pm.get_update_index_command(true).unwrap().unwrap(),
-                vec!["yum", "check-update"]
+                vec!["yum", "makecache"]
             );
         }
     }
