@@ -12,7 +12,8 @@ rust-version = "1.90.0"
 all-features = true
 
 [dependencies]
-regex = { workspace = true }
+# `\d` and `\s` in the list parser patterns require `unicode-perl`
+regex = { workspace = true, features = ["unicode-perl"] }
 schematic = { workspace = true, optional = true, features = ["schema"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
