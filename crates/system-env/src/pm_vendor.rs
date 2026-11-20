@@ -200,7 +200,9 @@ pub(crate) fn dnf() -> PackageManagerConfig {
                 CommandType::ListPackages,
                 string_vec!["dnf", "list", "installed"],
             ),
-            (CommandType::UpdateIndex, string_vec!["dnf", "check-update"]),
+            // `check-update` exits with 100 when updates are available, so use
+            // `makecache`, which only exits non-zero when refreshing fails
+            (CommandType::UpdateIndex, string_vec!["dnf", "makecache"]),
         ]),
         list_parser: ListParser::new("^<package>.<arch>\\s+<version>"),
         prompt_arg: PromptArgument::Skip("-y".into()),
@@ -307,7 +309,9 @@ pub(crate) fn yum() -> PackageManagerConfig {
                 CommandType::ListPackages,
                 string_vec!["yum", "list", "installed"],
             ),
-            (CommandType::UpdateIndex, string_vec!["yum", "check-update"]),
+            // `check-update` exits with 100 when updates are available, so use
+            // `makecache`, which only exits non-zero when refreshing fails
+            (CommandType::UpdateIndex, string_vec!["yum", "makecache"]),
         ]),
         list_parser: ListParser::new("^<package>.<arch>\\s+<version>"),
         prompt_arg: PromptArgument::Skip("-y".into()),
