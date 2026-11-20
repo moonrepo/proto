@@ -13,6 +13,7 @@ use std::env;
 use std::path::Path;
 use std::sync::{LazyLock, OnceLock};
 use std::time::SystemTime;
+use tracing::debug;
 use version_spec::Version;
 use warpgate::RegistryConfig;
 
@@ -90,8 +91,25 @@ pub fn is_offline() -> bool {
             .unwrap_or(750);
 
         let custom_hosts: Vec<String> = env::var("PROTO_OFFLINE_HOSTS")
-            .map(|value| value.split(',').map(|v| v.trim().to_owned()).collect())
+            .map(|value| {
+                value
+                    .split(',')
+                    .map(|host| host.trim())
+                    .filter(|host| !host.is_empty())
+                    .map(|host| host.to_owned())
+                    .collect()
+            })
             .unwrap_or_default();
+
+        // Without the default hosts, there's nothing to check, which
+        // would be reported as offline, so assume we're online instead
+        if override_default && custom_hosts.is_empty() {
+            debug!(
+                "Default offline hosts are overridden without custom hosts, skipping offline detection"
+            );
+
+            return false;
+        }
 
         let ip_version = env::var("PROTO_OFFLINE_IP_VERSION").unwrap_or_default();
 
