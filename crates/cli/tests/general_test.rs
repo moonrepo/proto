@@ -99,6 +99,86 @@ mod general {
         assert!(output.get("info").is_some());
     }
 
+    mod agent_reporter {
+        use super::*;
+
+        const NDJSON_NOTICE: &str = "Detected an AI agent environment";
+
+        // Runs proto with a terminal attached, like a person typing a command
+        #[cfg(unix)]
+        fn run_in_terminal(sandbox: &ProtoSandbox, envs: &[(&str, &str)]) -> String {
+            use std::process::{Command, Stdio};
+
+            let proto = env!("CARGO_BIN_EXE_proto");
+            let mut cmd = Command::new("script");
+
+            if cfg!(target_os = "macos") {
+                cmd.args(["-q", "/dev/null", proto, "status"]);
+            } else {
+                cmd.args(["-q", "-e", "-c", &format!("'{proto}' status"), "/dev/null"]);
+            }
+
+            cmd.current_dir(sandbox.path())
+                .envs(&sandbox.settings.env)
+                .env_remove("PROTO_REPORTER")
+                .envs(envs.iter().copied())
+                .stdin(Stdio::null());
+
+            String::from_utf8_lossy(&cmd.output().unwrap().stdout).into_owned()
+        }
+
+        #[test]
+        fn defaults_to_ndjson_when_an_agent_captures_output_in_cursor() {
+            let sandbox = create_empty_proto_sandbox();
+
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("status")
+                    .env("CURSOR_TRACE_ID", "abc")
+                    .env_remove("PROTO_REPORTER");
+            });
+
+            assert!(assert.stdout().contains(NDJSON_NOTICE));
+        }
+
+        // Cursor's integrated terminal sets `CURSOR_TRACE_ID` for every command
+        #[cfg(unix)]
+        #[test]
+        fn defaults_to_text_for_a_person_in_cursors_terminal() {
+            let sandbox = create_empty_proto_sandbox();
+
+            let output = run_in_terminal(&sandbox, &[("CURSOR_TRACE_ID", "abc")]);
+
+            assert!(output.contains("No tools have been configured"), "{output}");
+            assert!(!output.contains(NDJSON_NOTICE), "{output}");
+            assert!(!output.contains(r#"{"type":"#), "{output}");
+        }
+
+        #[cfg(unix)]
+        #[test]
+        fn defaults_to_ndjson_for_cursors_agent_in_a_terminal() {
+            let sandbox = create_empty_proto_sandbox();
+
+            let output = run_in_terminal(
+                &sandbox,
+                &[("CURSOR_TRACE_ID", "abc"), ("CURSOR_AGENT", "1")],
+            );
+
+            assert!(output.contains(NDJSON_NOTICE), "{output}");
+        }
+
+        // Agents in Cursor's terminal inherit `CURSOR_TRACE_ID`
+        #[cfg(unix)]
+        #[test]
+        fn defaults_to_ndjson_for_other_agents_in_cursors_terminal() {
+            let sandbox = create_empty_proto_sandbox();
+
+            let output =
+                run_in_terminal(&sandbox, &[("CURSOR_TRACE_ID", "abc"), ("CLAUDECODE", "1")]);
+
+            assert!(output.contains(NDJSON_NOTICE), "{output}");
+        }
+    }
+
     mod log_level {
         use super::*;
 

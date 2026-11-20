@@ -82,9 +82,9 @@ dependencies = [
 
 [[package]]
 name = "ai_env"
-version = "0.1.3"
+version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8cb737aa9ab384c769a094a9c8c28f87a86cc1c4d0d599f207d65514c101a58"
+checksum = "abeeb1bf72d8beb0711e2c7dcf87d12cc1a493a2cc2ad147ee79fe91ad28a5d3"
 dependencies = [
  "serde",
 ]

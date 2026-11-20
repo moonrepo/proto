@@ -1,4 +1,4 @@
-use crate::app::{App as CLI, Commands, PluginCommands, StdoutOwner};
+use crate::app::{App as CLI, Commands, PluginCommands, StdoutOwner, is_agent_driven};
 use crate::commands::clean::{CleanArgs, CleanTarget, internal_clean};
 use crate::helpers::create_console_theme;
 use crate::systems::*;
@@ -437,7 +437,7 @@ impl AppSession for ProtoSession {
         // the tool process, shell code, and other stdout protocols
         if self.cli.stdout_owner() == StdoutOwner::Reporter
             && self.cli.reporter_format() == ReporterFormat::Ndjson
-            && ai_env::is_ai_agent()
+            && is_agent_driven()
         {
             self.console.message("Detected an AI agent environment, printing as NDJSON. Trace logs are written to stderr, while user-facing logs are written to stdout.")?;
         }
