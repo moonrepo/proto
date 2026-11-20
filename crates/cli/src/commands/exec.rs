@@ -1,10 +1,10 @@
 use crate::error::ProtoCliError;
 use crate::session::{LoadToolOptions, ProtoSession, SessionResult};
+use crate::utils::open_files::exec_command_and_replace;
 use crate::workflows::{ExecCommandOptions, ExecWorkflow, ExecWorkflowParams};
 use clap::Args;
 use miette::IntoDiagnostic;
 use proto_core::{ToolContext, ToolSpec};
-use proto_shim::exec_command_and_replace;
 use rustc_hash::{FxHashMap, FxHashSet};
 use starbase_shell::ShellType;
 use tracing::instrument;

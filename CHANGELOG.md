@@ -30,6 +30,10 @@
 - **WASM API**
   - Added `HostEnvironment.container` to indicate if the host environment is running inside a container (Docker or Podman).
 
+#### 🐞 Fixes
+
+- Fixed `proto install` failing with "Too many open files" when many tools are configured, on systems with a low soft limit for open file descriptors (like macOS's default of 256). proto now raises its soft limit towards the hard limit on startup, and restores the original limit for the tools it executes. When the limit is still reached, `proto install` now suggests raising it.
+
 #### ⚙️ Internal
 
 - Migrated child process execution to `starbase_process`.

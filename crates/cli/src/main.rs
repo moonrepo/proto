@@ -66,6 +66,9 @@ async fn async_main() -> MainResult {
         ..TracingOptions::default()
     })?;
 
+    // Before any plugins are loaded, as each holds multiple descriptors
+    utils::open_files::raise_open_files_limit();
+
     let session = ProtoSession::new(cli);
     let mut args = env::args_os().collect::<Vec<_>>();
 
