@@ -12,7 +12,7 @@ use proto_core::layout::ShimRegistry;
 use proto_core::utils::process::ProtoCommand;
 use proto_core::{
     Id, LockRecord, PROTO_PLUGIN_KEY, PinLocation, ProtoConfig, ProtoEnvironment, ProtoLoaderError,
-    Tool, ToolContext, ToolSpec,
+    Tool, ToolContext, ToolSpec, UnresolvedVersionSpec,
 };
 use proto_pdk_api::ExecutableConfig;
 use proto_shim::locate_proto_exe;
@@ -166,6 +166,23 @@ fn require_locked_record(tool: &Tool, spec: &ToolSpec) -> Result<LockRecord, Pro
             tool: tool.get_name().to_owned(),
             spec: spec.req.to_string(),
         })
+}
+
+// Install the requirement instead of the version it resolved to, as aliases
+// like `bundled` mean more than the version, and the lockfile record that
+// resolved it is keyed by the requirement
+fn get_install_command(context: &ToolContext, req: &UnresolvedVersionSpec) -> String {
+    let req = req.to_string();
+
+    // Quote characters that a shell would interpret, like the `~` in `~11`
+    if req
+        .chars()
+        .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '.' | '-' | '_' | '/' | '+'))
+    {
+        format!("proto install {context} {req}")
+    } else {
+        format!("proto install {context} \"{req}\"")
+    }
 }
 
 async fn get_tool_executable(
@@ -567,7 +584,7 @@ pub async fn run(session: ProtoSession, mut args: RunArgs) -> SessionResult {
         }
         // Otherwise fail with a not installed error
         else {
-            let command = format!("proto install {} {}", tool.context, resolved_version);
+            let command = get_install_command(&tool.context, &spec.req);
 
             if let Some(source) = detected_source {
                 return Err(ProtoCliError::RunMissingToolWithSource {
@@ -688,6 +705,37 @@ fn create_command(
 mod tests {
     use super::*;
     use starbase_sandbox::create_empty_sandbox;
+
+    mod install_command {
+        use super::*;
+
+        fn get(req: &str) -> String {
+            get_install_command(
+                &ToolContext::parse("npm").unwrap(),
+                &UnresolvedVersionSpec::parse(req).unwrap(),
+            )
+        }
+
+        #[test]
+        fn uses_the_requirement() {
+            assert_eq!(get("bundled"), "proto install npm bundled");
+            assert_eq!(get("11.20.0"), "proto install npm 11.20.0");
+            assert_eq!(
+                get("1.2.3-rc.1+build.5"),
+                "proto install npm 1.2.3-rc.1+build.5"
+            );
+        }
+
+        #[test]
+        fn quotes_shell_characters() {
+            assert_eq!(get("11"), "proto install npm \"~11\"");
+            assert_eq!(get("^11"), "proto install npm \"^11\"");
+            assert_eq!(get(">=10, <12"), "proto install npm \">=10 && <12\"");
+
+            // The suggested requirement must be accepted by `proto install`
+            assert!(UnresolvedVersionSpec::parse(">=10 && <12").is_ok());
+        }
+    }
 
     mod self_upgrade_pin_config {
         use super::*;
