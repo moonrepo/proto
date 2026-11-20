@@ -6,6 +6,7 @@ use crate::commands::{
     debug::{DebugConfigArgs, DebugEnvArgs},
     plugin::{PluginAddArgs, PluginInfoArgs, PluginListArgs, PluginRemoveArgs, PluginSearchArgs},
 };
+use ai_env::AiAgent;
 use clap::builder::styling::{Color, Style, Styles};
 use clap::{Parser, Subcommand, ValueEnum};
 use proto_core::{ConfigMode, reporter::ReporterFormat};
@@ -13,11 +14,33 @@ use starbase_styles::color::Color as ColorType;
 use std::{
     env,
     fmt::{Display, Error, Formatter},
+    io::{self, IsTerminal},
     path::PathBuf,
+    sync::OnceLock,
 };
 
+fn is_agent_driven_with(agent: Option<AiAgent>, has_terminal: bool) -> bool {
+    agent.is_some_and(|agent| !agent.is_human_possible() || !has_terminal)
+}
+
+/// Return true if an AI agent is running this process. Some environments,
+/// like Cursor's integrated terminal and Replit, are detected as an agent
+/// for every command, including those that a person types, so in these, an
+/// agent must be evident: no terminal attached to stdout or stderr, as
+/// agents capture output through pipes.
+pub fn is_agent_driven() -> bool {
+    static AGENT_DRIVEN: OnceLock<bool> = OnceLock::new();
+
+    *AGENT_DRIVEN.get_or_init(|| {
+        is_agent_driven_with(
+            ai_env::is_ai_agent().then(ai_env::detect_agent),
+            io::stdout().is_terminal() || io::stderr().is_terminal(),
+        )
+    })
+}
+
 fn default_reporter() -> ReporterFormat {
-    if ai_env::is_ai_agent() {
+    if is_agent_driven() {
         ReporterFormat::Ndjson
     } else {
         ReporterFormat::Text
@@ -537,4 +560,39 @@ pub enum PluginCommands {
         about = "Search for available plugins provided by the community."
     )]
     Search(PluginSearchArgs),
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn requires_an_agent() {
+        assert!(!is_agent_driven_with(None, false));
+        assert!(!is_agent_driven_with(None, true));
+    }
+
+    #[test]
+    fn trusts_agents_with_a_terminal() {
+        for agent in [
+            AiAgent::Claude,
+            AiAgent::Codex,
+            AiAgent::CursorCli,
+            AiAgent::Unknown,
+        ] {
+            assert!(is_agent_driven_with(Some(agent), true));
+            assert!(is_agent_driven_with(Some(agent), false));
+        }
+    }
+
+    #[test]
+    fn requires_evidence_for_editor_environments() {
+        // A person typing in the terminal
+        assert!(!is_agent_driven_with(Some(AiAgent::Cursor), true));
+        assert!(!is_agent_driven_with(Some(AiAgent::Replit), true));
+
+        // An agent capturing output
+        assert!(is_agent_driven_with(Some(AiAgent::Cursor), false));
+        assert!(is_agent_driven_with(Some(AiAgent::Replit), false));
+    }
 }

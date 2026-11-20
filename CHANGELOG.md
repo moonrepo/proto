@@ -38,10 +38,12 @@
 - Fixed OpenTelemetry data (`--otel` and `--otel-logs`) not being exported for `proto run`, `proto exec`, `proto shell`, and shims, like the install metrics of an auto-install. These commands now replace the proto process with the tool once the command has completed, after its spans have closed and the exporters have been flushed.
   - Spans are only recorded at the active log level, and these commands default to `warn`, so pass `--log info` (or set `PROTO_LOG=info`) to export their traces as well.
 - Fixed auto-installs (by shims and `proto run`) not verifying the download against the checksum in the lockfile, and ignoring `PROTO_IMMUTABLE_LOCKFILE`. Like `proto install --immutable-lockfile`, an auto-install with an immutable lockfile now fails when the lockfile doesn't have a record for the version on the current platform.
+- Fixed commands that a person runs in Cursor's integrated terminal (or Replit) printing NDJSON instead of human-readable output, as these environments are detected as an AI agent for every command. Agents that run in these environments (like Claude Code, Codex, and Cursor's own agent) are now detected by their own markers, and otherwise, proto only defaults to the NDJSON reporter when no terminal is attached to stdout and stderr, as agents capture output.
 
 #### ⚙️ Internal
 
 - Migrated child process execution to `starbase_process`.
+- Updated `ai_env` to v0.1.4.
 
 ## 0.64.0
 
