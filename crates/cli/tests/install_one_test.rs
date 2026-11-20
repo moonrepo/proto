@@ -1085,4 +1085,76 @@ requires = ["protostar"]
             assert.stderr(predicate::str::contains("Checksum mismatch"));
         }
     }
+
+    mod offline {
+        use super::*;
+        use starbase_sandbox::SandboxAssert;
+
+        fn install<'s>(sandbox: &'s ProtoSandbox, envs: &[(&str, &str)]) -> SandboxAssert<'s> {
+            sandbox.run_bin(|cmd| {
+                cmd.arg("install")
+                    .arg("protostar")
+                    .arg("1.0.0")
+                    .env_remove("PROTO_OFFLINE")
+                    .env_remove("PROTO_OFFLINE_HOSTS")
+                    .env_remove("PROTO_OFFLINE_OVERRIDE_HOSTS")
+                    .envs(envs.iter().copied());
+            })
+        }
+
+        #[test]
+        fn installs_when_overriding_default_hosts_without_custom_hosts() {
+            let sandbox = create_empty_proto_sandbox();
+
+            install(&sandbox, &[("PROTO_OFFLINE_OVERRIDE_HOSTS", "true")]).success();
+
+            assert!(sandbox.path().join(".proto/tools/protostar/1.0.0").exists());
+        }
+
+        #[test]
+        fn installs_when_overriding_default_hosts_without_custom_hosts_in_config() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                "[settings.offline]\noverride-default-hosts = true\n",
+            );
+
+            install(&sandbox, &[]).success();
+
+            assert!(sandbox.path().join(".proto/tools/protostar/1.0.0").exists());
+        }
+
+        #[test]
+        fn ignores_empty_custom_hosts() {
+            let sandbox = create_empty_proto_sandbox();
+
+            install(
+                &sandbox,
+                &[
+                    ("PROTO_OFFLINE_OVERRIDE_HOSTS", "true"),
+                    ("PROTO_OFFLINE_HOSTS", " , "),
+                ],
+            )
+            .success();
+
+            assert!(sandbox.path().join(".proto/tools/protostar/1.0.0").exists());
+        }
+
+        #[test]
+        fn requires_a_connection_when_custom_hosts_are_unreachable() {
+            let sandbox = create_empty_proto_sandbox();
+
+            let assert = install(
+                &sandbox,
+                &[
+                    ("PROTO_OFFLINE_OVERRIDE_HOSTS", "true"),
+                    // Nothing listens on port 1, so the connection is refused
+                    ("PROTO_OFFLINE_HOSTS", "127.0.0.1:1"),
+                ],
+            )
+            .failure();
+
+            assert.stderr(predicate::str::contains("Internet connection required"));
+        }
+    }
 }
