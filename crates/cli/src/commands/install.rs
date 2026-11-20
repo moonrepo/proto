@@ -2,6 +2,7 @@ use crate::error::ProtoCliError;
 use crate::helpers::join_list;
 use crate::session::{LoadToolOptions, ProtoSession, SessionResult};
 use crate::utils::install_graph::*;
+use crate::utils::open_files::is_open_files_limit_error;
 use crate::utils::tool_record::{ToolRecord, sort_tools_by_dependency};
 use crate::workflows::{InstallOutcome, InstallWorkflowManager, InstallWorkflowParams};
 use clap::Args;
@@ -17,6 +18,8 @@ use starbase_styles::color;
 use std::collections::BTreeMap;
 use std::env;
 use std::path::PathBuf;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 use tokio::task::JoinSet;
 use tokio::time::sleep;
@@ -337,6 +340,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> SessionResult 
     let pin_to = args.get_pin_location();
     let skip_prompts = session.should_skip_prompts();
     let strategy = args.get_strategy();
+    let reached_open_files_limit = Arc::new(AtomicBool::new(false));
 
     for tool in tools {
         enforce_requirements(&tool, &versions)?;
@@ -352,6 +356,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> SessionResult 
 
         let tool_context = tool.context.clone();
         let topo_graph = topo_graph.clone();
+        let reached_open_files_limit = Arc::clone(&reached_open_files_limit);
         let mut workflow = workflow_manager.create_workflow(tool);
 
         let handle = set.spawn(Box::pin(async move {
@@ -412,6 +417,10 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> SessionResult 
                         "Failed to run {} install workflow: {error}",
                         color::id(workflow.tool.get_id())
                     );
+
+                    if is_open_files_limit_error(&error) {
+                        reached_open_files_limit.store(true, Ordering::Relaxed);
+                    }
 
                     topo_graph.mark_not_installed(&workflow.tool.context).await;
                     InstallOutcome::FailedToInstall(workflow.tool.get_id().clone())
@@ -488,6 +497,12 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> SessionResult 
             "Failed to install {}! A log has been written to the current directory.",
             join_list(failed.into_iter().map(color::id).collect::<Vec<_>>()),
         ));
+
+        if reached_open_files_limit.load(Ordering::Relaxed) {
+            messages.push(
+                "The limit for open file descriptors was reached. Raise the limit, for example with <shell>ulimit -n 10240</shell>, and try again.".into(),
+            );
+        }
     }
 
     session.console.notice_with(NoticeOutput {

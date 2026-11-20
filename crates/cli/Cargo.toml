@@ -91,6 +91,9 @@ proto_core = { path = "../core", features = ["test"] }
 starbase_sandbox = { workspace = true }
 shared_child = "1.1.2"
 
+[target."cfg(unix)".dependencies]
+libc = "0.2.191"
+
 [target."cfg(windows)".dependencies]
 winreg = { version = "0.56.0", default-features = false }
 

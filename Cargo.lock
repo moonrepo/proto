@@ -4379,6 +4379,7 @@ dependencies = [
  "futures",
  "indexmap",
  "iocraft",
+ "libc",
  "liblzma",
  "miette 7.6.0",
  "proto_core",

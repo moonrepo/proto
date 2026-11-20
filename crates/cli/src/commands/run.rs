@@ -1,6 +1,7 @@
 use crate::commands::install::{InstallArgs, install_one};
 use crate::error::ProtoCliError;
 use crate::session::{ProtoSession, SessionResult};
+use crate::utils::open_files::exec_command_and_replace;
 use crate::workflows::{ExecCommandOptions, ExecWorkflow, ExecWorkflowParams};
 use clap::Args;
 use iocraft::prelude::element;
@@ -15,7 +16,7 @@ use proto_core::{
     ToolContext, ToolSpec,
 };
 use proto_pdk_api::ExecutableConfig;
-use proto_shim::{exec_command_and_replace, locate_proto_exe};
+use proto_shim::locate_proto_exe;
 use rustc_hash::FxHashMap;
 use starbase_console::ui::Confirm;
 use starbase_styles::color;

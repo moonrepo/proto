@@ -83,6 +83,34 @@ mod exec {
         assert.success().stdout(predicate::str::contains("hello"));
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn restores_open_files_limit_for_command() {
+        let sandbox = create_empty_proto_sandbox();
+
+        // Start with a low soft limit, which proto raises for itself, but the
+        // executed command should inherit the original limit. Without `-S`,
+        // most shells lower the hard limit as well.
+        let output = std::process::Command::new("sh")
+            .current_dir(sandbox.path())
+            .envs(&sandbox.settings.env)
+            .arg("-c")
+            .arg(r#"ulimit -S -n 256 && exec "$0" --log debug exec -- sh -c 'ulimit -S -n'"#)
+            .arg(env!("CARGO_BIN_EXE_proto"))
+            .output()
+            .unwrap();
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+
+        assert!(output.status.success(), "{stderr}");
+        assert_eq!(stdout.trim(), "256");
+        assert!(
+            stderr.contains("Raised the soft limit for open file descriptors"),
+            "{stderr}"
+        );
+    }
+
     #[test]
     fn one_tool() {
         let sandbox = create_empty_proto_sandbox();
