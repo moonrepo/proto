@@ -52,7 +52,7 @@ fn unpin_version(session: &ProtoSession, args: &UninstallArgs) -> Result<(), Pro
     Ok(())
 }
 
-async fn track_uninstall(tool: &Tool, spec: Option<&ToolSpec>) -> Result<(), ProtoCliError> {
+pub async fn track_uninstall(tool: &Tool, spec: Option<&ToolSpec>) -> Result<(), ProtoCliError> {
     track_usage(
         &tool.proto,
         Metric::UninstallTool {
@@ -175,12 +175,19 @@ async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> SessionRes
     Ok(None)
 }
 
-async fn try_uninstall_one(tool: &mut ToolRecord, spec: &mut ToolSpec) -> miette::Result<()> {
+/// Uninstall a single version of a tool, by deleting its install directory,
+/// removing it from the manifest and lockfiles, and unlinking (or re-pointing)
+/// its bins and shims. Returns false if the version was not installed.
+pub async fn uninstall_version(tool: &mut ToolRecord, spec: &mut ToolSpec) -> miette::Result<bool> {
     let mut manager = Manager::new(tool);
-    manager.uninstall(spec).await?;
+
+    if !manager.uninstall(spec).await? {
+        return Ok(false);
+    }
+
     manager.sync_manifest().await?;
 
-    Ok(())
+    Ok(true)
 }
 
 #[instrument(skip(session))]
@@ -235,7 +242,7 @@ async fn uninstall_one(
     debug!("Uninstalling {} with version {}", tool.get_name(), spec);
 
     if args.quiet {
-        try_uninstall_one(&mut tool, &mut spec).await?;
+        uninstall_version(&mut tool, &mut spec).await?;
     } else {
         let progress = session.render_progress_loader().await;
 
@@ -245,7 +252,7 @@ async fn uninstall_one(
             spec.get_resolved_version()
         ));
 
-        let result = try_uninstall_one(&mut tool, &mut spec).await;
+        let result = uninstall_version(&mut tool, &mut spec).await;
 
         if result.is_ok() {
             progress.set_message(format!("Uninstalled {}", tool.get_name()));

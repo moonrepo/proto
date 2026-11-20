@@ -31,7 +31,7 @@ pub struct UninstallToolRequest {
     /// Tool identifier/context.
     pub tool: String,
 
-    /// Version/specification to install.
+    /// Version/specification to uninstall.
     pub spec: String,
 }
 

@@ -1,9 +1,8 @@
 use super::resources::*;
 use super::tools::*;
-use crate::commands::enforce_requirements;
+use crate::commands::{enforce_requirements, track_uninstall, uninstall_version};
 use crate::session::ProtoSession;
 use crate::workflows::*;
-use proto_core::flow::install::Installer;
 use proto_core::flow::resolve::Resolver;
 use proto_core::{
     ConfigMode, MatchesVersion, PinLocation, ProtoConfigEnvOptions, Requirement, ToolContext,
@@ -216,11 +215,17 @@ impl ProtoMcp {
         let context = self.parse_context(&req.tool)?;
         let mut spec = self.parse_spec(&req.spec)?;
 
-        let tool = handle_tool_error!(self.session.load_tool(&context).await);
+        let mut tool = handle_tool_error!(self.session.load_tool(&context).await);
 
         handle_tool_error!(Resolver::resolve(&tool, &mut spec, false).await);
 
-        let uninstalled = handle_tool_error!(Installer::new(&tool, &spec).uninstall().await);
+        // Use the same flow as `proto uninstall`, so that the manifest,
+        // lockfiles, bins, and shims are updated, and not just the directory
+        let uninstalled = handle_tool_error!(uninstall_version(&mut tool, &mut spec).await);
+
+        if uninstalled {
+            handle_tool_error!(track_uninstall(&tool, Some(&spec)).await);
+        }
 
         Ok(CallToolResult::structured(
             serde_json::to_value(UninstallToolResponse {
