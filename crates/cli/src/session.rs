@@ -19,7 +19,8 @@ use starbase_console::ui::{OwnedOrShared, Progress, ProgressDisplay, ProgressRep
 use starbase_utils::envx;
 use std::collections::VecDeque;
 use std::env;
-use std::sync::Arc;
+use std::process::Command;
+use std::sync::{Arc, Mutex, PoisonError};
 use tokio::task::JoinSet;
 use tracing::{debug, info, instrument, warn};
 
@@ -40,6 +41,9 @@ pub struct ProtoSession {
     pub cli_version: Version,
     pub console: ProtoConsole,
     pub env: Arc<ProtoEnvironment>,
+
+    // Shared across clones, as the app runs the command with its own clone
+    process_replacement: Arc<Mutex<Option<Command>>>,
 }
 
 fn should_check_for_new_version(cli: &CLI) -> bool {
@@ -85,7 +89,27 @@ impl ProtoSession {
             cli_version: Version::parse(env!("CARGO_PKG_VERSION")).unwrap(),
             console,
             env: Arc::new(env),
+            process_replacement: Arc::new(Mutex::new(None)),
         }
+    }
+
+    /// Replace this process with the provided command, once the session has
+    /// completed. Commands that execute a tool must use this, instead of
+    /// replacing the process themselves, as a replaced process never closes
+    /// its open spans, nor drops the tracing guard that flushes telemetry.
+    pub fn replace_process_with(&self, command: Command) {
+        *self
+            .process_replacement
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner) = Some(command);
+    }
+
+    /// Take the command to replace this process with, if one was provided.
+    pub fn take_process_replacement(&self) -> Option<Command> {
+        self.process_replacement
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .take()
     }
 
     pub fn load_config(&self) -> Result<&ProtoConfig, ProtoConfigError> {
