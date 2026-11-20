@@ -34,6 +34,7 @@
 
 - Fixed `proto install` failing with "Too many open files" when many tools are configured, on systems with a low soft limit for open file descriptors (like macOS's default of 256). proto now raises its soft limit towards the hard limit on startup, and restores the original limit for the tools it executes. When the limit is still reached, `proto install` now suggests raising it.
 - Fixed building from source on Fedora, CentOS, and RHEL failing while updating the package manager index when system updates are available. The index is now refreshed with `dnf makecache` / `yum makecache`, instead of `check-update`, which exits with code 100 when updates are available.
+- Fixed `proto mcp`'s uninstall tool only deleting the version's directory. It now uninstalls with the same flow as `proto uninstall <tool> <version>`, which also removes the version from the tool's manifest and lockfiles, unlinks or re-points its bins and shims, and tracks the uninstall.
 
 #### ⚙️ Internal
 
