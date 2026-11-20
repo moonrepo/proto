@@ -1,11 +1,9 @@
 use crate::commands::install::{InstallArgs, install_one};
 use crate::error::ProtoCliError;
 use crate::session::{ProtoSession, SessionResult};
-use crate::utils::open_files::exec_command_and_replace;
 use crate::workflows::{ExecCommandOptions, ExecWorkflow, ExecWorkflowParams};
 use clap::Args;
 use iocraft::prelude::element;
-use miette::IntoDiagnostic;
 use proto_core::flow::detect::{Detector, ProtoDetectError};
 use proto_core::flow::locate::{Locator, ProtoLocateError};
 use proto_core::flow::resolve::Resolver;
@@ -360,7 +358,10 @@ fn run_global_tool(
             .args(args.passthrough)
             .env(FALLBACK_GUARD_VAR, append_fallback(&guard, &id, pid));
 
-        return exec_command_and_replace(command.create_sync_command()?).into_diagnostic();
+        // The process is replaced once the session completes
+        session.replace_process_with(command.create_sync_command()?);
+
+        return Ok(());
     }
 
     Err(error)
@@ -606,10 +607,10 @@ pub async fn run(session: ProtoSession, mut args: RunArgs) -> SessionResult {
     // Create and run command
     let command = create_command(workflow, tool_name, exe_config, args.passthrough)?;
 
-    // Must be the last line!
-    exec_command_and_replace(command.create_sync_command()?)
-        .into_diagnostic()
-        .map(|_| None)
+    // The process is replaced once the session completes
+    session.replace_process_with(command.create_sync_command()?);
+
+    Ok(None)
 }
 
 fn create_command(

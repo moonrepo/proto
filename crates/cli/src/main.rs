@@ -13,6 +13,7 @@ mod workflows;
 
 use app::{App as CLI, Commands, DebugCommands, PluginCommands};
 use clap::Parser;
+use miette::IntoDiagnostic;
 use proto_core::reporter::ReporterFormat;
 use session::ProtoSession;
 use starbase::{
@@ -23,6 +24,7 @@ use starbase_utils::{envx, string_vec};
 use std::env;
 use std::process::ExitCode;
 use tracing::debug;
+use utils::open_files::exec_command_and_replace;
 
 fn get_tracing_modules() -> Vec<String> {
     let mut modules = string_vec!["proto", "schematic", "starbase", "warpgate"];
@@ -48,7 +50,7 @@ async fn async_main() -> MainResult {
         Commands::Exec(_) | Commands::Run(_) | Commands::Shell(_)
     );
 
-    let _guard = app.setup_tracing(TracingOptions {
+    let guard = app.setup_tracing(TracingOptions {
         dump_trace: cli.dump && !is_exec_command,
         filter_modules: get_tracing_modules(),
         // Always set by `setup_env_vars`, using `App::log_level`
@@ -125,6 +127,20 @@ async fn async_main() -> MainResult {
             }
         })
         .await;
+
+    // Commands that execute a tool replace this process with it, which never
+    // returns (or exits on Windows), so only do so once the session has
+    // completed and its spans have closed. The tracing guard must be dropped
+    // beforehand as well, as that flushes the OpenTelemetry exporters.
+    if outcome.error.is_none()
+        && let Some(command) = session.take_process_replacement()
+    {
+        drop(guard);
+
+        if let Err(error) = exec_command_and_replace(command).into_diagnostic() {
+            outcome.error = Some(error);
+        }
+    }
 
     if let Some(error) = outcome.error {
         // Keep NDJSON errors machine-readable without violating stdout

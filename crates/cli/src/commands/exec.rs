@@ -1,9 +1,7 @@
 use crate::error::ProtoCliError;
 use crate::session::{LoadToolOptions, ProtoSession, SessionResult};
-use crate::utils::open_files::exec_command_and_replace;
 use crate::workflows::{ExecCommandOptions, ExecWorkflow, ExecWorkflowParams};
 use clap::Args;
-use miette::IntoDiagnostic;
 use proto_core::{ToolContext, ToolSpec};
 use rustc_hash::{FxHashMap, FxHashSet};
 use starbase_shell::ShellType;
@@ -107,8 +105,8 @@ pub async fn exec(session: ProtoSession, args: ExecArgs) -> SessionResult {
         },
     )?;
 
-    // Must be the last line!
-    exec_command_and_replace(command.create_sync_command()?)
-        .into_diagnostic()
-        .map(|_| None)
+    // The process is replaced once the session completes
+    session.replace_process_with(command.create_sync_command()?);
+
+    Ok(None)
 }
