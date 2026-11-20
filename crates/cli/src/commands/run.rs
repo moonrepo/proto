@@ -6,12 +6,13 @@ use clap::Args;
 use iocraft::prelude::element;
 use proto_core::flow::detect::{Detector, ProtoDetectError};
 use proto_core::flow::locate::{Locator, ProtoLocateError};
+use proto_core::flow::lock::{Locker, ProtoLockError};
 use proto_core::flow::resolve::Resolver;
 use proto_core::layout::ShimRegistry;
 use proto_core::utils::process::ProtoCommand;
 use proto_core::{
-    Id, PROTO_PLUGIN_KEY, PinLocation, ProtoConfig, ProtoEnvironment, ProtoLoaderError, Tool,
-    ToolContext, ToolSpec,
+    Id, LockRecord, PROTO_PLUGIN_KEY, PinLocation, ProtoConfig, ProtoEnvironment, ProtoLoaderError,
+    Tool, ToolContext, ToolSpec,
 };
 use proto_pdk_api::ExecutableConfig;
 use proto_shim::locate_proto_exe;
@@ -150,6 +151,21 @@ async fn run_self_upgrade(
         tool.context.clone(),
     )
     .await
+}
+
+// Like `proto install --immutable-lockfile`, an immutable lockfile must have a
+// record for this platform, as its checksum is required to verify the download
+fn require_locked_record(tool: &Tool, spec: &ToolSpec) -> Result<LockRecord, ProtoLockError> {
+    let mut immutable_spec = spec.clone();
+    immutable_spec.immutable = true;
+
+    // Errors when only other platforms have locked the version
+    Locker::new(tool)
+        .resolve_locked_record(&immutable_spec)?
+        .ok_or_else(|| ProtoLockError::ImmutableMissingRecord {
+            tool: tool.get_name().to_owned(),
+            spec: spec.req.to_string(),
+        })
 }
 
 async fn get_tool_executable(
@@ -486,6 +502,13 @@ pub async fn run(session: ProtoSession, mut args: RunArgs) -> SessionResult {
 
         // Auto-install the missing tool
         if config.settings.auto_install {
+            // Read like `proto install` reads its `--immutable-lockfile` argument
+            let immutable_lockfile = envx::bool_var("PROTO_IMMUTABLE_LOCKFILE");
+
+            if immutable_lockfile {
+                spec.version_locked = Some(require_locked_record(&tool, &spec)?);
+            }
+
             let hide_output = should_hide_auto_install_output(&args.passthrough);
 
             if hide_output {
@@ -502,16 +525,20 @@ pub async fn run(session: ProtoSession, mut args: RunArgs) -> SessionResult {
             install_one(
                 session.clone(),
                 InstallArgs {
+                    immutable_lockfile,
                     internal: true,
                     quiet: hide_output,
                     spec: Some(ToolSpec {
                         req: resolved_version.to_unresolved_spec(),
                         version: Some(resolved_version.clone()),
-                        version_locked: None,
+                        // Verify the download against the record that the
+                        // version was resolved with, as the manifest, which
+                        // is the fallback, doesn't have this version yet
+                        version_locked: spec.version_locked.clone(),
                         resolve_from_manifest: false,
                         resolve_from_lockfile: false,
                         update_lockfile: false,
-                        immutable: false,
+                        immutable: immutable_lockfile,
                     }),
                     ..Default::default()
                 },

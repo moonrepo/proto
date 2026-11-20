@@ -37,6 +37,7 @@
 - Fixed `proto mcp`'s uninstall tool only deleting the version's directory. It now uninstalls with the same flow as `proto uninstall <tool> <version>`, which also removes the version from the tool's manifest and lockfiles, unlinks or re-points its bins and shims, and tracks the uninstall.
 - Fixed OpenTelemetry data (`--otel` and `--otel-logs`) not being exported for `proto run`, `proto exec`, `proto shell`, and shims, like the install metrics of an auto-install. These commands now replace the proto process with the tool once the command has completed, after its spans have closed and the exporters have been flushed.
   - Spans are only recorded at the active log level, and these commands default to `warn`, so pass `--log info` (or set `PROTO_LOG=info`) to export their traces as well.
+- Fixed auto-installs (by shims and `proto run`) not verifying the download against the checksum in the lockfile, and ignoring `PROTO_IMMUTABLE_LOCKFILE`. Like `proto install --immutable-lockfile`, an auto-install with an immutable lockfile now fails when the lockfile doesn't have a record for the version on the current platform.
 
 #### ⚙️ Internal
 

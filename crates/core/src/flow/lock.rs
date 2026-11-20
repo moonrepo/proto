@@ -579,10 +579,12 @@ impl<'tool> Locker<'tool> {
     }
 
     /// Find the record in the lockfile for the resolved version of the provided
-    /// specification, with the same platform and variant as the install record.
+    /// specification, with the same spec as the record that the version was
+    /// resolved with, and the same platform and variant as the install record.
     fn find_variant_record(
         &self,
         spec: &ToolSpec,
+        resolved_record: &LockRecord,
         install_record: &LockRecord,
     ) -> Result<Option<LockRecord>, ProtoLockError> {
         let Some(version) = &spec.version else {
@@ -597,8 +599,15 @@ impl<'tool> Locker<'tool> {
             return Ok(None);
         };
 
+        // Records are keyed by the spec that the version was resolved with,
+        // which isn't always the requested spec, as an auto-install requests
+        // the version that was already resolved. Records from the manifest
+        // don't have a spec, so fall back to the requested spec
         let mut other = self.tool.create_locked_record();
-        other.spec = Some(spec.req.clone());
+        other.spec = resolved_record
+            .spec
+            .clone()
+            .or_else(|| Some(spec.req.clone()));
         other.variant = install_record.variant.clone();
 
         let matches = records
@@ -644,7 +653,9 @@ impl<'tool> Locker<'tool> {
         let variant_record;
         let locked_record = if resolved_record.variant == install_record.variant {
             resolved_record
-        } else if let Some(record) = self.find_variant_record(spec, install_record)? {
+        } else if let Some(record) =
+            self.find_variant_record(spec, resolved_record, install_record)?
+        {
             variant_record = record;
             &variant_record
         } else if spec.immutable {
