@@ -120,6 +120,25 @@ mod run {
         ));
     }
 
+    #[test]
+    fn suggests_installing_the_configured_requirement() {
+        let sandbox = create_empty_proto_sandbox();
+        sandbox.create_file(".prototools", "protostar = \"stable\"\n");
+
+        let assert = sandbox
+            .run_bin(|cmd| {
+                cmd.arg("run").arg("protostar");
+            })
+            .failure();
+
+        // Not the version that `stable` resolved to
+        assert.stderr(
+            predicate::str::contains("This project requires protostar stable")
+                .and(predicate::str::contains("proto install protostar stable"))
+                .and(predicate::str::contains("proto install protostar 5.0.0").not()),
+        );
+    }
+
     // Stdout belongs to the tool being ran, so a failure must never write to
     // it, even when rendering machine readable output. The banner is also
     // suppressed for the same reason, so stdout stays completely empty.
