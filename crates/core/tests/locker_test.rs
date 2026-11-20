@@ -2188,6 +2188,36 @@ mod locker_variant {
         ));
     }
 
+    // An auto-install requests the exact version that was resolved from the
+    // lockfile, while the records are keyed by the configured spec
+    #[tokio::test(flavor = "multi_thread")]
+    async fn verifies_against_the_downloaded_variant_when_requesting_the_resolved_version() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".prototools", "[settings]\nlockfile = true");
+
+        let default = variant_record("20.0.0", None, Some("default"));
+        let baseline = variant_record("20.0.0", Some("baseline"), Some("baseline"));
+
+        save_lockfile(sandbox.path(), vec![default.clone(), baseline.clone()]);
+
+        let tool = create_tool_in_sandbox(sandbox.path()).await;
+        let locker = Locker::new(&tool);
+
+        let mut spec = ToolSpec::new_resolved(VersionSpec::parse("20.0.0").unwrap());
+        spec.version_locked = Some(default);
+        spec.immutable = true;
+
+        locker.verify_locked_record(&spec, &baseline).unwrap();
+
+        assert!(matches!(
+            locker.verify_locked_record(
+                &spec,
+                &variant_record("20.0.0", Some("baseline"), Some("default")),
+            ),
+            Err(ProtoLockError::MismatchedChecksum { .. })
+        ));
+    }
+
     #[tokio::test(flavor = "multi_thread")]
     async fn doesnt_verify_against_another_version_of_the_variant() {
         let sandbox = create_empty_sandbox();
