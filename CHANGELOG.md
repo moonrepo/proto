@@ -45,6 +45,7 @@
 - Fixed commands that a person runs in Cursor's integrated terminal (or Replit) printing NDJSON instead of human-readable output, as these environments are detected as an AI agent for every command. Agents that run in these environments (like Claude Code, Codex, and Cursor's own agent) are now detected by their own markers, and otherwise, proto only defaults to the NDJSON reporter when no terminal is attached to stdout and stderr, as agents capture output.
 - Fixed `settings.offline.override-default-hosts` (or `PROTO_OFFLINE_OVERRIDE_HOSTS`) without `custom-hosts` always reporting offline, which failed every install with "Internet connection required". With no hosts to check, offline detection is now skipped, and the connection is assumed to be online. Empty entries in `PROTO_OFFLINE_HOSTS` are also ignored.
 - Fixed the error for a version that hasn't been installed suggesting `proto install` with the version that the requirement resolved to (like `proto install npm 11.20.0` for `npm = "bundled"`). It now suggests the configured requirement (like `proto install npm bundled`), which also installs with the same lockfile record.
+- Fixed commands that resolve a version (like a shim for a tool pinned to `latest`) failing with "Failed to write ... remote-versions.json" when the proto store can't be written to, like in a sandboxed AI agent or a read-only home directory. The loaded versions are now used without being cached.
 
 #### ⚙️ Internal
 
