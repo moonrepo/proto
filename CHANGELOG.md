@@ -25,6 +25,9 @@
 
 #### 🚀 Updates
 
+- **CLI**
+  - Added `~/.config/fish/conf.d/proto.fish` (or `$XDG_CONFIG_HOME/fish/conf.d/proto.fish`) as a shell profile option for fish in `proto setup`, so proto can be set up in a file of its own instead of `config.fish`. It isn't the default, because fish loads `conf.d` before `config.fish`, so paths that `config.fish` prepends to `PATH` (like Homebrew's `brew shellenv`) come before proto's shims.
+  - Updated `proto setup --yes` to create the profile from `PROTO_SHELL_PROFILE` when it doesn't exist yet, instead of ignoring it and setting up the shell's default profile.
 - **Config**
   - Updated boolean settings that are read from environment variables (like `PROTO_AUTO_INSTALL` and `PROTO_TELEMETRY`) to error on a value that isn't recognized, instead of treating it as `false`. An empty value is now treated as unset, so the setting's default applies. `0`, `false`, `no`, `off`, `disable`, and `disabled` are accepted as `false`.
 - **WASM API**
@@ -32,6 +35,7 @@
 
 #### 🐞 Fixes
 
+- Fixed `proto setup --yes` setting up a second shell profile when proto had already been set up in another one, like `.zshenv` when `.zshrc` also exists. The profile that is already set up is now kept.
 - Fixed `proto install` failing with "Too many open files" when many tools are configured, on systems with a low soft limit for open file descriptors (like macOS's default of 256). proto now raises its soft limit towards the hard limit on startup, and restores the original limit for the tools it executes. When the limit is still reached, `proto install` now suggests raising it.
 - Fixed building from source on Fedora, CentOS, and RHEL failing while updating the package manager index when system updates are available. The index is now refreshed with `dnf makecache` / `yum makecache`, instead of `check-update`, which exits with code 100 when updates are available.
 - Fixed `proto mcp`'s uninstall tool only deleting the version's directory. It now uninstalls with the same flow as `proto uninstall <tool> <version>`, which also removes the version from the tool's manifest and lockfiles, unlinks or re-points its bins and shims, and tracks the uninstall.

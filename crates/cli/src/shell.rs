@@ -4,9 +4,10 @@ use proto_core::reporter::ProtoConsole;
 use starbase_console::ui::*;
 use starbase_shell::{BoxedShell, ShellType};
 use starbase_styles::color;
+use starbase_utils::envx;
 use starbase_utils::fs::{self, FsError};
 use std::{
-    env::{self, consts},
+    env::consts,
     io::{self, BufRead},
     path::{Path, PathBuf},
 };
@@ -17,27 +18,76 @@ pub enum Export {
     Var(String, String),
 }
 
-pub fn find_profiles(shell: &BoxedShell, home_dir: &Path) -> Vec<PathBuf> {
-    debug!("Finding profile files for {}", shell);
-
-    if let Ok(profile_env) = env::var("PROTO_SHELL_PROFILE")
-        && !profile_env.is_empty()
-    {
-        return vec![PathBuf::from(profile_env)];
-    }
-
-    shell.get_profile_paths(home_dir)
+// Fish sources every `*.fish` file in `conf.d` before `config.fish`, so proto
+// can be set up in a file of its own. This is an option, not the default,
+// because anything that `config.fish` then prepends to `PATH`, like Homebrew's
+// `brew shellenv`, takes precedence over proto's shims.
+fn get_fish_conf_path(shell: &BoxedShell, home_dir: &Path) -> PathBuf {
+    shell
+        .get_config_path(home_dir)
+        .with_file_name("conf.d")
+        .join("proto.fish")
 }
 
-pub fn find_first_profile(shell: &BoxedShell, home_dir: &Path) -> PathBuf {
-    for profile in find_profiles(shell, home_dir) {
-        if profile.exists() {
-            return profile;
-        }
+fn get_profile_from_env() -> Option<PathBuf> {
+    envx::path_var("PROTO_SHELL_PROFILE")
+}
+
+pub fn find_profiles(shell_type: ShellType, home_dir: &Path) -> Vec<PathBuf> {
+    debug!("Finding profile files for {}", shell_type);
+
+    if let Some(profile) = get_profile_from_env() {
+        return vec![profile];
     }
 
-    // Otherwise return the common profile for setting env vars
-    shell.get_env_path(home_dir)
+    let shell = shell_type.build();
+    let mut profiles = shell.get_profile_paths(home_dir);
+
+    if shell_type == ShellType::Fish {
+        profiles.push(get_fish_conf_path(&shell, home_dir));
+    }
+
+    profiles
+}
+
+/// Find the profile to set up when not prompting. The profile from
+/// `PROTO_SHELL_PROFILE` is used as-is, even when it doesn't exist yet.
+/// Otherwise a profile that has already been set up is preferred, so that
+/// another profile isn't set up as well, then the first profile that exists,
+/// and lastly the common profile for setting env vars.
+pub fn find_setup_profile(shell_type: ShellType, home_dir: &Path, env_var: &str) -> PathBuf {
+    if let Some(profile) = get_profile_from_env() {
+        return profile;
+    }
+
+    let profiles = find_profiles(shell_type, home_dir);
+
+    if let Some(profile) = profiles
+        .iter()
+        .find(|profile| is_profile_setup(profile, env_var))
+    {
+        return profile.to_path_buf();
+    }
+
+    if let Some(profile) = profiles.iter().find(|profile| profile.exists()) {
+        return profile.to_path_buf();
+    }
+
+    shell_type.build().get_env_path(home_dir)
+}
+
+// Only used to inform the choice of a profile, so one that can't be read
+// counts as not set up
+fn is_profile_setup(profile: &Path, env_var: &str) -> bool {
+    profile.exists() && has_profile_setup(profile, env_var).unwrap_or(false)
+}
+
+fn has_profile_setup(profile: &Path, env_var: &str) -> Result<bool, FsError> {
+    let file = fs::open_file(profile)?;
+
+    Ok(io::BufReader::new(file)
+        .lines()
+        .any(|line| line.is_ok_and(|l| l.contains(env_var))))
 }
 
 pub fn format_exports(shell: &BoxedShell, comment: &str, exports: Vec<Export>) -> String {
@@ -83,13 +133,8 @@ pub fn update_profile_if_not_setup(
         env_var
     );
 
-    let file = fs::open_file(profile)?;
-    let has_setup = io::BufReader::new(file)
-        .lines()
-        .any(|line| line.is_ok_and(|l| l.contains(env_var)));
-
     // Already setup profile, so avoid writing
-    if has_setup {
+    if has_profile_setup(profile, env_var)? {
         debug!("Profile already setup");
 
         return Ok(false);
@@ -124,14 +169,27 @@ pub async fn prompt_for_shell(console: &ProtoConsole) -> Result<ShellType, Proto
 
 pub async fn prompt_for_shell_profile(
     console: &ProtoConsole,
-    shell: &BoxedShell,
+    shell_type: ShellType,
     home_dir: &Path,
+    env_var: &str,
 ) -> Result<Option<PathBuf>, ProtoCliError> {
-    let profiles = find_profiles(shell, home_dir);
+    let profiles = find_profiles(shell_type, home_dir);
+    let fish_conf_path =
+        (shell_type == ShellType::Fish).then(|| get_fish_conf_path(&shell_type.build(), home_dir));
 
     let mut options = profiles
         .iter()
-        .map(|path| SelectOption::new(path.to_string_lossy()))
+        .map(|path| {
+            let option = SelectOption::new(path.to_string_lossy());
+
+            if is_profile_setup(path, env_var) {
+                option.description("Already set up")
+            } else if fish_conf_path.as_ref().is_some_and(|conf| conf == path) {
+                option.description("Loaded before config.fish, so PATH changes there come first")
+            } else {
+                option
+            }
+        })
         .collect::<Vec<_>>();
     options.push(SelectOption::new("Other"));
     options.push(SelectOption::new("None"));
