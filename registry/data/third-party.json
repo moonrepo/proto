@@ -382,6 +382,20 @@
       ]
     },
     {
+      "id": "flutter-tizen",
+      "locator": "github://a-man-called-q/proto-flutter-tizen-plugin",
+      "format": "wasm",
+      "name": "flutter-tizen",
+      "description": "An extension to the Flutter SDK for building Flutter applications for Tizen devices.",
+      "author": "a-man-called-q",
+      "homepageUrl": "https://github.com/flutter-tizen/flutter-tizen",
+      "repositoryUrl": "https://github.com/a-man-called-q/proto-flutter-tizen-plugin",
+      "devicon": "flutter",
+      "bins": [
+        "flutter-tizen"
+      ]
+    },
+    {
       "id": "flux",
       "locator": "https://raw.githubusercontent.com/b4nst/proto-plugins/refs/heads/main/toml/flux.toml",
       "format": "toml",
