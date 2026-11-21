@@ -1,6 +1,6 @@
 use crate::session::{ProtoSession, SessionResult};
 use crate::shell::{
-    Export, find_first_profile, format_exports, prompt_for_shell, prompt_for_shell_profile,
+    Export, find_setup_profile, format_exports, prompt_for_shell, prompt_for_shell_profile,
     update_profile_if_not_setup,
 };
 use clap::Args;
@@ -8,7 +8,7 @@ use iocraft::FlexDirection;
 use iocraft::prelude::{View, element};
 use proto_shim::get_exe_file_name;
 use starbase_console::ui::*;
-use starbase_shell::{BoxedShell, ShellType};
+use starbase_shell::ShellType;
 use starbase_styles::color;
 use starbase_utils::envx;
 use std::env;
@@ -40,6 +40,8 @@ pub struct SetupArgs {
 }
 
 const DISCORD: &str = "https://discord.gg/qCh9MEynv2";
+
+const SETUP_ENV_VAR: &str = "PROTO_HOME";
 
 #[instrument(skip(session))]
 pub async fn setup(session: ProtoSession, args: SetupArgs) -> SessionResult {
@@ -112,7 +114,7 @@ pub async fn setup(session: ProtoSession, args: SetupArgs) -> SessionResult {
     let modified_profile_path = if args.no_modify_profile {
         None
     } else {
-        update_shell_profile(&session, &shell, &exported_content, interactive).await?
+        update_shell_profile(&session, shell_type, &exported_content, interactive).await?
     };
 
     #[allow(clippy::needless_bool)]
@@ -234,27 +236,37 @@ pub async fn setup(session: ProtoSession, args: SetupArgs) -> SessionResult {
 
 async fn update_shell_profile(
     session: &ProtoSession,
-    shell: &BoxedShell,
+    shell_type: ShellType,
     content: &str,
     interactive: bool,
 ) -> miette::Result<Option<PathBuf>> {
-    debug!("Updating PATH in {} shell", shell);
+    debug!("Updating PATH in {} shell", shell_type);
 
     let profile_path = if interactive {
         debug!("Prompting the user to select a shell profile");
 
-        prompt_for_shell_profile(&session.console, shell, &session.env.home_dir).await?
+        prompt_for_shell_profile(
+            &session.console,
+            shell_type,
+            &session.env.home_dir,
+            SETUP_ENV_VAR,
+        )
+        .await?
     } else {
         debug!("Attempting to find a shell profile to update");
 
-        Some(find_first_profile(shell, &session.env.home_dir))
+        Some(find_setup_profile(
+            shell_type,
+            &session.env.home_dir,
+            SETUP_ENV_VAR,
+        ))
     };
 
     // If we found a profile, update the global config so we can reference it
     if let Some(profile) = &profile_path {
         debug!("Selected profile {}, updating", color::path(profile));
 
-        update_profile_if_not_setup(profile, content, "PROTO_HOME")?;
+        update_profile_if_not_setup(profile, content, SETUP_ENV_VAR)?;
 
         session.env.store.save_preferred_profile(profile)?;
     }
