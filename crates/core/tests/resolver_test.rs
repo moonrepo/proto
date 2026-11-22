@@ -595,6 +595,28 @@ mod resolver {
         }
 
         #[tokio::test(flavor = "multi_thread")]
+        async fn loads_versions_when_the_cache_cant_be_written() {
+            let sandbox = create_empty_sandbox();
+            let tool = create_mocked_tool(sandbox.path()).await;
+
+            // A file in place of the tool's directory fails the write on every
+            // platform, even as root
+            std::fs::create_dir_all(tool.inventory.dir.parent().unwrap()).unwrap();
+            std::fs::write(&tool.inventory.dir, "").unwrap();
+
+            let result = Resolver::new(&tool)
+                .resolve_version_candidate(
+                    &UnresolvedVersionSpec::parse("5").unwrap(),
+                    false,
+                    false,
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(result, VersionSpec::parse("5.10.15").unwrap());
+        }
+
+        #[tokio::test(flavor = "multi_thread")]
         async fn caches_versions_by_scope() {
             let sandbox = create_empty_sandbox();
             let tool = create_mocked_tool(sandbox.path()).await;

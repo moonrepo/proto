@@ -87,10 +87,20 @@ impl<'tool> Resolver<'tool> {
                     Ok(remote_versions) => {
                         versions = remote_versions;
 
-                        if !versions.versions.is_empty() {
-                            self.tool
+                        // The versions have already been loaded, so a store that
+                        // can't be written to (read-only or sandboxed) shouldn't
+                        // fail the entire flow
+                        if !versions.versions.is_empty()
+                            && let Err(error) = self
+                                .tool
                                 .inventory
-                                .save_remote_versions(&versions, initial_version.get_scope())?;
+                                .save_remote_versions(&versions, initial_version.get_scope())
+                        {
+                            warn!(
+                                tool = self.tool.context.as_str(),
+                                "Failed to cache available versions: {}",
+                                error.to_string(),
+                            );
                         }
                     }
                     // The remote is unreachable, which is typically a transient
