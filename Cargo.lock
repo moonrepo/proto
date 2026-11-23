@@ -4363,7 +4363,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.64.0"
+version = "0.64.1"
 dependencies = [
  "ai_env",
  "anyhow",
@@ -4414,7 +4414,7 @@ dependencies = [
 
 [[package]]
 name = "proto_codegen"
-version = "0.18.1"
+version = "0.18.2"
 dependencies = [
  "proto_core",
  "proto_pdk_api",
@@ -4424,7 +4424,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.64.3"
+version = "0.64.4"
 dependencies = [
  "ai_env",
  "ci_env",
@@ -4473,7 +4473,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.37.2"
+version = "0.37.3"
 dependencies = [
  "extism-pdk",
  "proto_pdk",
@@ -4485,7 +4485,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.36.2"
+version = "0.36.3"
 dependencies = [
  "derive_setters",
  "proto_pdk_api",
@@ -4502,7 +4502,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.52.2"
+version = "0.52.3"
 dependencies = [
  "extism",
  "proto_core",
@@ -6964,7 +6964,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.38.1"
+version = "0.38.2"
 dependencies = [
  "async-trait",
  "codspeed-criterion-compat",
@@ -7003,7 +7003,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_api"
-version = "0.21.2"
+version = "0.21.3"
 dependencies = [
  "anyhow",
  "derive_setters",
@@ -7018,7 +7018,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_pdk"
-version = "0.20.1"
+version = "0.20.2"
 dependencies = [
  "extism-pdk",
  "rustc-hash",
