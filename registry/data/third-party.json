@@ -169,6 +169,19 @@
       ]
     },
     {
+      "id": "cilium",
+      "locator": "https://github.com/BarretoTech/proto-cilium-plugin/releases/download/v0.1.0/plugin.toml",
+      "format": "toml",
+      "name": "Cilium CLI",
+      "description": "Install, inspect, and troubleshoot Cilium from the command line.",
+      "author": "BarretoTech",
+      "homepageUrl": "https://docs.cilium.io/",
+      "repositoryUrl": "https://github.com/BarretoTech/proto-cilium-plugin",
+      "bins": [
+        "cilium"
+      ]
+    },
+    {
       "id": "claude-code",
       "locator": "github://BarretoTech/proto-claude-code-plugin",
       "format": "wasm",
@@ -736,6 +749,19 @@
       ]
     },
     {
+      "id": "kubectl",
+      "locator": "https://github.com/BarretoTech/proto-kubectl-plugin/releases/download/v0.1.0/plugin.toml",
+      "format": "toml",
+      "name": "kubectl",
+      "description": "The Kubernetes command-line tool.",
+      "author": "BarretoTech",
+      "homepageUrl": "https://kubernetes.io/docs/reference/kubectl/",
+      "repositoryUrl": "https://github.com/BarretoTech/proto-kubectl-plugin",
+      "bins": [
+        "kubectl"
+      ]
+    },
+    {
       "id": "kubeseal",
       "locator": "https://raw.githubusercontent.com/firleaf/proto-toml-plugins/main/plugins/kubeseal.toml",
       "format": "toml",
@@ -1180,6 +1206,32 @@
       ]
     },
     {
+      "id": "stripe",
+      "locator": "https://github.com/BarretoTech/proto-stripe-plugin/releases/download/v0.1.0/plugin.toml",
+      "format": "toml",
+      "name": "Stripe CLI",
+      "description": "Build, test, and manage a Stripe integration from the command line.",
+      "author": "BarretoTech",
+      "homepageUrl": "https://docs.stripe.com/cli",
+      "repositoryUrl": "https://github.com/BarretoTech/proto-stripe-plugin",
+      "bins": [
+        "stripe"
+      ]
+    },
+    {
+      "id": "talosctl",
+      "locator": "https://github.com/BarretoTech/proto-talosctl-plugin/releases/download/v0.1.0/plugin.toml",
+      "format": "toml",
+      "name": "Talos CLI",
+      "description": "Manage Talos Linux nodes and Kubernetes clusters.",
+      "author": "BarretoTech",
+      "homepageUrl": "https://siderolabs.com/talos-linux",
+      "repositoryUrl": "https://github.com/BarretoTech/proto-talosctl-plugin",
+      "bins": [
+        "talosctl"
+      ]
+    },
+    {
       "id": "terraform",
       "locator": "https://raw.githubusercontent.com/theomessin/proto-toml-plugins/master/terraform.toml",
       "format": "toml",
@@ -1454,6 +1506,19 @@
       "devicon": "zig",
       "bins": [
         "zig"
+      ]
+    },
+    {
+      "id": "zizmor",
+      "locator": "https://github.com/BarretoTech/proto-zizmor-plugin/releases/download/v0.1.0/plugin.toml",
+      "format": "toml",
+      "name": "zizmor",
+      "description": "Audit GitHub Actions workflows for security issues.",
+      "author": "BarretoTech",
+      "homepageUrl": "https://docs.zizmor.sh/",
+      "repositoryUrl": "https://github.com/BarretoTech/proto-zizmor-plugin",
+      "bins": [
+        "zizmor"
       ]
     },
     {
