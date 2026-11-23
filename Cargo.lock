@@ -4404,7 +4404,7 @@ dependencies = [
  "starbase_styles",
  "starbase_utils",
  "sysinfo",
- "system_env 0.11.0",
+ "system_env 0.12.0",
  "thiserror 2.0.21",
  "tokio",
  "tracing",
@@ -4460,7 +4460,7 @@ dependencies = [
  "starbase_shell",
  "starbase_styles",
  "starbase_utils",
- "system_env 0.11.0",
+ "system_env 0.12.0",
  "thiserror 2.0.21",
  "tokio",
  "toml_edit",
@@ -4494,7 +4494,7 @@ dependencies = [
  "serde",
  "serde_json",
  "starbase_sandbox",
- "system_env 0.11.0",
+ "system_env 0.12.0",
  "thiserror 2.0.21",
  "version_spec",
  "warpgate_api",
@@ -5957,7 +5957,7 @@ dependencies = [
  "starbase_console",
  "starbase_shell",
  "starbase_styles",
- "system_env 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "system_env 0.11.0",
  "thiserror 2.0.21",
  "tokio",
  "tracing",
@@ -6160,9 +6160,10 @@ dependencies = [
 [[package]]
 name = "system_env"
 version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23a309a66378fa2861c711d2dbaa56b26bce7524c9da96b55256b40eefd87be8"
 dependencies = [
  "regex",
- "schematic",
  "serde",
  "serde_json",
  "thiserror 2.0.21",
@@ -6170,11 +6171,10 @@ dependencies = [
 
 [[package]]
 name = "system_env"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23a309a66378fa2861c711d2dbaa56b26bce7524c9da96b55256b40eefd87be8"
+version = "0.12.0"
 dependencies = [
  "regex",
+ "schematic",
  "serde",
  "serde_json",
  "thiserror 2.0.21",
@@ -6922,7 +6922,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "version_spec"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "compact_str 0.10.0",
  "pest",
@@ -6992,7 +6992,7 @@ dependencies = [
  "starbase_shell",
  "starbase_styles",
  "starbase_utils",
- "system_env 0.11.0",
+ "system_env 0.12.0",
  "thiserror 2.0.21",
  "tokio",
  "tracing",
@@ -7012,7 +7012,7 @@ dependencies = [
  "serde",
  "serde_json",
  "starbase_id",
- "system_env 0.11.0",
+ "system_env 0.12.0",
  "thiserror 2.0.21",
 ]
 
